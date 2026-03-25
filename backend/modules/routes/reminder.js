@@ -1,0 +1,10 @@
+'use strict';
+const express = require('express');
+const router = express.Router();
+const { GetAllReminderFilterByClass, StudentFilter, StudentFilterCreate, SendManualFeeReminder, DeleteReminderFilter } = require('../controllers/reminder');
+router.get('/admin/:id/class/:class', GetAllReminderFilterByClass);
+router.post('/student-filter', StudentFilter);
+router.post('/filter-create', StudentFilterCreate);
+router.post('/', SendManualFeeReminder);
+router.delete('/:id', DeleteReminderFilter);
+module.exports = router;
