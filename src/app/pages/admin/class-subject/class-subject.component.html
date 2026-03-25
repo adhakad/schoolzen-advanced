@@ -1,0 +1,194 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Class With Subjects</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-2 offset-5">
+                        <button class="submit-button" mat-raised-button
+                          (click)="addClassSubjectModel()"><mat-icon>add</mat-icon>Create</button>
+                      </div>
+                      <div class="col-5">
+                        <input type="text" class="form-control" placeholder="Search..." id="searchText"
+                          name="searchText" #searchText="ngModel" [(ngModel)]="filters.searchText"
+                          (keyup)="getClassSubject({page : 1, limit : 0})">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Class With Subject</span>
+                    </button>
+                  </div>
+                  <div class="col-7 mt-3">
+                    <input type="text" class="form-control" placeholder="Search..." id="searchText" name="searchText"
+                      #searchText="ngModel" [(ngModel)]="filters.searchText"
+                      (keyup)="getClassSubject({page : 1, limit : 0})">
+                  </div>
+                  <div class="col-5 mt-3">
+                    <button class="submit-button" mat-raised-button
+                      (click)="addClassSubjectModel()"><mat-icon>add</mat-icon>Create</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>S.No.</th>
+                      <th>Class</th>
+                      <th>Stream</th>
+                      <th>Subject</th>
+                      <th>Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="classSubjectInfo && classSubjectInfo.length>0">
+                    <tr *ngFor="let classSubject of classSubjectInfo,let i=index">
+                      <td>
+                        <p class="mb-0">{{number*10+i+1-10}}.</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{classSubject.class | classSuffix}}</p>
+                      </td>
+                      <td>
+                        <p class="fw-normal mb-1">{{classSubject.stream | streamTitleCase}}</p>
+                      </td>
+                      <td>
+                        <ng-container *ngFor="let subject of classSubject.subject,let i=index;">
+                          <p class="fw-normal mb-1"><i class="bi bi-circle-fill me-1" style="font-size: 8px;"></i>
+                            {{subject.subject | titlecase}}</p>
+                        </ng-container>
+                      </td>
+                      <td class="mb-0">
+                        <!-- <mat-icon (click)="updateClassSubjectModel(classSubject)">edit</mat-icon> -->
+                        <mat-icon (click)="deleteClassSubjectModel(classSubject._id)">delete</mat-icon>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <app-pagination [paginationValues]="paginationValues" (onChange)="getClassSubject($event)">
+                </app-pagination>
+              </div>
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-scrollable" [class.modal-lg]="!deleteMode" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{updateMode?'UPDATE': deleteMode ? 'DELETE':'GROUP'}} CLASS WITH SUBJECTS
+                      </h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="classSubjectForm" (ngSubmit)="classSubjectAddUpdate()" *ngIf="!deleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <ng-container>
+                          <div class="row p-4 pt-0">
+                            <div class="col-12 col-lg-6">
+                              <mat-form-field appearance="outline">
+                                <mat-label>Select class</mat-label>
+                                <mat-select type="number" matInput formControlName="class">
+                                  <div *ngFor="let classInfo of classInfo">
+                                    <mat-option value="{{classInfo.class}}"
+                                      (click)="chooseClass(classInfo.class)">{{classInfo.class |
+                                      classSuffix}}</mat-option>
+                                  </div>
+                                </mat-select>
+                                <mat-hint
+                                  *ngIf="!classSubjectForm.get('class')?.valid && classSubjectForm.get('class')?.touched"
+                                  class="form-text text-danger">Class is required</mat-hint>
+                              </mat-form-field>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <mat-form-field appearance="outline">
+                                <mat-label>Stream</mat-label>
+                                <mat-select type="text" matInput formControlName="stream">
+                                  <ng-container *ngIf="cls==12 || cls==11">
+                                    <div *ngFor="let subject of streamMainSubject">
+                                      <mat-option value="{{subject}}">{{subject}}</mat-option>
+                                    </div>
+                                  </ng-container>
+                                  <ng-container *ngIf="cls<11 && cls!==0 || cls == 200 || cls==201 || cls==202">
+                                    <div>
+                                      <mat-option value="n/a">N/A</mat-option>
+                                    </div>
+                                  </ng-container>
+                                </mat-select>
+                                <mat-hint
+                                  *ngIf="!classSubjectForm.get('stream')?.valid && classSubjectForm.get('stream')?.touched"
+                                  class="form-text text-danger">Stream is required</mat-hint>
+                              </mat-form-field>
+                            </div>
+                          </div>
+                        </ng-container>
+                        <ng-container>
+                          <div class="col-12 p-4 pt-0 pb-0">
+                            <h3>Choose Subjects For Class</h3>
+                          </div>
+                          <div class="row p-4 pt-0">
+                            <div class="col-6 col-lg-3" *ngFor="let subject of subjectInfo,let i=index;">
+                              <mat-checkbox class="example-margin"
+                                [checked]="selectedSubjectGroup.includes(subject.subject)"
+                                (change)="subjectGroup(subject.subject)">
+                                {{subject.subject | titlecase}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button
+                          [disabled]="!classSubjectForm.valid || selectedSubjectGroup.length==0"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                    <div *ngIf="deleteMode">
+                      <h4 style="margin-left: 20px;">To delete class, click ok to confirm.</h4>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button"
+                          (click)="classSubjectDelete(deleteById)">Ok</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- <div class="spinner-container" *ngIf="loader">
+    <div class="spinner-overlay" *ngIf="loader">
+      <mat-progress-spinner *ngIf="loader" diameter="65" mode="indeterminate" strokeWidth="3"></mat-progress-spinner>
+    </div>
+  </div> -->

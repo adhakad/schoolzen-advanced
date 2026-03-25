@@ -1,0 +1,9 @@
+@import'../dashboard/dashboard.component.css';
+@import'../admin-student-fees/admin-student-fees.component.css';
+.table-container h3{
+  color: #4e4caacd;
+  letter-spacing: .5px;
+  font-size: 15px;
+  margin-top: 5px !important;
+  margin-bottom: 5px !important;
+}

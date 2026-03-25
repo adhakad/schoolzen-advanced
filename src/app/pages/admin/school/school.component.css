@@ -1,0 +1,5 @@
+@import'../dashboard/dashboard.component.css';
+::ng-deep .mat-select-panel.long-option-panel {
+    min-width: 250px !important;
+    max-width: 1000px !important;
+  }

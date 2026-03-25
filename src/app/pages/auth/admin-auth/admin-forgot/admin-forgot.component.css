@@ -1,0 +1,93 @@
+@import'../admin-login/admin-login.component.css';
+@import '../../../main/payment/payment.component.css';
+ .otp-input {
+  display: flex;
+  font-family: 'Poppins', sans-serif !important;
+  justify-content: center;
+}
+
+.otp-input input {
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  text-align: center;
+  font-family: 'Poppins', sans-serif !important;
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-bottom: 30px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.otp-input input:focus {
+  outline: none;
+  font-family: 'Poppins', sans-serif !important;
+  border-color: #804beb;
+  box-shadow: 0 0 5px #804beb78;
+}
+
+.otp-input input[type=number]::-webkit-inner-spin-button,
+.otp-input input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+@media (min-width: 992px) {
+
+  .otp-input {
+    display: flex;
+    font-family: 'Poppins', sans-serif !important;
+    justify-content: left;
+  }
+
+  .otp-input input {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    text-align: center;
+    margin-left: 0;
+    margin-right: 30px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+
+  .otp-input input:focus {
+    outline: none;
+    border-color: #804beb;
+    box-shadow: 0 0 5px #804beb78;
+  }
+}
+  /*
+  
+  .otp-input input:focus {
+    outline: none;
+    border-color: #804beb;
+    box-shadow: 0 0 5px #804beb78;
+  }
+  
+  .otp-input input[type=number]::-webkit-inner-spin-button,
+  .otp-input input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  @media (min-width: 992px) {
+    .otp-input input {
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
+        text-align: center;
+        margin-left: 15px;
+        margin-right: 15px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+    
+      .otp-input input:focus {
+        outline: none;
+        border-color: #804beb;
+        box-shadow: 0 0 5px #804beb78;
+      }
+    
+  } */

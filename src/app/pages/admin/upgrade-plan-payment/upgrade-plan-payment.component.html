@@ -1,0 +1,146 @@
+<app-header-navbar></app-header-navbar>
+<div style="background:rgb(243, 241, 250);padding-top: 10vh;">
+    <!-- rgb(233, 233, 239) -->
+    <div class="container-fluid" style="padding-bottom: 20vh;" *ngIf="paymentCompleted==false">
+        <div class="row">
+            <div class="col-lg-10 offset-lg-1">
+                <div class="row">
+                    <div class="col-12 col-lg-6 offset-lg-3">
+                        <div class="row">
+                            <div class="col-lg-10 offset-lg-2">
+                                <h2 class="title">Proceed to Payment</h2>
+                                <div class="cards-second">
+                                    <div class="row" style="padding-bottom: 20px;">
+                                        <div class="col-12 card-title">
+                                            <h2>Order Summary
+                                            </h2>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="row" style="padding-top: 35px;">
+                                                <div class="col-6" style="text-align: left;">
+                                                    <h3>Your Plan</h3>
+                                                </div>
+                                                <div class="col-6" style="text-align: right;">
+                                                    <h3 style="letter-spacing: .5px;">{{singlePlanInfo?.plans}}</h3>
+                                                </div>
+                                                <div class="col-6" style="text-align: left;">
+                                                    <h3>Plan Pricing</h3>
+                                                </div>
+                                                <div class="col-6" style="text-align: right;">
+                                                    <h3>{{singlePlanInfo?.upgradePrice | currency:'INR':true}}</h3>
+                                                </div>
+                                                <!-- <div class="col-6" style="text-align: left;">
+                                                    <h3>Taxes @ 18%</h3>
+                                                </div>
+                                                <div class="col-6" style="text-align: right;">
+                                                    <h3>{{taxes | currency:'INR':true}}</h3>
+                                                </div> -->
+                                                <mat-divider></mat-divider>
+                                                <div class="col-12">
+                                                    <div class="row" style="padding-top: 15px;">
+                                                        <div class="col-6" style="text-align: left;">
+                                                            <h2>Total</h2>
+                                                        </div>
+                                                        <div class="col-6" style="text-align: right;">
+                                                            <h2>{{totalAmount | currency:'INR':true}}</h2>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <button type="submit" mat-raised-button class="submit-button"
+                                                [disabled]="paymentCompleted" (click)="createPayment()"
+                                                style="width: 100% !important;font-size: 16px;">Submit
+                                                Secure
+                                                Payment</button>
+                                        </div>
+                                    </div>
+                                    <div class="row" style="padding-top: 15px;">
+                                        <ng-container *ngIf="singlePlanInfo?.plans !=='Plus'">
+                                            <div class="col-5">
+                                                <h3>Student Limit</h3>
+                                            </div>
+                                            <div class="col-7 student-limit" style="text-align: right;">
+                                                <button class="decrement-button"
+                                                    [disabled]="numberOfStudent==singlePlanInfo?.studentLimit"
+                                                    (click)="updateNumber(-studentIncrementRange)"
+                                                    mat-icon-button><mat-icon>remove</mat-icon></button>
+                                                <button class="button" mat-icon-button>{{numberOfStudent}}</button>
+                                                <button class="increment-button"
+                                                    (click)="updateNumber(studentIncrementRange)"
+                                                    mat-icon-button><mat-icon>add</mat-icon></button>
+                                            </div>
+                                        </ng-container>
+                                        <div class="row">
+                                            <div class="col-12"><mat-icon
+                                                    style="color: rgb(41, 167, 113);font-size:21px;display: inline;">lock</mat-icon>
+                                                <h3 style="font-size: 15px;display: inline;margin-left: 10px;">Razorpay
+                                                    Secure
+                                                </h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-9">
+                                            <div class="row">
+                                                <div class="col-2">
+                                                    <img src="https://res.cloudinary.com/dcx9ttjuo/image/upload/v1772990565/visa_t6ecow.png"
+                                                        alt="">
+                                                </div>
+                                                <div class="col-2">
+                                                    <img src="https://res.cloudinary.com/dcx9ttjuo/image/upload/v1772990489/mastercard_foob31.png"
+                                                        alt="">
+                                                </div>
+                                                <div class="col-2">
+                                                    <img src="https://res.cloudinary.com/dcx9ttjuo/image/upload/v1772990507/paytm_zx4nk6.png"
+                                                        alt="">
+                                                </div>
+                                                <div class="col-2">
+                                                    <img src="https://res.cloudinary.com/dcx9ttjuo/image/upload/v1772990534/phonepe_ccfxvv.png"
+                                                        alt="">
+                                                </div>
+                                                <div class="col-2">
+                                                    <img src="https://res.cloudinary.com/dcx9ttjuo/image/upload/v1772990473/google-pay_nkepv9.png"
+                                                        alt="">
+                                                </div>
+                                                <div class="col-2">
+                                                    <img src="https://res.cloudinary.com/dcx9ttjuo/image/upload/v1772990553/upi_minrqz.png"
+                                                        alt="">
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                        <div class="col-3">
+                                            <p style="margin-top: 8px;"> +15</p>
+                                        </div>
+                                    </div>
+
+
+                                    <div class="col-lg-12">
+                                        <p style="color: #000;font-size: 15px;margin-top: 10px;">By checking out you
+                                            agree with our
+                                            <span routerLink="/terms-and-conditions"
+                                                style="color: #7b48e2;cursor: pointer;">Terms of Service</span> and
+                                            confirm that
+                                            you have read our <span routerLink="/privacy-policy"
+                                                style="color: #7b48e2;cursor: pointer;">Privacy Policy</span>.
+                                            You can cancel recurring payments at any time.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+    </div>
+
+
+</div>

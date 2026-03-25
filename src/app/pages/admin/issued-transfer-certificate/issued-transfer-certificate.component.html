@@ -1,0 +1,250 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Issued Tranfer Certificate</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-5 offset-7">
+                        <input type="text" class="form-control" placeholder="Search..." id="searchText"
+                          name="searchText" #searchText="ngModel" [(ngModel)]="filters.searchText"
+                          (keyup)="getIssuedTransferCertificate({page : 1, limit : 0})">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Issued Tranfer Certificate</span>
+                    </button>
+                  </div>
+
+                  <div class="col-12 mt-2">
+                    <input type="text" class="form-control" placeholder="Search..." id="searchText" name="searchText"
+                      #searchText="ngModel" [(ngModel)]="filters.searchText"
+                      (keyup)="getIssuedTransferCertificate({page : 1, limit : 0})">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>No.</th>
+                      <th>S.No.</th>
+                      <th>Admission No.</th>
+                      <th>Student</th>
+                      <th>Father Name</th>
+                      <th>Mother Name</th>
+                      <th>Class</th>
+                      <th>Stream</th>
+                      <th>Roll Number</th>
+                      <th>Session</th>
+                      <th>View</th>
+                      <th>Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="studentInfo && studentInfo.length>0">
+                    <tr *ngFor="let students of studentInfo,let i=index">
+                      <td>
+                        <p class="mb-0">{{number*10+i+1-10}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.serialNo}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.admissionNo}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.name | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.fatherName | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.motherName | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.class | classSuffix}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.stream | streamTitleCase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.rollNumber}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{students.session}}</p>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="addStudentInfoViewModel(students)">visibility</mat-icon>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="deleteIssuedTransferCertificateModel(students._id)">delete</mat-icon>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <app-pagination [paginationValues]="paginationValues" (onChange)="getIssuedTransferCertificate($event)">
+                </app-pagination>
+              </div>
+
+
+              <div class="modal fade show" [class.show]="showStudentInfoViewModal">
+                <div class="modal-dialog modal-dialog-scrollable modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">STUDENT ACADEMIC DETAIL</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <div class="modal-body">
+                      <div class="container">
+                        <div class="row">
+                          <ng-container *ngIf="singleStudentInfo">
+                            <ng-container>
+                              <h3 style="color: #8d6dff;">Academic Info</h3>
+                            </ng-container>
+                            <div class="col-12 col-lg-6">
+                              <p>Academic Session - {{singleStudentInfo.session}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Last School - <span
+                                  *ngIf="singleStudentInfo.lastSchool">{{singleStudentInfo.lastSchool|
+                                  titlecase}}</span><span *ngIf="!singleStudentInfo.lastSchool">N/A</span></p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Admission No. - {{singleStudentInfo.admissionNo}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Admission Date - {{singleStudentInfo?.doa}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Roll Number - {{singleStudentInfo.rollNumber}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Stream - {{singleStudentInfo.stream | streamTitleCase}}</p>
+                            </div>
+                            <ng-container>
+                              <h3 style="color: #8d6dff;">Student Info</h3>
+                            </ng-container>
+                            <div class="col-12 col-lg-6">
+                              <p>Name - {{singleStudentInfo.name | titlecase}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Date Of Birth - {{singleStudentInfo?.dob}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Aadhar Number - {{singleStudentInfo.aadharNumber}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Samagra Id - {{singleStudentInfo.samagraId}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Gender - {{singleStudentInfo.gender | titlecase}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Category - {{singleStudentInfo.category | titlecase}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Religion - {{singleStudentInfo.religion | titlecase}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Nationality - {{singleStudentInfo.nationality | titlecase}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Address - {{singleStudentInfo.address | titlecase}}</p>
+                            </div>
+                            <ng-container>
+                              <h3 style="color: #8d6dff;">Parent's Info</h3>
+                            </ng-container>
+                            <div class="col-12 col-lg-6">
+                              <p>Father Name - {{singleStudentInfo.fatherName | titlecase}}</p>
+                              <p>Father Qualification - {{singleStudentInfo.fatherQualification | titlecase}}</p>
+                              <p>Father Occupation - {{singleStudentInfo.fatherOccupation | titlecase}}</p>
+                              <p>Family Annual Income - {{singleStudentInfo.familyAnnualIncome}}</p>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                              <p>Mother Name - {{singleStudentInfo.motherName | titlecase}}</p>
+                              <p>Mother Qualification - {{singleStudentInfo.motherQualification | titlecase}}</p>
+                              <p>Mother Occupation - {{singleStudentInfo.motherOccupation | titlecase}}</p>
+                              <p>Prents Contact - {{singleStudentInfo.parentsContact}}</p>
+                            </div>
+                          </ng-container>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button style="background-color: transparent;" class="submit-button" mat-raised-button
+                        type="submit"></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content" *ngIf="errorCheck">
+                    <div class="modal-header">
+                      <h5 class="modal-title">DELETE ISSUED TRANSFER CERTIFICATE</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <div class="modal-body">
+                      <p class="error-message">{{errorMsg}}</p>
+                    </div>
+                    <div class="modal-footer">
+                      <mat-icon></mat-icon>
+                    </div>
+                  </div>
+                  <div class="modal-content" *ngIf="!errorCheck">
+                    <div class="modal-header">
+                      <h5 class="modal-title">DELETE ISSUED TRANSFER CERTIFICATE</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <div *ngIf="deleteMode && !errorCheck">
+                      <div class="modal-body">
+                        <h4 style="margin-left: 20px;">To delete issued transfer certificate detail, click ok to
+                          confirm.</h4>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button"
+                          (click)="transferCertificateDelete(deleteById)">Ok</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

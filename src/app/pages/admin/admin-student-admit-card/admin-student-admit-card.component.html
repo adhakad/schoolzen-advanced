@@ -1,0 +1,472 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Admit Card</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-5"></div>
+                      <ng-container *ngIf="cls !==11 && cls !==12">
+                        <div class="col-2"></div>
+                      </ng-container>
+                      <div class="col-2">
+                        <ng-container *ngIf="cls && stream && templateStatusCode==200">
+                          <mat-form-field class="custom-select-print">
+                            <mat-label style="color:#8C52FF">Print</mat-label>
+                            <mat-select matInput>
+                              <div>
+                                <mat-option (click)="bulkPrint(0)"
+                                  *ngIf="cls && stream && templateStatusCode==200 && templateStatusCode !==404 && templateStatusCode !==500 && templateStatusCode !==0">One
+                                  Student in One Page</mat-option>
+                                <mat-option (click)="bulkPrint(1)"
+                                  *ngIf="cls && stream && templateStatusCode==200 && templateStatusCode !==404 && templateStatusCode !==500 && templateStatusCode !==0">Two
+                                  Student in One Page</mat-option>
+                              </div>
+                            </mat-select>
+                          </mat-form-field>
+                        </ng-container>
+                      </div>
+
+                      <ng-container *ngIf="cls==11 || cls==12">
+                        <div class="col-2">
+                          <mat-form-field class="custom-select">
+                            <mat-label *ngIf="stream =='' || stream=='stream'">Stream</mat-label>
+                            <mat-select [(ngModel)]="stream" (selectionChange)="filterStream($event.value)" type="text"
+                              matInput>
+                              <mat-option *ngFor="let subject of streamMainSubject"
+                                [value]="subject">{{subject}}</mat-option>
+                            </mat-select>
+                          </mat-form-field>
+                        </div>
+                      </ng-container>
+                      <div class="col-2">
+                        <ng-container>
+                          <mat-form-field class="custom-select">
+                            <mat-label *ngIf="cls==0">Class</mat-label>
+                            <mat-select [(ngModel)]="cls" (selectionChange)="chooseClass($event.value)" type="number"
+                              matInput>
+                              <mat-option *ngFor="let cls of classInfo" [value]="cls">{{cls | classSuffix}}</mat-option>
+                            </mat-select>
+                          </mat-form-field>
+                        </ng-container>
+                      </div>
+                      <div class="col-1">
+                        <button class="btn setting-button" [matMenuTriggerFor]="settings">
+                          <mat-icon style="margin-top: 5px;cursor: pointer;">settings</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-9">
+                    <button mat-button class="menu-button">
+                      <span>Admit Card</span>
+                    </button>
+                  </div>
+                  <div class="col-3">
+                    <button class="btn setting-button" [matMenuTriggerFor]="settings">
+                      <mat-icon style="margin-top: 5px;cursor: pointer;">settings</mat-icon>
+                    </button>
+                  </div>
+                  <div class="col-12">
+                    <mat-form-field class="custom-select">
+                      <mat-label *ngIf="cls==0">Class</mat-label>
+                      <mat-select [(ngModel)]="cls" (selectionChange)="chooseClass($event.value)" type="number"
+                        matInput>
+                        <mat-option *ngFor="let cls of classInfo" [value]="cls">{{cls |
+                          classSuffix}}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  <ng-container *ngIf="cls==11 || cls==12">
+                    <div class="col-12">
+                      <mat-form-field class="custom-select">
+                        <mat-label *ngIf="stream =='' || stream=='stream'">Stream</mat-label>
+                        <mat-select [(ngModel)]="stream" (selectionChange)="filterStream($event.value)" type="text"
+                          matInput>
+                          <mat-option *ngFor="let subject of streamMainSubject"
+                            [value]="subject">{{subject}}</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                  </ng-container>
+                  <div class="col-12">
+                    <ng-container *ngIf="cls && stream && templateStatusCode==200">
+                      <mat-form-field class="custom-select-print">
+                        <mat-label style="color:#8C52FF">Print</mat-label>
+                        <mat-select matInput>
+                          <div>
+                            <mat-option (click)="bulkPrint(0)"
+                              *ngIf="cls && stream && templateStatusCode==200 && templateStatusCode !==404 && templateStatusCode !==500 && templateStatusCode !==0">One
+                              Student in One Page</mat-option>
+                            <mat-option (click)="bulkPrint(1)"
+                              *ngIf="cls && stream && templateStatusCode==200 && templateStatusCode !==404 && templateStatusCode !==500 && templateStatusCode !==0">Two
+                              Student in One Page</mat-option>
+                          </div>
+                        </mat-select>
+                      </mat-form-field>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <mat-menu #settings="matMenu">
+            <button mat-menu-item routerLink="/admin/admit-card/structure">
+              <mat-icon>assignment</mat-icon>
+              <span>Admit Card Structure</span>
+            </button>
+          </mat-menu>
+        </div>
+
+
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white"
+                  *ngIf="cls && stream && !errorCheck && statusCode !==404 && statusCode !==500 && templateStatusCode !==404 && templateStatusCode !==500">
+                  <ng-container *ngIf="allAdmitCards && allAdmitCards.length>0">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <!-- <th><mat-checkbox class="example-margin"></mat-checkbox></th> -->
+                        <th>No.</th>
+                        <th>Student</th>
+                        <th>Roll Number</th>
+                        <th>Class</th>
+                        <th>Stream</th>
+                        <th>Exam Name</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let students of allAdmitCards,let i=index">
+                        <!-- <td>
+                          <mat-checkbox class="example-margin"></mat-checkbox>
+                        </td> -->
+                        <td>
+                          <p class="mb-0">{{i+1}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{students.name | titlecase}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{students.rollNumber}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{students.class | classSuffix}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0" *ngIf="students.class==11 || students.class==12">{{students.stream |
+                            streamTitleCase}}
+                          </p>
+                          <p class="mb-0" *ngIf="students.class !==11 && students.class !==12">N/A</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{students.examType | titlecase}}</p>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </ng-container>
+                </table>
+              </div>
+
+              <div *ngIf="!cls || !stream" style="text-align: center;margin-top: 200px;">
+                <p>Please Choose Class & Stream !</p>
+              </div>
+              <div
+                *ngIf="cls && stream && errorCheck && statusCode ==404 || statusCode ==500 || templateStatusCode==404 || templateStatusCode==500"
+                style="text-align: center;margin-top: 200px;">
+                <p *ngIf="statusCode ==404 && templateStatusCode==200">Admit Card Not Found !</p>
+                <p *ngIf="statusCode ==500 || templateStatusCode==500">Internal Server Error !</p>
+                <p *ngIf="templateStatusCode ==404 && cls && stream">Please Create Admit Card Structure !</p>
+              </div>
+              <div class="modal fade show custom-modal" [class.show]="showModal">
+                <div class="modal-dialog print-model-dialog modal-dialog-scrollable">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">ADMIT CARD PRINT</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <div class="modal-body print-model-body">
+                      <ng-container *ngIf="selectedValue==0">
+                        <ng-container *ngFor="let student of allAdmitCards,let i = index;">
+                          <p style="color: transparent;">{{i+1}}.</p>
+                          <div id="student-{{student.studentId}}">
+                            <div class="col-lg-10 offset-lg-1 custom-container">
+                              <div class="table-container">
+                                <div class="row mt-5">
+                                  <div class="col-2">
+                                    <img class="logo" src="{{schoolInfo?.schoolLogo}}" alt="school logo">
+                                  </div>
+                                  <div class="col-10" style="text-align: center;">
+                                    <div class="school-name">
+                                      <h3 class="text-bold">{{schoolInfo?.schoolName | uppercase}}</h3>
+                                    </div>
+                                    <div class="address" style="text-align: center;">
+                                      <p>Recognized by {{schoolInfo?.board | uppercase}}, Affliation No. -
+                                        {{schoolInfo?.affiliationNumber}}</p>
+                                      <p><span>Contact - {{schoolInfo?.phoneOne}} &nbsp; Email -
+                                          {{schoolInfo?.email}}</span></p>
+                                      <p><span>{{schoolInfo?.street | titlecase}}, {{schoolInfo?.city | titlecase}},
+                                          Distt.-
+                                          {{schoolInfo?.district | titlecase}},
+                                          {{schoolInfo?.state | titlecase}} - {{schoolInfo?.pinCode}}</span></p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div class="row">
+                                  <div class="col-12 title-lable">
+                                    <p>{{student?.examType | uppercase}} ADMIT CARD {{student?.session}}</p>
+                                  </div>
+                                </div>
+                                <table class="info-table" style="border-top: 1px solid #454545;">
+                                  <tr>
+                                    <td class="text-bold">STUDENT NAME</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.name | uppercase}}</td>
+                                    <td class="text-bold">DATE OF BIRTH</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.dob}}</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="text-bold">MOTHER NAME</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.motherName | uppercase}}
+                                    </td>
+                                    <td class="text-bold">FATHER NAME</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.fatherName | uppercase}}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td class="text-bold">CLASS</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.class | classSuffix |
+                                      uppercase}} &nbsp;<span *ngIf="cls==11 || cls==12">{{student?.stream |
+                                        uppercase}}</span></td>
+                                    <td class="text-bold">ROLL NUMBER</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.rollNumber}}</td>
+                                  </tr>
+                                </table>
+                                <table class="custom-table">
+                                  <tr>
+                                    <th style="border-left: 1px solid transparent;">
+                                      S.No.</th>
+                                    <th
+                                      style="text-align: left !important;padding-left: 20px;border-left: 1px solid transparent;">
+                                      SUBJECT</th>
+                                    <th>EXAM DATE</th>
+                                    <th style="border-right: 1px solid transparent;">
+                                      EXAM TIMING</th>
+                                  </tr>
+                                  <ng-container *ngIf="processedData && processedData.length > 0">
+                                    <tr *ngFor="let exam of processedData; let i = index">
+                                      <td style="border-left: 1px solid transparent;">
+                                        {{ i + 1 }}
+                                      </td>
+                                      <td
+                                        style="text-align: left !important;padding-left: 20px;border-left: 1px solid transparent;">
+                                        {{ exam.subject | uppercase}}
+                                      </td>
+                                      <td>
+                                        {{ exam.date }}
+                                      </td>
+                                      <td style="border-right: 1px solid transparent;">
+                                        {{ exam.timing }}
+                                      </td>
+                                    </tr>
+                                  </ng-container>
+                                </table>
+                                <table class="custom-table"
+                                  style="border: none;margin-top: 100px;margin-bottom: 0;padding-bottom: 0;">
+                                  <tr>
+                                    <td class="text-bold"
+                                      style="width:50%;padding-left:10%;text-align: left;border: none;">Class Teacher
+                                      Signature</td>
+                                    <td class="text-bold"
+                                      style="width:50%;padding-right:10%;text-align: right;border: none;">Principal
+                                      Signature</td>
+                                  </tr>
+                                </table>
+                                <div
+                                  style="padding-top:40px;padding-left: 20px;padding-right: 20px;padding-bottom:50px">
+                                  <h4 class="text-bold">Disclaimer:</h4>
+                                  <p>This is your online admit card, issued in accordance with our institution's
+                                    policies.
+                                    Please
+                                    take note of
+                                    the following:</p>
+                                  <p>1. Identification: This admit card serves as your identification for the
+                                    examination
+                                    or event
+                                    at {{schoolInfo?.schoolName | titlecase}}.</p>
+                                  <p>2. Verify Details: Review the admit card for accuracy, including your name, exam
+                                    details, and
+                                    date. Report
+                                    any discrepancies to the Examination Office for correction.</p>
+                                  <p>3. Non-Transferable: This admit card is for your use only; it should not be
+                                    shared
+                                    or
+                                    used by
+                                    others.</p>
+                                  <p>4. Keep Secure: Maintain this admit card in a secure place. You'll need it for
+                                    admission on the
+                                    examination
+                                    or event day.</p>
+                                  <p>5. Lost or Damaged: In case of loss or damage to the admit card, please contact
+                                    the
+                                    Examination
+                                    Office for
+                                    a duplicate or replacement. A fee may apply.</p>
+                                  <p>6. Exam Rules: Follow the rules and instructions provided by the examination
+                                    authorities. Any
+                                    violation may
+                                    lead to disqualification.</p>
+                                  <p>Your acceptance and retention of this admit card indicate your understanding and
+                                    agreement with
+                                    the terms
+                                    and conditions outlined in this document.</p>
+
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+
+                      <ng-container *ngIf="selectedValue==1">
+                        <ng-container *ngFor="let student of allAdmitCards,let i = index;">
+                          <p style="color: transparent;">{{i+1}}.</p>
+                          <div id="student-{{student.studentId}}">
+                            <div class="col-lg-10 offset-lg-1 custom-container">
+                              <div class="table-container">
+                                <div class="row mt-5">
+                                  <div class="col-2">
+                                    <img class="logo" src="{{schoolInfo?.schoolLogo}}" alt="school logo">
+                                  </div>
+                                  <div class="col-10" style="text-align: center;">
+                                    <div class="school-name">
+                                      <h3 class="text-bold">{{schoolInfo?.schoolName | uppercase}}</h3>
+                                    </div>
+                                    <div class="address" style="text-align: center;">
+                                      <p>Recognized by {{schoolInfo?.board | uppercase}}, Affliation No. -
+                                        {{schoolInfo?.affiliationNumber}}</p>
+                                      <p><span>Contact - {{schoolInfo?.phoneOne}} &nbsp; Email -
+                                          {{schoolInfo?.email}}</span></p>
+                                      <p><span>{{schoolInfo?.street | titlecase}}, {{schoolInfo?.city | titlecase}},
+                                          Distt.-
+                                          {{schoolInfo?.district | titlecase}},
+                                          {{schoolInfo?.state | titlecase}} - {{schoolInfo?.pinCode}}</span></p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div class="row">
+                                  <div class="col-12 title-lable">
+                                    <p>{{student?.examType | uppercase}} ADMIT CARD {{student?.session}}</p>
+                                  </div>
+                                </div>
+                                <table class="info-table" style="border-top: 1px solid #454545;">
+                                  <tr>
+                                    <td class="text-bold">STUDENT NAME</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.name | uppercase}}</td>
+                                    <td class="text-bold">DATE OF BIRTH</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.dob}}</td>
+                                  </tr>
+                                  <tr>
+                                    <td class="text-bold">MOTHER NAME</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.motherName | uppercase}}
+                                    </td>
+                                    <td class="text-bold">FATHER NAME</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.fatherName | uppercase}}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td class="text-bold">CLASS</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.class | classSuffix |
+                                      uppercase}} &nbsp;<span *ngIf="cls==11 || cls==12">{{student?.stream |
+                                        uppercase}}</span></td>
+                                    <td class="text-bold">ROLL NUMBER</td>
+                                    <td colspan="2">:&nbsp;&nbsp;&nbsp;{{student?.rollNumber}}</td>
+                                  </tr>
+                                </table>
+                                <table class="custom-table">
+                                  <tr>
+                                    <th style="border-top: 1px solid #454545;border-left: 1px solid transparent;">
+                                      S.No.</th>
+                                    <th
+                                      style="text-align: left !important;padding-left: 20px;border-top: 1px solid #454545;border-left: 1px solid transparent;">
+                                      SUBJECT</th>
+                                    <th style="border-top: 1px solid #454545;">EXAM DATE</th>
+                                    <th style="border-top: 1px solid #454545;border-right: 1px solid transparent;">
+                                      EXAM TIMING</th>
+                                  </tr>
+                                  <ng-container *ngIf="processedData && processedData.length > 0">
+                                    <tr *ngFor="let exam of processedData; let i = index">
+                                      <td style="border-left: 1px solid transparent;">
+                                        {{ i + 1 }}
+                                      </td>
+                                      <td
+                                        style="text-align: left !important;padding-left: 20px;border-left: 1px solid transparent;">
+                                        {{ exam.subject | uppercase}}
+                                      </td>
+                                      <td>
+                                        {{ exam.date }}
+                                      </td>
+                                      <td style="border-right: 1px solid transparent;">
+                                        {{ exam.timing }}
+                                      </td>
+                                    </tr>
+                                  </ng-container>
+                                </table>
+                                <table class="custom-table"
+                                  style="border: none;margin-top: 85px;margin-bottom: 25px;padding-bottom: 0;">
+                                  <tr>
+                                    <td class="text-bold"
+                                      style="width:50%;padding-left:10%;text-align: left;border: none;">Class Teacher
+                                      Signature
+                                    </td>
+                                    <td class="text-bold"
+                                      style="width:50%;padding-right:10%;text-align: right;border: none;">Principal
+                                      Signature</td>
+                                  </tr>
+                                </table>
+                              </div>
+                            </div>
+                            <div class="row"
+                              style="padding-top: 10px;margin-bottom:10px;border-bottom:1px dashed #454545"></div>
+                          </div>
+                        </ng-container>
+                      </ng-container>
+                    </div>
+                    <div class="modal-footer">
+                      <button class="submit-button print-pdf" mat-raised-button
+                        (click)="printStudentData()">Print</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- <div class="spinner-container" *ngIf="loader">
+        <div class="spinner-overlay" *ngIf="loader">
+          <mat-progress-spinner *ngIf="loader" diameter="65" mode="indeterminate"
+            strokeWidth="3"></mat-progress-spinner>
+        </div>
+      </div> -->
+    </div>
+  </div>

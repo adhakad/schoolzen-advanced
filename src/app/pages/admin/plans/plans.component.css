@@ -1,0 +1,4 @@
+@import'../dashboard/dashboard.component.css';
+.table{
+    display: inline-table;
+}

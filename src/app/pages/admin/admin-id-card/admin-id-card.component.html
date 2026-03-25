@@ -1,0 +1,192 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>ID Card</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-7 offset-1"></div>
+                      <div class="col-2">
+                        <ng-container *ngIf="cls">
+                          <mat-form-field class="custom-select-print">
+                            <mat-label style="color:#8C52FF">Print</mat-label>
+                            <mat-select matInput>
+                              <div>
+                                <mat-option (click)="bulkPrint(1)">ID Card Print </mat-option>
+                                <mat-option (click)="orderIdCard()">Place ID Card Order</mat-option>
+                              </div>
+                            </mat-select>
+                          </mat-form-field>
+                        </ng-container>
+                      </div>
+                      <div class="col-2">
+                        <ng-container>
+                          <mat-form-field class="custom-select">
+                            <mat-label *ngIf="cls==0">Class</mat-label>
+                            <mat-select [(ngModel)]="cls" (selectionChange)="chooseClass($event.value)" type="number"
+                              matInput>
+                              <mat-option *ngFor="let cls of classInfo" [value]="cls">{{cls | classSuffix}}</mat-option>
+                            </mat-select>
+                          </mat-form-field>
+                        </ng-container>
+                      </div>
+                      <!-- <div class="col-1">
+                        <button class="btn setting-button" [matMenuTriggerFor]="settings">
+                          <mat-icon style="margin-top: 5px;cursor: pointer;">settings</mat-icon>
+                        </button>
+                      </div> -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-9">
+                    <button mat-button class="menu-button">
+                      <span>ID Card</span>
+                    </button>
+                  </div>
+                  <!-- <div class="col-3">
+                    <button class="btn setting-button" [matMenuTriggerFor]="settings">
+                      <mat-icon style="margin-top: 5px;cursor: pointer;">settings</mat-icon>
+                    </button>
+                  </div> -->
+                  <div class="col-12">
+                    <mat-form-field class="custom-select">
+                      <mat-label *ngIf="cls==0">Class</mat-label>
+                      <mat-select [(ngModel)]="cls" (selectionChange)="chooseClass($event.value)" type="number"
+                        matInput>
+                        <mat-option *ngFor="let cls of classInfo" [value]="cls">{{cls |
+                          classSuffix}}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  <div class="col-12">
+                    <ng-container *ngIf="cls">
+                      <mat-form-field class="custom-select-print">
+                        <mat-label style="color:#8C52FF">Print</mat-label>
+                        <mat-select matInput>
+                          <div>
+                            <mat-option (click)="bulkPrint(1)">ID Card Print </mat-option>
+                            <mat-option (click)="orderIdCard()">Place ID Card Order</mat-option>
+                          </div>
+                        </mat-select>
+                      </mat-form-field>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- <mat-menu #settings="matMenu">
+            <button mat-menu-item routerLink="/admin/admit-card/structure">
+              <mat-icon>assignment</mat-icon>
+              <span>ID Card Structure</span>
+            </button>
+          </mat-menu> -->
+        </div>
+
+
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white"
+                  *ngIf="cls && !errorCheck && statusCode !==404 && statusCode !==500 && templateStatusCode !==404 && templateStatusCode !==500">
+                  <ng-container *ngIf="allAdmitCards && allAdmitCards.length>0">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th>S.No.</th>
+                        <th>Image</th>
+                        <th>Student</th>
+                        <th>Roll Number</th>
+                        <th>Class</th>
+                        <th>Stream</th>
+                        <th>Mobile</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let students of allAdmitCards,let i=index">
+                        <td>
+                          <p class="mb-0">{{i+1}}</p>
+                        </td>
+                        <td>
+                          <ng-container *ngIf="students.studentImage"><img src="{{students?.studentImage}}"
+                              alt="student image" loading="lazy" /></ng-container>
+                          <ng-container *ngIf="!students.studentImage"><img src="./assets/no-image.png"
+                              loading="lazy" /></ng-container>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{students.name | titlecase}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{students.rollNumber}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{students.class | classSuffix}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0" *ngIf="students.class==11 || students.class==12">{{students.stream |
+                            streamTitleCase}}
+                          </p>
+                          <p class="mb-0" *ngIf="students.class !==11 && students.class !==12">N/A</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{students.parentsContact || '-'}}</p>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </ng-container>
+                </table>
+              </div>
+
+              <div *ngIf="!cls" style="text-align: center;margin-top: 200px;">
+                <p>Please Choose Class!</p>
+              </div>
+              <div
+                *ngIf="cls && errorCheck && statusCode ==404 || statusCode ==500 || templateStatusCode==404 || templateStatusCode==500"
+                style="text-align: center;margin-top: 200px;">
+                <p *ngIf="statusCode ==404 && templateStatusCode==200">ID Card Not Found !</p>
+                <p *ngIf="statusCode ==500 || templateStatusCode==500">Internal Server Error !</p>
+                <p *ngIf="templateStatusCode ==404 && cls">Please Create ID Card Structure !</p>
+              </div>
+
+              <!-- Modal for ID Card Print -->
+              <div class="modal fade show custom-modal" [class.show]="showModal">
+                <div class="modal-dialog print-model-dialog modal-dialog-scrollable">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">ID CARD PRINT</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <div class="modal-body print-model-body">
+                    </div>
+                    <div class="modal-footer">
+                      <button class="submit-button print-pdf" mat-raised-button
+                        (click)="printStudentData()">Print</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

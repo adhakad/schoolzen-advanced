@@ -1,0 +1,172 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 big-container">
+          <div class="col-lg-12 offset-lg-0">
+            <div class="main-card">
+              <div class="row mt-4 mb-2">
+                <div class="col-8 col-lg-5">
+                  <input type="text" class="form-control" placeholder="Plans Search..." id="searchText"
+                    name="searchText" #searchText="ngModel" [(ngModel)]="filters.searchText"
+                    (keyup)="getPlans({page : 1, limit : 0})">
+                </div>
+                <div class="col-4 col-lg-2 offset-lg-5">
+                  <button class="submit-button" mat-raised-button (click)="addPlansModel()"><mat-icon
+                      style="font-size: 20px;">add</mat-icon>Create</button>
+                </div>
+              </div>
+              <table class="table table-hover align-middle mt-2 mb-1 bg-white">
+                <thead class="bg-light">
+                  <tr class="text-muted">
+                    <th>No.</th>
+                    <th>Plans</th>
+                    <th>Price</th>
+                    <th>Edit</th>
+                    <th>Remove</th>
+                  </tr>
+                </thead>
+                <tbody *ngIf="plansInfo && plansInfo.length>0">
+                  <tr *ngFor="let plans of plansInfo,let i=index">
+                    <td>
+                      <p class="mb-0">{{number*10+i+1-10}}</p>
+                    </td>
+                    <td>
+                      <p class="mb-0">{{plans.plans}}</p>
+                    </td>
+                    <td>
+                      <p class="mb-0">&#8377; {{plans.price}}</p>
+                    </td>
+                    <td class="mb-0">
+                      <mat-icon (click)="updatePlansModel(plans)">edit</mat-icon>
+                    </td>
+                    <td class="mb-0">
+                      <mat-icon (click)="deletePlansModel(plans._id)">delete</mat-icon>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="pagination">
+                <app-pagination [paginationValues]="paginationValues" (onChange)="getPlans($event)">
+                </app-pagination>
+              </div>
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content" *ngIf="successMsg">
+                    <div class="modal-header">
+                      <h5 class="modal-title" style="color: transparent;">Class</h5>
+                    </div>
+                    <div class="modal-body">
+                      <p class="success-message">{{successMsg}}</p>
+                    </div>
+                    <div class="modal-footer">
+                      <mat-icon></mat-icon>
+                    </div>
+                  </div>
+                  <div class="modal-content" *ngIf="!successMsg">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{updateMode?'Update': deleteMode ? 'Delete':'Create New'}} Plans</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="plansForm" (ngSubmit)="plansAddUpdate()" *ngIf="!deleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Plans</mat-label>
+                          <input matInput type="text" formControlName="plans">
+                          <mat-hint *ngIf="!plansForm.get('plans')?.valid && plansForm.get('plans')?.touched"
+                            class="form-text text-danger">Plans is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Price</mat-label>
+                          <input matInput type="text" formControlName="price">
+                          <mat-hint *ngIf="!plansForm.get('price')?.valid && plansForm.get('price')?.touched"
+                            class="form-text text-danger">Price is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Without Discount Price</mat-label>
+                          <input matInput type="text" formControlName="withoutDiscountPrice">
+                          <mat-hint
+                            *ngIf="!plansForm.get('withoutDiscountPrice')?.valid && plansForm.get('withoutDiscountPrice')?.touched"
+                            class="form-text text-danger">Without discount price is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Discount Percentage</mat-label>
+                          <input matInput type="text" formControlName="discountPercentage">
+                          <mat-hint
+                            *ngIf="!plansForm.get('discountPercentage')?.valid && plansForm.get('discountPercentage')?.touched"
+                            class="form-text text-danger">Discount percentage is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Teacher Limit</mat-label>
+                          <input matInput type="text" formControlName="teacherLimit">
+                          <mat-hint
+                            *ngIf="!plansForm.get('teacherLimit')?.valid && plansForm.get('teacherLimit')?.touched"
+                            class="form-text text-danger">Teacher limit is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Student Limit</mat-label>
+                          <input matInput type="text" formControlName="studentLimit">
+                          <mat-hint
+                            *ngIf="!plansForm.get('studentLimit')?.valid && plansForm.get('studentLimit')?.touched"
+                            class="form-text text-danger">Student limit is required</mat-hint>
+                        </mat-form-field>
+
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Per Student Increment Price</mat-label>
+                          <input matInput type="text" formControlName="perStudentIncrementPrice">
+                          <mat-hint
+                            *ngIf="!plansForm.get('perStudentIncrementPrice')?.valid && plansForm.get('perStudentIncrementPrice')?.touched"
+                            class="form-text text-danger">Per student increment price is required</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Student Increment Range</mat-label>
+                          <input matInput type="text" formControlName="studentIncrementRange">
+                          <mat-hint
+                            *ngIf="!plansForm.get('studentIncrementRange')?.valid && plansForm.get('studentIncrementRange')?.touched"
+                            class="form-text text-danger">Student increment range is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Whatsapp Messages Limit</mat-label>
+                          <input matInput type="text" formControlName="whatsappMessagesLimit">
+                          <mat-hint
+                            *ngIf="!plansForm.get('whatsappMessagesLimit')?.valid && plansForm.get('whatsappMessagesLimit')?.touched"
+                            class="form-text text-danger">Whatsapp messages limit is required</mat-hint>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button [disabled]="!plansForm.valid"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                    <div *ngIf="deleteMode">
+                      <h4>To delete class, click ok to confirm.</h4>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button"
+                          (click)="plansDelete(deleteById)">Ok</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="spinner-container" *ngIf="loader">
+  <div class="spinner-overlay" *ngIf="loader">
+    <mat-progress-spinner *ngIf="loader" diameter="65" mode="indeterminate" strokeWidth="3"></mat-progress-spinner>
+  </div>
+</div>

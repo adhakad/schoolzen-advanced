@@ -1,0 +1,63 @@
+<app-header></app-header>
+<div class="login">
+  <div class="row">
+    <div class="col-12 col-lg-5 offset-lg-3 login-card">
+      <div class="row">
+        <div class="col-12 col-lg-10 offset-lg-1">
+          <h3>Teacher Login</h3>
+          <div class="col-12">
+            <h2>{{errorMsg}}</h2>
+            <form [formGroup]="loginForm" (ngSubmit)="login()">
+              <mat-form-field appearance="outline">
+                <mat-label>School Id</mat-label>
+                <input matInput type="number" formControlName="schoolId">
+                <mat-hint *ngIf="loginForm.get('schoolId')?.hasError('required') && loginForm.get('schoolId')?.touched"
+                  class="form-text text-danger">School id is required.</mat-hint>
+                <mat-hint *ngIf="loginForm.get('schoolId')?.hasError('pattern')" class="form-text text-danger">
+                  School id must be a 5-digit number.
+                </mat-hint>
+                <mat-hint *ngIf="loginForm.get('schoolId')?.hasError('pattern')" class="form-text text-danger">
+                  School id should contain only numbers.
+                </mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Username</mat-label>
+                <input matInput type="text" formControlName="email">
+                <mat-hint *ngIf="loginForm.get('email')?.hasError('required') && loginForm.get('email')?.touched"
+                  class="form-text text-danger">Username is required.</mat-hint>
+                <mat-hint *ngIf="loginForm.get('email')?.hasError('minlength')" class="form-text text-danger">
+                  Username must be at least 3 characters long.
+                </mat-hint>
+                <mat-hint *ngIf="loginForm.get('email')?.hasError('maxlength')" class="form-text text-danger">
+                  Username can't be more than 20 characters long.
+                </mat-hint>
+                <mat-hint *ngIf="loginForm.get('email')?.hasError('pattern')" class="form-text text-danger">
+                  Only alphanumeric characters and underscore are allowed.
+                </mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Password</mat-label>
+                <input matInput [type]="hide ? 'password' : 'text'" formControlName="password">
+                <mat-icon matSuffix (click)="hide = !hide" style="cursor: pointer;"
+                  [attr.aria-label]="hide ? 'Hide password' : 'Show password'" [attr.aria-pressed]="!hide">
+                  {{hide ? 'visibility_off' : 'visibility'}}
+                </mat-icon>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched"
+                  class="form-text text-danger">Password is required.</mat-hint>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('minlength')" class="form-text text-danger">
+                  Password must be at least 6 characters long.
+                </mat-hint>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('maxlength')" class="form-text text-danger">
+                  Password can't be more than 30 characters long.
+                </mat-hint>
+              </mat-form-field>
+              <button type="submit" mat-raised-button [disabled]="!loginForm.valid" class="submit-button">Login</button>
+            </form>
+            <p>Don't have an account yet? <a routerLink="/teacher/signup">Register now</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

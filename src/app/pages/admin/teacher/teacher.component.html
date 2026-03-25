@@ -1,0 +1,305 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Teacher</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-2 offset-5">
+                        <button class="submit-button" mat-raised-button
+                          (click)="addTeacherModel()"><mat-icon>add</mat-icon>Create</button>
+                      </div>
+                      <div class="col-5">
+                        <input type="text" class="form-control" placeholder="Search..." id="searchText"
+                          name="searchText" #searchText="ngModel" [(ngModel)]="filters.searchText"
+                          (keyup)="getTeacher({page : 1, limit : 0})">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Teachers</span>
+                    </button>
+                  </div>
+                  <div class="col-7 mt-3">
+                    <input type="text" class="form-control" placeholder="Search..." id="searchText" name="searchText"
+                      #searchText="ngModel" [(ngModel)]="filters.searchText"
+                      (keyup)="getTeacher({page : 1, limit : 0})">
+                  </div>
+                  <div class="col-5 mt-3">
+                    <button class="submit-button" mat-raised-button (click)="addTeacherModel()"><mat-icon
+                        style="font-size: 20px;">add</mat-icon>Create</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle mb-1 bg-white mt-3">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>S.No.</th>
+                      <th>Name</th>
+                      <th>Education/Qualification</th>
+                      <th>Id</th>
+                      <th>OTP</th>
+                      <th>Status</th>
+                      <th>All Permissions</th>
+                      <th>Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="teacherInfo && teacherInfo.length>0">
+                    <tr *ngFor="let teacher of teacherInfo,let i=index">
+                      <td>
+                        <p class="mb-0">{{number*10+i+1-10}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{teacher.name | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="fw-normal mb-1">{{teacher.education | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="fw-normal mb-1">{{teacher.teacherUserId}}</p>
+                      </td>
+                      <td>
+                        <p class="fw-normal mb-1">{{teacher.otp}}</p>
+                      </td>
+                      <td>
+                        <a href="javascript:void(0)" class="mb-0 status-active" (click)="changeStatus(teacher._id,0)"
+                          *ngIf="teacher.status == 'Active'">{{teacher.status}}&nbsp;&nbsp;</a>
+                        <a href="javascript:void(0)" class="mb-0 status-inactive" (click)="changeStatus(teacher._id,1)"
+                          *ngIf="teacher.status == 'Inactive'">{{teacher.status}}</a>
+                      </td>
+                      <td>
+                        <mat-icon style="cursor: pointer;"
+                          (click)="addTeacherPermissionModel(teacher)">launch
+                        </mat-icon>
+                      </td>
+                      <td class="mb-0">
+                        <!-- <mat-icon (click)="updateTeacherModel(teacher)">edit</mat-icon> -->
+                        <mat-icon (click)="deleteTeacherModel(teacher._id)">delete</mat-icon>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <app-pagination [paginationValues]="paginationValues" (onChange)="getTeacher($event)">
+                </app-pagination>
+              </div>
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{updateMode?'UPDATE': deleteMode ? 'DELETE':'CREATE'}} TEACHER</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="teacherForm" (ngSubmit)="teacherAddUpdate()" *ngIf="!deleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Name</mat-label>
+                          <input matInput type="text" formControlName="name">
+                          <mat-error
+                            *ngIf="teacherForm.get('name')?.hasError('required') && teacherForm.get('name')?.touched">
+                            Name is required
+                          </mat-error>
+                          <mat-error
+                            *ngIf="teacherForm.get('name')?.hasError('pattern') && teacherForm.get('name')?.touched">
+                            Please enter a valid Name (only letters and spaces are allowed)
+                          </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Id</mat-label>
+                          <input matInput type="number" formControlName="teacherUserId">
+                          <mat-error
+                            *ngIf="teacherForm.get('teacherUserId')?.hasError('required') && teacherForm.get('teacherUserId')?.touched"
+                            class="form-text text-danger">Id is required.</mat-error>
+                          <mat-error *ngIf="teacherForm.get('teacherUserId')?.hasError('pattern')"
+                            class="form-text text-danger">
+                            Id must be a 6-digit & should contain only numbers.
+                          </mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Education/Qualification</mat-label>
+                          <input matInput type="text" formControlName="education">
+                          <mat-error
+                            *ngIf="teacherForm.get('education')?.hasError('required') && teacherForm.get('education')?.touched">
+                            Education/Qualification is required
+                          </mat-error>
+                          <mat-error
+                            *ngIf="teacherForm.get('education')?.hasError('pattern') && teacherForm.get('education')?.touched">
+                            Please enter a valid education (only letters and spaces and dot(.) are allowed)
+                          </mat-error>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button [disabled]="!teacherForm.valid"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                    <div *ngIf="deleteMode">
+                      <h4 style="margin-left: 20px;">To delete teacher detail, click ok to confirm.</h4>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button"
+                          (click)="teacherDelete(deleteById)">Ok</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal fade show" [class.show]="showTeacherPermissionModal">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">TEACHER PERMISSIONS</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <form [formGroup]="teacherPermissionForm" (ngSubmit)="teacherPermissionAdd()">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <ng-container>
+                          <h3>Marksheet</h3>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin" [checked]="isMarksheetPermissionSelected(class)"
+                                (change)="marksheetPermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
+                        <ng-container>
+                          <h3>Admit Card</h3>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin" [checked]="isAdmitCardPermissionSelected(class)"
+                                (change)="admitCardPermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
+                        <ng-container>
+                          <h3>Student</h3>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin" [checked]="isStudentPermissionSelected(class)"
+                                (change)="studentPermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
+                        <ng-container>
+                          <h3>Admission</h3>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin" [checked]="isAdmissionPermissionSelected(class)"
+                                (change)="admissionPermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
+                        <ng-container>
+                          <h3>Fees</h3>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin" [checked]="isFeeCollectionPermissionSelected(class)"
+                                (change)="feeCollectionPermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
+                        <ng-container>
+                          <h3>Class Promote</h3>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin" [checked]="isPromoteFailPermissionSelected(class)"
+                                (change)="promoteFailPermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
+                        <ng-container>
+                          <h3>Transfer Certificate</h3>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin"
+                                [checked]="isTransferCertificatePermissionSelected(class)"
+                                (change)="transferCertificatePermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button type="submit">Submit</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- <div class="spinner-container" *ngIf="loader">
+    <div class="spinner-overlay" *ngIf="loader">
+      <mat-progress-spinner *ngIf="loader" diameter="65" mode="indeterminate" strokeWidth="3"></mat-progress-spinner>
+    </div>
+  </div> -->

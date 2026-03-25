@@ -1,0 +1,93 @@
+<mat-toolbar class="header">
+  <div class="col-2 col-lg-1" class="logo">
+    <img src="../../../assets/logo.png" alt="" routerLink="/" style="cursor: pointer;">
+  </div>
+  <div class="hamburger col-2 col-lg-0">
+    <button mat-icon-button>
+      <svg *ngIf="!nav" class="hamburger-icon" (click)="hamburgerMenu(nav)" xmlns="http://www.w3.org/2000/svg"
+        width="24" height="24" viewBox="0 0 25 25">
+        <rect x="0" y="4" width="26" height="2" />
+        <rect x="0" y="12" width="18" height="2" />
+        <rect x="0" y="20" width="26" height="2" />
+      </svg>
+      <mat-icon *ngIf="nav" class="close-icon"
+        style="font-size: 30px !important;margin-top: 5px !important;margin-left: -10px !important;"
+        (click)="hamburgerMenu(nav)">close</mat-icon>
+    </button>
+  </div>
+  <div class="main-menu col-lg-6" style="text-align: right;padding-right: 25px;">
+    <button mat-button *ngIf="isTeacherAuthenticated" (click)="onLogout('teacher')">
+      <mat-icon>logout</mat-icon>
+      <span>Logout</span>
+    </button>
+  </div>
+</mat-toolbar>
+<div [ngClass]="{'top-hamburger-menu' : false==nav}">
+  <mat-toolbar class="hamburger-menu" style="position: absolute !important;z-index: 1;">
+    <button mat-menu-item [routerLink]="['/teacher/dashboard']" routerLinkActive="active-link"
+      (click)="hamburgerMenu(true)">
+      <mat-icon>dashboard</mat-icon>
+      <span>Dashboard</span>
+    </button>
+    <button *ngIf="admissionPermission" mat-menu-item class="menu-button" routerLink="/teacher/admission" routerLinkActive="active-link">
+      <mat-icon>dialpad</mat-icon>
+      <span>Admission</span>
+    </button>
+    <button *ngIf="!admissionPermission" mat-menu-item class="menu-button">
+      <mat-icon>lock</mat-icon>
+      <span>Admission</span>
+    </button>
+    <button *ngIf="studentPermission" mat-menu-item class="menu-button" routerLink="/teacher/student" routerLinkActive="active-link">
+      <mat-icon>person_add</mat-icon>
+      <span>Student</span>
+    </button>
+    <button *ngIf="!studentPermission" mat-menu-item class="menu-button">
+      <mat-icon>lock</mat-icon>
+      <span>Student</span>
+    </button>
+    <button *ngIf="feeCollectionPermission" mat-menu-item class="menu-button" routerLink="/teacher/fees" routerLinkActive="active-link">
+      <mat-icon>currency_rupee</mat-icon>
+      <span>Fees</span>
+    </button>
+    <button *ngIf="!feeCollectionPermission" mat-menu-item class="menu-button">
+      <mat-icon>lock</mat-icon>
+      <span>Fees</span>
+    </button>
+    <button *ngIf="admitCardPermission" mat-menu-item class="menu-button" routerLink="/teacher/admit-card" routerLinkActive="active-link">
+      <mat-icon>assignment</mat-icon>
+      <span>Admit Card</span>
+    </button>
+    <button *ngIf="!admitCardPermission" mat-menu-item class="menu-button">
+      <mat-icon>lock</mat-icon>
+      <span>Admit Card</span>
+    </button>
+    <button *ngIf="marksheetPermission" mat-menu-item class="menu-button" routerLink="/teacher/marksheet" routerLinkActive="active-link">
+      <mat-icon>content_paste_search</mat-icon>
+      <span>Marksheet</span>
+    </button>
+    <button *ngIf="!marksheetPermission" mat-menu-item class="menu-button">
+      <mat-icon>lock</mat-icon>
+      <span>Marksheet</span>
+    </button>
+    <button *ngIf="promoteFailPermission" mat-menu-item class="menu-button" routerLink="/teacher/promote-fail" routerLinkActive="active-link">
+      <mat-icon>person_add</mat-icon>
+      <span>Class Promote</span>
+    </button>
+    <button *ngIf="!promoteFailPermission" mat-menu-item class="menu-button">
+      <mat-icon>lock</mat-icon>
+      <span>Class Promote</span>
+    </button>
+    <button *ngIf="transferCertificatePermission" mat-menu-item class="menu-button" routerLink="/teacher/transfer-certificate" routerLinkActive="active-link">
+      <mat-icon>workspace_premium</mat-icon>
+      <span>Transfer Certificate</span>
+    </button>
+    <button *ngIf="!transferCertificatePermission" mat-menu-item class="menu-button">
+      <mat-icon>lock</mat-icon>
+      <span>Transfer Certificate</span>
+    </button>
+    <button mat-menu-item class="menu-button" *ngIf="isTeacherAuthenticated" (click)="onLogout('teacher')">
+      <mat-icon>logout</mat-icon>
+      <span>Logout</span>
+    </button>
+  </mat-toolbar>
+</div>

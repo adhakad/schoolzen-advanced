@@ -1,0 +1,127 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row mt-4">
+        <div class="chart-main-container">
+          <div class="row">
+            <div class="col-12 col-lg-3">
+              <div class="modern-card students-card" routerLink="/admin/student">
+                <div class="card-header">
+                  <div class="card-icon">
+                    <i class="fas fa-user-graduate"></i>
+                  </div>
+                  <div class="card-title">Students</div>
+                </div>
+                <div class="card-content">
+                  <div class="card-number">{{ studentCountInfo }}</div>
+                  <div class="card-subtitle">Student records</div>
+                </div>
+                <div class="card-overlay"></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-3">
+              <div class="modern-card teachers-card" routerLink="/admin/teacher">
+                <div class="card-header">
+                  <div class="card-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                  </div>
+                  <div class="card-title">Teachers</div>
+                </div>
+                <div class="card-content">
+                  <div class="card-number">{{ teacherCountInfo }}</div>
+                  <div class="card-subtitle">Appointed teachers</div>
+                </div>
+                <div class="card-overlay"></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-3">
+              <div class="modern-card marksheets-card">
+                <div class="card-header">
+                  <div class="card-icon">
+                    <i class="fab fa-whatsapp"></i>
+                  </div>
+                  <div class="card-title">Whatsapp Messages</div>
+                </div>
+                <div class="card-content">
+                  <div class="card-number">{{remainingWhatsappMessageCountInfo}}</div>
+                  <div class="card-subtitle">Available Messages</div>
+                </div>
+                <div class="card-overlay"></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-3">
+              <div class="modern-card certificates-card" routerLink="/admin/marksheet">
+                <div class="card-header">
+                  <div class="card-icon">
+                    <i class="fas fa-file-alt"></i>
+                  </div>
+                  <div class="card-title">Marksheets</div>
+                </div>
+                <div class="card-content">
+                  <div class="card-number">{{ marksheetCountInfo }}</div>
+                  <div class="card-subtitle">Generated reports</div>
+                </div>
+                <div class="card-overlay"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="chart-main-container">
+          <div class="row">
+            <div class="col-12 col-lg-4">
+              <div class="chart-card">
+                <div style="position: relative;">
+                  <div id="barChart"></div>
+                  <mat-form-field class="custom-session-select position-absolute" style="top: 15px; right: 10px;">
+                    <mat-select [(ngModel)]="selectedSession" (selectionChange)="filterSession($event.value)">
+                      <mat-option *ngFor="let session of allSession" [value]="session">{{session}}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="chart-card">
+                <div class="position-relative">
+                  <div id="pieChart"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-4">
+              <div class="chart-card">
+                <div style="position: relative;">
+                  <div id="lineChart"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="floating-particles">
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+  <div class="particle"></div>
+</div>

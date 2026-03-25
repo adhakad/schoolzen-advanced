@@ -1,0 +1,15 @@
+@import'../dashboard/dashboard.component.css';
+/* @import'../admin-student-fees/admin-student-fees.component.css'; */
+/* @import'../../../../assets/logo.png'; */
+.sign-table{
+  border: 1px solid transparent;
+ }
+ .custom-modal .modal-dialog {
+  margin-top: 200px;
+}
+
+.print-model-body {
+  max-height: calc(0vh - 2.3 * 3.5rem);
+  overflow-x: hidden;
+  overflow-y: hidden;
+}

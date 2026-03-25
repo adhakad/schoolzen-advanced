@@ -1,0 +1,52 @@
+<app-header></app-header>
+<div class="login">
+  <div class="row">
+    <div class="col-12 col-lg-5 offset-lg-3 login-card">
+      <div class="row">
+        <div class="col-12 col-lg-10 offset-lg-1">
+          <h3>Admin Login</h3>
+          <div class="col-12">
+            <h2>{{errorMsg}}</h2>
+            <form [formGroup]="loginForm" (ngSubmit)="login()">
+              <mat-form-field appearance="outline">
+                <mat-label>WhatsApp Mobile Number</mat-label>
+                <span matPrefix class="prefix-content">
+                  <img src="https://flagcdn.com/w40/in.png" alt="India Flag" class="flag-icon" />
+                  <span class="country-code">+91</span>
+                </span>
+                <input matInput type="number" formControlName="mobile">
+                <mat-error *ngIf="loginForm.get('mobile')?.hasError('required') && loginForm.get('mobile')?.touched">
+                  Mobile is required
+                </mat-error>
+                <mat-error *ngIf="loginForm.get('mobile')?.hasError('pattern') && loginForm.get('mobile')?.touched">
+                  Please enter a valid mobile (10-digit mobile number starting with 6,
+                  7, 8, or 9)
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Password</mat-label>
+                <input matInput [type]="hide ? 'password' : 'text'" formControlName="password">
+                <mat-icon matSuffix (click)="hide = !hide" style="cursor: pointer;"
+                  [attr.aria-label]="hide ? 'Hide password' : 'Show password'" [attr.aria-pressed]="!hide">
+                  {{hide ? 'visibility_off' : 'visibility'}}
+                </mat-icon>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched"
+                  class="form-text text-danger">Password is required.</mat-hint>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('minlength')" class="form-text text-danger">
+                  Password must be at least 6 characters long.
+                </mat-hint>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('maxlength')" class="form-text text-danger">
+                  Password can't be more than 30 characters long.
+                </mat-hint>
+              </mat-form-field>
+
+              <button type="submit" mat-raised-button [disabled]="!loginForm.valid" class="submit-button">Login</button>
+            </form>
+            <p style="margin-top: 15px;">Forgot password? <a href="/admin/forgot">Reset here</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

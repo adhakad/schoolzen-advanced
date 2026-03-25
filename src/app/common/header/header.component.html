@@ -1,0 +1,94 @@
+<mat-toolbar class="header">
+  <div class="col-2 col-sm-2 col-lg-4" class="logo">
+    <img src="../../../assets/logo.png" alt="">
+  </div>
+  <div class="hamburger col-2 col-sm-2 offset-sm-3 col-lg-0">
+    <button mat-icon-button>
+      <svg *ngIf="!nav" class="hamburger-icon" (click)="hamburgerMenu(nav)" xmlns="http://www.w3.org/2000/svg" width="24"
+        height="24" viewBox="0 0 25 25">
+        <rect x="0" y="4" width="26" height="2" />
+        <rect x="0" y="12" width="18" height="2" />
+        <rect x="0" y="20" width="26" height="2" />
+      </svg>
+      <mat-icon *ngIf="nav" class="close-icon" style="font-size: 30px !important;margin-top: 5px !important;margin-left: -10px !important;" (click)="hamburgerMenu(nav)">close</mat-icon>
+    </button>
+  </div>
+  <div class="main-menu col-lg-5 offset-lg-3" style="text-align: right;">
+    <button #button mat-button routerLink="/">
+      <span class="menu-item">Home</span>
+    </button>
+    <button #button mat-button routerLink="/about">
+      <span class="menu-item">About</span>
+    </button>
+    <button #button mat-button routerLink="/pricing">
+      <span class="menu-item">Pricing</span>
+    </button>
+    <button #button mat-button routerLink="/features">
+      <span class="menu-item">Features</span>
+    </button>
+    <button #button mat-button style="font-family:'Segoe UI',Verdana" [matMenuTriggerFor]="accountMenu">
+      <span class="menu-item">Account</span><mat-icon>keyboard_arrow_down</mat-icon>
+    </button>
+  </div>
+</mat-toolbar>
+
+<mat-menu #accountMenu="matMenu" class="desktop-menu">
+  <button mat-menu-item *ngIf="!isAdminAuthenticated && !isTeacherAuthenticated"
+    routerLink="/admin/login">
+    <mat-icon>admin_panel_settings</mat-icon>
+    <span>Admin Login</span>
+  </button>
+  <button mat-menu-item *ngIf="!isAdminAuthenticated && !isTeacherAuthenticated"
+    routerLink="/teacher/login">
+    <mat-icon>account_box</mat-icon>
+    <span>Teacher Login</span>
+  </button>
+  <button mat-menu-item *ngIf="isAdminAuthenticated" routerLink="/admin/dashboard">
+    <mat-icon>dashboard</mat-icon>
+    <span>Admin Dashboard</span>
+  </button>
+  <button mat-menu-item *ngIf="isTeacherAuthenticated" routerLink="/teacher/dashboard">
+    <mat-icon>dashboard</mat-icon>
+    <span>Teacher Dashboard</span>
+  </button>
+</mat-menu>
+
+
+<div [ngClass]="{'top-hamburger-menu' : false==nav}">
+  <mat-toolbar class="hamburger-menu">
+    <button mat-menu-item routerLink="/" routerLinkActive="active-link" (click)="hamburgerMenu(true)">
+      <mat-icon>home</mat-icon>
+      <span>Home</span>
+    </button>
+    <button mat-menu-item routerLink="/about">
+      <mat-icon>apartment</mat-icon>
+      <span>About</span>
+    </button>
+    <button mat-menu-item routerLink="/pricing">
+      <mat-icon>currency_rupee</mat-icon>
+      <span>Pricing</span>
+    </button>
+    <button mat-menu-item routerLink="/features">
+      <mat-icon>apps</mat-icon>
+      <span>Features</span>
+    </button>
+    <button mat-menu-item *ngIf="!isAdminAuthenticated && !isTeacherAuthenticated"
+      routerLink="/admin/login">
+      <mat-icon>admin_panel_settings</mat-icon>
+      <span>Admin Login</span>
+    </button>
+    <button mat-menu-item *ngIf="!isAdminAuthenticated && !isTeacherAuthenticated"
+      routerLink="/teacher/login">
+      <mat-icon>account_box</mat-icon>
+      <span>Teacher Login</span>
+    </button>
+    <button mat-menu-item *ngIf="isAdminAuthenticated" routerLink="/admin/dashboard">
+      <mat-icon>dashboard</mat-icon>
+      <span>Admin Dashboard</span>
+    </button>
+    <button mat-menu-item *ngIf="isTeacherAuthenticated" routerLink="/teacher/dashboard">
+      <mat-icon>dashboard</mat-icon>
+      <span>Teacher Dashboard</span>
+    </button>
+  </mat-toolbar>
+</div>

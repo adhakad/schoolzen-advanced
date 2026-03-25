@@ -1,0 +1,383 @@
+.flm {
+  float: left;
+  margin-top: 10px;
+}
+
+.student-limit .increment-button {
+  border-right: 1px solid #d1d1d1;
+  border-top: 1px solid #d1d1d1;
+  border-bottom: 1px solid #d1d1d1;
+  border-radius: 0 5px 5px 0;
+}
+
+.student-limit .decrement-button {
+  border-left: 1px solid #d1d1d1;
+  border-top: 1px solid #d1d1d1;
+  border-bottom: 1px solid #d1d1d1;
+  border-radius: 5px 0 0 5px;
+}
+
+.student-limit .increment-button .mat-icon {
+  font-size: 16px;
+}
+
+.student-limit .decrement-button .mat-icon {
+  font-size: 16px;
+}
+
+.student-limit button {
+  border-top: 1px solid #d1d1d1;
+  border-bottom: 1px solid #d1d1d1;
+  border-radius: 0;
+}
+
+.card-title h2 {
+  color: #000;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-align: center;
+}
+
+.card-detail-title h2 {
+  color: #000;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-align: left;
+}
+
+.card-title p {
+  color: #000;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: .5px;
+  text-align: center;
+}
+
+.card-title p span {
+  color: #000;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-align: center;
+}
+
+.success-message {
+  color: #16b978;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 20px;
+}
+
+.error-msg h2 {
+  color: rgb(228, 64, 154);
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 16px;
+  letter-spacing: .5px;
+}
+
+.submit-button {
+  height: 50px;
+  background: #804beb;
+  color: #FFF;
+  font-family: 'Poppins', sans-serif !important;
+  box-shadow: none !important;
+}
+
+.submit-button.mat-button-disabled:not([class*=mat-elevation-z]) {
+  background: #9f79eb;
+  color: #f5f3fb;
+  font-family: 'Poppins', sans-serif !important;
+  cursor: not-allowed;
+}
+
+
+.otp-input {
+  display: flex;
+  font-family: 'Poppins', sans-serif !important;
+  justify-content: center;
+}
+
+.otp-input input {
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+  text-align: center;
+  font-family: 'Poppins', sans-serif !important;
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-bottom: 30px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.otp-input input:focus {
+  outline: none;
+  font-family: 'Poppins', sans-serif !important;
+  border-color: #804beb;
+  box-shadow: 0 0 5px #804beb78;
+}
+
+.otp-input input[type=number]::-webkit-inner-spin-button,
+.otp-input input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cards {
+  background-color: #fff;
+  height: auto;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  font-family: 'Poppins', sans-serif !important;
+  padding: 28px 20px 20px 20px;
+  border: 1px solid #d5d0e1af;
+  box-shadow: none;
+  border-radius: 15px;
+}
+
+.cards img {
+  height: 32px;
+}
+
+.cards-second {
+  background-color: #fff;
+  height: auto;
+  font-family: 'Poppins', sans-serif !important;
+  margin-top: 30px;
+  padding: 40px 40px 40px 40px;
+  box-shadow: rgba(0, 0, 0, 0.05) 0px 3px 8px;
+  border-radius: 5px;
+}
+
+.cards-second img {
+  height: 32px;
+}
+
+.title {
+  color: #382066;
+  font-size: 24px;
+  font-family: 'Poppins', sans-serif !important;
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+
+::ng-deep .mat-input-element {
+  margin-top: -1px !important;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+::ng-deep .mat-form-field-appearance-outline .mat-form-field-prefix {
+  top: 1px !important;
+}
+
+.prefix-content {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 9px;
+
+}
+
+.flag-icon {
+  width: 18px !important;
+  height: 12px !important;
+  object-fit: cover;
+  border-radius: 2px;
+  filter: brightness(1.2) saturate(1.1);
+}
+
+.country-code {
+  color: #a7a7ae;
+  font-size: 14px;
+}
+
+
+
+
+
+
+
+
+/* src/app/components/otp-verification/otp-verification.component.css */
+.otp-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-control {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.text-danger {
+  color: #dc3545;
+  font-size: 0.875em;
+  text-align: left;
+  margin-top: 5px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:disabled {
+  background-color: #a0c9f1;
+  cursor: not-allowed;
+}
+
+.btn-link {
+  background: none;
+  color: #007bff;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.btn-link:disabled {
+  color: #6c757d;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.resend-section {
+  margin-top: 20px;
+}
+
+.cooldown-timer {
+  margin-left: 10px;
+  font-weight: bold;
+  color: #28a745;
+}
+
+.alert {
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.spinner-border {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  vertical-align: text-bottom;
+  border: 0.15em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  -webkit-animation: spinner-border .75s linear infinite;
+  animation: spinner-border .75s linear infinite;
+}
+
+@keyframes spinner-border {
+  to { transform: rotate(360deg); }
+}
+
+
+
+
+
+
+@media (min-width: 992px) {
+  .error-msg h2 {
+    color: rgb(228, 64, 154);
+    font-size: 16px;
+    letter-spacing: .5px;
+  }
+
+  .submit-button {
+    height: 50px;
+    background: #804beb;
+    color: #FFF;
+    box-shadow: none !important;
+  }
+
+  .submit-button.mat-button-disabled:not([class*=mat-elevation-z]) {
+    background: #9f79eb;
+    color: #f5f3fb;
+    cursor: not-allowed;
+  }
+
+  .otp-input {
+    display: flex;
+    font-family: 'Poppins', sans-serif !important;
+    justify-content: left;
+  }
+
+  .otp-input input {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    text-align: center;
+    margin-left: 0;
+    margin-right: 30px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+
+  .otp-input input:focus {
+    outline: none;
+    border-color: #804beb;
+    box-shadow: 0 0 5px #804beb78;
+  }
+
+  .cards img {
+    height: 35px;
+  }
+
+  .cards-second {
+    padding: 60px 60px 60px 60px;
+  }
+
+  .cards-second img {
+    height: 32px;
+  }
+
+  .title {
+    color: #382066;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: .5px;
+  }
+
+}

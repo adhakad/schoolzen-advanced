@@ -1,0 +1,16 @@
+.flm{
+    float: left;
+    margin-top: 10px;
+}
+button{
+    color: #8d6dff;
+}
+.button{
+    background-color: #e7e6f897;
+    margin: 3px;
+}
+.pagination_active{
+    background-color:#8d6dff;
+    color: #fff;
+    margin: 3px;
+}

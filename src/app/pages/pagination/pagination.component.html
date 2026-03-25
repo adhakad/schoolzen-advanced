@@ -1,0 +1,36 @@
+
+  <div class="pagination-wrapper mt-0" *ngIf="totalTableRecords && totalTableRecords>0 && selectedLimit<totalTableRecords">
+  <ul class="pagination">
+    <button mat-icon-button (click)="changePage(-1)"><mat-icon>chevron_left</mat-icon></button>
+    <ng-template ngFor let-p [ngForOf]="pages">
+      <button class="button" mat-icon-button [class.pagination_active]="activePageNumber == p" *ngIf="showPages(p)" (click)="onChangePage(p,0)">{{p}}</button>
+    </ng-template>
+    <button mat-icon-button (click)="changePage(+1)"><mat-icon>chevron_right</mat-icon></button>
+  </ul>
+</div>
+
+<!-- <div class="pagination-wrapper mt-3"
+  
+  *ngIf="totalTableRecords && totalTableRecords>0 && selectedLimit<totalTableRecords">
+  <div class="flm">Total Records: {{totalTableRecords}}</div>
+  <ul class="pagination">
+    <li class="page-item"><a class="page-link" (click)="changePage(-1)"><i class="bi bi-chevron-left"></i>previous</a>
+    </li>
+    <ng-template ngFor let-p [ngForOf]="pages">
+      
+      <li class="page-item">
+        <a class="page-link" [class.pagination_active]="activePageNumber == p" *ngIf="showPages(p)" (click)="onChangePage(p,0)">{{p}}</a>
+      </li>
+    </ng-template>
+    <li class="page-item"><a class="page-link" (click)="changePage(+1)"> <i class="bi bi-chevron-right"></i>next </a>
+    </li>
+  </ul>
+  <div class="per-page-record-count">
+    Show
+    <select [(ngModel)]="selectedLimit" class="selecet_box_types" (change)="queryLimitChange(selectedLimit)">
+      <option value="5">5</option>
+      <option value="10">10</option>
+    </select>
+    Records
+  </div>
+</div> -->

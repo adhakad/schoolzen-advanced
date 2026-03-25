@@ -1,0 +1,195 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+    <div class="row">
+        <div class="col-12 col-lg-2">
+            <app-side-navbar></app-side-navbar>
+        </div>
+        <div class="col-12 col-lg-10">
+            <div class="row">
+
+                <div class="col-12 main-container">
+                    <div class="row big-option-container">
+                        <div class="desktop-option">
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <button mat-button class="menu-button">
+                                            <span>Marksheet > Template > {{cls | classSuffix}}<span
+                                                    *ngIf="cls==11 || cls==12">(
+                                                    {{stream}} )</span></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mobile-option">
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-12">
+
+                                        <button mat-button class="menu-button" style="display: block;">
+                                            <span>Marksheet > Template ></span>
+                                        </button>
+                                        <button mat-button class="menu-button">
+                                            <span>{{cls | classSuffix}}<span *ngIf="cls==11 || cls==12">(
+                                                    {{stream}} )</span></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+
+
+                <div class="main-container">
+                    <div class="col-12 col-lg-12 big-container">
+                        <div class="main-card">
+                            <ng-container *ngIf="!marksheetSelectMode">
+                                <div class="col-12 col-lg-12 mt-5">
+                                    <div class="marksheet-detail-card">
+                                        <div class="table-wrapper">
+                                            <table class="table table-hover align-middle mt-2 mb-1 bg-white">
+                                                <thead class="bg-light">
+                                                    <tr class="text-muted">
+                                                        <th>S.No.</th>
+                                                        <th>Template Name</th>
+                                                        <th>Class</th>
+                                                        <th>Stream</th>
+                                                        <th>Created By</th>
+                                                        <th>Edit</th>
+                                                        <th>Remove</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody *ngIf="marksheetTemplate">
+                                                    <tr>
+                                                        <td>
+                                                            <p class="mb-0">{{1}}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p class="mb-0">{{marksheetTemplate.templateName |
+                                                                titlecase}}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p class="mb-0">{{marksheetTemplate.class |
+                                                                classSuffix}}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p class="mb-0">{{marksheetTemplate.stream | streamTitleCase}}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p class="mb-0">{{marksheetTemplate.createdBy}}</p>
+                                                        </td>
+                                                        <td class="mb-0">
+                                                            <mat-icon
+                                                                routerLink="/admin/marksheet/structure-edit/{{marksheetTemplate._id}}">open_in_new</mat-icon>
+                                                        </td>
+                                                        <td class="mb-0">
+                                                            <mat-icon
+                                                                (click)="deleteMarksheetTemplateModel(marksheetTemplate._id)">delete</mat-icon>
+                                                        </td>
+                                                    </tr>
+
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-8 offset-lg-2 mt-2 mb-5">
+                                    <div class="selected-template-card" matRipple>
+                                        <img src="{{marksheetTemplate.templateUrl}}" alt="">
+                                    </div>
+                                </div>
+                            </ng-container>
+                            <ng-container *ngIf="marksheetSelectMode">
+                                <div class="col-12 mt-5">
+                                    <div class="owl-carousel template-carousel">
+                                        <div *ngFor="let template of availableTemplates" class="template-card"
+                                            matRipple>
+                                            <h6 style="font-size: 12px;font-weight: bold;">Template - {{ template.name
+                                                }}</h6>
+                                            <img [src]="template.url" alt="{{ template.name }}">
+                                            <div class="row">
+                                                <div class="col-8 offset-2"><button class="submit-button"
+                                                        (click)="addExamResultModel(template.name, template.url)"
+                                                        mat-raised-button>&nbsp;&nbsp;&nbsp;Select&nbsp;&nbsp;&nbsp;</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </ng-container>
+                            <div class="modal fade show" [class.show]="showModal">
+                                <div class="modal-dialog modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">{{updateMode?'UPDATE': deleteMode ? 'DELETE'
+                                                :'SET'}} MARKSHEET FORMATE</h5>
+                                            <mat-icon matRipple (click)="closeModal()"
+                                                style="cursor: pointer;">close</mat-icon>
+                                        </div>
+                                        <ng-container>
+                                            <form [formGroup]="examResultForm" (ngSubmit)="examResultAddUpdate()">
+                                                <div class="modal-body">
+                                                    <div *ngIf="errorCheck">
+                                                        <p class="error-message">{{errorMsg}}</p>
+                                                    </div>
+                                                    <div class="container-fluid" *ngIf="!deleteMode">
+                                                        <div class="row">
+                                                            <h6 style="font-size: 12px;font-weight: 500;">
+                                                                {{selectedTemplate}} For {{cls | classSuffix |
+                                                                lowercase}}
+                                                                <span *ngIf="cls==11 || cls==12">{{stream}}</span>
+                                                            </h6>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer" *ngIf="!deleteMode">
+                                                    <button class="submit-button" mat-raised-button
+                                                        type="submit" [disabled]="!examResultForm.valid || isClick">
+                                                        <span *ngIf="isClick" class="submitting-content">
+                                                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                                                        </span>
+                                                        Set</button>
+                                                </div>
+
+                                            </form>
+                                        </ng-container>
+                                        <div *ngIf="deleteMode">
+                                            <div class="modal-body">
+                                                <ng-container>
+                                                    <h3
+                                                        style="color: #000;font-size: 16px;letter-spacing: normal;margin-left: 20px;">
+                                                        Note :
+                                                        As
+                                                        soon as the marksheet template for the {{cls |
+                                                        classSuffix}} <span *ngIf="cls==11 || cls==12">{{stream
+                                                            |lowercase}}</span>
+                                                        is
+                                                        deleted, the exam result for all the students will be
+                                                        automatically deleted.</h3>
+                                                </ng-container>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="delete-button" mat-raised-button type="button"
+                                                    (click)="marksheetTemplateDelete(deleteById)" [disabled]="isClick">
+                                                    <span *ngIf="isClick" class="submitting-content">
+                                                        <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                                                    </span>
+                                                    Ok</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

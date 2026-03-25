@@ -1,0 +1,129 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+    <div class="row">
+        <div class="col-12 col-lg-2">
+            <app-side-navbar></app-side-navbar>
+        </div>
+        <div class="col-12 col-lg-10">
+            <div class="row">
+                <div class="col-12 big-container">
+                    <div class="col-lg-12 offset-lg-0">
+                        <div class="main-card">
+                            <div class="row mt-4 mb-2">
+                                <div class="col-8 col-lg-5">
+                                    <input type="text" class="form-control" placeholder="Ads Search..." id="searchText"
+                                        name="searchText" #searchText="ngModel" [(ngModel)]="filters.searchText"
+                                        (keyup)="getAds({page : 1, limit : 0})">
+                                </div>
+                                <div class="col-4 col-lg-2 offset-lg-5">
+                                    <button class="submit-button" mat-raised-button
+                                        (click)="addAdsModel()"><mat-icon>add</mat-icon>Create</button>
+                                </div>
+                            </div>
+                            <table class="table table-hover align-middle mt-2 mb-1 bg-white">
+                                <thead class="bg-light">
+                                    <tr class="text-muted">
+                                        <th>No.</th>
+                                        <th>Ads Title</th>
+                                        <th style="color: transparent;">Ads Title</th>
+                                        <th>Image</th>
+                                        <th style="color: transparent;">Image</th>
+                                        <th>Edit</th>
+                                        <th>Remove</th>
+                                    </tr>
+                                </thead>
+                                <tbody *ngIf="adsInfo && adsInfo.length>0">
+                                    <tr *ngFor="let ads of adsInfo,let i=index">
+                                        <td>
+                                            <p class="mb-0">{{number*10+i+1-10}}</p>
+                                        </td>
+                                        <td>
+                                            <p class="mb-0">{{ads.title}}</p>
+                                        </td>
+                                        <td></td>
+                                        <td>
+                                            <img src="{{baseUrl}}/public/ads-image/{{ads.image}}" alt=""
+                                                style="height: 28px;;">
+                                        </td>
+                                        <td></td>
+                                        <td class="mb-0">
+                                            <mat-icon (click)="updateAdsModel(ads)">edit</mat-icon>
+                                        </td>
+                                        <td class="mb-0">
+                                            <mat-icon (click)="deleteAdsModel(ads._id)">delete</mat-icon>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="pagination">
+                                <app-pagination [paginationValues]="paginationValues" (onChange)="getAds($event)">
+                                </app-pagination>
+                            </div>
+                            <div class="modal fade show" [class.show]="showModal">
+                                <div class="modal-dialog modal-dialog-top" role="document">
+                                    <div class="modal-content" *ngIf="successMsg">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" style="color: transparent;">&nbsp;</h5>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p class="success-message">{{successMsg}}</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <mat-icon></mat-icon>
+                                        </div>
+                                    </div>
+                                    <div class="modal-content" *ngIf="!successMsg">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">{{updateMode?'UPDATE': deleteMode ? 'DELETE':'CREATE'}}
+                                                ADS</h5>
+                                            <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                                        </div>
+
+                                        <form [formGroup]="adsForm" (ngSubmit)="adsAddUpdate()" *ngIf="!deleteMode">
+                                            <div class="modal-body">
+                                                <div *ngIf="errorCheck">
+                                                    <p class="error-message">{{errorMsg}}</p>
+                                                </div>
+                                                <mat-form-field appearance="outline">
+                                                    <mat-label>Title</mat-label>
+                                                    <input matInput type="text" formControlName="title">
+                                                    <mat-hint
+                                                        *ngIf="!adsForm.get('title')?.valid && adsForm.get('title')?.touched"
+                                                        class="form-text text-danger">Title is required</mat-hint>
+                                                </mat-form-field>
+                                                <mat-form-field appearance="outline">
+                                                    <mat-label>Choose Image</mat-label>
+                                                    <ngx-mat-file-input formControlName="image">
+                                                        <mat-icon ngxMatFileInputIcon
+                                                            style="color: #8d6dff;">cloud_upload</mat-icon>
+                                                    </ngx-mat-file-input>
+                                                </mat-form-field>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="submit" mat-raised-button [disabled]="!adsForm.valid"
+                                                    class="submit-button">Submit</button>
+                                            </div>
+                                        </form>
+                                        <div *ngIf="deleteMode">
+                                            <h4>To delete class, click ok to confirm.</h4>
+                                            <div class="modal-footer">
+                                                <button class="delete-button" mat-raised-button type="button"
+                                                    (click)="adsDelete(deleteById)">Ok</button>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="spinner-container" *ngIf="loader">
+    <div class="spinner-overlay" *ngIf="loader">
+        <mat-progress-spinner *ngIf="loader" diameter="65" mode="indeterminate" strokeWidth="3"></mat-progress-spinner>
+    </div>
+</div>

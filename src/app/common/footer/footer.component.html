@@ -1,0 +1,156 @@
+<div class="row footer pt-5 pb-1">
+    <div class="col-12 col-sm-10 offset-sm-1 col-lg-10 offset-lg-1 pt-4 footer-card">
+        <div class="row mx-3">
+            <div class="col-lg-3 offset-lg-1">
+                <div class="row">
+                    <div class="col-12 col-lg-12 footer-item">
+                        <img src="../../../assets/logo-light.png" alt="">
+                        <p style="display: inline;">78/2 Main Road Bhulay
+                            Guna, Madhya Pradesh
+                            (India) 473110</p>
+                        <p>Copyright &copy; {{currentYear}} . All Rights Reserved . Schoolzen</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 offset-lg-1">
+                <div class="row">
+                    <div class="col-12 footer-item">
+                        <h3 class="mb-4">Useful Links</h3>
+                        <p (click)="openInNewTab('/terms-and-conditions')">Terms of service</p>
+                        <p (click)="openInNewTab('/privacy-policy')" routerLink="">Privacy policy</p>
+                        <p (click)="openInNewTab('/refund-cancellation-policy')" routerLink="">Refund and cancellation
+                        </p>
+                        <p (click)="openInNewTab('/contact')" routerLink="">Contact Us</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 offset-lg-1 footer-item">
+                <div class="row">
+                    <div class="col-12">
+                        <h3 class="mb-4">Contact us</h3>
+
+                        <div class="row">
+                            <div class="col-1"><mat-icon>call</mat-icon></div>
+                            <div class="col-11">
+                                <p style="margin-top: 3px !important;margin-left: 10px;">9893830679</p>
+                            </div>
+                        </div>
+                        <!-- <div class="row">
+                            <div class="col-1"><mat-icon>smartphone</mat-icon></div>
+                            <div class="col-11">
+                                <p style="margin-top: 3px !important;margin-left: 10px;"></p>
+                            </div>
+                        </div> -->
+                        <div class="row">
+                            <div class="col-1"><mat-icon>mail</mat-icon></div>
+                            <div class="col-11">
+                                <p style="margin-top: 3px !important;margin-left: 10px;">info@schoolzen.in</p>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-bottom: 20px;">
+                            <div class="col-2" *ngIf="whatsapp"><i class="bi bi-whatsapp"
+                                    (click)="socialMediaRedirect(whatsapp)"></i></div>
+                            <div class="col-2" *ngIf="!whatsapp"><i class="bi bi-whatsapp"></i></div>
+                            <div class="col-2" *ngIf="facebook"><i class="bi bi-facebook"
+                                    (click)="socialMediaRedirect(facebook)"></i></div>
+                            <div class="col-2" *ngIf="!facebook"><i class="bi bi-facebook"></i></div>
+                            <div class="col-2" *ngIf="linkedin"><i class="bi bi-linkedin"
+                                    (click)="socialMediaRedirect(linkedin)"></i></div>
+                            <div class="col-2" *ngIf="!linkedin"><i class="bi bi-linkedin"></i></div>
+                            <div class="col-2" *ngIf="instagram"><i class="bi bi-instagram"
+                                    (click)="socialMediaRedirect(instagram)"></i></div>
+                            <div class="col-2" *ngIf="!instagram"><i class="bi bi-instagram"></i></div>
+                            <div class="col-2" *ngIf="youtube"><i class="bi bi-youtube"
+                                    (click)="socialMediaRedirect(youtube)"></i></div>
+                            <div class="col-2" *ngIf="!youtube"><i class="bi bi-youtube"></i></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-10 offset-1 mt-5">
+            <mat-divider></mat-divider>
+        </div>
+        <div class="copyright mt-3 pt-2 pb-3">
+            <p>Product Powered by <img src="../../../assets/logo-light.png" alt=""
+                    (click)="softwareCompany(softwareCompanyLink)"></p>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- <div class="row footer pt-5 pb-1">
+    <div class="col-12 col-lg-10 offset-lg-1 pt-4 footer-card">
+        <div class="row mx-3">
+            <div class="col-lg-3 offset-lg-1">
+                <div class="row">
+                    <div class="col-12 col-lg-12 footer-item">
+                        <h3>{{schoolName}}</h3>
+                        <p style="display: inline;">{{schoolInfo?.street}},
+                            {{schoolInfo?.city}}, {{schoolInfo?.state}}
+                            ({{schoolInfo?.country}}) {{schoolInfo?.pinCode}}</p>
+                        <p>{{schoolInfo?.board}} Affiliation - {{schoolInfo?.affiliationNumber}}</p>
+                        <p>&copy; {{currentYear}} . All Rights Reserved . {{schoolName}}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 offset-lg-1">
+                <div class="row">
+                    <div class="col-12 footer-item">
+                        <h3 class="mb-4">School help</h3>
+                        <p routerLink="/terms-and-conditions">Terms of service</p>
+                        <p routerLink="/privacy-policy">Privacy policy</p>
+                        <p routerLink="/refund-cancellation-policy">Refund and cancellation</p>
+                        <p routerLink="/contact">Contact Us</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 offset-lg-1 footer-item">
+                <div class="row">
+                    <div class="col-12">
+                        <h3 class="mb-4">Contact us</h3>
+                        
+                        <div class="row">
+                            <div class="col-1"><mat-icon>call</mat-icon></div>
+                            <div class="col-11">
+                                <p style="margin-top: 3px !important;margin-left: 10px;">{{schoolInfo?.phoneOne}}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-1"><mat-icon>smartphone</mat-icon></div>
+                            <div class="col-11">
+                                <p style="margin-top: 3px !important;margin-left: 10px;">{{schoolInfo?.phoneSecond}}</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-1"><mat-icon>mail</mat-icon></div>
+                            <div class="col-11">
+                                <p style="margin-top: 3px !important;margin-left: 10px;">{{schoolInfo?.email}}</p>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-bottom: 20px;">
+                            <div class="col-3" *ngIf="facebook"><i class="bi bi-facebook" (click)="socialMediaRedirect(facebook)"></i></div>
+                            <div class="col-3" *ngIf="!facebook"><i class="bi bi-facebook"></i></div>
+                            <div class="col-3" *ngIf="linkedin"><i class="bi bi-linkedin" (click)="socialMediaRedirect(linkedin)"></i></div>
+                            <div class="col-3" *ngIf="!linkedin"><i class="bi bi-linkedin"></i></div>
+                            <div class="col-3" *ngIf="instagram"><i class="bi bi-instagram" (click)="socialMediaRedirect(instagram)"></i></div>
+                            <div class="col-3" *ngIf="!instagram"><i class="bi bi-instagram"></i></div>
+                            <div class="col-3" *ngIf="youtube"><i class="bi bi-youtube" (click)="socialMediaRedirect(youtube)"></i></div>
+                            <div class="col-3" *ngIf="!youtube"><i class="bi bi-youtube"></i></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-10 offset-1 mt-5">
+            <mat-divider></mat-divider>
+        </div>
+        <div class="copyright mt-3 pt-2 pb-3">
+            <p>Product Powered by <span (click)="softwareCompany(softwareCompanyLink)">Schooliya</span></p>
+        </div>
+    </div>
+</div> -->

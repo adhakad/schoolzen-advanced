@@ -1,0 +1,863 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+    <div class="row">
+        <div class="col-12 col-lg-2">
+            <app-side-navbar></app-side-navbar>
+        </div>
+        <div class="col-12 col-lg-10">
+            <div class="row">
+                <div class="col-12 main-container">
+                    <div class="row big-option-container">
+                        <div class="desktop-option">
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-3">
+                                        <button mat-button class="menu-button">
+                                            <span>Transfer Certificate</span>
+                                        </button>
+                                    </div>
+                                    <div class="col-9" style="text-align: right;">
+                                        <div class="row">
+                                            <ng-container *ngIf="cls !==11 && cls !==12">
+                                                <div class="col-2"></div>
+                                            </ng-container>
+                                            <div class="col-5">
+                                                <input *ngIf="cls && stream" type="text" class="form-control"
+                                                    placeholder="Student Search..." id="searchText" name="searchText"
+                                                    #searchText="ngModel" [(ngModel)]="filters.searchText"
+                                                    (keyup)="getStudents({page : 1, limit : 0})">
+                                            </div>
+                                            <div class="col-3">
+                                                <mat-form-field class="custom-select">
+                                                    <mat-label>Issued Transfer Certificate</mat-label>
+                                                    <mat-select matInput>
+                                                        <div>
+                                                            <mat-option
+                                                                routerLink="/admin/issued-transfer-certificate">Issued
+                                                                Transfer Certificate</mat-option>
+                                                        </div>
+                                                    </mat-select>
+                                                </mat-form-field>
+                                            </div>
+                                            <ng-container *ngIf="cls==11 || cls==12">
+                                                <div class="col-2">
+                                                    <mat-form-field class="custom-select">
+                                                        <mat-label
+                                                            *ngIf="stream =='' || stream=='stream'">Stream</mat-label>
+                                                        <mat-select [(ngModel)]="stream"
+                                                            (selectionChange)="filterStream($event.value)" type="text"
+                                                            matInput>
+                                                            <mat-option *ngFor="let subject of streamMainSubject"
+                                                                [value]="subject">{{subject}}</mat-option>
+                                                        </mat-select>
+                                                    </mat-form-field>
+                                                </div>
+                                            </ng-container>
+                                            <div class="col-2">
+                                                <mat-form-field class="custom-select">
+                                                    <mat-label *ngIf="cls==0">Class</mat-label>
+                                                    <mat-select [(ngModel)]="cls"
+                                                        (selectionChange)="chooseClass($event.value)" type="number"
+                                                        matInput>
+                                                        <mat-option *ngFor="let cls of classInfo" [value]="cls">{{cls |
+                                                            classSuffix}}</mat-option>
+                                                    </mat-select>
+                                                </mat-form-field>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mobile-option">
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-9">
+                                        <button mat-button class="menu-button">
+                                            <span>Transfer Certificate</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="col-12 mt-3">
+                                        <mat-form-field class="custom-select">
+                                            <mat-label *ngIf="cls==0">Class</mat-label>
+                                            <mat-select [(ngModel)]="cls" (selectionChange)="chooseClass($event.value)"
+                                                type="number" matInput>
+                                                <mat-option *ngFor="let cls of classInfo" [value]="cls">{{cls |
+                                                    classSuffix}}</mat-option>
+                                            </mat-select>
+                                        </mat-form-field>
+                                    </div>
+                                    <ng-container *ngIf="cls==11 || cls==12">
+                                        <div class="col-12">
+                                            <mat-form-field class="custom-select">
+                                                <mat-label *ngIf="stream =='' || stream=='stream'">Stream</mat-label>
+                                                <mat-select [(ngModel)]="stream"
+                                                    (selectionChange)="filterStream($event.value)" type="text" matInput>
+                                                    <mat-option *ngFor="let subject of streamMainSubject"
+                                                        [value]="subject">{{subject}}</mat-option>
+                                                </mat-select>
+                                            </mat-form-field>
+                                        </div>
+                                    </ng-container>
+                                    <div class="col-12">
+                                        <mat-form-field class="custom-select">
+                                            <mat-label>Issued Transfer Certificate</mat-label>
+                                            <mat-select matInput>
+                                                <div>
+                                                    <mat-option routerLink="/admin/issued-transfer-certificate">Issued
+                                                        Transfer Certificate</mat-option>
+                                                </div>
+                                            </mat-select>
+                                        </mat-form-field>
+                                    </div>
+                                    <div class="col-12">
+                                        <input *ngIf="cls && stream" type="text" class="form-control"
+                                            placeholder="Student Search..." id="searchText" name="searchText"
+                                            #searchText="ngModel" [(ngModel)]="filters.searchText"
+                                            (keyup)="getStudents({page : 1, limit : 0})">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="main-container">
+                    <div class="col-12 col-lg-12 big-container">
+                        <div class="main-card">
+                            <div class="table-wrapper">
+                                <table class="table table-hover align-middle bg-white"
+                                    *ngIf="!errorCheck && statusCode !==404 && statusCode !==500">
+                                    <thead class="bg-light">
+                                        <tr class="text-muted">
+                                            <th>S.No.</th>
+                                            <th>Admission No.</th>
+                                            <th>Student</th>
+                                            <th>Father Name</th>
+                                            <th>Mother Name</th>
+                                            <th>Class</th>
+                                            <th>Stream</th>
+                                            <th>Roll Number</th>
+                                            <th>Session</th>
+                                            <th>View</th>
+                                            <th>Transfer Certificate</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody *ngIf="studentInfo && studentInfo.length>0">
+                                        <tr *ngFor="let students of studentInfo,let i=index">
+                                            <td>
+                                                <p class="mb-0">{{number*10+i+1-10}}</p>
+                                            </td>
+                                            <td>
+                                                <p class="mb-0">{{students.admissionNo}}</p>
+                                            </td>
+                                            <td>
+                                                <p class="mb-0">{{students.name | titlecase}}</p>
+                                            </td>
+                                            <td>
+                                                <p class="mb-0">{{students.fatherName | titlecase}}</p>
+                                            </td>
+                                            <td>
+                                                <p class="mb-0">{{students.motherName | titlecase}}</p>
+                                            </td>
+                                            <td>
+                                                <p class="mb-0">{{students.class | classSuffix}}</p>
+                                            </td>
+                                            <td>
+                                                <p class="mb-0">{{students.stream | streamTitleCase}}</p>
+                                            </td>
+                                            <td>
+                                                <p class="mb-0">{{students.rollNumber}}</p>
+                                            </td>
+                                            <td>
+                                                <p class="mb-0">{{students.session}}</p>
+                                            </td>
+
+                                            <td class="mb-0">
+                                                <mat-icon
+                                                    (click)="addStudentInfoViewModel(students)">visibility</mat-icon>
+                                            </td>
+                                            <td>
+                                                <button
+                                                    style="background-color: transparent;color: #8d6dff;border: 1px solid #8d6dff;"
+                                                    class="submit-button print-pdf"
+                                                    (click)="addStudentTCModel(students)"
+                                                    mat-raised-button>Generate</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div *ngIf="errorCheck && statusCode ==404 || statusCode ==500"
+                                style="text-align: center;margin-top: 200px;">
+                                <p *ngIf="statusCode ==404">Student Not Found !</p>
+                                <p *ngIf="statusCode ==500">Internal Server Error !</p>
+                            </div>
+                            <div class="pagination">
+                                <app-pagination [paginationValues]="paginationValues" (onChange)="getStudents($event)">
+                                </app-pagination>
+                            </div>
+
+                            <div class="modal fade show" [class.show]="showStudentInfoViewModal">
+                                <div class="modal-dialog modal-dialog-scrollable modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">STUDENT ACADEMIC DETAIL</h5>
+                                            <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            <div class="container">
+                                                <div class="row">
+                                                    <ng-container *ngIf="singleStudentInfo">
+                                                        <ng-container>
+                                                            <h3 style="color: #8C52FF;">Academic Info</h3>
+                                                        </ng-container>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Academic Session - {{singleStudentInfo.session}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Medium - {{singleStudentInfo.medium | titlecase}}</p>
+                                                        </div>
+
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Admission No. - {{singleStudentInfo.admissionNo}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Admission Date - {{singleStudentInfo?.doa}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Roll Number - {{singleStudentInfo.rollNumber}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Stream - {{singleStudentInfo.stream | streamTitleCase}}
+                                                            </p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Fees Concession - &#8377;
+                                                                {{singleStudentInfo.feesConcession}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Last School - <span
+                                                                    *ngIf="singleStudentInfo.lastSchool">{{singleStudentInfo.lastSchool|
+                                                                    titlecase}}</span><span
+                                                                    *ngIf="!singleStudentInfo.lastSchool">N/A</span></p>
+                                                        </div>
+                                                        <ng-container>
+                                                            <h3 style="color: #8C52FF;">Student Info</h3>
+                                                        </ng-container>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Name - {{singleStudentInfo.name | titlecase}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Date Of Birth - {{singleStudentInfo?.dob}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Aadhar Number - {{singleStudentInfo.aadharNumber}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Samagra Id - {{singleStudentInfo.samagraId}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Gender - {{singleStudentInfo.gender | titlecase}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Category - {{singleStudentInfo.category | titlecase}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Religion - {{singleStudentInfo.religion | titlecase}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Nationality - {{singleStudentInfo.nationality |
+                                                                titlecase}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Address - {{singleStudentInfo.address | titlecase}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Bank Account Number - {{singleStudentInfo.bankAccountNo}}
+                                                            </p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Bank IFSC Code - {{singleStudentInfo.bankIfscCode}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>UDISE Number - {{singleStudentInfo.udiseNumber}}</p>
+                                                        </div>
+                                                        <ng-container>
+                                                            <h3 style="color: #8C52FF;">Parent's Info</h3>
+                                                        </ng-container>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Father Name - {{singleStudentInfo.fatherName |
+                                                                titlecase}}</p>
+                                                            <p>Father Qualification -
+                                                                {{singleStudentInfo.fatherQualification | titlecase}}
+                                                            </p>
+                                                            <p>Father Occupation -
+                                                                {{singleStudentInfo.fatherOccupation | titlecase}}</p>
+                                                            <p>Family Annual Income - &#8377;
+                                                                {{singleStudentInfo.parentsAnnualIncome}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Mother Name - {{singleStudentInfo.motherName |
+                                                                titlecase}}</p>
+                                                            <p>Mother Qualification -
+                                                                {{singleStudentInfo.motherQualification | titlecase}}
+                                                            </p>
+                                                            <p>Mother Occupation -
+                                                                {{singleStudentInfo.motherOccupation | titlecase}}</p>
+                                                            <p>Parents Contact - {{singleStudentInfo.parentsContact}}
+                                                            </p>
+                                                        </div>
+                                                    </ng-container>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button style="background-color: transparent;" class="submit-button"
+                                                mat-raised-button type="submit"></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="modal fade show" [class.show]="showStudentTCFormModal">
+                                <div class="modal-dialog modal-dialog-scrollable modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">TRANSFER CERTIFICATE</h5>
+                                            <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                                        </div>
+                                        <form [formGroup]="tcForm" (ngSubmit)="getTC()"
+                                            *ngIf="!readyTC && singleStudentInfo">
+                                            <div class="modal-body">
+                                                <div *ngIf="errorCheck">
+                                                    <p class="error-message">{{errorMsg}}</p>
+                                                </div>
+                                                <div class="container">
+                                                    <div class="row">
+                                                        <ng-container>
+                                                            <h3 style="color: #8d6dff;">Student Info</h3>
+                                                        </ng-container>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Name - {{singleStudentInfo.name | titlecase}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Date of Birth - {{singleStudentInfo.dob}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Admission No. - {{singleStudentInfo.admissionNo}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Roll Number - {{singleStudentInfo.rollNumber}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Class - {{singleStudentInfo.class | classSuffix}}</p>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <p>Stream - {{singleStudentInfo.stream | streamTitleCase}}
+                                                            </p>
+                                                        </div>
+                                                        <br> <br> <br>
+                                                        <div class="col-12 col-lg-6">
+                                                            <mat-form-field appearance="outline">
+                                                                <mat-label>Last Exam Status</mat-label>
+                                                                <mat-select matInput type="text"
+                                                                    formControlName="lastExamStatus">
+                                                                    <ng-container>
+                                                                        <mat-option value="Pass">Pass</mat-option>
+                                                                        <mat-option value="Fail">Fail</mat-option>
+                                                                        <mat-option value="Supply">Supply</mat-option>
+                                                                    </ng-container>
+                                                                </mat-select>
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('lastExamStatus')?.hasError('required') && tcForm.get('lastExamStatus')?.touched">
+                                                                    Last exam status is required
+                                                                </mat-error>
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('lastExamStatus')?.hasError('pattern') && tcForm.get('lastExamStatus')?.touched">
+                                                                    Please enter a valid Name (only letters and spaces
+                                                                    are allowed)
+                                                                </mat-error>
+                                                            </mat-form-field>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <mat-form-field appearance="outline">
+                                                                <mat-label>Reason for leaving the school</mat-label>
+                                                                <input matInput type="text"
+                                                                    formControlName="reasonForLeaving">
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('reasonForLeaving')?.hasError('required') && tcForm.get('reasonForLeaving')?.touched">
+                                                                    Reason for leaving is required
+                                                                </mat-error>
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('reasonForLeaving')?.hasError('pattern') && tcForm.get('reasonForLeaving')?.touched">
+                                                                    Please enter a valid Name (only letters and spaces
+                                                                    are allowed)
+                                                                </mat-error>
+                                                            </mat-form-field>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <mat-form-field appearance="outline">
+                                                                <mat-label>Total no.of working days </mat-label>
+                                                                <input matInput type="number"
+                                                                    formControlName="totalWorkingDays">
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('totalWorkingDays')?.hasError('required') && tcForm.get('totalWorkingDays')?.touched">
+                                                                    Total working days is required
+                                                                </mat-error>
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('totalWorkingDays')?.hasError('pattern') && tcForm.get('totalWorkingDays')?.touched">
+                                                                    Please enter a valid total working days (numeric
+                                                                    characters only)
+                                                                </mat-error>
+                                                            </mat-form-field>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <mat-form-field appearance="outline">
+                                                                <mat-label>Total no.of presence days </mat-label>
+                                                                <input matInput type="number"
+                                                                    formControlName="totalPresenceDays">
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('totalPresenceDays')?.hasError('required') && tcForm.get('totalPresenceDays')?.touched">
+                                                                    Total presence days is required
+                                                                </mat-error>
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('totalPresenceDays')?.hasError('pattern') && tcForm.get('totalPresenceDays')?.touched">
+                                                                    Please enter a valid total presence days (numeric
+                                                                    characters only)
+                                                                </mat-error>
+                                                            </mat-form-field>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <mat-form-field appearance="outline">
+                                                                <mat-label>General Conduct</mat-label>
+                                                                <input matInput type="text"
+                                                                    formControlName="generalConduct">
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('generalConduct')?.hasError('required') && tcForm.get('generalConduct')?.touched">
+                                                                    General conduct is required
+                                                                </mat-error>
+                                                                <mat-error
+                                                                    *ngIf="tcForm.get('generalConduct')?.hasError('pattern') && tcForm.get('generalConduct')?.touched">
+                                                                    Please enter a valid general conduct (only letters
+                                                                    and spaces are allowed)
+                                                                </mat-error>
+                                                            </mat-form-field>
+                                                        </div>
+                                                        <div class="col-12 col-lg-6">
+                                                            <mat-form-field appearance="outline">
+                                                                <mat-label>Any other remarks ( Optional )</mat-label>
+                                                                <input matInput type="text"
+                                                                    formControlName="anyOtherRemarks">
+                                                            </mat-form-field>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button class="submit-button" mat-raised-button type="submit"
+                                                    [disabled]="!tcForm.valid">Submit</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+
+
+
+
+                            <div class="modal fade show custom-modal" [class.show]="showStudentTCPrintModal">
+                                <div class="modal-dialog print-model-dialog modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">TRANSFER CERTIFICTE PRINT/DOWNLOAD</h5>
+                                            <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                                        </div>
+                                        <div class="modal-body print-model-body">
+                                            <ng-container>
+                                                <ng-container *ngIf="singleStudentTCInfo">
+                                                    <div id="student">
+                                                        <div class="col-lg-10 offset-lg-1 custom-container">
+                                                            <div class="table-container">
+                                                                <div class="row mt-5">
+                                                                    <div class="col-2">
+                                                                        <img class="logo"
+                                                                            src="{{schoolInfo?.schoolLogo}}"
+                                                                            alt="school logo">
+                                                                    </div>
+                                                                    <div class="col-10" style="text-align: center;">
+                                                                        <div class="school-name">
+                                                                            <h3 class="text-bold">
+                                                                                {{schoolInfo?.schoolName | uppercase}}
+                                                                            </h3>
+                                                                        </div>
+                                                                        <div class="address"
+                                                                            style="text-align: center;">
+                                                                            <p>Recognized by {{schoolInfo?.board |
+                                                                                uppercase}}, Affliation No. -
+                                                                                {{schoolInfo?.affiliationNumber}}</p>
+                                                                            <p><span>Contact - {{schoolInfo?.phoneOne}}
+                                                                                    &nbsp; Email -
+                                                                                    {{schoolInfo?.email}}</span></p>
+                                                                            <p><span>{{schoolInfo?.street | titlecase}},
+                                                                                    {{schoolInfo?.city |
+                                                                                    titlecase}},
+                                                                                    Distt.-
+                                                                                    {{schoolInfo?.district |
+                                                                                    titlecase}},
+                                                                                    {{schoolInfo?.state | titlecase}} -
+                                                                                    {{schoolInfo?.pinCode}}</span></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="row">
+                                                                    <div class="col-12 title-lable">
+                                                                        <p>TRANSFER CERTIFICATE</p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <table class="tc-codes-table">
+                                                                    <tr>
+                                                                        <td class="text-left">
+                                                                            <p>School Code : <span
+                                                                                    class="text-bold">{{schoolInfo?.schoolCode}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            <p>Affiliation No. : <span
+                                                                                    class="text-bold">{{schoolInfo?.affiliationNumber}}</span>
+                                                                            </p>
+                                                                        </td>
+
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left">
+                                                                            <p>S.No. : <span
+                                                                                    class="text-bold">{{serialNo}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                        <td class="text-right">
+                                                                            <p>Admission No. : <span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.admissionNo}}</span>
+                                                                            </p>
+                                                                        </td>
+
+                                                                    </tr>
+                                                                </table>
+
+
+
+                                                                <table class="student-info-table">
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>1. Name of the Pupil</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.name
+                                                                                    | uppercase}}</span></p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>3. Father's/Guardian's Name</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.fatherName
+                                                                                    | uppercase}}</span></p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>2. Mother's Name</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.motherName
+                                                                                    | uppercase}}</span></p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>4. Date of Birth according to Admission &
+                                                                                Withdrawal Register</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;(In
+                                                                                figures)&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.dob}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p></p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;(In
+                                                                                Words)&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.dob
+                                                                                    | dateToWords | titlecase}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>5. Aadhar Number</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.aadharNumber}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>6. Samagra Id</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.samagraId}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>7. Nationality</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">INDIAN</span></p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>8. Whether the pupil belongs to
+                                                                                General/OBC/SC/ST/Other</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.category
+                                                                                    | uppercase}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>9. Date of first admission in the school
+                                                                                with class</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.doa}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{singleStudentTCInfo?.admissionClass
+                                                                                    | classSuffix | uppercase }}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>10. Class in which the pupil last studied
+                                                                            </p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.class
+                                                                                    | classSuffix | uppercase}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>11. School/Board Annual Examination last
+                                                                                taken with result</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.class
+                                                                                    |
+                                                                                    classSuffix |
+                                                                                    uppercase}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{singleStudentTCInfo?.lastExamStatus
+                                                                                    | uppercase}}</span></p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>12. Subject studied</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <table>
+                                                                                <tr
+                                                                                    *ngFor="let subjects of classSubject | chunk: 3; let i = index">
+                                                                                    <ng-container>
+                                                                                        <ng-container
+                                                                                            *ngFor="let subjectObject of subjects; let j = index">
+                                                                                            <ng-container
+                                                                                                *ngFor="let entry of subjectObject | keyvalue">
+                                                                                                <td>
+                                                                                                    <p
+                                                                                                        class="text-bold">
+                                                                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{
+                                                                                                        entry.value
+                                                                                                        }}
+                                                                                                    </p>
+                                                                                                </td>
+                                                                                            </ng-container>
+                                                                                        </ng-container>
+                                                                                    </ng-container>
+                                                                                </tr>
+                                                                            </table>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>13. Whether qualified for promotion to
+                                                                                the
+                                                                                higher class</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>
+                                                                                <span
+                                                                                    *ngIf="singleStudentTCInfo.lastExamStatus=='Pass'"
+                                                                                    class="text-bold">:
+                                                                                    &nbsp;&nbsp;&nbsp;&nbsp;YES</span>
+                                                                                <span
+                                                                                    *ngIf="singleStudentTCInfo.lastExamStatus=='Fail'"
+                                                                                    class="text-bold">:
+                                                                                    &nbsp;&nbsp;&nbsp;&nbsp;NO</span>
+                                                                                <span
+                                                                                    *ngIf="singleStudentTCInfo.lastExamStatus=='Supply'"
+                                                                                    class="text-bold">:
+                                                                                    &nbsp;&nbsp;&nbsp;&nbsp;NOT
+                                                                                    SURE</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>14. Total no. of working days in the
+                                                                                acedemic
+                                                                                session</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.totalWorkingDays}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>15. Total no. of presence in the acedemic
+                                                                                session</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.totalPresenceDays}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>16. Date of issue of Certificate</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.isDate}}</span>
+                                                                            </p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>17. Reasion for leaving the school</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.reasonForLeaving
+                                                                                    | uppercase}}</span></p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>18. General conduct</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.generalConduct
+                                                                                    | uppercase}}</span></p>
+                                                                        </td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="text-left td-left">
+                                                                            <p>19. Any other remarks</p>
+                                                                        </td>
+                                                                        <td class="text-left td-right">
+                                                                            <p>:&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                    class="text-bold">{{singleStudentTCInfo?.anyOtherRemarks
+                                                                                    | uppercase}}</span></p>
+                                                                        </td>
+                                                                    </tr>
+
+                                                                </table>
+                                                                <div>
+                                                                    <table class="custom-table sign-table">
+                                                                        <tr>
+                                                                            <td class="text-bold"
+                                                                                style="width:33.33%;font-size: 19px;text-align: left;border: none;">
+                                                                                <p style="margin-left: 25px;">Class
+                                                                                    Teacher<br>&nbsp;&nbsp;&nbsp;&nbsp;<span
+                                                                                        style="font-weight: 500;">(Signature)</span>
+                                                                                </p>
+                                                                            </td>
+                                                                            <td class="text-bold"
+                                                                                style="width:33.33%;font-size: 19px;text-align: center;border: none;">
+                                                                                Checked By<br><span
+                                                                                    style="font-weight: 500;">(Name &
+                                                                                    Designation)</span>
+                                                                            </td>
+                                                                            <td class="text-bold"
+                                                                                style="width:33.33%;font-size: 19px;text-align: right;border: none;">
+                                                                                <p style="margin-right: 25px;">
+                                                                                    <span>Principal&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+                                                                                        <span
+                                                                                            style="font-weight: 500;">(Sign.
+                                                                                            with official
+                                                                                            seal)</span></span>
+                                                                                </p>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </table>
+
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </ng-container>
+                                            </ng-container>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button *ngIf="readyTC && singleStudentTCInfo"
+                                                class="submit-button print-pdf" mat-raised-button
+                                                (click)="printStudentData(singleStudentTCInfo)"><mat-icon
+                                                    style="font-size: 20px;">print</mat-icon> Print</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

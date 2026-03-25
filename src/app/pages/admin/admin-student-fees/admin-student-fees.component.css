@@ -1,0 +1,139 @@
+@import'../dashboard/dashboard.component.css';
+.custom-container {
+  font-family: Arial, sans-serif;
+  overflow: auto;
+}
+.table-container {
+  background-color: #fff;
+  border: none;
+  padding: 25px;
+  margin-top: 2vh;
+}
+.logo-table {
+  width: 800px;
+  border: none;
+  font-size: 1.3em;
+  margin-top: 2vh;
+  margin-bottom: 5vh;
+  letter-spacing: .5px;
+  display: inline-table;
+}
+.logo-table td {height: 40px;
+  border: none;
+  text-align: center;
+}
+.info-table {
+  width: 800px;border: none;font-size: 1em;letter-spacing: .25px;margin-bottom: 5vh;display: inline-table;
+}
+img{
+  height: 35px;
+}
+.info-table th,
+.info-table td {
+  height: 40px;
+  border: none;
+}
+.custom-table {
+  width: 800px;
+  font-size: 1em;
+  letter-spacing: .25px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  display: inline-table;
+}
+.custom-table th,
+.custom-table td {
+  height: 40px;
+  border: 1px solid rgb(218, 218, 222);
+  text-align: center;
+}
+.receipt-table{
+  width: 800px;
+  font-size: 1em;
+  letter-spacing: .25px;
+  margin-bottom: 20px;
+  border: 1px solid rgb(218, 218, 222);
+  display: inline-table;
+}
+.receipt-table th,
+.receipt-table td {
+  height: 40px;
+}
+.receipt-table .receipt-row td {
+  height: 5px;
+  padding-top: 5px;
+}
+.text-right {
+  text-align: right;
+}
+.border{
+  border:1px solid #ccc;
+}
+.text-center {
+  text-align: center;
+}
+.text-bold{
+  font-weight: bold;
+}
+@media (min-width: 576px) and (max-width:991.98px) {
+  .table-container {
+    margin-top: 1vh;
+    border: 1px solid #ccc;
+  }
+  .logo-table {
+    width: 100%;
+  }
+  .info-table{
+    width: 100%;
+  }
+  .custom-table {
+    width: 100%;
+    font-size: 10px;
+  }
+  .receipt-table {
+    width: 100%;
+    font-size: 10px;
+  }
+  .print-pdf {
+    display: inline-block;
+  }
+}
+@media (min-width: 992px) {
+  .table-container {
+    margin-top: 1vh;
+    margin-bottom: 2vh;
+    border-radius: 5px;
+  }
+  .logo-table {
+    width: 100%;
+  }
+  .info-table{
+    width: 100%;
+  }
+  .custom-container {
+    font-family: Arial, sans-serif;
+    overflow: auto;
+  }
+  .custom-table {
+    width: 100%;
+  }
+  .receipt-table {
+    width: 100%;
+  }
+  .print-pdf {
+    display: inline-block;
+  } 
+}
+
+.sign-table{
+  border: 1px solid transparent;
+ }
+ .custom-modal .modal-dialog {
+  margin-top: 200px;
+}
+
+.print-model-body {
+  max-height: calc(0vh - 2.3 * 3.5rem);
+  overflow-x: hidden;
+  overflow-y: hidden;
+}

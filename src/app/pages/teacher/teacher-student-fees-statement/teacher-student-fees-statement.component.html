@@ -1,0 +1,360 @@
+<app-header-nav></app-header-nav>
+<div class="container-fluid dashboard-container">
+    <div class="row">
+        <div class="col-12 col-lg-2">
+            <app-side-nav></app-side-nav>
+        </div>
+        <div class="col-12 col-lg-10">
+            <div class="row">
+                <div class="col-12 main-container">
+                    <div class="row big-option-container">
+                        <div class="desktop-option">
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-3">
+                                        <button mat-button class="menu-button">
+                                            <span>Fees > Statement</span>
+                                        </button>
+                                    </div>
+                                    <div class="col-9" style="text-align: right;">
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <ng-container>
+                                                    <mat-radio-group (change)="onChange($event)">
+                                                        <ng-container *ngFor="let session of allSessionData">
+                                                            <mat-radio-button [value]="session._id"
+                                                                [checked]="session._id==selectedValue">{{session.session}}</mat-radio-button>
+                                                        </ng-container>
+                                                    </mat-radio-group>
+                                                </ng-container>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mobile-option">
+                            <div class="col-12">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <button mat-button class="menu-button">
+                                            <span>Fees > Statement</span>
+                                        </button>
+                                    </div>
+                                    <div class="col-12 mt-2" style="padding-left: 20px;">
+                                        <ng-container>
+                                            <mat-radio-group (change)="onChange($event)">
+                                                <ng-container *ngFor="let session of allSessionData">
+                                                    <mat-radio-button [value]="session._id"
+                                                        [checked]="session._id==selectedValue">{{session.session}}</mat-radio-button>
+                                                </ng-container>
+                                            </mat-radio-group>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="main-container">
+                    <div class="col-12 col-lg-12 big-container">
+                        <div class="main-card">
+                            <div class="table-wrapper">
+                                <table class="info-table text-center">
+                                    <tr>
+                                        <td class="text-bold">Admission No. :</td>
+                                        <td>{{studentInfo?.admissionNo}}</td>
+                                        <td class="text-bold">Roll Number :</td>
+                                        <td>{{studentInfo?.rollNumber}}</td>
+                                        <td class="text-bold">Class :</td>
+                                        <td>{{clsFeesStructure?.class | classSuffix}} <span
+                                                *ngIf="clsFeesStructure?.class==11 || clsFeesStructure?.class==12">(
+                                                {{clsFeesStructure?.stream | streamTitleCase}} )</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-bold">Student Name :</td>
+                                        <td>{{studentInfo?.name | titlecase}}</td>
+                                        <td class="text-bold">Father Name :</td>
+                                        <td>{{studentInfo?.fatherName | titlecase}}</td>
+                                        <td class="text-bold">Mother Name :</td>
+                                        <td>{{studentInfo?.motherName | titlecase}}</td>
+                                    </tr>
+                                </table>
+                                <table class="custom-table">
+                                    <tr>
+                                        <td class="text-bold">Fee Concession</td>
+                                        <td>&#8377; {{studentFeesCollection?.feesConcession}}</td>
+                                        <td class="text-bold">Paid Fee</td>
+                                        <td>&#8377; {{studentFeesCollection?.paidFees}}</td>
+                                        <td class="text-bold">Due Fee</td>
+                                        <td>&#8377; {{studentFeesCollection?.dueFees}}</td>
+                                        <td class="text-bold">Total Fee</td>
+                                        <td>&#8377; {{studentFeesCollection?.totalFees}}</td>
+                                    </tr>
+                                </table>
+                                <table class="custom-table">
+                                    <tr>
+                                        <th>Particulars</th>
+                                        <ng-container *ngFor="let item of clsFeesStructure?.feesType,let i = index">
+                                            <th style="font-weight: normal;" *ngFor="let fee of item | keyvalue">
+                                                {{ fee.key}} Fee</th>
+                                        </ng-container>
+                                    </tr>
+                                    <tr>
+                                        <th>Fee Amount</th>
+                                        <ng-container *ngFor="let item of clsFeesStructure?.feesType,let i = index">
+                                            <th style="font-weight: normal;" *ngFor="let fee of item | keyvalue">
+                                                &#8377; {{ fee.value}}</th>
+                                        </ng-container>
+                                    </tr>
+                                </table>
+                                <table class="custom-table">
+                                    <tr>
+                                        <th>S.No.</th>
+                                        <th>Receipt No.</th>
+                                        <th>Fee Amount</th>
+                                        <th>Payment Date</th>
+                                        <th>Fee Receipt</th>
+                                        <th>Fee Recipient</th>
+                                    </tr>
+                                    <ng-container *ngIf="processedData && processedData.length > 0">
+                                        <tr *ngFor="let fee of processedData; let i = index">
+                                            <td>
+                                                {{ i + 1 }}
+                                            </td>
+                                            <td>
+                                                <span *ngIf="fee.receiptNo==0">-</span>
+                                                <span *ngIf="fee.receiptNo!==0">{{ fee.receiptNo }}</span>
+                                            </td>
+                                            <td>
+                                                &#8377; {{ fee.paidAmount }}
+                                            </td>
+                                            <td>
+                                                <span *ngIf="fee.paymentDate==0">-</span>
+                                                <span *ngIf="fee.paymentDate!==0">{{ fee.paymentDate }}</span>
+                                            </td>
+                                            <td>
+                                                <span *ngIf="fee.receiptNo==0">-</span>
+                                                <mat-icon *ngIf="fee.receiptNo!==0"
+                                                    (click)="feeReceipt(fee.paymentDate)">launch</mat-icon>
+                                            </td>
+                                            <td>
+                                                <span *ngIf="fee.paymentDate==0">-</span>
+                                                <span *ngIf="fee.paymentDate!==0 && fee.createdBy!==0">{{
+                                                    fee.createdBy }}</span>
+                                                <span *ngIf="fee.paymentDate!==0 && fee.createdBy==0">Online
+                                                    Payment</span>
+                                            </td>
+                                        </tr>
+                                    </ng-container>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade show custom-modal" [class.show]="showModal">
+                <div class="modal-dialog print-model-dialog modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">FEE PAYMENT RECEIPT</h5>
+                            <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                        </div>
+                        <div class="modal-body print-model-body">
+                            <ng-container>
+                                <ng-container>
+                                    <p style="color: transparent;"></p>
+                                    <div id="student">
+                                        <div class="col-lg-10 offset-lg-1 custom-container">
+                                            <div class="table-container">
+                                                <div class="row mt-5">
+                                                    <div class="col-2">
+                                                        <img class="logo" src="{{schoolInfo?.schoolLogo}}"
+                                                            alt="schoolo logo">
+                                                    </div>
+                                                    <div class="col-10" style="text-align: center;">
+                                                        <div class="school-name">
+                                                            <h3 class="text-bold">{{schoolInfo?.schoolName | uppercase}}</h3>
+                                                        </div>
+                                                        <div class="address" style="text-align: center;">
+                                                            <p>Recognized by {{schoolInfo?.board |
+                                                                uppercase}}, Affliation No. -
+                                                                {{schoolInfo?.affiliationNumber}}
+                                                            </p>
+                                                            <p><span>Contact -
+                                                                    {{schoolInfo?.phoneOne}}
+                                                                    &nbsp; Email -
+                                                                    {{schoolInfo?.email}}</span></p>
+                                                            <p><span>{{schoolInfo?.street |
+                                                                    titlecase}},
+                                                                    {{schoolInfo?.city |
+                                                                    titlecase}},
+                                                                    Distt.-
+                                                                    {{schoolInfo?.district |
+                                                                    titlecase}},
+                                                                    {{schoolInfo?.state |
+                                                                    titlecase}} -
+                                                                    {{schoolInfo?.pinCode}}</span>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12 title-lable">
+                                                        <p>FEES RECEIPT -
+                                                            {{clsFeesStructure?.session}}</p>
+                                                    </div>
+                                                    <div class="col-12"
+                                                        style="text-align: right; margin-right: 25px;margin-bottom: 5px;">
+                                                        <p style="font-size: 18px;">Date: {{
+                                                            singleReceiptInstallment[0]?.paymentDate }}</p>
+                                                    </div>
+                                                </div>
+                                                <table class="info-table" style="border-top: 1px solid #454545;">
+                                                    <tr>
+                                                        <td class="text-bold">RECEIPT NO.</td>
+                                                        <td colspan="2">
+                                                            :&nbsp;&nbsp;{{singleReceiptInstallment[0]?.receiptNo}}
+                                                        </td>
+                                                        <td class="text-bold">ADMISSION NO.</td>
+                                                        <td colspan="2">
+                                                            :&nbsp;&nbsp;{{studentInfo?.admissionNo}}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-bold">STUDENT NAME</td>
+                                                        <td colspan="2">
+                                                            :&nbsp;&nbsp;{{studentInfo?.name
+                                                            | uppercase}}
+                                                        </td>
+                                                        <td class="text-bold">DATE OF BIRTH</td>
+                                                        <td colspan="2">
+                                                            :&nbsp;&nbsp;{{studentInfo?.dob}}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-bold">MOTHER NAME</td>
+                                                        <td colspan="2">
+                                                            :&nbsp;&nbsp;{{studentInfo?.motherName
+                                                            | uppercase}}
+                                                        </td>
+                                                        <td class="text-bold">FATHER NAME</td>
+                                                        <td colspan="2">
+                                                            :&nbsp;&nbsp;{{studentInfo?.fatherName
+                                                            | uppercase}}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-bold">CLASS</td>
+                                                        <td colspan="2">
+                                                            :&nbsp;&nbsp;{{clsFeesStructure?.class
+                                                            | classSuffix | uppercase}}
+                                                        </td>
+                                                        <td class="text-bold">STREAM</td>
+                                                        <td colspan="2">
+                                                            :&nbsp;&nbsp;{{studentInfo?.stream
+                                                            | uppercase}}
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                <table class="custom-table">
+                                                    <tr class="text-center">
+                                                        <th class="border" style="border-left: none;">S.No.
+                                                        </th>
+                                                        <th class="border"
+                                                            style="text-align: left;padding-left: 100px;">PARTICULARS
+                                                        </th>
+                                                        <th class="border" style="border-right: none;">
+                                                            FEE AMOUNT</th>
+                                                    </tr>
+
+                                                    <tr class="text-center"
+                                                        *ngFor="let item of clsFeesStructure?.feesType, let i = index">
+                                                        <td class="border" style="border-left: none;">
+                                                            {{i+1}}.
+                                                        </td>
+                                                        <td class="border" *ngFor="let fee of item | keyvalue"
+                                                            style="text-align: left;padding-left: 100px;">
+                                                            {{ formatKey(fee.key) }} FEE
+                                                        </td>
+                                                        <td class="border" style="border-right: none;font-size: 18px;"
+                                                            *ngFor="let fee of item | keyvalue">
+                                                            {{ formatCurrency(fee.value) }}
+                                                        </td>
+                                                    </tr>
+                                                    <tr class="text-center">
+                                                        <td class="border" style="border-left: none;">
+                                                        </td>
+                                                        <td class="border"
+                                                            style="text-align: left;padding-left: 100px;">
+                                                            CONCESSION AMOUNT</td>
+                                                        <td class="border" style="border-right: none;">
+                                                            -
+                                                            {{formatCurrency(singleReceiptInstallment[0]?.feesConcession)}}
+                                                        </td>
+                                                    </tr>
+                                                    <tr class="text-center" style="height: 18px;">
+                                                        <td style="border: none;padding-top: 5px;">
+                                                        </td>
+                                                        <td class="text-bold"
+                                                            style="text-align: right;border: none;padding-top: 8px;font-size: 18px;">
+                                                            TOTAL FEE :
+                                                        </td>
+                                                        <td class="text-bold"
+                                                            style="border: none;padding-top: 8px;font-size: 20px;">
+                                                            {{formatCurrency(studentFeesCollection?.totalFees)}}</td>
+                                                    </tr>
+                                                    <tr class="text-center" style="height: 18px;">
+                                                        <td style="border: none;"></td>
+                                                        <td class="text-bold"
+                                                            style="text-align: right;border: none;font-size: 18px;">
+                                                            PAID FEE :
+                                                        </td>
+                                                        <td class="text-bold" style="border: none;font-size: 20px;">
+
+                                                            {{formatCurrency(singleReceiptInstallment[0]?.allPaidAmount)}}
+                                                        </td>
+                                                    </tr>
+                                                    <tr class="text-center" style="height: 18px;">
+                                                        <td style="border: none;"></td>
+                                                        <td class="text-bold"
+                                                            style="text-align: right;border: none;font-size: 18px;">
+                                                            DUE FEE :
+                                                        </td>
+                                                        <td class="text-bold" style="border: none;font-size: 20px;">
+
+                                                            {{formatCurrency(studentFeesCollection?.totalFees -
+                                                            singleReceiptInstallment[0]?.allPaidAmount)}}</td>
+                                                    </tr>
+                                                </table>
+                                                <ng-container style="border: none;padding-bottom: 20px;">
+                                                    <p
+                                                        style="display: inline-block;margin-left: 20px;margin-bottom: 0 !important;">
+                                                        <span class="text-bold" style="font-size: 18px;">Authorized
+                                                            Signatory</span>
+                                                    </p>
+                                                    <p style="text-align: center;margin-top: 10px !important;font-size: 16px;">
+                                                        FEE DEPOSITED <span class="text-bold" style="font-size: 19px;">
+                                                            {{formatCurrency(singleReceiptInstallment[0]?.paidAmount)}}
+                                                            /- (Rupees {{singleReceiptInstallment[0]?.paidAmount |
+                                                            numberToWords }} Only)</span>
+                                                    </p>
+                                                </ng-container>
+                                                <p style="margin-bottom:25px;margin-left: 20px;right: 0;"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ng-container>
+                            </ng-container>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="submit-button" style="background-color: #8C52FF;color:#fff" mat-raised-button
+                                (click)="printStudentData()">
+                                Print</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

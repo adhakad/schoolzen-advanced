@@ -1,0 +1,361 @@
+<app-header></app-header>
+<div class="page">
+    <div class="banner">
+        <div class="container-fluid">
+            <div class="col-12 col-sm-6 offset-sm-3 col-lg-6 offset-lg-3">
+                <h2>Pricing</h2>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid policy-container">
+        <div class="row">
+            <div class="col-12 col-lg-10 offset-lg-1 title">
+                <h3>Pick Your Plan</h3>
+                <p style="text-align: center;">Budget friendly pricing for comprehensive school management solutions.
+                </p>
+            </div>
+            <div class="container-fluid" style="padding: 0 !important;">
+                <div class="container-fluid pricing-section">
+                    <div class="row">
+                        <div class="col-12 col-lg-12 offset-lg-0">
+                            <div class="row">
+                                <div class="col-12 col-sm-6 col-lg-4 pricing-card-container">
+                                    <div class="pricing-card">
+                                        <div class="pricing-title">
+                                            <h2>{{plansInfo[0]?.plans}}</h2>
+                                            <p>Everything You Need to Launch Your School Management</p>
+                                        </div>
+                                        <div class="pricing-discount">
+                                            <p class="text-muted">
+                                                &#8377; {{plansInfo[0]?.withoutDiscountPrice}}</p>
+                                            <mat-chip selected class="discount-button">
+                                                SAVE {{plansInfo[0]?.discountPercentage}}%
+                                            </mat-chip>
+                                        </div>
+                                        <h4><span style="font-size: 22px;font-weight: 500;">&#8377;</span>
+                                            {{plansInfo[0]?.price}}<span style="font-size: medium;font-weight: 500;"> /
+                                                Year</span></h4>
+                                        <button class="pricing-button-light" mat-raised-button
+                                            routerLink="/payment/subscription/{{paymentType[0]}}/{{plansInfo[0]?._id}}">Buy
+                                            Now</button>
+                                        <div class="pricing-amount">
+                                            <p>₹ {{plansInfo[0]?.price}}/year when you renew</p>
+                                        </div>
+                                        <mat-divider></mat-divider>
+                                        <div class="pricing-feature">
+                                            <div class="row module-access">
+                                                <p>Student Limit<span>&nbsp;&nbsp;&nbsp;Up to
+                                                        {{plansInfo[0]?.studentLimit}}</span></p>
+                                                <p>Data Entry<span>&nbsp;&nbsp;&nbsp;&nbsp;Free For First Entry</span>
+                                                </p>
+                                                <p>Staff Limit<span>&nbsp;&nbsp;&nbsp;Up to {{plansInfo[0]?.teacherLimit}}</span></p>
+                                                <p>Whatsapp
+                                                    Messages<span>&nbsp;&nbsp;&nbsp;{{plansInfo[0]?.whatsappMessageLimit}}</span>
+                                                </p>
+                                            </div>
+                                            <div class="row module-list">
+                                                <div class="col-10 offset-1">
+                                                    <p><span>Increase Limit Only
+                                                            ₹{{plansInfo[0]?.perStudentIncrementPrice}} Per
+                                                            Student</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Student Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Admission Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Fees Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Admit Card Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Marksheet Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Transfer Certificate Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Whatsapp Confirmation Messages</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Whatsapp Reminder Messages</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Id Card Generate</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Subject Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Class Subjects Group Management</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 col-lg-4 pricing-card-container">
+                                    <div class="pricing-card border">
+                                        <div>
+                                            <mat-chip class="most-popular" selected>MOST POPULAR</mat-chip>
+                                        </div>
+                                        <div class="pricing-title">
+                                            <h2>{{plansInfo[1]?.plans}}</h2>
+                                            <p>Level-up with more listing and enhanced features</p>
+                                        </div>
+                                        <div class="pricing-discount">
+                                            <p class="text-muted">
+                                                &#8377; {{plansInfo[1]?.withoutDiscountPrice}}</p>
+                                            <mat-chip selected class="discount-button">
+                                                SAVE {{plansInfo[1]?.discountPercentage}}%
+                                            </mat-chip>
+                                        </div>
+                                        <h4><span style="font-size: 22px;font-weight: 500;">&#8377;</span>
+                                            {{plansInfo[1]?.price}}<span style="font-size: medium;font-weight: 500;"> /
+                                                Year</span></h4>
+                                        <button class="pricing-button" mat-raised-button
+                                            routerLink="/payment/subscription/{{paymentType[0]}}/{{plansInfo[1]?._id}}">Buy
+                                            Now</button>
+                                        <div class="pricing-amount">
+                                            <p>₹ {{plansInfo[1]?.price}}/year when you renew</p>
+                                        </div>
+                                        <mat-divider></mat-divider>
+                                        <div class="pricing-feature">
+                                            <div class="row module-access">
+                                                <p>Student Limit<span>&nbsp;&nbsp;&nbsp;Up to
+                                                        {{plansInfo[1]?.studentLimit}}</span></p>
+                                                <p>Data Entry<span>&nbsp;&nbsp;&nbsp;&nbsp;Free For First Entry</span>
+                                                </p>
+                                                <p>Staff Limit<span>&nbsp;&nbsp;&nbsp;Up to {{plansInfo[1]?.teacherLimit}}</span></p>
+                                                <p>Whatsapp
+                                                    Messages<span>&nbsp;&nbsp;&nbsp;{{plansInfo[1]?.whatsappMessageLimit}}</span>
+                                                </p>
+                                            </div>
+                                            <div class="row module-list">
+                                                <div class="col-10 offset-1">
+                                                    <p><span>Increase Limit Only
+                                                            ₹{{plansInfo[1]?.perStudentIncrementPrice}} Per
+                                                            Student</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Student Management</span></p>
+                                                </div>
+
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Admission Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Fees Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Admit Card Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Marksheet Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Transfer Certificate Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Whatsapp Confirmation Messages</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Whatsapp Reminder Messages</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Id Card Generate</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Subject Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Class Subjects Group Management</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6 offset-sm-3 col-lg-4 offset-lg-0 pricing-card-container">
+                                    <div class="pricing-card">
+                                        <div class="pricing-title">
+                                            <h2>{{plansInfo[2]?.plans}}</h2>
+                                            <p>Enjoy Your Extensive Features and Higher Listing Limits</p>
+                                        </div>
+                                        <div class="pricing-discount">
+                                            <p class="text-muted">
+                                                &#8377; {{plansInfo[2]?.withoutDiscountPrice}}</p>
+                                            <mat-chip selected class="discount-button">
+                                                SAVE {{plansInfo[2]?.discountPercentage}}%
+                                            </mat-chip>
+                                        </div>
+                                        <h4><span style="font-size: 22px;font-weight: 500;">&#8377;</span>
+                                            {{plansInfo[2]?.price}}<span style="font-size: medium;font-weight: 500;"> /
+                                                Year</span></h4>
+                                        <button class="pricing-button-light" mat-raised-button
+                                            routerLink="/payment/subscription/{{paymentType[0]}}/{{plansInfo[2]?._id}}">Buy
+                                            Now</button>
+                                        <div class="pricing-amount">
+                                            <p>₹ {{plansInfo[2]?.price}}/year when you renew</p>
+                                        </div>
+                                        <mat-divider></mat-divider>
+                                        <div class="pricing-feature">
+                                            <div class="row module-access">
+                                                <p>Student Limit<span>&nbsp;&nbsp;&nbsp; Unlimited</span></p>
+                                                <p>Data Entry<span>&nbsp;&nbsp;&nbsp;&nbsp;Free For First Entry</span>
+                                                </p>
+                                                <p>Staff Limit<span>&nbsp;&nbsp;&nbsp;Up to {{plansInfo[2]?.teacherLimit}}</span></p>
+                                                <p>Whatsapp
+                                                    Messages<span>&nbsp;&nbsp;&nbsp;{{plansInfo[2]?.whatsappMessageLimit}}</span>
+                                                </p>
+                                            </div>
+                                            <div class="row module-list">
+                                                <div class="col-10 offset-1">
+                                                    <p><span>Freedom to Add Students as Needed</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Student Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Admission Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Fees Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Admit Card Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Marksheet Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Transfer Certificate Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Whatsapp Confirmation Messages</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Whatsapp Reminder Messages</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Id Card Generate</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Subject Management</span></p>
+                                                </div>
+                                                <div class="col-2"><button mat-icon-button disabled
+                                                        class="done">✓</button>
+                                                </div>
+                                                <div class="col-10">
+                                                    <p><span>Class Subjects Group Management</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <app-footer></app-footer>
+</div>

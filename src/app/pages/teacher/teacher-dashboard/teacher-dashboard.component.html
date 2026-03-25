@@ -1,0 +1,76 @@
+<app-header-nav></app-header-nav>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-nav></app-side-nav>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row mt-4">
+        <div class="chart-main-container">
+          <div class="row">
+            <div class="col-12 col-lg-3">
+              <div class="modern-card students-card" routerLink="/teacher/student">
+                <div class="card-header">
+                  <div class="card-icon">
+                    <i class="fas fa-user-graduate"></i>
+                  </div>
+                  <div class="card-title">Students</div>
+                </div>
+                <div class="card-content">
+                  <div class="card-number">{{ studentCountInfo }}</div>
+                  <div class="card-subtitle">Student records</div>
+                </div>
+                <div class="card-overlay"></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-3">
+              <div class="modern-card teachers-card">
+                <div class="card-header">
+                  <div class="card-icon">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                  </div>
+                  <div class="card-title">Teachers</div>
+                </div>
+                <div class="card-content">
+                  <div class="card-number">{{ teacherCountInfo }}</div>
+                  <div class="card-subtitle">Appointed teachers</div>
+                </div>
+                <div class="card-overlay"></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-3">
+              <div class="modern-card marksheets-card">
+                <div class="card-header">
+                  <div class="card-icon">
+                    <i class="fab fa-whatsapp"></i>
+                  </div>
+                  <div class="card-title">Whatsapp Messages</div>
+                </div>
+                <div class="card-content">
+                  <div class="card-number">{{remainingWhatsappMessageCountInfo}}</div>
+                  <div class="card-subtitle">Available Messages</div>
+                </div>
+                <div class="card-overlay"></div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-3">
+              <div class="modern-card certificates-card" routerLink="/teacher/marksheet">
+                <div class="card-header">
+                  <div class="card-icon">
+                    <i class="fas fa-file-alt"></i>
+                  </div>
+                  <div class="card-title">Marksheets</div>
+                </div>
+                <div class="card-content">
+                  <div class="card-number">{{ marksheetCountInfo }}</div>
+                  <div class="card-subtitle">Generated reports</div>
+                </div>
+                <div class="card-overlay"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
