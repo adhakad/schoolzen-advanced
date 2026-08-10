@@ -123,3 +123,321 @@ These reflect actual patterns in the codebase (not aspirational rules) — match
 - **Models**: defined with `mongoose.model('name', { ...inline schema literal... })` — not `new mongoose.Schema(...)` — with per-field `type`/`required`/`trim`/`lowercase`/`enum`/`default`, and a manual `createdAt: { type: Date, default: Date.now }` field instead of the `{ timestamps: true }` schema option. Foreign keys (`adminId`, `studentId`) are plain `String`/kept as the referenced document's `_id` string rather than `mongoose.Schema.Types.ObjectId` refs — match this when adding relations.
 - **Parallelism**: independent lookups/deletes are batched with `Promise.all([...])` (see `DeleteStudent`, `CreateBulkStudentRecord`); multi-document writes that must be atomic use an explicit Mongoose session/transaction (`startSession` → `startTransaction` → `commitTransaction`/`abortTransaction`), as in `CreateBulkStudentRecord`.
 - **Middleware factories**: cross-cutting concerns are implemented as functions returning an Express middleware, e.g. `validate(schema)` in `modules/middleware/validate.js` (Joi-validates `req.body`, strips unknown keys, responds `400` with a generic `"Validation failed"` string, logs `error.details` to console). Auth middleware (`isAdminAuth`/`isTeacherAuth`) reads the bearer token, calls the matching token service to verify it, and specifically distinguishes `jwt.TokenExpiredError` from other failures.
+
+
+# Schoolzen Attendance & Payroll — Architecture & Build Plan
+
+Scale target: ~2000 schools, ~2,000,000 students, punch data concentrated in an 8-10am
+daily window. Must feel real-time to users even if full background reconciliation takes
+up to ~2 hours. Redis usage kept to the minimum actually required. Existing `student`
+and `teacher` collections must not be touched.
+
+---
+
+## 1. Non-negotiable constraints
+
+1. **Do not modify `models/student.js` or `models/teacher.js`.** No new fields, no
+   schema changes. All new data lives in new collections that *reference* these by
+   their existing `_id` (or `teacherUserId` for teachers).
+2. **Redis is used only for**: (a) BullMQ queue backing, (b) an optional short-TTL
+   (5-10 min) live-status cache per school. It is *not* a general-purpose cache, not a
+   session store, not a token store (WDMS token caching stays as a simple in-memory
+   variable with expiry, like the reference project's `wdms-token.js`).
+3. **Two-speed processing**: raw punch ingestion must be fast (feels real-time).
+   Calculated/reconciled attendance (late/absent/half-day, leave cross-check, roster
+   comparison) runs as background batch jobs and is allowed to lag by up to ~2 hours
+   during peak load.
+
+---
+
+## 2. New collections (all reference existing data, none modify it)
+
+| Collection | Purpose | Key fields |
+|---|---|---|
+| `BiometricMapping` | Links a WDMS `emp_code`/RFID card to an existing student/teacher/staff record, without touching those schemas | `schoolId, personType ('student'\|'teacher'\|'staff'), personId, wdmsEmpCode, cardNo` |
+| `Department` | Org unit for staff | `schoolId, name, status` |
+| `Designation` (Position) | Job title for staff | `schoolId, title, departmentId, status` |
+| `Staff` | Non-teaching staff (teachers stay in existing `teacher` collection; `Staff` covers everyone else). A `personType` discriminator lets Attendance/Payroll treat both uniformly | `schoolId, name, departmentId, designationId, joiningDate, status` |
+| `Device` | Biometric terminal registry | `schoolId, terminalSn (unique), alias, active` |
+| `AttendanceRule` | Per-school config: work start, grace/late-after minutes, half-day-after minutes, overtime toggle | `schoolId (unique), workStart, lateAfter, halfDayAfter, allowOvertime` |
+| `Shift` *(optional, Phase 3b)* | Named shift definitions if a school needs more than one rule set | `schoolId, name, startTime, endTime, graceMinutes` |
+| `Roster` *(optional, Phase 3b)* | Which staff/shift applies on which date | `schoolId, personType, personId, shiftId, date` |
+| `PunchLog` | Raw WDMS/manual punch, one row per punch | `schoolId, personType, personId, punchTime, punchState, source ('WDMS'\|'MANUAL'), terminalSn, punchHash (unique)` |
+| `DailyAttendance` | One row per person per date — the calendar-facing summary | `schoolId, personType, personId, date, inTime, outTime, status ('Present'\|'Absent'\|'HalfDay'\|'Late'\|'Leave'\|'Holiday'), source, isOverridden` |
+| `HolidayTemplate` | Reusable yearly holiday list, clonable into a school's calendar | `name (e.g. 'MP Board 2026'), holidays: [{date, title}]` |
+| `Holiday` | A school's actual holiday calendar (created by cloning a template, then editable) | `schoolId, date, title` |
+| `LeaveType` | Configurable leave categories | `schoolId, name, maxPerYear, paid, status` |
+| `LeaveRequest` | Leave applications | `schoolId, personType, personId, leaveTypeId, from, to, status, actionBy, actionAt` |
+| `SalaryStructure` | Baseline pay components per staff | `schoolId, staffId, basic, hra, allowances, deductions, effectiveFrom` |
+| `Payroll` | Monthly generated payroll | `schoolId, staffId, month, presentDays, absentDays, leaveDays, grossSalary, deductions, netSalary, status ('DRAFT'\|'LOCKED')` |
+
+`punchHash = sha1(schoolId + personId + punchTime)` — same dedupe-guard pattern as the
+reference project, unique-indexed to make re-syncs idempotent.
+
+`DailyAttendance` supports **multiple in/out punches per day** (unlike the reference
+project's single in/out limit) — store `firstIn`, `lastOut`, and optionally a
+`punchCount` so lunch-break/multi-shift punching doesn't break the calculation.
+
+---
+
+## 3. Sync & real-time architecture
+
+### 3.1 WDMS client — pick ONE auth method
+Use the **token-based** approach only (`wdms-token.js` pattern): static `WDMS_TOKEN`
+env var when available, dynamic `/api/jwt-api-token-auth/` fetch + cache (23h TTL) as
+fallback. Drop the Basic-Auth client entirely — having two WDMS clients is the kind of
+inconsistency we don't want to carry into Schoolzen.
+
+### 3.2 Real BullMQ Queue → Worker (not cron → child-process)
+The reference project defines BullMQ `Queue` objects but its actual workers are
+standalone scripts spawned by `node-cron`'s `exec()` — the queues are never consumed.
+Fix this: cron **enqueues** jobs (`attendanceQueue.add('sync-school', { schoolId })`),
+and a long-running BullMQ **Worker** process consumes them with controlled
+concurrency. This is what makes the system control load at scale instead of spawning
+2000 uncoordinated child processes at once.
+
+### 3.3 Two-speed pipeline
+
+**Fast path (raw ingestion — must feel instant):**
+1. Cron enqueues one lightweight "pull school X" job per school, staggered across the
+   8-10am window rather than all at once (see §4).
+2. Worker fetches WDMS transactions (paginated), bulk-inserts into `PunchLog` with
+   `insertMany({ ordered: false })`, letting the unique `punchHash` index silently
+   skip duplicates.
+3. Immediately after each batch insert, emit a small Socket.io event to that school's
+   room (`school:<id>`) with just the changed person's latest in/out — this is the
+   "real-time feel." No heavy computation happens on this path.
+
+**Slow path (reconciliation — allowed to lag):**
+4. A **separate** BullMQ queue (`attendance-reconcile`) receives a job per
+   school+date whenever new `PunchLog` rows land for it (debounced — don't enqueue on
+   every single punch, batch every few minutes).
+5. This worker computes/updates `DailyAttendance` — compares against
+   `AttendanceRule`/`Roster`, applies Holiday/Leave overrides, sets final
+   `status`. This can safely run minutes-to-hours behind; the dashboard already
+   showed the raw punch, so nothing feels broken.
+6. Payroll generation reads only from `DailyAttendance` (never raw `PunchLog`),
+   so it's naturally decoupled from ingestion speed.
+
+### 3.4 Redis usage — kept minimal
+- BullMQ connection (required, both queues share one Redis connection).
+- Optional: `school:<id>:live` key with a 5-10 min TTL caching the count of
+  in/out staff for the dashboard's headline numbers, refreshed by the fast path —
+  avoids hammering MongoDB with aggregation queries during the peak window. Everything
+  else (WDMS token, session, API response caching) stays out of Redis.
+
+---
+
+## 4. Scale strategy (2000 schools / 2M students, 8-10am peak)
+
+1. **Stagger, don't stampede**: cron doesn't fire all 2000 school-sync jobs at once —
+   spread them across the 2-hour window (e.g., a rolling scheduler that assigns each
+   school a jittered offset) so WDMS calls and DB writes are smoothed, not spiked.
+2. **Compound indexes**: `{schoolId: 1, date: 1}` on `DailyAttendance` and `PunchLog`
+   — every read/write is scoped to one school, so this index keeps each query narrow
+   even as total data grows into the tens of millions of rows.
+3. **Worker concurrency limits, per-queue**: cap how many school-sync jobs run in
+   parallel (BullMQ `concurrency` option) so the DB and WDMS endpoints aren't
+   overwhelmed; tune based on load testing rather than guessing.
+4. **Design for sharding, don't require it on day one**: `schoolId` as the natural
+   shard key means MongoDB sharding can be turned on later without a schema
+   redesign, if a single replica set stops being enough. Not needed at initial launch.
+5. **Batch writes only** — never one Mongoose `.save()` per punch; always
+   `insertMany`/`bulkWrite`.
+
+---
+
+## 5. Build phases (unchanged order, now with the pieces above slotted in)
+
+1. **Department + Designation**
+2. **Staff** (+ `BiometricMapping` for linking existing teacher/student records to
+   WDMS emp codes, without touching those collections)
+3. **AttendanceRule** — the simple, single per-school config (work start, late-after,
+   half-day-after)
+4. **Shift + Roster** — for schools that need more than one rule set: named shifts
+   and a day-by-day assignment of staff to a shift, feeding into the reconciliation
+   worker as the "expected shift" to compare punches against
+5. **Device Management (sales-facing, structurally separated)**: a `Device`
+   collection tracking which sales person added a machine, its assignment to a
+   school, and its active/blocked status — built as an isolated module (own
+   routes/controllers namespace, no dependency on attendance-sync logic) so it
+   can be extracted into a standalone app later without a rewrite
+6. **Attendance module (the core one)** — WDMS sync infra: token client, BullMQ
+   queues (sync + reconcile), cron staggered scheduler, `PunchLog` +
+   `DailyAttendance` models, manual-entry endpoint. This reads `Device` only by
+   `schoolId + terminalSn` — it never touches sales/assignment fields
+7. **Socket.io real-time layer**: per-school rooms, fast-path event emission —
+   this is the PetPooja-style "live who's in/out" dashboard
+8. **Leave module**: `LeaveType` + `LeaveRequest`, feeding into `DailyAttendance`
+   as an override source
+9. **Holiday calendar + Holiday Template**: a reusable `HolidayTemplate` (e.g. a
+   standard yearly list) that can be cloned into a school's actual `Holiday`
+   calendar and then adjusted per school, so every school doesn't need holidays
+   entered one-by-one from scratch every year
+10. **Payroll module** — `SalaryStructure` + real `Payroll` generation (present
+    days, absent days, leave days, deductions, net salary — not the placeholder
+    `netSalary: 0` from the reference project)
+
+---
+
+## 6. Claude Code — exact Plan Mode prompts, one per phase
+
+Run these **one at a time**, in Plan Mode (`Shift+Tab` twice), review each plan before
+approving, then execute before moving to the next phase.
+
+**Every phase below is full-stack by design**: each prompt explicitly asks for the
+backend (model/validator/controller/route, mounted in `routes.js`) *and* the matching
+frontend feature module (component/service/routing, per CLAUDE.md's conventions) in
+the same plan and the same execution pass. That means after each phase you can run
+`npm start` (backend) + `ng serve` (frontend) locally and click through the actual
+feature end-to-end — no separate "wire up the UI later" pass, no digging through
+backend-only code to figure out if it works.
+
+### Phase 1
+```
+Read CLAUDE.md fully. Create a detailed plan for two new backend + frontend
+modules: Department and Designation, following the exact New Module Checklist
+and naming conventions in CLAUDE.md. Designation should optionally reference a
+Department. These are for staff, not students. Build both the backend (model,
+validator, controller, route mounted in routes.js) and the frontend (component,
+service, routing module, wired into app-routing.module.ts) together in this
+plan, so the module is clickable and testable end-to-end locally after this
+phase — not just backend endpoints. Don't build anything else yet.
+```
+
+### Phase 2
+```
+Read CLAUDE.md fully. Create a detailed plan for a new Staff module (backend +
+frontend), covering non-teaching staff — the existing teacher collection stays
+untouched and is not part of this module. Staff should reference Department and
+Designation. Also plan a new BiometricMapping collection that links a schoolId +
+personType ('student'|'teacher'|'staff') + personId to a WDMS emp_code/RFID card
+number, without adding any fields to the existing student or teacher models.
+Build both backend and frontend together, following the New Module Checklist
+and naming conventions, so Staff create/edit/list is clickable and testable
+locally after this phase.
+```
+
+### Phase 3
+```
+Read CLAUDE.md fully. Create a detailed plan for an AttendanceRule module: one
+config record per school (workStart, lateAfter minutes, halfDayAfter minutes,
+allowOvertime), with backend CRUD and a frontend settings form, built together
+in the same plan so it's testable end-to-end locally after this phase. Follow
+the New Module Checklist and naming conventions. Don't build Shift/Roster yet —
+this simpler per-school rule set comes first.
+```
+
+### Phase 4
+```
+Read CLAUDE.md fully. Create a detailed plan for Shift and Roster modules: Shift
+(name, startTime, endTime, graceMinutes, per school) and Roster (which staff is
+assigned to which shift on which date). Roster should be usable by the upcoming
+attendance-reconciliation logic as the "expected shift" for a given person and
+date. Build both backend (models/controllers/routes) and frontend (a Shift
+manager page and a simple calendar/list-based Roster assignment page) together,
+following the New Module Checklist and naming conventions, so both are clickable
+and testable locally after this phase.
+```
+
+### Phase 5
+```
+Read CLAUDE.md fully. Create a detailed plan for a Device Management module,
+kept structurally isolated from the school-facing modules so it could later be
+extracted into a separate app: a Device collection (terminalSn, salesPersonId,
+addedBy, assignedSchoolId nullable, assignedAt, status: unassigned/active/blocked),
+with endpoints to add a device, assign it to a school, activate/block it, and list
+devices by sales person. This module should not depend on any attendance-sync
+logic — the attendance-sync module will only read Device by schoolId + terminalSn.
+Build both the backend (under a clearly separated device-management namespace)
+and a frontend page (device list + add/assign/activate/block actions) together,
+so this is clickable and testable locally after this phase. Follow the New
+Module Checklist and naming conventions.
+```
+
+### Phase 6 (the big one — consider splitting further if the plan gets too large)
+```
+Read CLAUDE.md fully. Create a detailed plan for the attendance sync
+infrastructure — this is the core Attendance module:
+1. A WDMS API client using token-based auth only (static WDMS_TOKEN env var
+   first, falling back to POST /api/jwt-api-token-auth/ with a cached token).
+2. Two BullMQ queues — "attendance-sync" (pulls raw punches from WDMS's
+   GET /iclock/api/transactions/, paginated, bulk-inserted into a new PunchLog
+   collection with a unique punchHash for idempotent dedupe) and
+   "attendance-reconcile" (computes/updates a DailyAttendance collection per
+   person per date, comparing against AttendanceRule/Roster, Holiday, and Leave
+   data, supporting multiple in/out punches per day, not just one).
+3. Real BullMQ Workers consuming these queues (not cron spawning child
+   processes) — cron only enqueues a staggered "sync school X" job per school
+   across a configurable time window so 2000 schools don't sync simultaneously.
+4. A manual attendance entry endpoint that writes directly into DailyAttendance
+   with source: 'MANUAL' and an isOverridden flag.
+5. Calendar-facing read endpoints: given a staff/student + month, return each
+   date's status (Present/Absent/HalfDay/Late/Leave/Holiday) from DailyAttendance.
+Also plan a frontend calendar-view page (per staff/student, month picker,
+day-by-day status) and a manual-entry form, so this is clickable and testable
+locally after this phase — not just backend sync jobs running invisibly. Follow
+the New Module Checklist and naming conventions. Keep Redis usage limited to
+the BullMQ connection — no general-purpose caching.
+```
+
+### Phase 7
+```
+Read CLAUDE.md fully. Create a detailed plan for a real-time attendance
+dashboard: Socket.io integration with one room per school, emitting a
+lightweight event on every new PunchLog insert (fast path) so the admin UI
+shows live in/out status immediately, independent of when the slower
+DailyAttendance reconciliation job finishes. Include the frontend dashboard
+page itself (live list of who's in/out, updating via the socket connection)
+in the same plan, along with an optional short-TTL Redis cache (5-10 min) for
+the per-school live in/out counts to avoid repeated heavy aggregation queries
+during peak load. This should be clickable and testable locally after this
+phase — e.g. by triggering a manual punch and watching it appear live.
+```
+
+### Phase 8
+```
+Read CLAUDE.md fully. Create a detailed plan for the Leave module: LeaveType
+(configurable categories) and LeaveRequest (apply/list/approve/reject), and how
+an approved leave should feed into DailyAttendance as an override for the
+relevant dates. Build both backend and frontend (leave type settings page, and
+a leave request/approve/reject page) together, following the New Module
+Checklist and naming conventions, so it's testable end-to-end locally after
+this phase.
+```
+
+### Phase 9
+```
+Read CLAUDE.md fully. Create a detailed plan for a Holiday module with two
+parts: a reusable HolidayTemplate (a standard yearly holiday list that can be
+cloned) and the school's actual Holiday calendar (created by cloning a template
+and then editable per school). Also plan how a Holiday date should suppress
+"Absent" status in DailyAttendance calculation. Build both backend and frontend
+(template management page, and the school's holiday calendar page with a
+"clone from template" action) together, following the New Module Checklist and
+naming conventions, so it's testable locally after this phase.
+```
+
+### Phase 10
+```
+Read CLAUDE.md fully. Create a detailed plan for SalaryStructure (per-staff
+baseline pay components) and a real Payroll generation flow: given a school +
+staff + month, calculate presentDays, absentDays, and leaveDays from
+DailyAttendance, apply SalaryStructure components and any attendance-based
+deductions, and produce a DRAFT payroll record that can later be LOCKED. Build
+both backend and frontend (salary structure form per staff, and a payroll
+generate/list/view/lock page) together, following the New Module Checklist and
+naming conventions, so it's testable end-to-end locally after this phase.
+```
+
+---
+
+## 7. What NOT to copy from the reference project as-is
+
+- Two different WDMS auth clients (Basic Auth + Token) — keep only the token one.
+- BullMQ `Queue` objects defined but never consumed by a matching `Worker` — the
+  reference project's actual sync still runs via `cron → exec(child process)`.
+- Single in/out per day (`if (!day.outTime)` logic) — extend to multiple punches.
+- Payroll `generate()` that hardcodes `absentDays: 0, netSalary: 0` — this needs
+  real calculation against `DailyAttendance` + `SalaryStructure`.
+- Duplicate `leave.js` / `leaveRequest.js` controllers doing the same thing.

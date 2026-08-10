@@ -1,0 +1,56 @@
+# Files and directories Claude should not read or index.
+
+# Dependencies
+node_modules/
+backend/node_modules/
+package-lock.json
+backend/package-lock.json
+
+# Build output / caches
+dist/
+tmp/
+out-tsc/
+bazel-out/
+.angular/
+.sass-cache/
+coverage/
+
+# Secrets and local config
+
+*.pem
+*.key
+*.p12
+*.pfx
+backend/config/*.json
+
+# Logs
+*.log
+npm-debug.log
+yarn-error.log
+testem.log
+
+# Uploads / generated assets
+uploads/
+backend/uploads/
+*.zip
+*.tar.gz
+
+# Binary / media
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.svg
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.pdf
+
+# IDE and system files
+.idea/
+.vscode/
+.history/
+.DS_Store
+Thumbs.db

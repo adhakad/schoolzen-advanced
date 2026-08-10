@@ -1,0 +1,155 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Designation</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-2 offset-5">
+                        <button class="submit-button" mat-raised-button
+                          (click)="addDesignationModel()"><mat-icon>add</mat-icon>Create</button>
+                      </div>
+                      <div class="col-5">
+                        <input type="text" class="form-control" placeholder="Search..." id="searchText"
+                          name="searchText" #searchText="ngModel" [(ngModel)]="filters.searchText"
+                          (keyup)="getDesignation({page : 1, limit : 0})">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Designation</span>
+                    </button>
+                  </div>
+                  <div class="col-7 mt-3">
+                    <input type="text" class="form-control" placeholder="Search..." id="searchText" name="searchText"
+                      #searchText="ngModel" [(ngModel)]="filters.searchText"
+                      (keyup)="getDesignation({page : 1, limit : 0})">
+                  </div>
+                  <div class="col-5 mt-3"><button class="submit-button" mat-raised-button
+                      (click)="addDesignationModel()"><mat-icon>add</mat-icon>Create</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>No.</th>
+                      <th>Title</th>
+                      <th>Department</th>
+                      <th>Status</th>
+                      <th>Edit</th>
+                      <th>Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="designationInfo && designationInfo.length>0">
+                    <tr *ngFor="let designation of designationInfo,let i=index">
+                      <td>
+                        <p class="mb-0">{{number*10+i+1-10}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{designation.title | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{getDepartmentName(designation.departmentId)}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{designation.status | titlecase}}</p>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="updateDesignationModel(designation)">edit</mat-icon>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="deleteDesignationModel(designation._id)">delete</mat-icon>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <app-pagination [paginationValues]="paginationValues" (onChange)="getDesignation($event)">
+                </app-pagination>
+              </div>
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{updateMode?'UPDATE': deleteMode ? 'DELETE':'CREATE'}} DESIGNATION</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="designationForm" (ngSubmit)="designationAddUpdate()" *ngIf="!deleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Title</mat-label>
+                          <input matInput type="text" formControlName="title">
+                          <mat-hint *ngIf="!designationForm.get('title')?.valid && designationForm.get('title')?.touched"
+                            class="form-text text-danger">Title is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Select department</mat-label>
+                          <mat-select matInput formControlName="departmentId">
+                            <mat-option value="">-- None --</mat-option>
+                            <div *ngFor="let department of departmentInfo">
+                              <mat-option value="{{department._id}}">{{department.name}}</mat-option>
+                            </div>
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Status</mat-label>
+                          <mat-select matInput formControlName="status">
+                            <mat-option value="active">Active</mat-option>
+                            <mat-option value="inactive">Inactive</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button [disabled]="!designationForm.valid || isClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                    <div *ngIf="deleteMode">
+                      <h4 style="margin-left: 20px;">To delete designation, click ok to confirm.</h4>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
+                          (click)="designationDelete(deleteById)">Ok</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

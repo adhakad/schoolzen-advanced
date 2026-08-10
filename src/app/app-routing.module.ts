@@ -37,6 +37,8 @@ const routes: Routes = [
   { path: 'admin/marksheet/result/add/:class/:stream', loadChildren: () => import('src/app/pages/admin/admin-student-marksheet-result-add/admin-student-marksheet-result-add.module').then((module) => module.AdminStudentMarksheetResultAddModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/issued-transfer-certificate', loadChildren: () => import('src/app/pages/admin/issued-transfer-certificate/issued-transfer-certificate.module').then((module) => module.IssuedTransferCertificateModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/teacher', loadChildren: () => import('src/app/pages/admin/teacher/teacher.module').then((module) => module.TeacherModule), canActivate: [AdminAuthGuard] },
+  { path: 'admin/department', loadChildren: () => import('src/app/pages/admin/department/department.module').then((module) => module.DepartmentModule), canActivate: [AdminAuthGuard] },
+  { path: 'admin/designation', loadChildren: () => import('src/app/pages/admin/designation/designation.module').then((module) => module.DesignationModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class', loadChildren: () => import('src/app/pages/admin/class/class.module').then((module) => module.ClassModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/subject', loadChildren: () => import('src/app/pages/admin/subject/subject.module').then((module) => module.SubjectModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class-subject', loadChildren: () => import('src/app/pages/admin/class-subject/class-subject.module').then((module) => module.ClassSubjectModule), canActivate: [AdminAuthGuard] },
