@@ -5,6 +5,7 @@ import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { TeacherService } from 'src/app/services/teacher.service';
 import { Teacher } from 'src/app/modal/teacher.model';
 import { ClassService } from 'src/app/services/class.service';
+import { BiometricMappingService } from 'src/app/services/biometric-mapping.service';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
@@ -42,13 +43,32 @@ export class TeacherComponent implements OnInit {
 
   loader: Boolean = true;
   adminId!: String
-  constructor(private fb: FormBuilder, private toastr: ToastrService, private adminAuthService: AdminAuthService, private teacherService: TeacherService, private classService: ClassService) {
+
+  // Assign Card modal state
+  showAssignCardModal: boolean = false;
+  assignCardForm: FormGroup;
+  assignCardPerson: any = null;
+  assignCardIsClick: boolean = false;
+  assignCardErrorCheck: boolean = false;
+  assignCardErrorMsg: string = '';
+
+  // Bulk Assign Card (CSV) modal state
+  showBulkAssignCardModal: boolean = false;
+  bulkAssignCardFile: File | null = null;
+  bulkAssignCardIsClick: boolean = false;
+  bulkAssignCardErrorMsg: string = '';
+  bulkAssignCardResult: { successCount: number, failedCount: number, failed: any[] } | null = null;
+
+  constructor(private fb: FormBuilder, private toastr: ToastrService, private adminAuthService: AdminAuthService, private teacherService: TeacherService, private classService: ClassService, private biometricMappingService: BiometricMappingService) {
     this.teacherForm = this.fb.group({
       _id: [''],
       adminId: [''],
       name: ['', [Validators.required, Validators.pattern('^[a-zA-Z\\s]+$')]],
       teacherUserId: ['', [Validators.required, Validators.pattern(/^\d{6}$/), Validators.pattern('^[0-9]+$')]],
       education: ['', [Validators.required, Validators.pattern('^[a-zA-Z.\\s]+$')]],
+    })
+    this.assignCardForm = this.fb.group({
+      cardNo: ['', Validators.required],
     })
     this.teacherPermissionForm = this.fb.group({
       _id: [''],
@@ -409,5 +429,122 @@ export class TeacherComponent implements OnInit {
         this.deleteById = '';
       }
     })
+  }
+
+  openAssignCardModal(teacher: any) {
+    this.assignCardPerson = teacher;
+    this.assignCardForm.reset();
+    this.assignCardErrorCheck = false;
+    this.assignCardErrorMsg = '';
+    this.assignCardIsClick = false;
+    this.showAssignCardModal = true;
+  }
+
+  closeAssignCardModal() {
+    this.showAssignCardModal = false;
+    this.assignCardPerson = null;
+  }
+
+  assignCard() {
+    if (this.assignCardForm.valid && this.assignCardPerson) {
+      if (this.assignCardIsClick) {
+        return;
+      }
+      this.assignCardIsClick = true;
+      let params: any = {
+        adminId: this.adminId,
+        personType: 'teacher',
+        personId: this.assignCardPerson._id,
+        cardNo: this.assignCardForm.value.cardNo,
+      };
+      this.biometricMappingService.assignCard(params).subscribe((res: any) => {
+        this.assignCardIsClick = false;
+        this.closeAssignCardModal();
+        if (res && res.wdmsSyncFailed) {
+          setTimeout(() => {
+            this.toastr.warning('Card saved, but syncing to the biometric device failed — it will need to be retried.', 'Partial Success');
+          }, 500);
+        } else {
+          setTimeout(() => {
+            this.toastr.success('', res.successMsg);
+          }, 500);
+        }
+      }, err => {
+        this.assignCardIsClick = false;
+        this.assignCardErrorCheck = true;
+        this.assignCardErrorMsg = err.error;
+      });
+    }
+  }
+
+  openBulkAssignCardModal() {
+    this.showBulkAssignCardModal = true;
+    this.bulkAssignCardFile = null;
+    this.bulkAssignCardErrorMsg = '';
+    this.bulkAssignCardResult = null;
+    this.bulkAssignCardIsClick = false;
+  }
+
+  closeBulkAssignCardModal() {
+    this.showBulkAssignCardModal = false;
+    this.bulkAssignCardFile = null;
+    this.bulkAssignCardResult = null;
+  }
+
+  onBulkAssignCardFileChange(event: any) {
+    const file = event.target.files && event.target.files.length ? event.target.files[0] : null;
+    this.bulkAssignCardFile = file;
+    this.bulkAssignCardErrorMsg = '';
+  }
+
+  // 2-column CSV (code, cardNo), header row always skipped — keeps parsing simple
+  // rather than pulling in a CSV library for a two-field format.
+  parseBulkAssignCardCsv(text: string): any[] {
+    const lines = text.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
+    const records: any[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(',');
+      const code = (parts[0] || '').trim();
+      const cardNo = (parts[1] || '').trim();
+      if (code || cardNo) {
+        records.push({ code, cardNo });
+      }
+    }
+    return records;
+  }
+
+  bulkAssignCardSubmit() {
+    if (!this.bulkAssignCardFile) {
+      this.bulkAssignCardErrorMsg = 'Please choose a CSV file.';
+      return;
+    }
+    if (this.bulkAssignCardIsClick) {
+      return;
+    }
+    this.bulkAssignCardIsClick = true;
+    this.bulkAssignCardErrorMsg = '';
+    const reader = new FileReader();
+    reader.onload = () => {
+      const records = this.parseBulkAssignCardCsv(reader.result as string);
+      if (records.length === 0) {
+        this.bulkAssignCardIsClick = false;
+        this.bulkAssignCardErrorMsg = 'No valid rows found in the CSV file.';
+        return;
+      }
+      let params: any = {
+        adminId: this.adminId,
+        personType: 'teacher',
+        records: records,
+      };
+      this.biometricMappingService.bulkAssignCard(params).subscribe((res: any) => {
+        this.bulkAssignCardIsClick = false;
+        this.bulkAssignCardResult = res;
+        this.getTeacher({ page: this.page });
+      }, err => {
+        this.bulkAssignCardIsClick = false;
+        this.bulkAssignCardErrorMsg = err.error || 'Bulk upload failed.';
+      });
+    };
+    reader.readAsText(this.bulkAssignCardFile);
   }
 }

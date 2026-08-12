@@ -14,6 +14,7 @@ import { HttpClient } from '@angular/common/http';
 import { PrintPdfService } from 'src/app/services/print-pdf/print-pdf.service';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { ClassSubjectService } from 'src/app/services/class-subject.service';
+import { BiometricMappingService } from 'src/app/services/biometric-mapping.service';
 import { environment } from 'src/environments/environment';
 import { ToastrService } from 'ngx-toastr';
 
@@ -97,7 +98,22 @@ export class StudentComponent implements OnInit {
   };
   logoPreview: any = null;  // For showing school logo preview
 
-  constructor(private fb: FormBuilder, public activatedRoute: ActivatedRoute, private toastr: ToastrService, private academicSessionService: AcademicSessionService, private printPdfService: PrintPdfService, private schoolService: SchoolService, public ete: ExcelService, private adminAuthService: AdminAuthService, private classService: ClassService, private classSubjectService: ClassSubjectService, private studentService: StudentService) {
+  // Assign Card modal state
+  showAssignCardModal: boolean = false;
+  assignCardForm: FormGroup;
+  assignCardPerson: any = null;
+  assignCardIsClick: boolean = false;
+  assignCardErrorCheck: boolean = false;
+  assignCardErrorMsg: string = '';
+
+  // Bulk Assign Card (CSV) modal state
+  showBulkAssignCardModal: boolean = false;
+  bulkAssignCardFile: File | null = null;
+  bulkAssignCardIsClick: boolean = false;
+  bulkAssignCardErrorMsg: string = '';
+  bulkAssignCardResult: { successCount: number, failedCount: number, failed: any[] } | null = null;
+
+  constructor(private fb: FormBuilder, public activatedRoute: ActivatedRoute, private toastr: ToastrService, private academicSessionService: AcademicSessionService, private printPdfService: PrintPdfService, private schoolService: SchoolService, public ete: ExcelService, private adminAuthService: AdminAuthService, private classService: ClassService, private classSubjectService: ClassSubjectService, private studentService: StudentService, private biometricMappingService: BiometricMappingService) {
     this.studentForm = this.fb.group({
       _id: [''],
       session: ['', Validators.required],
@@ -139,6 +155,10 @@ export class StudentComponent implements OnInit {
     this.excelForm = this.fb.group({
       excelData: [null],
     });
+
+    this.assignCardForm = this.fb.group({
+      cardNo: ['', Validators.required],
+    })
   }
 
   ngOnInit(): void {
@@ -1207,5 +1227,126 @@ export class StudentComponent implements OnInit {
     this.qualifications = [{ qualification: 'doctoral degree' }, { qualification: 'masters degree' }, { qualification: 'graduate diploma' }, { qualification: 'graduate certificate' }, { qualification: 'graduate certificate' }, { qualification: 'bachelor degree' }, { qualification: 'advanced diploma' }, { qualification: 'primary school' }, { qualification: 'high school' }, { qualification: 'higher secondary school' }, { qualification: 'illiterate' }, { qualification: 'other' }];
     this.occupations = [{ occupation: 'agriculture(farmer)' }, { occupation: 'labourer' }, { occupation: 'self employed' }, { occupation: 'private job' }, { occupation: 'state govt. employee' }, { occupation: 'central govt. employee' }, { occupation: 'military job' }, { occupation: 'para-military job' }, { occupation: 'psu employee' }, { occupation: 'other' }];
     this.mediums = [{ medium: 'hindi' }, { medium: 'english' }];
+  }
+
+  openAssignCardModal(student: any) {
+    this.assignCardPerson = student;
+    this.assignCardForm.reset();
+    this.assignCardErrorCheck = false;
+    this.assignCardErrorMsg = '';
+    this.assignCardIsClick = false;
+    this.showAssignCardModal = true;
+  }
+
+  closeAssignCardModal() {
+    this.showAssignCardModal = false;
+    this.assignCardPerson = null;
+  }
+
+  assignCard() {
+    if (this.assignCardForm.valid && this.assignCardPerson) {
+      if (this.assignCardIsClick) {
+        return;
+      }
+      this.assignCardIsClick = true;
+      let params: any = {
+        adminId: this.adminId,
+        personType: 'student',
+        personId: this.assignCardPerson._id,
+        cardNo: this.assignCardForm.value.cardNo,
+      };
+      this.biometricMappingService.assignCard(params).subscribe((res: any) => {
+        this.assignCardIsClick = false;
+        this.closeAssignCardModal();
+        if (res && res.wdmsSyncFailed) {
+          setTimeout(() => {
+            this.toastr.warning('Card saved, but syncing to the biometric device failed — it will need to be retried.', 'Partial Success');
+          }, 500);
+        } else {
+          setTimeout(() => {
+            this.toastr.success('', res.successMsg);
+          }, 500);
+        }
+      }, err => {
+        this.assignCardIsClick = false;
+        this.assignCardErrorCheck = true;
+        this.assignCardErrorMsg = err.error;
+      });
+    }
+  }
+
+  openBulkAssignCardModal() {
+    this.showBulkAssignCardModal = true;
+    this.bulkAssignCardFile = null;
+    this.bulkAssignCardErrorMsg = '';
+    this.bulkAssignCardResult = null;
+    this.bulkAssignCardIsClick = false;
+  }
+
+  closeBulkAssignCardModal() {
+    this.showBulkAssignCardModal = false;
+    this.bulkAssignCardFile = null;
+    this.bulkAssignCardResult = null;
+  }
+
+  onBulkAssignCardFileChange(event: any) {
+    const file = event.target.files && event.target.files.length ? event.target.files[0] : null;
+    this.bulkAssignCardFile = file;
+    this.bulkAssignCardErrorMsg = '';
+  }
+
+  // 2-column CSV (code, cardNo), header row always skipped — keeps parsing simple
+  // rather than pulling in a CSV library for a two-field format.
+  parseBulkAssignCardCsv(text: string): any[] {
+    const lines = text.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
+    const records: any[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(',');
+      const code = (parts[0] || '').trim();
+      const cardNo = (parts[1] || '').trim();
+      if (code || cardNo) {
+        records.push({ code, cardNo });
+      }
+    }
+    return records;
+  }
+
+  bulkAssignCardSubmit() {
+    if (!this.bulkAssignCardFile) {
+      this.bulkAssignCardErrorMsg = 'Please choose a CSV file.';
+      return;
+    }
+    if (this.bulkAssignCardIsClick) {
+      return;
+    }
+    this.bulkAssignCardIsClick = true;
+    this.bulkAssignCardErrorMsg = '';
+    const reader = new FileReader();
+    reader.onload = () => {
+      const records = this.parseBulkAssignCardCsv(reader.result as string);
+      if (records.length === 0) {
+        this.bulkAssignCardIsClick = false;
+        this.bulkAssignCardErrorMsg = 'No valid rows found in the CSV file.';
+        return;
+      }
+      let params: any = {
+        adminId: this.adminId,
+        personType: 'student',
+        records: records,
+      };
+      this.biometricMappingService.bulkAssignCard(params).subscribe((res: any) => {
+        this.bulkAssignCardIsClick = false;
+        this.bulkAssignCardResult = res;
+        // Bulk upload matches by admissionNo across the whole school, not just the
+        // currently-selected class — only refresh the visible list if one is selected.
+        if (this.cls && this.stream) {
+          this.getStudents({ page: this.page });
+        }
+      }, err => {
+        this.bulkAssignCardIsClick = false;
+        this.bulkAssignCardErrorMsg = err.error || 'Bulk upload failed.';
+      });
+    };
+    reader.readAsText(this.bulkAssignCardFile);
   }
 }

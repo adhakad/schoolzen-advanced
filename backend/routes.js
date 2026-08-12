@@ -12,6 +12,8 @@ module.exports = app => {
     app.use('/v1/teacher', require('./modules/routes/teacher'));
     app.use('/v1/department', require('./modules/routes/department'));
     app.use('/v1/designation', require('./modules/routes/designation'));
+    app.use('/v1/staff', require('./modules/routes/staff'));
+    app.use('/v1/biometric-mapping', require('./modules/routes/biometric-mapping'));
     app.use('/v1/exam-result', require('./modules/routes/exam-result'));
     app.use('/v1/exam-result-structure', require('./modules/routes/exam-result-structure'));
     app.use('/v1/fees', require('./modules/routes/fees-collection'));

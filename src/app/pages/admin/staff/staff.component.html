@@ -1,0 +1,282 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Staff</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-2 offset-3">
+                        <button class="submit-button" mat-raised-button
+                          (click)="openBulkAssignCardModal()"><mat-icon>upload_file</mat-icon>Bulk Cards</button>
+                      </div>
+                      <div class="col-2">
+                        <button class="submit-button" mat-raised-button
+                          (click)="addStaffModel()"><mat-icon>add</mat-icon>Create</button>
+                      </div>
+                      <div class="col-5">
+                        <input type="text" class="form-control" placeholder="Search..." id="searchText"
+                          name="searchText" #searchText="ngModel" [(ngModel)]="filters.searchText"
+                          (keyup)="getStaff({page : 1, limit : 0})">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Staff</span>
+                    </button>
+                  </div>
+                  <div class="col-7 mt-3">
+                    <input type="text" class="form-control" placeholder="Search..." id="searchText" name="searchText"
+                      #searchText="ngModel" [(ngModel)]="filters.searchText"
+                      (keyup)="getStaff({page : 1, limit : 0})">
+                  </div>
+                  <div class="col-5 mt-3"><button class="submit-button" mat-raised-button
+                      (click)="addStaffModel()"><mat-icon>add</mat-icon>Create</button></div>
+                  <div class="col-12 mt-2"><button class="submit-button" mat-raised-button
+                      (click)="openBulkAssignCardModal()"><mat-icon>upload_file</mat-icon>Bulk Cards</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>No.</th>
+                      <th>Name</th>
+                      <th>Emp Code</th>
+                      <th>Department</th>
+                      <th>Designation</th>
+                      <th>Joining Date</th>
+                      <th>Status</th>
+                      <th>Assign Card</th>
+                      <th>Edit</th>
+                      <th>Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="staffInfo && staffInfo.length>0">
+                    <tr *ngFor="let staff of staffInfo,let i=index">
+                      <td>
+                        <p class="mb-0">{{number*10+i+1-10}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{staff.name | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{staff.empCode || '—'}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{getDepartmentName(staff.departmentId)}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{getDesignationName(staff.designationId)}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{staff.joiningDate | date:'dd/MM/yyyy'}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{staff.status | titlecase}}</p>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="openAssignCardModal(staff)">credit_card</mat-icon>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="updateStaffModel(staff)">edit</mat-icon>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="deleteStaffModel(staff._id)">delete</mat-icon>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <app-pagination [paginationValues]="paginationValues" (onChange)="getStaff($event)">
+                </app-pagination>
+              </div>
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{updateMode?'UPDATE': deleteMode ? 'DELETE':'CREATE'}} STAFF</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="staffForm" (ngSubmit)="staffAddUpdate()" *ngIf="!deleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Name</mat-label>
+                          <input matInput type="text" formControlName="name">
+                          <mat-hint *ngIf="!staffForm.get('name')?.valid && staffForm.get('name')?.touched"
+                            class="form-text text-danger">Name is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Employee Code (optional)</mat-label>
+                          <input matInput type="text" formControlName="empCode">
+                          <mat-hint>Used to match this staff member in bulk card-upload CSVs</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Select department</mat-label>
+                          <mat-select matInput formControlName="departmentId"
+                            (selectionChange)="onDepartmentChange($event.value)">
+                            <mat-option value="">-- Select --</mat-option>
+                            <div *ngFor="let department of departmentInfo">
+                              <mat-option value="{{department._id}}">{{department.name}}</mat-option>
+                            </div>
+                          </mat-select>
+                          <mat-hint *ngIf="!staffForm.get('departmentId')?.valid && staffForm.get('departmentId')?.touched"
+                            class="form-text text-danger">Department is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Select designation</mat-label>
+                          <mat-select matInput formControlName="designationId">
+                            <mat-option value="">-- Select --</mat-option>
+                            <div *ngFor="let designation of filteredDesignationInfo">
+                              <mat-option value="{{designation._id}}">{{designation.title}}</mat-option>
+                            </div>
+                          </mat-select>
+                          <mat-hint *ngIf="!staffForm.get('designationId')?.valid && staffForm.get('designationId')?.touched"
+                            class="form-text text-danger">Designation is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Joining Date (dd/mm/yyyy)</mat-label>
+                          <input matInput readonly [matDatepicker]="joiningDatePicker" formControlName="joiningDate" />
+                          <mat-datepicker-toggle matSuffix [for]="joiningDatePicker"></mat-datepicker-toggle>
+                          <mat-datepicker #joiningDatePicker></mat-datepicker>
+                          <mat-hint *ngIf="!staffForm.get('joiningDate')?.valid && staffForm.get('joiningDate')?.touched"
+                            class="form-text text-danger">Joining date is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Status</mat-label>
+                          <mat-select matInput formControlName="status">
+                            <mat-option value="active">Active</mat-option>
+                            <mat-option value="inactive">Inactive</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button [disabled]="!staffForm.valid || isClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                    <div *ngIf="deleteMode">
+                      <h4 style="margin-left: 20px;">To delete staff, click ok to confirm.</h4>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
+                          (click)="staffDelete(deleteById)">Ok</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal fade show" [class.show]="showAssignCardModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">ASSIGN CARD</h5>
+                      <mat-icon matRipple (click)="closeAssignCardModal()">close</mat-icon>
+                    </div>
+                    <form [formGroup]="assignCardForm" (ngSubmit)="assignCard()">
+                      <div class="modal-body">
+                        <div *ngIf="assignCardErrorCheck">
+                          <p class="error-message">{{assignCardErrorMsg}}</p>
+                        </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Card Number</mat-label>
+                          <input matInput type="text" formControlName="cardNo">
+                          <mat-hint
+                            *ngIf="!assignCardForm.get('cardNo')?.valid && assignCardForm.get('cardNo')?.touched"
+                            class="form-text text-danger">Card number is required</mat-hint>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button
+                          [disabled]="!assignCardForm.valid || assignCardIsClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              <div class="modal fade show" [class.show]="showBulkAssignCardModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">BULK ASSIGN CARDS</h5>
+                      <mat-icon matRipple (click)="closeBulkAssignCardModal()">close</mat-icon>
+                    </div>
+                    <div class="modal-body">
+                      <div *ngIf="bulkAssignCardErrorMsg">
+                        <p class="error-message">{{bulkAssignCardErrorMsg}}</p>
+                      </div>
+                      <ng-container *ngIf="!bulkAssignCardResult">
+                        <p>Upload a CSV with two columns: <strong>empCode, cardNo</strong> (header row required).
+                          Rows are matched to staff by Employee Code.</p>
+                        <input type="file" accept=".csv" (change)="onBulkAssignCardFileChange($event)">
+                      </ng-container>
+                      <ng-container *ngIf="bulkAssignCardResult">
+                        <p class="mb-2"><strong>{{bulkAssignCardResult.successCount}}</strong> mapped successfully,
+                          <strong>{{bulkAssignCardResult.failedCount}}</strong> failed.</p>
+                        <div *ngIf="bulkAssignCardResult.failedCount > 0" class="table-wrapper">
+                          <table class="table table-hover align-middle bg-white">
+                            <thead class="bg-light">
+                              <tr class="text-muted">
+                                <th>Emp Code</th>
+                                <th>Card No</th>
+                                <th>Reason</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let row of bulkAssignCardResult.failed">
+                                <td>{{row.code}}</td>
+                                <td>{{row.cardNo}}</td>
+                                <td>{{row.reason}}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </ng-container>
+                    </div>
+                    <div class="modal-footer">
+                      <button *ngIf="!bulkAssignCardResult" type="button" mat-raised-button
+                        [disabled]="!bulkAssignCardFile || bulkAssignCardIsClick" class="submit-button"
+                        (click)="bulkAssignCardSubmit()">Upload</button>
+                      <button *ngIf="bulkAssignCardResult" type="button" mat-raised-button class="submit-button"
+                        (click)="closeBulkAssignCardModal()">Close</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

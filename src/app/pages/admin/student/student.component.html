@@ -73,6 +73,12 @@
                       </div>
                     </div>
                   </div>
+                  <div class="row">
+                    <div class="col-12" style="text-align: right;">
+                      <button class="submit-button" mat-raised-button
+                        (click)="openBulkAssignCardModal()"><mat-icon>upload_file</mat-icon>Bulk Cards</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -135,6 +141,10 @@
                     <button class="submit-button" mat-raised-button *ngIf="cls && stream"
                       (click)="addStudentModel()"><mat-icon>add</mat-icon>Create</button>
                   </div>
+                  <div class="col-12 mt-2">
+                    <button class="submit-button" mat-raised-button
+                      (click)="openBulkAssignCardModal()"><mat-icon>upload_file</mat-icon>Bulk Cards</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -161,6 +171,7 @@
                       <th>Contact</th>
                       <th>Created By</th>
                       <th>View</th>
+                      <th>Assign Card</th>
                       <th>Edit</th>
                       <th>Remove</th>
                     </tr>
@@ -207,6 +218,9 @@
                       </td>
                       <td class="mb-0">
                         <mat-icon (click)="addStudentInfoViewModel(students)">visibility</mat-icon>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="openAssignCardModal(students)">credit_card</mat-icon>
                       </td>
                       <td class="mb-0">
                         <mat-icon (click)="updateStudentModel(students)">edit</mat-icon>
@@ -871,6 +885,86 @@
                           </ng-container>
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal fade show" [class.show]="showAssignCardModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">ASSIGN CARD</h5>
+                      <mat-icon matRipple (click)="closeAssignCardModal()">close</mat-icon>
+                    </div>
+                    <form [formGroup]="assignCardForm" (ngSubmit)="assignCard()">
+                      <div class="modal-body">
+                        <div *ngIf="assignCardErrorCheck">
+                          <p class="error-message">{{assignCardErrorMsg}}</p>
+                        </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Card Number</mat-label>
+                          <input matInput type="text" formControlName="cardNo">
+                          <mat-hint
+                            *ngIf="!assignCardForm.get('cardNo')?.valid && assignCardForm.get('cardNo')?.touched"
+                            class="form-text text-danger">Card number is required</mat-hint>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button
+                          [disabled]="!assignCardForm.valid || assignCardIsClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal fade show" [class.show]="showBulkAssignCardModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">BULK ASSIGN CARDS</h5>
+                      <mat-icon matRipple (click)="closeBulkAssignCardModal()">close</mat-icon>
+                    </div>
+                    <div class="modal-body">
+                      <div *ngIf="bulkAssignCardErrorMsg">
+                        <p class="error-message">{{bulkAssignCardErrorMsg}}</p>
+                      </div>
+                      <ng-container *ngIf="!bulkAssignCardResult">
+                        <p>Upload a CSV with two columns: <strong>admissionNo, cardNo</strong> (header row required).
+                          Rows are matched to students by Admission Number, across all classes.</p>
+                        <input type="file" accept=".csv" (change)="onBulkAssignCardFileChange($event)">
+                      </ng-container>
+                      <ng-container *ngIf="bulkAssignCardResult">
+                        <p class="mb-2"><strong>{{bulkAssignCardResult.successCount}}</strong> mapped successfully,
+                          <strong>{{bulkAssignCardResult.failedCount}}</strong> failed.</p>
+                        <div *ngIf="bulkAssignCardResult.failedCount > 0" class="table-wrapper">
+                          <table class="table table-hover align-middle bg-white">
+                            <thead class="bg-light">
+                              <tr class="text-muted">
+                                <th>Admission No</th>
+                                <th>Card No</th>
+                                <th>Reason</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr *ngFor="let row of bulkAssignCardResult.failed">
+                                <td>{{row.code}}</td>
+                                <td>{{row.cardNo}}</td>
+                                <td>{{row.reason}}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </ng-container>
+                    </div>
+                    <div class="modal-footer">
+                      <button *ngIf="!bulkAssignCardResult" type="button" mat-raised-button
+                        [disabled]="!bulkAssignCardFile || bulkAssignCardIsClick" class="submit-button"
+                        (click)="bulkAssignCardSubmit()">Upload</button>
+                      <button *ngIf="bulkAssignCardResult" type="button" mat-raised-button class="submit-button"
+                        (click)="closeBulkAssignCardModal()">Close</button>
                     </div>
                   </div>
                 </div>
