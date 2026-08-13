@@ -1,0 +1,242 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Roster</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-4">
+                        <div class="person-type-toggle">
+                          <button mat-button [class.active]="personType === 'staff'"
+                            (click)="switchPersonType('staff')">Staff</button>
+                          <button mat-button [class.active]="personType === 'teacher'"
+                            (click)="switchPersonType('teacher')">Teacher</button>
+                        </div>
+                      </div>
+                      <div class="col-5">
+                        <div class="period-picker">
+                          <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
+                          <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
+                            <option *ngFor="let month of monthNames, let m=index" [value]="m">{{month}}</option>
+                          </select>
+                          <select class="form-control" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
+                            <option *ngFor="let year of yearOptions" [value]="year">{{year}}</option>
+                          </select>
+                          <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <button class="submit-button" mat-raised-button
+                          (click)="openBulkModal()"><mat-icon>add</mat-icon>Bulk Assign</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Roster</span>
+                    </button>
+                  </div>
+                  <div class="col-12 mt-3">
+                    <div class="person-type-toggle">
+                      <button mat-button [class.active]="personType === 'staff'"
+                        (click)="switchPersonType('staff')">Staff</button>
+                      <button mat-button [class.active]="personType === 'teacher'"
+                        (click)="switchPersonType('teacher')">Teacher</button>
+                    </div>
+                  </div>
+                  <div class="col-12 mt-2">
+                    <div class="period-picker">
+                      <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
+                      <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
+                        <option *ngFor="let month of monthNames, let m=index" [value]="m">{{month}}</option>
+                      </select>
+                      <select class="form-control" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
+                        <option *ngFor="let year of yearOptions" [value]="year">{{year}}</option>
+                      </select>
+                      <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
+                    </div>
+                  </div>
+                  <div class="col-12 mt-2"><button class="submit-button" mat-raised-button
+                      (click)="openBulkModal()"><mat-icon>add</mat-icon>Bulk Assign</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div *ngIf="errorCheck">
+                <p class="error-message">{{errorMsg}}</p>
+              </div>
+              <div *ngIf="shiftInfo.length === 0 && !loader">
+                <p class="empty-hint">No active shifts yet — create one on the <strong>Shift</strong> page before
+                  assigning a roster.</p>
+              </div>
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white roster-grid">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th class="person-column">{{personType | titlecase}}</th>
+                      <th *ngFor="let day of monthDays" class="day-column" [class.weekend-column]="day.isWeekend">
+                        {{day.day}}</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="personInfo && personInfo.length>0">
+                    <tr *ngFor="let person of personInfo">
+                      <td class="person-column">
+                        <p class="mb-0">{{person.name | titlecase}}</p>
+                      </td>
+                      <td *ngFor="let day of monthDays" class="day-column" [class.weekend-column]="day.isWeekend"
+                        (click)="cellClick(person, day)">
+                        <span *ngIf="getRosterCell(person._id, day.dateKey) as roster" class="shift-chip"
+                          [class]="'shift-chip shift-color-' + shiftColorIndex(roster.shiftId)"
+                          [title]="shiftTooltip(roster.shiftId)">{{shiftShortName(roster.shiftId)}}</span>
+                        <span *ngIf="!getRosterCell(person._id, day.dateKey)" class="empty-cell">&ndash;</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="shift-legend" *ngIf="shiftInfo.length > 0">
+                <span *ngFor="let shift of shiftInfo, let i=index" class="legend-item">
+                  <span [class]="'shift-chip shift-color-' + (i % 6)">{{shiftShortName(shift._id)}}</span>
+                  {{shift.name | titlecase}} ({{shift.startTime}} &ndash; {{shift.endTime}})
+                </span>
+              </div>
+
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{cellRoster ? 'CHANGE' : 'ASSIGN'}} SHIFT</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <form [formGroup]="cellForm" (ngSubmit)="cellAssign()">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <p class="cell-context" *ngIf="cellPerson && cellDay">
+                          <strong>{{cellPerson.name | titlecase}}</strong> &mdash; {{monthNames[selectedMonth]}}
+                          {{cellDay.day}}, {{selectedYear}}
+                        </p>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Select shift</mat-label>
+                          <mat-select matInput formControlName="shiftId">
+                            <mat-option value="">-- Select --</mat-option>
+                            <div *ngFor="let shift of shiftInfo">
+                              <mat-option value="{{shift._id}}">{{shift.name}} ({{shift.startTime}} -
+                                {{shift.endTime}})</mat-option>
+                            </div>
+                          </mat-select>
+                          <mat-hint *ngIf="!cellForm.get('shiftId')?.valid && cellForm.get('shiftId')?.touched"
+                            class="form-text text-danger">Shift is required</mat-hint>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button *ngIf="cellRoster" class="delete-button" mat-raised-button type="button"
+                          [disabled]="isClick" (click)="cellClear()">Clear</button>
+                        <button type="submit" mat-raised-button [disabled]="!cellForm.valid || isClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal fade show" [class.show]="showBulkModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">BULK ASSIGN ROSTER</h5>
+                      <mat-icon matRipple (click)="closeBulkModal()">close</mat-icon>
+                    </div>
+                    <form [formGroup]="bulkForm" (ngSubmit)="bulkAssign()">
+                      <div class="modal-body">
+                        <div *ngIf="bulkErrorCheck">
+                          <p class="error-message">{{bulkErrorMsg}}</p>
+                        </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Select shift</mat-label>
+                          <mat-select matInput formControlName="shiftId">
+                            <mat-option value="">-- Select --</mat-option>
+                            <div *ngFor="let shift of shiftInfo">
+                              <mat-option value="{{shift._id}}">{{shift.name}} ({{shift.startTime}} -
+                                {{shift.endTime}})</mat-option>
+                            </div>
+                          </mat-select>
+                          <mat-hint *ngIf="!bulkForm.get('shiftId')?.valid && bulkForm.get('shiftId')?.touched"
+                            class="form-text text-danger">Shift is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>From Date (dd/mm/yyyy)</mat-label>
+                          <input matInput readonly [matDatepicker]="fromDatePicker" formControlName="fromDate" />
+                          <mat-datepicker-toggle matSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
+                          <mat-datepicker #fromDatePicker></mat-datepicker>
+                          <mat-hint *ngIf="!bulkForm.get('fromDate')?.valid && bulkForm.get('fromDate')?.touched"
+                            class="form-text text-danger">From date is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>To Date (dd/mm/yyyy)</mat-label>
+                          <input matInput readonly [matDatepicker]="toDatePicker" formControlName="toDate" />
+                          <mat-datepicker-toggle matSuffix [for]="toDatePicker"></mat-datepicker-toggle>
+                          <mat-datepicker #toDatePicker></mat-datepicker>
+                          <mat-hint *ngIf="!bulkForm.get('toDate')?.valid && bulkForm.get('toDate')?.touched"
+                            class="form-text text-danger">To date is required</mat-hint>
+                        </mat-form-field>
+                        <div class="weekday-picker">
+                          <p class="weekday-label mb-1">Repeat on</p>
+                          <button type="button" mat-button *ngFor="let weekday of bulkWeekdays"
+                            class="weekday-button" [class.active]="weekday.checked"
+                            (click)="toggleBulkWeekday(weekday)">{{weekday.label}}</button>
+                        </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Select {{personType}}</mat-label>
+                          <mat-select matInput formControlName="personIds" multiple>
+                            <div *ngFor="let person of personInfo">
+                              <mat-option value="{{person._id}}">{{person.name}}</mat-option>
+                            </div>
+                          </mat-select>
+                          <mat-hint *ngIf="!bulkForm.get('personIds')?.valid && bulkForm.get('personIds')?.touched"
+                            class="form-text text-danger">Select at least one person</mat-hint>
+                        </mat-form-field>
+                        <button type="button" mat-button class="select-all-button"
+                          (click)="selectAllPersons()">Select all {{personType}}</button>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button" [disabled]="bulkIsClick"
+                          (click)="bulkClear()">Clear Range</button>
+                        <button type="submit" mat-raised-button [disabled]="!bulkForm.valid || bulkIsClick"
+                          class="submit-button">Assign</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

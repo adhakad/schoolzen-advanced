@@ -23,6 +23,17 @@ let GetTeacherById = async (req, res, next) => {
     }
     return res.status(200).json(teacher);
 }
+// Read-only full list, used by the Roster person picker (the paginated list above can't
+// back a month grid). Shaped like GetAllStaff.
+let GetAllTeacher = async (req, res, next) => {
+    const adminId = req.params.id;
+    try {
+        const teacherList = await TeacherModel.find({ adminId: adminId });
+        return res.status(200).json(teacherList);
+    } catch (error) {
+        return res.status(500).json('Internal Server Error!');
+    }
+}
 let GetTeacherPagination = async (req, res, next) => {
     let searchText = req.body.filters.searchText;
     let adminId = req.body.adminId;
@@ -181,6 +192,7 @@ let DeleteTeacher = async (req, res, next) => {
 
 module.exports = {
     GetTeacherById,
+    GetAllTeacher,
     countTeacher,
     GetTeacherPagination,
     CreateTeacher,

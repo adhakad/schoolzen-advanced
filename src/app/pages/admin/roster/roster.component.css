@@ -1,0 +1,160 @@
+@import'../dashboard/dashboard.component.css';
+
+/* Month grid — the day columns are deliberately narrow so a full month fits without
+   scrolling on a desktop; .table-wrapper's overflow-x handles the rest. */
+.roster-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.roster-grid .person-column {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #FFF;
+  min-width: 150px;
+  max-width: 150px;
+  text-align: left;
+}
+
+.roster-grid thead .person-column {
+  background: #f8f9fa;
+  z-index: 3;
+}
+
+.roster-grid .day-column {
+  width: 34px;
+  min-width: 34px;
+  padding: 4px 2px;
+  text-align: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.roster-grid .weekend-column {
+  background: #faf8ff;
+}
+
+.roster-grid .empty-cell {
+  color: #c9c6d8;
+}
+
+.shift-chip {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  border-radius: 5px;
+  color: #FFF;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: .2px;
+}
+
+.shift-color-0 { background: #8C52FF; }
+.shift-color-1 { background: #16b978; }
+.shift-color-2 { background: #e4409a; }
+.shift-color-3 { background: #f5a623; }
+.shift-color-4 { background: #3d9be9; }
+.shift-color-5 { background: #6c4ab6; }
+
+.shift-legend {
+  margin-top: 1.5vh;
+  padding-left: 4px;
+  font-size: 12px;
+  color: #4a4a71;
+}
+
+.shift-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 18px;
+  margin-bottom: 6px;
+}
+
+.empty-hint {
+  color: #646089;
+  font-size: 13px;
+  padding-left: 4px;
+}
+
+.cell-context {
+  color: #4a4a71;
+  font-size: 14px;
+  margin-bottom: 1.5vh;
+}
+
+/* Staff / Teacher switch */
+.person-type-toggle {
+  display: inline-flex;
+  border: 1px solid #e3ddf5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.person-type-toggle button {
+  height: 44px;
+  min-width: 74px;
+  border-radius: 0;
+  color: #4a4a71;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 13px;
+}
+
+.person-type-toggle button.active {
+  background: #8C52FF;
+  color: #FFF;
+}
+
+/* Month / year selector */
+.period-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.period-picker mat-icon {
+  cursor: pointer;
+  color: #4a4a71;
+}
+
+.period-picker .form-control {
+  height: 44px;
+  font-size: 13px;
+}
+
+/* Weekday chips in the bulk-assign modal */
+.weekday-picker {
+  margin-bottom: 2vh;
+}
+
+.weekday-label {
+  color: #646089;
+  font-size: 13px;
+}
+
+.weekday-button {
+  min-width: 46px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  border: 1px solid #e3ddf5;
+  border-radius: 6px;
+  color: #4a4a71;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 12px;
+}
+
+.weekday-button.active {
+  background: #8C52FF;
+  color: #FFF;
+  border-color: #8C52FF;
+}
+
+.select-all-button {
+  color: #8C52FF;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 12px;
+  padding-left: 0;
+}

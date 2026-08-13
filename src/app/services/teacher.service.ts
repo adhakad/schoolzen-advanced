@@ -25,6 +25,9 @@ export class TeacherService {
   getTeacherById(params:any) {
     return this.http.get<any[]>(`${this.url}/admin/${params.adminId}/teacher/${params.teacherUserId}`);
   }
+  getTeacherList(adminId:any) {
+    return this.http.get<Teacher[]>(`${this.url}/all-teacher/${adminId}`);
+  }
   getTeacherCount(params:any) {
     return this.http.get(`${this.url}/teacher-count/${params.adminId}`);
   }
