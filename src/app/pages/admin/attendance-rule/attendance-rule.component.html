@@ -1,0 +1,99 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Attendance Rules</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Attendance Rules</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <form [formGroup]="attendanceRuleForm" (ngSubmit)="attendanceRuleSubmit()">
+                <div class="modal-body">
+                  <div *ngIf="errorCheck">
+                    <p class="error-message">{{errorMsg}}</p>
+                  </div>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Work Start Time</mat-label>
+                    <input matInput type="time" formControlName="workStart">
+                    <mat-error
+                      *ngIf="attendanceRuleForm.get('workStart')?.hasError('required') && attendanceRuleForm.get('workStart')?.touched">
+                      Work start time is required
+                    </mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Late After (minutes)</mat-label>
+                    <input matInput type="number" min="0" formControlName="lateAfter">
+                    <mat-hint>Minutes after work start before status becomes "Late"</mat-hint>
+                    <mat-error
+                      *ngIf="attendanceRuleForm.get('lateAfter')?.hasError('required') && attendanceRuleForm.get('lateAfter')?.touched">
+                      Late after is required
+                    </mat-error>
+                    <mat-error *ngIf="attendanceRuleForm.get('lateAfter')?.hasError('min')">
+                      Enter a valid number of minutes
+                    </mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Half Day After (minutes)</mat-label>
+                    <input matInput type="number" min="0" formControlName="halfDayAfter">
+                    <mat-hint>Minutes after work start before status becomes "Half Day"</mat-hint>
+                    <mat-error
+                      *ngIf="attendanceRuleForm.get('halfDayAfter')?.hasError('required') && attendanceRuleForm.get('halfDayAfter')?.touched">
+                      Half day after is required
+                    </mat-error>
+                    <mat-error *ngIf="attendanceRuleForm.get('halfDayAfter')?.hasError('min')">
+                      Enter a valid number of minutes
+                    </mat-error>
+                  </mat-form-field>
+
+                  <div class="col-12 mt-2 mb-2">
+                    <mat-slide-toggle formControlName="allowOvertime">Allow Overtime</mat-slide-toggle>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" mat-raised-button [disabled]="!attendanceRuleForm.valid || isClick"
+                    class="submit-button">
+                    <span *ngIf="isClick" class="submitting-content">
+                      <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                    </span>
+                    {{updateMode ? 'Update Rules' : 'Save Rules'}}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
