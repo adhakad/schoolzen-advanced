@@ -1,42 +1,66 @@
 @import'../dashboard/dashboard.component.css';
 
-/* Month grid — the day columns are deliberately narrow so a full month fits without
-   scrolling on a desktop; .table-wrapper's overflow-x handles the rest. */
-.roster-grid {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
+/* Month grid. Everything here is layout only — nothing repaints a thead cell, so the
+   shared purple table header from dashboard.component.css stays unbroken. */
 .roster-grid .person-column {
   position: sticky;
   left: 0;
   z-index: 2;
-  background: #FFF;
   min-width: 150px;
   max-width: 150px;
   text-align: left;
 }
 
+/* The sticky column needs its own background or the scrolled cells show through it.
+   These match what the cell would have had unstuck — white body, purple header — so it
+   reads as an ordinary column. Bootstrap 5 paints row hover as an inset box-shadow, so
+   .table-hover still tints these cells. */
+.roster-grid tbody .person-column {
+  background: #FFF;
+}
+
 .roster-grid thead .person-column {
-  background: #f8f9fa;
+  background: #8C52FF;
   z-index: 3;
 }
 
 .roster-grid .day-column {
-  width: 34px;
-  min-width: 34px;
+  width: 38px;
+  min-width: 38px;
   padding: 4px 2px;
   text-align: center;
   font-size: 12px;
   cursor: pointer;
 }
 
-.roster-grid .weekend-column {
-  background: #faf8ff;
+.roster-grid thead .day-column {
+  line-height: 1.15;
+}
+
+.day-number {
+  display: block;
+  color: #382066;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.day-name {
+  display: block;
+  color: #382066;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  opacity: .72;
+}
+
+/* Body cells only — the header row is never tinted. */
+.roster-grid tbody .weekend-column {
+  background: #f3f1fa;
 }
 
 .roster-grid .empty-cell {
-  color: #c9c6d8;
+  color: #d5d0e1;
 }
 
 .shift-chip {
@@ -62,8 +86,9 @@
 .shift-legend {
   margin-top: 1.5vh;
   padding-left: 4px;
+  color: #646089;
   font-size: 12px;
-  color: #4a4a71;
+  letter-spacing: .5px;
 }
 
 .shift-legend .legend-item {
@@ -74,38 +99,10 @@
   margin-bottom: 6px;
 }
 
-.empty-hint {
-  color: #646089;
-  font-size: 13px;
-  padding-left: 4px;
-}
-
 .cell-context {
-  color: #4a4a71;
+  color: #646089;
   font-size: 14px;
   margin-bottom: 1.5vh;
-}
-
-/* Staff / Teacher switch */
-.person-type-toggle {
-  display: inline-flex;
-  border: 1px solid #e3ddf5;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.person-type-toggle button {
-  height: 44px;
-  min-width: 74px;
-  border-radius: 0;
-  color: #4a4a71;
-  font-family: 'Poppins', sans-serif !important;
-  font-size: 13px;
-}
-
-.person-type-toggle button.active {
-  background: #8C52FF;
-  color: #FFF;
 }
 
 /* Month / year selector */
@@ -116,13 +113,13 @@
 }
 
 .period-picker mat-icon {
+  color: #382066;
   cursor: pointer;
-  color: #4a4a71;
 }
 
 .period-picker .form-control {
-  height: 44px;
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: .5px;
 }
 
 /* Weekday chips in the bulk-assign modal */
@@ -139,11 +136,11 @@
   min-width: 46px;
   margin-right: 4px;
   margin-bottom: 4px;
-  border: 1px solid #e3ddf5;
-  border-radius: 6px;
-  color: #4a4a71;
+  color: #382066;
   font-family: 'Poppins', sans-serif !important;
   font-size: 12px;
+  border: 1px solid #d5d0e1af;
+  border-radius: 6px;
 }
 
 .weekday-button.active {

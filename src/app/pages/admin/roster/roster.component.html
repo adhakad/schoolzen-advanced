@@ -18,15 +18,13 @@
                   </div>
                   <div class="col-9" style="text-align: right;">
                     <div class="row">
-                      <div class="col-4">
-                        <div class="person-type-toggle">
-                          <button mat-button [class.active]="personType === 'staff'"
-                            (click)="switchPersonType('staff')">Staff</button>
-                          <button mat-button [class.active]="personType === 'teacher'"
-                            (click)="switchPersonType('teacher')">Teacher</button>
-                        </div>
+                      <div class="col-3 mt-2">
+                        <mat-radio-group (change)="switchPersonType($event.value)">
+                          <mat-radio-button value="staff" [checked]="personType=='staff'">Staff</mat-radio-button>
+                          <mat-radio-button value="teacher" [checked]="personType=='teacher'">Teacher</mat-radio-button>
+                        </mat-radio-group>
                       </div>
-                      <div class="col-5">
+                      <div class="col-6">
                         <div class="period-picker">
                           <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
                           <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
@@ -56,14 +54,12 @@
                     </button>
                   </div>
                   <div class="col-12 mt-3">
-                    <div class="person-type-toggle">
-                      <button mat-button [class.active]="personType === 'staff'"
-                        (click)="switchPersonType('staff')">Staff</button>
-                      <button mat-button [class.active]="personType === 'teacher'"
-                        (click)="switchPersonType('teacher')">Teacher</button>
-                    </div>
+                    <mat-radio-group (change)="switchPersonType($event.value)">
+                      <mat-radio-button value="staff" [checked]="personType=='staff'">Staff</mat-radio-button>
+                      <mat-radio-button value="teacher" [checked]="personType=='teacher'">Teacher</mat-radio-button>
+                    </mat-radio-group>
                   </div>
-                  <div class="col-12 mt-2">
+                  <div class="col-12 mt-3">
                     <div class="period-picker">
                       <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
                       <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
@@ -75,7 +71,7 @@
                       <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
                     </div>
                   </div>
-                  <div class="col-12 mt-2"><button class="submit-button" mat-raised-button
+                  <div class="col-12 mt-3"><button class="submit-button" mat-raised-button
                       (click)="openBulkModal()"><mat-icon>add</mat-icon>Bulk Assign</button></div>
                 </div>
               </div>
@@ -88,8 +84,8 @@
               <div *ngIf="errorCheck">
                 <p class="error-message">{{errorMsg}}</p>
               </div>
-              <div *ngIf="shiftInfo.length === 0 && !loader">
-                <p class="empty-hint">No active shifts yet — create one on the <strong>Shift</strong> page before
+              <div *ngIf="shiftInfo.length == 0 && !loader">
+                <p class="mb-0">No active shifts yet &mdash; create one on the <strong>Shift</strong> page before
                   assigning a roster.</p>
               </div>
               <div class="table-wrapper">
@@ -97,8 +93,10 @@
                   <thead class="bg-light">
                     <tr class="text-muted">
                       <th class="person-column">{{personType | titlecase}}</th>
-                      <th *ngFor="let day of monthDays" class="day-column" [class.weekend-column]="day.isWeekend">
-                        {{day.day}}</th>
+                      <th *ngFor="let day of monthDays" class="day-column">
+                        <span class="day-number">{{day.day}}</span>
+                        <span class="day-name">{{day.dateKey | date:'EEE'}}</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody *ngIf="personInfo && personInfo.length>0">
@@ -108,7 +106,7 @@
                       </td>
                       <td *ngFor="let day of monthDays" class="day-column" [class.weekend-column]="day.isWeekend"
                         (click)="cellClick(person, day)">
-                        <span *ngIf="getRosterCell(person._id, day.dateKey) as roster" class="shift-chip"
+                        <span *ngIf="getRosterCell(person._id, day.dateKey) as roster"
                           [class]="'shift-chip shift-color-' + shiftColorIndex(roster.shiftId)"
                           [title]="shiftTooltip(roster.shiftId)">{{shiftShortName(roster.shiftId)}}</span>
                         <span *ngIf="!getRosterCell(person._id, day.dateKey)" class="empty-cell">&ndash;</span>
@@ -117,6 +115,9 @@
                   </tbody>
                 </table>
               </div>
+              <ng-container *ngIf="!loader && (!personInfo || personInfo.length==0)">
+                <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+              </ng-container>
               <div class="shift-legend" *ngIf="shiftInfo.length > 0">
                 <span *ngFor="let shift of shiftInfo, let i=index" class="legend-item">
                   <span [class]="'shift-chip shift-color-' + (i % 6)">{{shiftShortName(shift._id)}}</span>
@@ -155,9 +156,19 @@
                       </div>
                       <div class="modal-footer">
                         <button *ngIf="cellRoster" class="delete-button" mat-raised-button type="button"
-                          [disabled]="isClick" (click)="cellClear()">Clear</button>
+                          [disabled]="isClick" (click)="cellClear()">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Clear
+                        </button>
                         <button type="submit" mat-raised-button [disabled]="!cellForm.valid || isClick"
-                          class="submit-button">Submit</button>
+                          class="submit-button">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Submit
+                        </button>
                       </div>
                     </form>
                   </div>
@@ -206,8 +217,8 @@
                         </mat-form-field>
                         <div class="weekday-picker">
                           <p class="weekday-label mb-1">Repeat on</p>
-                          <button type="button" mat-button *ngFor="let weekday of bulkWeekdays"
-                            class="weekday-button" [class.active]="weekday.checked"
+                          <button type="button" mat-button *ngFor="let weekday of bulkWeekdays" class="weekday-button"
+                            [class.active]="weekday.checked"
                             (click)="toggleBulkWeekday(weekday)">{{weekday.label}}</button>
                         </div>
                         <mat-form-field appearance="outline">
@@ -225,9 +236,19 @@
                       </div>
                       <div class="modal-footer">
                         <button class="delete-button" mat-raised-button type="button" [disabled]="bulkIsClick"
-                          (click)="bulkClear()">Clear Range</button>
+                          (click)="bulkClear()">
+                          <span *ngIf="bulkIsClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Clear Range
+                        </button>
                         <button type="submit" mat-raised-button [disabled]="!bulkForm.valid || bulkIsClick"
-                          class="submit-button">Assign</button>
+                          class="submit-button">
+                          <span *ngIf="bulkIsClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Assign
+                        </button>
                       </div>
                     </form>
                   </div>
