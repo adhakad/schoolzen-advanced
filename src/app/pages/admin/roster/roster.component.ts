@@ -9,7 +9,7 @@ import { ToastrService } from 'ngx-toastr';
 
 interface MonthDay {
   day: number;
-  dateKey: string;
+  dateKey: string;    // "YYYY-MM-DD"
   isWeekend: boolean;
 }
 
@@ -19,368 +19,358 @@ interface MonthDay {
   styleUrls: ['./roster.component.css']
 })
 export class RosterComponent implements OnInit {
+
   personType: string = 'staff';
-  selectedYear: number = new Date().getFullYear();
+  selectedYear: number  = new Date().getFullYear();
   selectedMonth: number = new Date().getMonth();
-  monthNames: string[] = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  monthNames: string[] = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December',
+  ];
   yearOptions: number[] = [];
 
-  monthDays: MonthDay[] = [];
-  personInfo: any[] = [];
-  shiftInfo: any[] = [];
-  // `${personId}|${dateKey}` -> roster row, so a grid cell is an O(1) lookup
-  rosterMap: any = {};
+  monthDays: MonthDay[]  = [];
+  personInfo: any[]      = [];
+  shiftInfo: any[]       = [];
 
-  errorMsg: String = '';
+  // Flat map: "personId|YYYY-MM-DD" -> shiftId — O(1) cell lookup
+  rosterMap: Record<string, string> = {};
+
+  errorMsg: String    = '';
   errorCheck: Boolean = false;
-  loader: Boolean = true;
+  loader: Boolean     = true;
   adminId!: string;
 
-  // Single-cell assign modal
-  showModal: boolean = false;
+  // Single-cell modal
+  showModal: boolean        = false;
   cellForm: FormGroup;
-  cellPerson: any = null;
-  cellDay: MonthDay | null = null;
-  cellRoster: any = null;
-  isClick: boolean = false;
+  cellPerson: any           = null;
+  cellDay: MonthDay | null  = null;
+  cellRoster: string | null = null;
+  isClick: boolean          = false;
 
-  // Bulk assign modal — its own guard/error state, so the two modals never block each other
-  showBulkModal: boolean = false;
+  // Bulk modal
+  showBulkModal: boolean  = false;
   bulkForm: FormGroup;
   bulkWeekdays: any[] = [
-    { value: 1, label: 'Mon', checked: true },
-    { value: 2, label: 'Tue', checked: true },
-    { value: 3, label: 'Wed', checked: true },
-    { value: 4, label: 'Thu', checked: true },
-    { value: 5, label: 'Fri', checked: true },
-    { value: 6, label: 'Sat', checked: true },
+    { value: 1, label: 'Mon', checked: true  },
+    { value: 2, label: 'Tue', checked: true  },
+    { value: 3, label: 'Wed', checked: true  },
+    { value: 4, label: 'Thu', checked: true  },
+    { value: 5, label: 'Fri', checked: true  },
+    { value: 6, label: 'Sat', checked: true  },
     { value: 0, label: 'Sun', checked: false },
   ];
-  bulkIsClick: boolean = false;
+  bulkIsClick: boolean    = false;
   bulkErrorCheck: boolean = false;
-  bulkErrorMsg: string = '';
+  bulkErrorMsg: string    = '';
 
-  constructor(private fb: FormBuilder, private toastr: ToastrService, private adminAuthService: AdminAuthService, private rosterService: RosterService, private shiftService: ShiftService, private staffService: StaffService, private teacherService: TeacherService) {
-    this.cellForm = this.fb.group({
-      shiftId: ['', Validators.required],
-    })
+  constructor(
+    private fb: FormBuilder,
+    private toastr: ToastrService,
+    private adminAuthService: AdminAuthService,
+    private rosterService: RosterService,
+    private shiftService: ShiftService,
+    private staffService: StaffService,
+    private teacherService: TeacherService,
+  ) {
+    this.cellForm = this.fb.group({ shiftId: ['', Validators.required] });
     this.bulkForm = this.fb.group({
-      shiftId: ['', Validators.required],
-      fromDate: ['', Validators.required],
-      toDate: ['', Validators.required],
+      shiftId:   ['', Validators.required],
+      fromDate:  ['', Validators.required],
+      toDate:    ['', Validators.required],
       personIds: [[], Validators.required],
-    })
+    });
   }
 
   ngOnInit(): void {
-    let getAdmin = this.adminAuthService.getLoggedInAdminInfo();
-    this.adminId = getAdmin?.id;
+    this.adminId = this.adminAuthService.getLoggedInAdminInfo()?.id;
     const thisYear = new Date().getFullYear();
-    for (let y = thisYear - 1; y <= thisYear + 1; y++) {
-      this.yearOptions.push(y);
-    }
+    for (let y = thisYear - 1; y <= thisYear + 1; y++) this.yearOptions.push(y);
     this.buildMonthDays();
     this.getShiftList();
     this.getPersonList();
   }
 
-  // Day columns for the selected month, weekends flagged for tinting.
-  buildMonthDays() {
+  // Native <select> can hand back strings — always read the period through these.
+  private get year(): number  { return Number(this.selectedYear); }
+  private get month(): number { return Number(this.selectedMonth); }
+
+  buildMonthDays(): void {
+    const y  = this.year;
+    const mo = this.month;
     const days: MonthDay[] = [];
-    const totalDays = new Date(this.selectedYear, this.selectedMonth + 1, 0).getDate();
-    for (let day = 1; day <= totalDays; day++) {
-      const month = `${this.selectedMonth + 1}`.padStart(2, '0');
-      const dayPart = `${day}`.padStart(2, '0');
-      const weekday = new Date(this.selectedYear, this.selectedMonth, day).getDay();
+    const total = new Date(y, mo + 1, 0).getDate();
+    for (let d = 1; d <= total; d++) {
+      const mm  = `${mo + 1}`.padStart(2, '0');
+      const dd  = `${d}`.padStart(2, '0');
+      const dow = new Date(y, mo, d).getDay();
       days.push({
-        day: day,
-        dateKey: `${this.selectedYear}-${month}-${dayPart}`,
-        isWeekend: weekday === 0,
+        day:       d,
+        dateKey:   `${y}-${mm}-${dd}`,
+        isWeekend: dow === 0,
       });
     }
     this.monthDays = days;
   }
 
-  getShiftList() {
+  getShiftList(): void {
     this.shiftService.getShiftList(this.adminId).subscribe((res: any) => {
-      if (res) {
-        this.shiftInfo = res.filter((shift: any) => shift.status === 'active');
-      }
-    })
+      if (res) this.shiftInfo = res.filter((s: any) => s.status === 'active');
+    });
   }
 
-  getPersonList() {
+  getPersonList(): void {
     if (this.personType === 'staff') {
       this.staffService.getStaffList(this.adminId).subscribe((res: any) => {
-        if (res) {
-          this.personInfo = res;
-        }
+        this.personInfo = res || [];
         this.getRosterMonth();
-      }, err => {
-        this.personInfo = [];
-        this.loader = false;
-      })
+      }, () => { this.personInfo = []; this.loader = false; });
     } else {
       this.teacherService.getTeacherList(this.adminId).subscribe((res: any) => {
-        if (res) {
-          this.personInfo = res;
-        }
+        this.personInfo = res || [];
         this.getRosterMonth();
-      }, err => {
-        this.personInfo = [];
-        this.loader = false;
-      })
+      }, () => { this.personInfo = []; this.loader = false; });
     }
   }
 
-  getRosterMonth() {
-    let params: any = {
-      adminId: this.adminId,
+  getRosterMonth(): void {
+    const y  = this.year;
+    const mo = this.month;
+    // "2026-08-" — used to discard any key that isn't the month on screen
+    const prefix = `${y}-${`${mo + 1}`.padStart(2, '0')}-`;
+
+    this.rosterService.getRosterMonth({
+      adminId:    this.adminId,
       personType: this.personType,
-      year: this.selectedYear,
-      month: this.selectedMonth,
-    };
-    this.rosterService.getRosterMonth(params).subscribe((res: any) => {
-      let map: any = {};
-      if (res && res.rosterList) {
-        for (const roster of res.rosterList) {
-          // Stored as UTC midnight, so the UTC date parts are the calendar day.
-          map[`${roster.personId}|${this.toDateKey(new Date(roster.date))}`] = roster;
+      year:       String(y),
+      month:      String(mo + 1),   // API/DB use 1-12; this.month is JS 0-11
+    }).subscribe(
+      (res: any) => {
+        const raw: Record<string, string> = res?.rosterMap || {};
+        const filtered: Record<string, string> = {};
+        for (const key of Object.keys(raw)) {
+          // key = "personId|YYYY-MM-DD"
+          if (key.slice(key.indexOf('|') + 1).startsWith(prefix)) {
+            filtered[key] = raw[key];
+          }
         }
-      }
-      this.rosterMap = map;
-      this.loader = false;
-    }, err => {
-      this.errorCheck = true;
-      this.errorMsg = err.error;
-      this.loader = false;
-    })
+        this.rosterMap = filtered;
+        this.loader = false;
+      },
+      (err: any) => { this.errorCheck = true; this.errorMsg = err.error; this.loader = false; }
+    );
   }
 
-  switchPersonType(type: string) {
-    if (this.personType === type) {
-      return;
-    }
+  switchPersonType(type: string): void {
+    if (this.personType === type) return;
     this.personType = type;
     this.personInfo = [];
-    this.rosterMap = {};
+    this.rosterMap  = {};
     this.bulkForm.patchValue({ personIds: [] });
     this.getPersonList();
   }
 
-  changeMonth(delta: number) {
-    let month = this.selectedMonth + delta;
-    if (month < 0) {
-      month = 11;
-      this.selectedYear = this.selectedYear - 1;
-    } else if (month > 11) {
-      month = 0;
-      this.selectedYear = this.selectedYear + 1;
-    }
-    this.selectedMonth = month;
+  changeMonth(delta: number): void {
+    let m = this.month + delta;
+    let y = this.year;
+    if (m < 0)  { m = 11; y--; }
+    if (m > 11) { m = 0;  y++; }
+    this.selectedMonth = m;
+    this.selectedYear  = y;
     this.buildMonthDays();
     this.getRosterMonth();
   }
 
-  onPeriodChange() {
+  onPeriodChange(): void {
+    // Coerce back to numbers — <select> writes strings into the bound property.
+    this.selectedYear  = this.year;
+    this.selectedMonth = this.month;
     this.buildMonthDays();
     this.getRosterMonth();
   }
 
-  // A Date's LOCAL parts -> "YYYY-MM-DD". Always used before sending a date to the
-  // backend: passing the raw Date would serialise to UTC and shift every roster by a
-  // day for any school east or west of UTC.
+  // WRITE direction — datepicker gives LOCAL midnight; read LOCAL parts to avoid UTC shift.
   toDateKey(date: Date): string {
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-    return `${date.getFullYear()}-${month}-${day}`;
+    const mm = `${date.getMonth() + 1}`.padStart(2, '0');
+    const dd = `${date.getDate()}`.padStart(2, '0');
+    return `${date.getFullYear()}-${mm}-${dd}`;
   }
 
-  getRosterCell(personId: String, dateKey: string) {
-    return this.rosterMap[`${personId}|${dateKey}`];
+  // Staff and Teacher have different human-readable identifiers. Shown next to the
+  // name so two people with the same name are always distinguishable.
+  personCode(person: any): string {
+    const code = this.personType === 'staff' ? person?.empCode : person?.teacherUserId;
+    return (code === 0 || code) ? String(code) : '';
   }
 
-  getShift(shiftId: String) {
-    return this.shiftInfo.find((shift: any) => shift._id === shiftId);
+  personLabel(person: any): string {
+    const code = this.personCode(person);
+    return code ? `${person?.name} (${code})` : `${person?.name}`;
   }
 
-  shiftShortName(shiftId: String) {
-    const shift = this.getShift(shiftId);
-    return shift ? shift.name.toString().trim().charAt(0).toUpperCase() : '?';
+  getRosterCell(personId: string, dateKey: string): string | null {
+    return this.rosterMap[`${personId}|${dateKey}`] || null;
   }
 
-  shiftTooltip(shiftId: String) {
-    const shift = this.getShift(shiftId);
-    return shift ? `${shift.name} (${shift.startTime} - ${shift.endTime})` : 'Unknown shift';
+  getShift(shiftId: string): any {
+    return this.shiftInfo.find((s: any) => s._id === shiftId);
   }
 
-  // Stable colour per shift, so a cell and the legend always agree.
-  shiftColorIndex(shiftId: String) {
-    const index = this.shiftInfo.findIndex((shift: any) => shift._id === shiftId);
-    return index >= 0 ? (index % 6) : 0;
+  shiftShortName(shiftId: string): string {
+    const s = this.getShift(shiftId);
+    return s ? s.name.trim().charAt(0).toUpperCase() : '?';
   }
 
-  cellClick(person: any, day: MonthDay) {
+  shiftTooltip(shiftId: string): string {
+    const s = this.getShift(shiftId);
+    return s ? `${s.name} (${s.startTime} - ${s.endTime})` : 'Unknown shift';
+  }
+
+  shiftColorIndex(shiftId: string): number {
+    const i = this.shiftInfo.findIndex((s: any) => s._id === shiftId);
+    return i >= 0 ? i % 6 : 0;
+  }
+
+  // ---- Single-cell modal ----
+
+  cellClick(person: any, day: MonthDay): void {
     this.cellPerson = person;
-    this.cellDay = day;
+    this.cellDay    = day;
     this.cellRoster = this.getRosterCell(person._id, day.dateKey);
     this.errorCheck = false;
-    this.errorMsg = '';
-    this.isClick = false;
-    this.cellForm.reset({ shiftId: this.cellRoster ? this.cellRoster.shiftId : '' });
-    this.showModal = true;
+    this.errorMsg   = '';
+    this.isClick    = false;
+    this.cellForm.reset({ shiftId: this.cellRoster || '' });
+    this.showModal  = true;
   }
 
-  closeModal() {
-    this.showModal = false;
+  closeModal(): void {
+    this.showModal  = false;
     this.cellPerson = null;
-    this.cellDay = null;
+    this.cellDay    = null;
     this.cellRoster = null;
     this.errorCheck = false;
-    this.errorMsg = '';
+    this.errorMsg   = '';
   }
 
-  successDone(res: any) {
+  successDone(msg: string): void {
     this.closeModal();
     this.getRosterMonth();
-    setTimeout(() => {
-      this.toastr.success('', res);
-    }, 500)
+    setTimeout(() => this.toastr.success('', msg), 500);
   }
 
-  cellAssign() {
-    if (this.cellForm.valid && this.cellPerson && this.cellDay) {
-      if (this.isClick) {
-        return;
-      }
-      this.errorCheck = false;
-      this.errorMsg = '';
-      this.isClick = true;
-      let params: any = {
-        adminId: this.adminId,
-        personType: this.personType,
-        personId: this.cellPerson._id,
-        shiftId: this.cellForm.value.shiftId,
-        date: this.cellDay.dateKey,
-      };
-      this.rosterService.addRoster(params).subscribe((res: any) => {
-        if (res) {
-          this.isClick = false;
-          this.successDone(res);
-        }
-      }, err => {
-        this.errorCheck = true;
-        this.errorMsg = err.error;
-        this.isClick = false;
-      })
-    }
-  }
+  cellAssign(): void {
+    if (!this.cellForm.valid || !this.cellPerson || !this.cellDay || this.isClick) return;
+    this.errorCheck = false;
+    this.errorMsg   = '';
+    this.isClick    = true;
 
-  cellClear() {
-    if (!this.cellRoster) {
-      return;
-    }
-    if (this.isClick) {
-      return;
-    }
-    this.isClick = true;
-    this.rosterService.deleteRoster(this.cellRoster._id).subscribe((res: any) => {
-      if (res) {
-        this.isClick = false;
-        this.successDone(res);
-      }
-    }, err => {
-      this.errorCheck = true;
-      this.errorMsg = err.error;
-      this.isClick = false;
-    })
-  }
-
-  openBulkModal() {
-    this.showBulkModal = true;
-    this.bulkIsClick = false;
-    this.bulkErrorCheck = false;
-    this.bulkErrorMsg = '';
-    // Default the range to the month currently on screen.
-    const firstDay = new Date(this.selectedYear, this.selectedMonth, 1);
-    const lastDay = new Date(this.selectedYear, this.selectedMonth + 1, 0);
-    this.bulkForm.reset({ shiftId: '', fromDate: firstDay, toDate: lastDay, personIds: [] });
-  }
-
-  closeBulkModal() {
-    this.showBulkModal = false;
-    this.bulkErrorCheck = false;
-    this.bulkErrorMsg = '';
-  }
-
-  toggleBulkWeekday(weekday: any) {
-    weekday.checked = !weekday.checked;
-  }
-
-  selectAllPersons() {
-    this.bulkForm.patchValue({ personIds: this.personInfo.map((person: any) => person._id) });
-  }
-
-  buildBulkParams() {
-    return {
-      adminId: this.adminId,
+    this.rosterService.addRoster({
+      adminId:    this.adminId,
       personType: this.personType,
-      personIds: this.bulkForm.value.personIds,
-      shiftId: this.bulkForm.value.shiftId,
-      fromDate: this.toDateKey(new Date(this.bulkForm.value.fromDate)),
-      toDate: this.toDateKey(new Date(this.bulkForm.value.toDate)),
-      weekdays: this.bulkWeekdays.filter((weekday: any) => weekday.checked).map((weekday: any) => weekday.value),
+      personId:   this.cellPerson._id,
+      shiftId:    this.cellForm.value.shiftId,
+      date:       this.cellDay.dateKey,
+    }).subscribe(
+      (res: any) => { this.isClick = false; this.successDone(res); },
+      (err: any) => { this.errorCheck = true; this.errorMsg = err.error; this.isClick = false; }
+    );
+  }
+
+  cellClear(): void {
+    if (!this.cellRoster || !this.cellPerson || !this.cellDay || this.isClick) return;
+    this.isClick = true;
+
+    this.rosterService.deleteRoster({
+      adminId:    this.adminId,
+      personType: this.personType,
+      personId:   this.cellPerson._id,
+      date:       this.cellDay.dateKey,
+    }).subscribe(
+      (res: any) => { this.isClick = false; this.successDone(res); },
+      (err: any) => { this.errorCheck = true; this.errorMsg = err.error; this.isClick = false; }
+    );
+  }
+
+  // ---- Bulk modal ----
+
+  openBulkModal(): void {
+    this.showBulkModal  = true;
+    this.bulkIsClick    = false;
+    this.bulkErrorCheck = false;
+    this.bulkErrorMsg   = '';
+    const y  = this.year;
+    const mo = this.month;
+    this.bulkForm.reset({
+      shiftId:   '',
+      fromDate:  new Date(y, mo, 1),
+      toDate:    new Date(y, mo + 1, 0),
+      personIds: [],
+    });
+  }
+
+  closeBulkModal(): void {
+    this.showBulkModal  = false;
+    this.bulkErrorCheck = false;
+    this.bulkErrorMsg   = '';
+  }
+
+  toggleBulkWeekday(weekday: any): void { weekday.checked = !weekday.checked; }
+
+  selectAllPersons(): void {
+    this.bulkForm.patchValue({ personIds: this.personInfo.map((p: any) => p._id) });
+  }
+
+  buildBulkParams(): any {
+    return {
+      adminId:    this.adminId,
+      personType: this.personType,
+      personIds:  this.bulkForm.value.personIds,
+      shiftId:    this.bulkForm.value.shiftId,
+      fromDate:   this.toDateKey(new Date(this.bulkForm.value.fromDate)),
+      toDate:     this.toDateKey(new Date(this.bulkForm.value.toDate)),
+      weekdays:   this.bulkWeekdays.filter(w => w.checked).map(w => w.value),
     };
   }
 
-  bulkAssign() {
-    if (this.bulkForm.valid) {
-      if (this.bulkIsClick) {
-        return;
-      }
-      this.bulkErrorCheck = false;
-      this.bulkErrorMsg = '';
-      this.bulkIsClick = true;
-      this.rosterService.bulkAssignRoster(this.buildBulkParams()).subscribe((res: any) => {
+  bulkAssign(): void {
+    if (!this.bulkForm.valid || this.bulkIsClick) return;
+    this.bulkErrorCheck = false;
+    this.bulkErrorMsg   = '';
+    this.bulkIsClick    = true;
+
+    this.rosterService.bulkAssignRoster(this.buildBulkParams()).subscribe(
+      (res: any) => {
         this.bulkIsClick = false;
         this.closeBulkModal();
         this.getRosterMonth();
-        setTimeout(() => {
-          this.toastr.success('', `${res.assignedCount} day(s) assigned.`);
-        }, 500);
-      }, err => {
-        this.bulkErrorCheck = true;
-        this.bulkErrorMsg = err.error;
-        this.bulkIsClick = false;
-      })
-    }
+        setTimeout(() => this.toastr.success('', `${res.assignedCount} day(s) assigned.`), 500);
+      },
+      (err: any) => { this.bulkErrorCheck = true; this.bulkErrorMsg = err.error; this.bulkIsClick = false; }
+    );
   }
 
-  // Same range/person selection as bulkAssign, minus the shift — the only practical way to
-  // undo a bulk assign made over the wrong range.
-  bulkClear() {
-    if (!this.bulkForm.value.personIds || this.bulkForm.value.personIds.length === 0 || !this.bulkForm.value.fromDate || !this.bulkForm.value.toDate) {
+  bulkClear(): void {
+    const v = this.bulkForm.value;
+    if (!v.personIds?.length || !v.fromDate || !v.toDate) {
       this.bulkErrorCheck = true;
-      this.bulkErrorMsg = 'Select the people and the date range you want to clear.';
+      this.bulkErrorMsg   = 'Select people and a date range to clear.';
       return;
     }
-    if (this.bulkIsClick) {
-      return;
-    }
+    if (this.bulkIsClick) return;
     this.bulkErrorCheck = false;
-    this.bulkErrorMsg = '';
-    this.bulkIsClick = true;
-    this.rosterService.bulkClearRoster(this.buildBulkParams()).subscribe((res: any) => {
-      this.bulkIsClick = false;
-      this.closeBulkModal();
-      this.getRosterMonth();
-      setTimeout(() => {
-        this.toastr.success('', `${res.clearedCount} day(s) cleared.`);
-      }, 500);
-    }, err => {
-      this.bulkErrorCheck = true;
-      this.bulkErrorMsg = err.error;
-      this.bulkIsClick = false;
-    })
+    this.bulkErrorMsg   = '';
+    this.bulkIsClick    = true;
+
+    this.rosterService.bulkClearRoster(this.buildBulkParams()).subscribe(
+      (res: any) => {
+        this.bulkIsClick = false;
+        this.closeBulkModal();
+        this.getRosterMonth();
+        setTimeout(() => this.toastr.success('', `${res.clearedCount} day(s) cleared.`), 500);
+      },
+      (err: any) => { this.bulkErrorCheck = true; this.bulkErrorMsg = err.error; this.bulkIsClick = false; }
+    );
   }
 }

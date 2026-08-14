@@ -2,6 +2,13 @@
 
 /* Month grid. Everything here is layout only — nothing repaints a thead cell, so the
    shared purple table header from dashboard.component.css stays unbroken. */
+   /* Append to roster.component.css */
+.person-code {
+  display: block;
+  font-size: 11px;
+  color: #8a8a9e;
+  line-height: 1.2;
+}
 .roster-grid .person-column {
   position: sticky;
   left: 0;

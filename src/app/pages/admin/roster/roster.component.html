@@ -28,10 +28,10 @@
                         <div class="period-picker">
                           <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
                           <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
-                            <option *ngFor="let month of monthNames, let m=index" [value]="m">{{month}}</option>
+                            <option *ngFor="let month of monthNames, let m=index" [ngValue]="m">{{month}}</option>
                           </select>
                           <select class="form-control" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
-                            <option *ngFor="let year of yearOptions" [value]="year">{{year}}</option>
+                            <option *ngFor="let year of yearOptions" [ngValue]="year">{{year}}</option>
                           </select>
                           <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
                         </div>
@@ -63,10 +63,10 @@
                     <div class="period-picker">
                       <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
                       <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
-                        <option *ngFor="let month of monthNames, let m=index" [value]="m">{{month}}</option>
+                        <option *ngFor="let month of monthNames, let m=index" [ngValue]="m">{{month}}</option>
                       </select>
                       <select class="form-control" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
-                        <option *ngFor="let year of yearOptions" [value]="year">{{year}}</option>
+                        <option *ngFor="let year of yearOptions" [ngValue]="year">{{year}}</option>
                       </select>
                       <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
                     </div>
@@ -103,12 +103,13 @@
                     <tr *ngFor="let person of personInfo">
                       <td class="person-column">
                         <p class="mb-0">{{person.name | titlecase}}</p>
+                        <small class="person-code" *ngIf="personCode(person)">{{personCode(person)}}</small>
                       </td>
                       <td *ngFor="let day of monthDays" class="day-column" [class.weekend-column]="day.isWeekend"
                         (click)="cellClick(person, day)">
-                        <span *ngIf="getRosterCell(person._id, day.dateKey) as roster"
-                          [class]="'shift-chip shift-color-' + shiftColorIndex(roster.shiftId)"
-                          [title]="shiftTooltip(roster.shiftId)">{{shiftShortName(roster.shiftId)}}</span>
+                        <span *ngIf="getRosterCell(person._id, day.dateKey) as shiftId"
+                          [class]="'shift-chip shift-color-' + shiftColorIndex(shiftId)"
+                          [title]="shiftTooltip(shiftId)">{{shiftShortName(shiftId)}}</span>
                         <span *ngIf="!getRosterCell(person._id, day.dateKey)" class="empty-cell">&ndash;</span>
                       </td>
                     </tr>
@@ -138,7 +139,7 @@
                           <p class="error-message">{{errorMsg}}</p>
                         </div>
                         <p class="cell-context" *ngIf="cellPerson && cellDay">
-                          <strong>{{cellPerson.name | titlecase}}</strong> &mdash; {{monthNames[selectedMonth]}}
+                          <strong>{{personLabel(cellPerson) | titlecase}}</strong> &mdash; {{monthNames[selectedMonth]}}
                           {{cellDay.day}}, {{selectedYear}}
                         </p>
                         <mat-form-field appearance="outline">
@@ -150,8 +151,8 @@
                                 {{shift.endTime}})</mat-option>
                             </div>
                           </mat-select>
-                          <mat-hint *ngIf="!cellForm.get('shiftId')?.valid && cellForm.get('shiftId')?.touched"
-                            class="form-text text-danger">Shift is required</mat-hint>
+                          <mat-error *ngIf="!cellForm.get('shiftId')?.valid && cellForm.get('shiftId')?.touched">Shift is
+                            required</mat-error>
                         </mat-form-field>
                       </div>
                       <div class="modal-footer">
@@ -196,24 +197,24 @@
                                 {{shift.endTime}})</mat-option>
                             </div>
                           </mat-select>
-                          <mat-hint *ngIf="!bulkForm.get('shiftId')?.valid && bulkForm.get('shiftId')?.touched"
-                            class="form-text text-danger">Shift is required</mat-hint>
+                          <mat-error *ngIf="!bulkForm.get('shiftId')?.valid && bulkForm.get('shiftId')?.touched">Shift is
+                            required</mat-error>
                         </mat-form-field>
                         <mat-form-field appearance="outline">
                           <mat-label>From Date (dd/mm/yyyy)</mat-label>
                           <input matInput readonly [matDatepicker]="fromDatePicker" formControlName="fromDate" />
                           <mat-datepicker-toggle matSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
                           <mat-datepicker #fromDatePicker></mat-datepicker>
-                          <mat-hint *ngIf="!bulkForm.get('fromDate')?.valid && bulkForm.get('fromDate')?.touched"
-                            class="form-text text-danger">From date is required</mat-hint>
+                          <mat-error *ngIf="!bulkForm.get('fromDate')?.valid && bulkForm.get('fromDate')?.touched">From
+                            date is required</mat-error>
                         </mat-form-field>
                         <mat-form-field appearance="outline">
                           <mat-label>To Date (dd/mm/yyyy)</mat-label>
                           <input matInput readonly [matDatepicker]="toDatePicker" formControlName="toDate" />
                           <mat-datepicker-toggle matSuffix [for]="toDatePicker"></mat-datepicker-toggle>
                           <mat-datepicker #toDatePicker></mat-datepicker>
-                          <mat-hint *ngIf="!bulkForm.get('toDate')?.valid && bulkForm.get('toDate')?.touched"
-                            class="form-text text-danger">To date is required</mat-hint>
+                          <mat-error *ngIf="!bulkForm.get('toDate')?.valid && bulkForm.get('toDate')?.touched">To date is
+                            required</mat-error>
                         </mat-form-field>
                         <div class="weekday-picker">
                           <p class="weekday-label mb-1">Repeat on</p>
@@ -225,11 +226,11 @@
                           <mat-label>Select {{personType}}</mat-label>
                           <mat-select matInput formControlName="personIds" multiple>
                             <div *ngFor="let person of personInfo">
-                              <mat-option value="{{person._id}}">{{person.name}}</mat-option>
+                              <mat-option value="{{person._id}}">{{personLabel(person) | titlecase}}</mat-option>
                             </div>
                           </mat-select>
-                          <mat-hint *ngIf="!bulkForm.get('personIds')?.valid && bulkForm.get('personIds')?.touched"
-                            class="form-text text-danger">Select at least one person</mat-hint>
+                          <mat-error *ngIf="!bulkForm.get('personIds')?.valid && bulkForm.get('personIds')?.touched">Select
+                            at least one person</mat-error>
                         </mat-form-field>
                         <button type="button" mat-button class="select-all-button"
                           (click)="selectAllPersons()">Select all {{personType}}</button>

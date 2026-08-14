@@ -1,15 +1,20 @@
 'use strict';
 const express = require('express');
-const router = express.Router();
-const { GetRosterMonth, GetSingleRoster, GetExpectedShift, CreateRoster, UpdateRoster, DeleteRoster, BulkAssignRoster, BulkClearRoster } = require('../controllers/roster');
+const router  = express.Router();
+const {
+    GetRosterMonth,
+    GetExpectedShift,
+    CreateRoster,
+    DeleteRoster,
+    BulkAssignRoster,
+    BulkClearRoster,
+} = require('../controllers/roster');
 
-router.post('/roster-month', GetRosterMonth);
-router.post('/bulk-assign', BulkAssignRoster);
-router.post('/bulk-clear', BulkClearRoster);
+router.get('/roster-month',  GetRosterMonth);   // GET — query params
+router.post('/bulk-assign',  BulkAssignRoster);
+router.post('/bulk-clear',   BulkClearRoster);
 router.get('/expected-shift/:adminId/:personType/:personId/:date', GetExpectedShift);
-router.get('/:id', GetSingleRoster);
-router.post('/', CreateRoster);
-router.put('/:id', UpdateRoster);
-router.delete('/:id', DeleteRoster);
+router.post('/',             CreateRoster);      // single cell assign
+router.delete('/',           DeleteRoster);      // single cell clear (body: personId + date)
 
 module.exports = router;
