@@ -32,6 +32,23 @@ const toDateKey = (date) => {
     return `${d.getUTCFullYear()}-${month}-${day}`;
 };
 
+// Parses a Date or "YYYY-MM-DD" straight to { year, month (1-12), day, dateKey }, or null.
+// Shared by anything reading/writing the monthly-snapshot Roster shape (models/roster.js:
+// one doc per adminId+personType+personId+year+month, days: Map<"YYYY-MM-DD", shiftId>) —
+// controllers/roster.js and services/roster-lookup.js both key their queries off this.
+// NOTE: month is 1-12 here (August = 8), NOT JS's 0-11.
+const parseDateKey = (value) => {
+    if (!value) return null;
+    const dateKey = value instanceof Date ? toDateKey(value) : value.toString().trim().slice(0, 10);
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+    if (!m) return null;
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    const day = Number(m[3]);
+    if (!year || month < 1 || month > 12 || day < 1 || day > 31) return null;
+    return { year, month, day, dateKey };
+};
+
 // Expands a date range into UTC-midnight Dates. `weekdays` is an optional array of 0-6
 // (Sun-Sat) — when present only those days are emitted, which is what makes
 // "Morning shift, Mon-Sat, all of August" a single bulk call.
@@ -52,4 +69,4 @@ const eachDateInRange = (fromKey, toKey, weekdays) => {
     return dates;
 };
 
-module.exports = { toUtcMidnight, toDateKey, eachDateInRange };
+module.exports = { toUtcMidnight, toDateKey, parseDateKey, eachDateInRange };
