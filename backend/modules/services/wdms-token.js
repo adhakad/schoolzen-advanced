@@ -14,7 +14,7 @@ const fetchDynamicToken = async () => {
         username: WDMS_USERNAME,
         password: WDMS_PASSWORD,
     });
-    return response.data.token;
+    return response.data.access;
 };
 
 // Static WDMS_TOKEN env var wins when set; otherwise fetch+cache a dynamic token.

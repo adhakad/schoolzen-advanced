@@ -1,0 +1,47 @@
+<app-header></app-header>
+<div class="login">
+  <div class="row">
+    <div class="col-12 col-lg-5 offset-lg-3 login-card">
+      <div class="row">
+        <div class="col-12 col-lg-10 offset-lg-1">
+          <h3>Sales Login</h3>
+          <div class="col-12">
+            <h2>{{errorMsg}}</h2>
+            <form [formGroup]="loginForm" (ngSubmit)="login()">
+              <mat-form-field appearance="outline">
+                <mat-label>Sales User Id</mat-label>
+                <input matInput type="text" formControlName="salesUserId">
+                <mat-hint *ngIf="loginForm.get('salesUserId')?.hasError('required') && loginForm.get('salesUserId')?.touched"
+                  class="form-text text-danger">Sales User Id is required.</mat-hint>
+                <mat-hint *ngIf="loginForm.get('salesUserId')?.hasError('minlength')" class="form-text text-danger">
+                  Sales User Id must be at least 3 characters long.
+                </mat-hint>
+                <mat-hint *ngIf="loginForm.get('salesUserId')?.hasError('maxlength')" class="form-text text-danger">
+                  Sales User Id can't be more than 20 characters long.
+                </mat-hint>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Password</mat-label>
+                <input matInput [type]="hide ? 'password' : 'text'" formControlName="password">
+                <mat-icon matSuffix (click)="hide = !hide" style="cursor: pointer;"
+                  [attr.aria-label]="hide ? 'Hide password' : 'Show password'" [attr.aria-pressed]="!hide">
+                  {{hide ? 'visibility_off' : 'visibility'}}
+                </mat-icon>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched"
+                  class="form-text text-danger">Password is required.</mat-hint>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('minlength')" class="form-text text-danger">
+                  Password must be at least 6 characters long.
+                </mat-hint>
+                <mat-hint *ngIf="loginForm.get('password')?.hasError('maxlength')" class="form-text text-danger">
+                  Password can't be more than 30 characters long.
+                </mat-hint>
+              </mat-form-field>
+              <button type="submit" mat-raised-button [disabled]="!loginForm.valid" class="submit-button">Login</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

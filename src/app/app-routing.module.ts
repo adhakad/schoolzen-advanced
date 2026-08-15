@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
 import { TeacherAuthGuard } from './guards/teacher-auth.guard';
+import { SalesAuthGuard } from './guards/sales-auth.guard';
 
 const routes: Routes = [
   { path: '', redirectTo: '/', pathMatch: 'full' },
@@ -76,6 +77,10 @@ const routes: Routes = [
   { path: 'teacher/marksheet/result/add/:class/:stream', loadChildren: () => import('src/app/pages/teacher/teacher-student-marksheet-result-add/teacher-student-marksheet-result-add.module').then((module) => module.TeacherStudentMarksheetResultAddModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/promote-fail', loadChildren: () => import('src/app/pages/teacher/teacher-student-promote-fail/teacher-student-promote-fail.module').then((module) => module.TeacherStudentPromoteFailModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/transfer-certificate', loadChildren: () => import('src/app/pages/teacher/teacher-student-transfer-certificate/teacher-student-transfer-certificate.module').then((module) => module.TeacherStudentTransferCertificateModule), canActivate: [TeacherAuthGuard] },
+
+  // Sales Routing Section
+  { path: 'sales/login', loadChildren: () => import('src/app/pages/auth/sales-auth/sales-login/sales-login.module').then((module) => module.SalesLoginModule) },
+  { path: 'sales/device', loadChildren: () => import('src/app/pages/sales/sales-device/sales-device.module').then((module) => module.SalesDeviceModule), canActivate: [SalesAuthGuard] },
 
 ];
 

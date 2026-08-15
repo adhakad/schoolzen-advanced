@@ -4,6 +4,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { AdminAuthInterceptor } from './interceptors/admin-auth.interceptor';
 import { TeacherAuthInterceptor } from './interceptors/teacher-auth.interceptor';
+import { SalesAuthInterceptor } from './interceptors/sales-auth.interceptor';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { PortalModule } from '@angular/cdk/portal';
 // import { ScrollingModule } from '@angular/cdk/scrolling';
@@ -19,6 +20,7 @@ import { MAT_DATE_LOCALE } from '@angular/material/core';
 import { NgxMatFileInputModule } from '@angular-material-components/file-input';
 import { AdminSharedModule } from './pages/admin/admin-shared/admin-shared.module';
 import { TeacherSharedModule } from './pages/teacher/teacher-shared/teacher-shared.module';
+import { SalesSharedModule } from './pages/sales/sales-shared/sales-shared.module';
 import { MainSharedModule } from './pages/main/main-shared/main-shared.module';
 import { ToastrModule } from 'ngx-toastr';
 
@@ -50,10 +52,12 @@ import { ToastrModule } from 'ngx-toastr';
     MainSharedModule,
     AdminSharedModule,
     TeacherSharedModule,
+    SalesSharedModule,
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AdminAuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: TeacherAuthInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: SalesAuthInterceptor, multi: true },
     {provide: MAT_DATE_LOCALE, useValue: 'en-GB'},
     {
       provide: MAT_DATETIME_FORMATS,

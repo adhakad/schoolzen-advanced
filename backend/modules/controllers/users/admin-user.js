@@ -465,6 +465,28 @@ let GetSingleAdminPaymentStepStatus = async (req, res, next) => {
     }
 }
 
+// Sales-only school directory for the Device Management "assign to school" picker.
+// Never used by the admin dashboard — gated by isSalesAuth at the route level.
+let GetAdminDirectoryForSales = async (req, res, next) => {
+    try {
+        const search = req.query.search;
+        let filter = {};
+        if (search) {
+            const searchNumber = Number(search);
+            filter = {
+                $or: [
+                    { schoolName: new RegExp(`${search.toString().trim()}`, 'i') },
+                    ...(isNaN(searchNumber) ? [] : [{ schoolId: searchNumber }]),
+                ],
+            };
+        }
+        const admins = await AdminUserModel.find(filter, { schoolName: 1, schoolId: 1, city: 1, state: 1 });
+        return res.status(200).json(admins);
+    } catch (error) {
+        return res.status(500).json('Internal Server Error!');
+    }
+}
+
 module.exports = {
     LoginAdmin,
     RefreshToken,
@@ -476,5 +498,6 @@ module.exports = {
     UpdateAdminDetail,
     GetSingleAdminPlan,
     GetSingleAdminUser,
-    GetSingleAdminPaymentStepStatus
+    GetSingleAdminPaymentStepStatus,
+    GetAdminDirectoryForSales,
 }

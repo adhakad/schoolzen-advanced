@@ -1,0 +1,138 @@
+<app-sales-header-nav></app-sales-header-nav>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-sales-side-nav></app-sales-side-nav>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="col-12">
+              <div class="row">
+                <div class="col-4">
+                  <button mat-button class="menu-button">
+                    <span>Device Management</span>
+                  </button>
+                </div>
+                <div class="col-8" style="text-align: right;">
+                  <button class="submit-button" mat-raised-button [disabled]="syncing"
+                    (click)="syncFromWdms()"><mat-icon>sync</mat-icon>{{syncing ? 'Syncing...' : 'Sync from WDMS'}}</button>
+                  <button mat-stroked-button [class.active-link]="viewMode==='list'" (click)="switchView('list')"
+                    style="margin-left: 10px;">My Devices</button>
+                  <button mat-stroked-button [class.active-link]="viewMode==='school-wise'"
+                    (click)="switchView('school-wise')" style="margin-left: 10px;">School-wise</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="main-container" *ngIf="viewMode==='list'">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>No.</th>
+                      <th>Terminal SN</th>
+                      <th>Alias</th>
+                      <th>Terminal Name</th>
+                      <th>Status</th>
+                      <th>Assigned School</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="devices && devices.length>0">
+                    <tr *ngFor="let device of devices, let i=index">
+                      <td><p class="mb-0">{{i+1}}</p></td>
+                      <td><p class="mb-0">{{device.terminalSn}}</p></td>
+                      <td><p class="mb-0">{{device.alias}}</p></td>
+                      <td><p class="mb-0">{{device.terminalName}}</p></td>
+                      <td><p class="mb-0">{{device.status | titlecase}}</p></td>
+                      <td><p class="mb-0">{{device.assignedSchoolId || '-'}}</p></td>
+                      <td>
+                        <button mat-button *ngIf="device.status==='unassigned'" (click)="openAssignModal(device._id)">Assign</button>
+                        <button mat-button *ngIf="device.status==='active'" (click)="block(device._id)">Block</button>
+                        <button mat-button *ngIf="device.status==='blocked'" (click)="activate(device._id)">Activate</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tbody *ngIf="!devices || devices.length===0">
+                    <tr><td colspan="7">No devices assigned to you yet. Click "Sync from WDMS" to pull in newly registered terminals.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="main-container" *ngIf="viewMode==='school-wise'">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card" *ngFor="let group of schoolWiseDevices">
+              <h5 style="margin: 10px 0;">School: {{group._id}}</h5>
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>Terminal SN</th>
+                      <th>Alias</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let device of group.devices">
+                      <td><p class="mb-0">{{device.terminalSn}}</p></td>
+                      <td><p class="mb-0">{{device.alias}}</p></td>
+                      <td><p class="mb-0">{{device.status | titlecase}}</p></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <p *ngIf="!schoolWiseDevices || schoolWiseDevices.length===0">No devices assigned to a school yet.</p>
+          </div>
+        </div>
+
+        <div class="modal fade show" [class.show]="showAssignModal">
+          <div class="modal-dialog modal-dialog-top" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">ASSIGN DEVICE TO SCHOOL</h5>
+                <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+              </div>
+              <div class="modal-body">
+                <div *ngIf="errorCheck">
+                  <p class="error-message">{{errorMsg}}</p>
+                </div>
+                <mat-form-field appearance="outline">
+                  <mat-label>Device</mat-label>
+                  <mat-select [(ngModel)]="selectedDeviceId">
+                    <mat-option *ngFor="let device of unassignedDevices" [value]="device._id">
+                      {{device.terminalSn}} ({{device.alias}})
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <input type="text" class="form-control" placeholder="Search school by name or school id..."
+                  id="schoolSearchText" name="schoolSearchText" #schoolSearchText="ngModel"
+                  [(ngModel)]="schoolSearch.searchText" (keyup)="searchSchools()">
+                <ul class="school-search-results" *ngIf="schoolSearchResults && schoolSearchResults.length>0">
+                  <li *ngFor="let school of schoolSearchResults" (click)="selectSchool(school)"
+                    [class.active-link]="selectedSchoolId===school._id">
+                    {{school.schoolName}} ({{school.schoolId}}) - {{school.city}}, {{school.state}}
+                  </li>
+                </ul>
+                <p *ngIf="selectedSchoolName">Selected: {{selectedSchoolName}}</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" mat-raised-button [disabled]="!selectedSchoolId || !selectedDeviceId || isClick"
+                  class="submit-button" (click)="confirmAssign()">Assign</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

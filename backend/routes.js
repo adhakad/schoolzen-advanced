@@ -6,6 +6,7 @@ module.exports = app => {
     app.use('/v1/admin', require('./modules/routes/users/admin-user'));
     app.use('/v1/student', require('./modules/routes/student'));
     app.use('/v1/teacher-user', require('./modules/routes/users/teacher-user'));
+    app.use('/v1/sales-user', require('./modules/routes/users/sales-user'));
     app.use('/v1/class', require('./modules/routes/class'));
     app.use('/v1/subject', require('./modules/routes/subject'));
     app.use('/v1/class-subject', require('./modules/routes/class-subject'));
@@ -17,6 +18,7 @@ module.exports = app => {
     app.use('/v1/attendance-rule', require('./modules/routes/attendance-rule'));
     app.use('/v1/shift', require('./modules/routes/shift'));
     app.use('/v1/roster', require('./modules/routes/roster'));
+    app.use('/v1/device', require('./modules/routes/devices/device'));
     app.use('/v1/exam-result', require('./modules/routes/exam-result'));
     app.use('/v1/exam-result-structure', require('./modules/routes/exam-result-structure'));
     app.use('/v1/fees', require('./modules/routes/fees-collection'));

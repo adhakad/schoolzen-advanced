@@ -343,17 +343,47 @@ and testable locally after this phase.
 
 ### Phase 5
 ```
-Read CLAUDE.md fully. Create a detailed plan for a Device Management module,
-kept structurally isolated from the school-facing modules so it could later be
-extracted into a separate app: a Device collection (terminalSn, salesPersonId,
-addedBy, assignedSchoolId nullable, assignedAt, status: unassigned/active/blocked),
-with endpoints to add a device, assign it to a school, activate/block it, and list
-devices by sales person. This module should not depend on any attendance-sync
-logic — the attendance-sync module will only read Device by schoolId + terminalSn.
-Build both the backend (under a clearly separated device-management namespace)
-and a frontend page (device list + add/assign/activate/block actions) together,
-so this is clickable and testable locally after this phase. Follow the New
-Module Checklist and naming conventions.
+Read CLAUDE.md fully. Create a detailed plan for Phase 5 — Device Management +
+sales-user login. Build backend and frontend together.
+
+DEVICE MANAGEMENT (structurally isolated, so it can be extracted into a
+separate app later — own namespace, no dependency on attendance-sync logic):
+Device collection has terminalSn (unique), alias, terminalName, active,
+salesPersonId, addedBy, assignedSchoolId (nullable), assignedAt, and status
+('unassigned'|'active'|'blocked'). Devices are NEVER created from free-typed
+input — add a "Sync from WDMS" action that calls GET /iclock/api/terminals/
+(paginated) through the token-based WDMS client and upserts by terminalSn,
+filling alias, terminalName and active from the response while leaving
+salesPersonId, assignedSchoolId and status untouched on rows that already
+exist; new terminals land as status 'unassigned' with no salesPersonId.
+Endpoints needed: sync from WDMS, assign a device to a school, activate/block
+a device, list devices by sales person, and a school-wise list grouped by
+assignedSchoolId. The assign flow must only show unassigned devices
+(assignedSchoolId null) so a machine can never be assigned twice.
+Attendance-sync in Phase 6 will only ever read Device by schoolId +
+terminalSn.
+
+SALES USER — LOGIN ONLY: a SalesUser collection under users/ alongside
+admin-user and teacher-user, with fields name, salesUserId (the login
+identifier), password (bcryptjs hash, compared on login), and status. No
+role field, no tiers. No registration, no signup route, no OTP, no
+forgot-password, no seed script — records are inserted directly in MongoDB
+Compass with a pre-generated hash, so the backend only ever reads and
+authenticates a SalesUser and never writes one. Mirror the TEACHER auth
+pattern exactly, not admin's: guards/teacher-auth.guard.ts,
+interceptors/teacher-auth.interceptor.ts, services/auth/teacher-auth.service.ts,
+backend modules/middleware/teacher-auth.js and modules/services/teacher-token.js.
+Produce SalesAuthGuard, sales-auth.interceptor.ts,
+modules/middleware/sales-auth.js, modules/services/sales-token.js, and a
+login + refresh route pair only. Sales users are cross-tenant: no adminId in
+the JWT payload and no adminId scoping in any Device Management query —
+scope by the sales user's own id. Add a /sales/* route group in
+app-routing.module.ts with sales/login public and everything else behind
+SalesAuthGuard.
+
+Deliverable: sales login page + device management page (WDMS sync, assign,
+activate/block, school-wise view) — clickable and testable locally after this
+phase. Follow the New Module Checklist and naming conventions in CLAUDE.md.
 ```
 
 ### Phase 6 (the big one — consider splitting further if the plan gets too large)
