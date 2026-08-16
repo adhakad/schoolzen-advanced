@@ -106,6 +106,10 @@ export class SalesDeviceComponent implements OnInit {
         this.unassignedDevices = res;
       }
     });
+    // Pre-populate the school list on open (empty search = whole directory) instead of
+    // leaving it blank until the user types — searchSchools() alone only fires on keyup,
+    // so without this the list looked empty the moment the modal appeared.
+    this.searchSchools();
   }
 
   closeModal() {
@@ -122,6 +126,11 @@ export class SalesDeviceComponent implements OnInit {
       if (res) {
         this.schoolSearchResults = res;
       }
+    }, err => {
+      // Previously had no error callback at all — a failed lookup (e.g. an expired
+      // sales token mid-session) failed silently and just looked like "no schools found".
+      this.errorCheck = true;
+      this.errorMsg = err.error;
     });
   }
 

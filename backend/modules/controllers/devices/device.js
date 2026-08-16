@@ -121,9 +121,25 @@ let GetSchoolWiseDevices = async (req, res, next) => {
     try {
         // Same sales user's portfolio, re-grouped by assignedSchoolId — no adminId
         // scoping anywhere, per the cross-tenant requirement.
+        // assignedSchoolId is stored as a plain String (see device.js model comment —
+        // it's the admin-user._id), but admin-users._id is a real ObjectId, so a plain
+        // $lookup localField/foreignField match would silently return zero matches
+        // (string "607f..." !== ObjectId("607f...")). $toObjectId bridges the type gap.
         const grouped = await DeviceModel.aggregate([
             { $match: { salesPersonId: req.user.id, assignedSchoolId: { $ne: null } } },
             { $group: { _id: '$assignedSchoolId', devices: { $push: '$$ROOT' } } },
+            {
+                $lookup: {
+                    from: 'admin-users',
+                    let: { schoolId: '$_id' },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ['$_id', { $toObjectId: '$$schoolId' }] } } },
+                        { $project: { schoolName: 1, schoolId: 1, city: 1, state: 1 } },
+                    ],
+                    as: 'school',
+                },
+            },
+            { $unwind: { path: '$school', preserveNullAndEmptyArrays: true } },
         ]);
         return res.status(200).json(grouped);
     } catch (error) {

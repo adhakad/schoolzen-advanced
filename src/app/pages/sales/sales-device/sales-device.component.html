@@ -71,7 +71,7 @@
         <div class="main-container" *ngIf="viewMode==='school-wise'">
           <div class="col-12 col-lg-12 big-container">
             <div class="main-card" *ngFor="let group of schoolWiseDevices">
-              <h5 style="margin: 10px 0;">School: {{group._id}}</h5>
+              <h5 style="margin: 10px 0;">School: {{group.school?.schoolName || group._id}}<span *ngIf="group.school?.schoolId"> ({{group.school.schoolId}})</span></h5>
               <div class="table-wrapper">
                 <table class="table table-hover align-middle bg-white">
                   <thead class="bg-light">
