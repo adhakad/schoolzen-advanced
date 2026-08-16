@@ -1,0 +1,230 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Attendance</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-3 mt-2">
+                        <mat-radio-group (change)="switchPersonType($event.value)">
+                          <mat-radio-button value="staff" [checked]="personType=='staff'">Staff</mat-radio-button>
+                          <mat-radio-button value="teacher" [checked]="personType=='teacher'">Teacher</mat-radio-button>
+                          <mat-radio-button value="student" [checked]="personType=='student'">Student</mat-radio-button>
+                        </mat-radio-group>
+                      </div>
+                      <div class="col-6">
+                        <div class="period-picker">
+                          <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
+                          <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
+                            <option *ngFor="let month of monthNames, let m=index" [ngValue]="m">{{month}}</option>
+                          </select>
+                          <select class="form-control" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
+                            <option *ngFor="let year of yearOptions" [ngValue]="year">{{year}}</option>
+                          </select>
+                          <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
+                        </div>
+                      </div>
+                      <div class="col-3">
+                        <button class="submit-button" mat-raised-button [disabled]="isSyncing" (click)="syncNow()">
+                          <mat-icon>sync</mat-icon>Sync Now
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Attendance</span>
+                    </button>
+                  </div>
+                  <div class="col-12 mt-3">
+                    <mat-radio-group (change)="switchPersonType($event.value)">
+                      <mat-radio-button value="staff" [checked]="personType=='staff'">Staff</mat-radio-button>
+                      <mat-radio-button value="teacher" [checked]="personType=='teacher'">Teacher</mat-radio-button>
+                      <mat-radio-button value="student" [checked]="personType=='student'">Student</mat-radio-button>
+                    </mat-radio-group>
+                  </div>
+                  <div class="col-12 mt-3">
+                    <div class="period-picker">
+                      <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
+                      <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
+                        <option *ngFor="let month of monthNames, let m=index" [ngValue]="m">{{month}}</option>
+                      </select>
+                      <select class="form-control" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
+                        <option *ngFor="let year of yearOptions" [ngValue]="year">{{year}}</option>
+                      </select>
+                      <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
+                    </div>
+                  </div>
+                  <div class="col-12 mt-3">
+                    <button class="submit-button" mat-raised-button [disabled]="isSyncing" (click)="syncNow()">
+                      <mat-icon>sync</mat-icon>Sync Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div *ngIf="errorCheck">
+                <p class="error-message">{{errorMsg}}</p>
+              </div>
+
+              <!-- Person picker. Students are listed class-by-class — a whole school's roll
+                   is far too large for one dropdown. -->
+              <div class="row picker-row">
+                <div class="col-12 col-lg-4" *ngIf="personType=='student'">
+                  <select class="form-control" [(ngModel)]="selectedClass" (change)="onClassChange()">
+                    <option value="">-- Select class --</option>
+                    <option *ngFor="let item of classInfo" [value]="item.class">{{item.class | classSuffix}}</option>
+                  </select>
+                </div>
+                <div class="col-12 col-lg-4">
+                  <select class="form-control" [(ngModel)]="personId" (change)="onPersonChange()">
+                    <option value="">-- Select {{personType}} --</option>
+                    <option *ngFor="let person of personInfo" [value]="person._id">{{personLabel(person) | titlecase}}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-12 col-lg-4 sync-state" *ngIf="syncState">
+                  <span class="sync-chip" [class.sync-failed]="syncState.status=='FAILED'">{{syncState.status}}</span>
+                  <span *ngIf="syncState.punchCount">{{syncState.punchCount}} punch(es) today</span>
+                  <span *ngIf="syncState.lastError" class="sync-error">{{syncState.lastError}}</span>
+                </div>
+              </div>
+
+              <!-- Month totals. 'Off' days are excluded on purpose: they were never
+                   working days, so counting them would distort the present/absent ratio. -->
+              <div class="summary-strip" *ngIf="personId && monthDays.length > 0">
+                <span class="summary-item"><span class="status-chip status-present">P</span> Present
+                  {{summary.Present || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-late">L</span> Late
+                  {{summary.Late || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-halfday">H</span> Half Day
+                  {{summary.HalfDay || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-absent">A</span> Absent
+                  {{summary.Absent || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-leave">LV</span> Leave
+                  {{summary.Leave || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-holiday">HO</span> Holiday
+                  {{summary.Holiday || 0}}</span>
+              </div>
+
+              <div class="calendar-grid" *ngIf="personId && monthDays.length > 0">
+                <div class="calendar-day" *ngFor="let day of monthDays" (click)="dayClick(day)"
+                  [class.overridden-day]="day.isOverridden">
+                  <div class="calendar-day-head">
+                    <span class="day-number">{{day.day}}</span>
+                    <span class="day-name">{{day.dateKey | date:'EEE'}}</span>
+                  </div>
+                  <span class="status-chip" [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
+                  <div class="calendar-day-times" *ngIf="day.firstIn">
+                    {{timeLabel(day.firstIn)}} &ndash; {{timeLabel(day.lastOut)}}
+                  </div>
+                  <mat-icon class="override-flag" *ngIf="day.isOverridden" title="Manually overridden">edit</mat-icon>
+                </div>
+              </div>
+
+              <ng-container *ngIf="!loader && !personId">
+                <h2 style="text-align: center;margin-top: 150px;">Select a {{personType}} to view attendance</h2>
+              </ng-container>
+              <ng-container *ngIf="!loader && personId && monthDays.length==0">
+                <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+              </ng-container>
+
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">ATTENDANCE &mdash; {{modalDay?.dateKey}}</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <form [formGroup]="manualForm" (ngSubmit)="manualSave()">
+                      <div class="modal-body">
+                        <div *ngIf="modalErrorCheck">
+                          <p class="error-message">{{modalErrorMsg}}</p>
+                        </div>
+
+                        <!-- The audit trail behind the cell: why this day is HalfDay. -->
+                        <p class="punch-heading mb-1">Device punches</p>
+                        <p class="punch-empty mb-3" *ngIf="!punchLoader && punchInfo.length==0">No punches recorded for
+                          this day.</p>
+                        <div class="punch-list mb-3" *ngIf="punchInfo.length > 0">
+                          <span class="punch-item" *ngFor="let punch of punchInfo">
+                            {{timeLabel(punch.punchTime)}}
+                            <small *ngIf="punch.source=='MANUAL'">(manual)</small>
+                          </span>
+                        </div>
+
+                        <p class="cell-context" *ngIf="modalDay?.isOverridden">
+                          This day was entered manually &mdash; the sync will not overwrite it.
+                        </p>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Status</mat-label>
+                          <mat-select matInput formControlName="status">
+                            <mat-option value="">-- Select --</mat-option>
+                            <div *ngFor="let status of statusOptions">
+                              <mat-option value="{{status}}">{{status}}</mat-option>
+                            </div>
+                          </mat-select>
+                          <mat-error *ngIf="!manualForm.get('status')?.valid && manualForm.get('status')?.touched">
+                            Status is required</mat-error>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>In Time (HH:mm)</mat-label>
+                          <input matInput type="time" formControlName="inTime" />
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Out Time (HH:mm)</mat-label>
+                          <input matInput type="time" formControlName="outTime" />
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button *ngIf="modalDay?.isOverridden" class="delete-button" mat-raised-button type="button"
+                          [disabled]="isClick" (click)="manualRemove()">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Remove Override
+                        </button>
+                        <button type="submit" mat-raised-button [disabled]="!manualForm.valid || isClick"
+                          class="submit-button">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Save
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

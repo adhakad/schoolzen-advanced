@@ -392,6 +392,9 @@ Read CLAUDE.md fully. Create a detailed plan for the attendance sync
 infrastructure — this is the core Attendance module:
 1. A WDMS API client using token-based auth only (static WDMS_TOKEN env var
    first, falling back to POST /api/jwt-api-token-auth/ with a cached token).
+   Single cloud WDMS instance, requests filtered by company UUID, all list
+   endpoints (terminals/transactions) fetched with full pagination — never
+   assume a single page.
 2. Two BullMQ queues — "attendance-sync" (pulls raw punches from WDMS's
    GET /iclock/api/transactions/, paginated, bulk-inserted into a new PunchLog
    collection with a unique punchHash for idempotent dedupe) and
@@ -405,6 +408,62 @@ infrastructure — this is the core Attendance module:
    with source: 'MANUAL' and an isOverridden flag.
 5. Calendar-facing read endpoints: given a staff/student + month, return each
    date's status (Present/Absent/HalfDay/Late/Leave/Holiday) from DailyAttendance.
+6. Attendance logic must branch by personType: student attendance is computed
+   from AttendanceRule only (no Roster — students don't have shifts). Staff and
+   teacher attendance is computed from AttendanceRule *and* Roster (Roster
+   supplies the expected shift per person per date, per the monthly-snapshot
+   lookup pattern in CLAUDE.md's Backend architecture section).
+
+BullMQ reliability:
+- One shared ioredis connection instance passed to every Queue and every
+  Worker (both queues) — do not create a separate Redis connection per queue.
+- Workers must handle SIGTERM for graceful shutdown (finish/requeue the
+  in-flight job, close the Redis connection, exit cleanly) instead of dying
+  mid-job.
+- Set a `stalledInterval` on both Workers so a crashed/stuck job is detected
+  and recovered rather than sitting stalled indefinitely.
+- Queue defaults: `removeOnComplete: { count: 100 }`, `removeOnFail: { count:
+  500 }` on both queues, so Redis doesn't accumulate unbounded job history.
+
+Redis waste prevention:
+- Job deduplication via `jobId`: sync jobs use `jobId: schoolId-YYYY-MM-DD`
+  and reconcile jobs use `jobId: schoolId-YYYY-MM-DD` too, so BullMQ's
+  built-in dedup-by-jobId means only one reconcile job can ever be queued per
+  school+date no matter how many punches land for it — this is what makes the
+  "debounce" in the two-speed pipeline actually work, no manual debounce timer
+  needed.
+- Before enqueuing a sync job, cron must skip any school with no active
+  assigned device (query the `Device` collection for that schoolId first —
+  don't enqueue work with nothing to sync) and any school already synced
+  today (a new `SyncState` collection keyed by `schoolId + date`, checked
+  before enqueue and marked after a successful sync run).
+
+Two-speed pipeline, precisely:
+- Fast path: PunchLog bulk insert (`insertMany({ordered:false})`) then an
+  immediate Socket.io emit to that school's room — zero computation on this
+  path, just the raw insert and the notify.
+- Slow path: the reconcile queue is naturally debounced by the jobId dedup
+  above (not a separate debounce timer) and should run on a steady cadence —
+  every 5 minutes — rather than firing once per punch batch.
+
+Reliability:
+- Multi-document writes to DailyAttendance (or anywhere a partial write would
+  leave inconsistent state) use a MongoDB transaction (session/startTransaction/
+  commit/abort), matching the pattern already used by `CreateBulkStudentRecord`.
+- Every error is logged (not silently swallowed) even where the outward
+  response still follows the existing `catch → 500` convention — this
+  background pipeline has no human watching a UI when something fails, so the
+  log is the only record.
+- Expose a worker health-check endpoint (e.g. queue depth / active-worker
+  liveness) so a stalled pipeline is observable from outside.
+
+Staggered cron:
+- `SYNC_WINDOW_MINUTES` env var (default `120`) defines the rolling window
+  sync jobs are spread across. Each active school's offset =
+  `index × (SYNC_WINDOW_MINUTES × 60 ÷ totalActiveSchools)` seconds from the
+  window's start, so 2000 schools land smoothly across the window instead of
+  firing together.
+
 Also plan a frontend calendar-view page (per staff/student, month picker,
 day-by-day status) and a manual-entry form, so this is clickable and testable
 locally after this phase — not just backend sync jobs running invisibly. Follow

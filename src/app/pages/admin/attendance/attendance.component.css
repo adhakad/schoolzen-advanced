@@ -1,0 +1,202 @@
+@import'../dashboard/dashboard.component.css';
+
+/* Month view as a wrapping day grid rather than the roster's person x day table — this
+   page shows ONE person's month, so the second axis the roster needs doesn't exist here. */
+
+.picker-row {
+  margin-bottom: 2vh;
+}
+
+.picker-row .form-control {
+  font-size: 14px;
+  letter-spacing: .5px;
+}
+
+.sync-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #646089;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+
+.sync-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: #16b978;
+  color: #FFF;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sync-chip.sync-failed {
+  background: #e4409a;
+}
+
+.sync-error {
+  color: #e4409a;
+}
+
+.summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 2vh;
+  padding-left: 4px;
+  color: #646089;
+  font-size: 12px;
+  letter-spacing: .5px;
+}
+
+.summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendar-grid {
+  display: grid;
+  /* auto-fill, not fixed columns — a 31-day month has to stay readable from a phone up
+     to a wide desktop without a horizontal scrollbar. */
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.calendar-day {
+  position: relative;
+  padding: 8px 6px;
+  border: 1px solid #d5d0e1af;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  background: #FFF;
+}
+
+.calendar-day:hover {
+  border-color: #8C52FF;
+}
+
+.calendar-day.overridden-day {
+  border-color: #8C52FF;
+  background: #faf7ff;
+}
+
+.calendar-day-head {
+  margin-bottom: 6px;
+  line-height: 1.15;
+}
+
+.day-number {
+  display: block;
+  color: #382066;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.day-name {
+  display: block;
+  color: #382066;
+  font-size: 10px;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  opacity: .72;
+}
+
+.calendar-day-times {
+  margin-top: 6px;
+  color: #8a8a9e;
+  font-size: 10px;
+  letter-spacing: .2px;
+}
+
+.override-flag {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: #8C52FF;
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.status-chip {
+  display: inline-block;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  line-height: 22px;
+  border-radius: 5px;
+  color: #FFF;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: .2px;
+}
+
+.status-present { background: #16b978; }
+.status-late    { background: #f5a623; }
+.status-halfday { background: #ff8a3d; }
+.status-absent  { background: #e4409a; }
+.status-leave   { background: #3d9be9; }
+.status-holiday { background: #6c4ab6; }
+
+/* Non-working days and future dates carry no judgement, so they stay unpainted — the
+   working days between them are what the eye should land on. */
+.status-off {
+  background: transparent;
+  color: #b8b3c7;
+}
+
+.status-future {
+  background: transparent;
+}
+
+.punch-heading {
+  color: #646089;
+  font-size: 13px;
+  letter-spacing: .3px;
+}
+
+.punch-empty {
+  color: #8a8a9e;
+  font-size: 12px;
+}
+
+.punch-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.punch-item {
+  padding: 3px 9px;
+  border: 1px solid #d5d0e1af;
+  border-radius: 6px;
+  color: #382066;
+  font-size: 12px;
+}
+
+.cell-context {
+  color: #646089;
+  font-size: 13px;
+  margin-bottom: 1.5vh;
+}
+
+/* Month / year selector — same control as the roster page's period picker. */
+.period-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.period-picker mat-icon {
+  color: #382066;
+  cursor: pointer;
+}
+
+.period-picker .form-control {
+  font-size: 14px;
+  letter-spacing: .5px;
+}

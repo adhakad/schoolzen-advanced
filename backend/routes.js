@@ -18,6 +18,7 @@ module.exports = app => {
     app.use('/v1/attendance-rule', require('./modules/routes/attendance-rule'));
     app.use('/v1/shift', require('./modules/routes/shift'));
     app.use('/v1/roster', require('./modules/routes/roster'));
+    app.use('/v1/attendance', require('./modules/routes/attendance'));
     app.use('/v1/device', require('./modules/routes/devices/device'));
     app.use('/v1/exam-result', require('./modules/routes/exam-result'));
     app.use('/v1/exam-result-structure', require('./modules/routes/exam-result-structure'));

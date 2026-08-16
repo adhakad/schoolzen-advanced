@@ -43,4 +43,13 @@ const BiometricMappingModel = mongoose.model('biometric-mapping', {
     },
 });
 
+// Punch ingestion resolves wdmsEmpCode -> person for every incoming punch, and this
+// collection had no index at all — a full collection scan per punch during the 8-10am
+// peak. Matches the exact findOne({ adminId, wdmsEmpCode }) resolution query.
+// unique also enforces at the DB level what CreateBiometricMapping only checked in
+// application code, so concurrent writes can no longer produce a duplicate emp code.
+// (Ingest still loads a school's whole mapping into a Map once per job; this is the
+// safety net, not the primary access path.)
+BiometricMappingModel.schema.index({ adminId: 1, wdmsEmpCode: 1 }, { unique: true });
+
 module.exports = BiometricMappingModel;

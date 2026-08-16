@@ -44,6 +44,7 @@ const routes: Routes = [
   { path: 'admin/attendance-rule', loadChildren: () => import('src/app/pages/admin/attendance-rule/attendance-rule.module').then((module) => module.AttendanceRuleModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/shift', loadChildren: () => import('src/app/pages/admin/shift/shift.module').then((module) => module.ShiftModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/roster', loadChildren: () => import('src/app/pages/admin/roster/roster.module').then((module) => module.RosterModule), canActivate: [AdminAuthGuard] },
+  { path: 'admin/attendance', loadChildren: () => import('src/app/pages/admin/attendance/attendance.module').then((module) => module.AttendanceModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class', loadChildren: () => import('src/app/pages/admin/class/class.module').then((module) => module.ClassModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/subject', loadChildren: () => import('src/app/pages/admin/subject/subject.module').then((module) => module.SubjectModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class-subject', loadChildren: () => import('src/app/pages/admin/class-subject/class-subject.module').then((module) => module.ClassSubjectModule), canActivate: [AdminAuthGuard] },
