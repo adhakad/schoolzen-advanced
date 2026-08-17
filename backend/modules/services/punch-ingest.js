@@ -5,6 +5,7 @@ const BiometricMappingModel = require('../models/biometric-mapping');
 const DeviceModel = require('../models/devices/device');
 const { fetchWdmsTransactions } = require('./wdms-transaction');
 const { publishPunchBatch } = require('./punch-publisher');
+const { toWdmsEmpCode } = require('./wdms-employee');
 const { parseWdmsPunchTime } = require('../helpers/attendance-time');
 const { toUtcMidnight, toDateKey } = require('../helpers/date-only');
 const logger = require('../helpers/logger');
@@ -69,10 +70,17 @@ const getMappingIndex = async (adminId) => {
 
     const index = new Map();
     for (const mapping of mappings) {
-        index.set(String(mapping.wdmsEmpCode).trim(), {
+        const stored = String(mapping.wdmsEmpCode).trim();
+        const person = {
             personType: mapping.personType,
             personId: mapping.personId,
-        });
+        };
+        index.set(stored, person);
+        // WDMS caps emp_code at 20 chars, so a mapping stored as the full 24-char personId
+        // is registered device-side under its last 20 (see toWdmsEmpCode) and punches come
+        // back carrying that short form. Index both so either spelling resolves.
+        const short = toWdmsEmpCode(stored);
+        if (short && short !== stored) index.set(short, person);
     }
     return index;
 };
