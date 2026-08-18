@@ -50,4 +50,40 @@ const defaultJobOptions = {
     removeOnFail: { count: 500 },
 };
 
-module.exports = { connection, defaultJobOptions };
+// --- Idle Redis cost ---------------------------------------------------------------
+// Both workers spend nearly the whole day idle: the sync queue gets one job per school per
+// morning, the reconcile queue one per school per 5-minute tick. What that idle time costs
+// in Redis commands is set entirely by the two knobs below.
+
+// How long a worker's blocking fetch parks on Redis before returning empty and re-issuing.
+// BullMQ's default is 5s = ~17k idle commands per worker per day. 30s cuts that ~6x.
+// This costs NO latency: the blocking pop returns the instant a job is pushed, so raising
+// it only affects how often an EMPTY queue is re-polled, never how fast a real job starts.
+const DRAIN_DELAY_SECONDS = Number(process.env.WORKER_DRAIN_DELAY_SECONDS) || 30;
+
+// The stalled check is a periodic Lua scan that runs on a timer whether or not anything is
+// processing — at BullMQ's 30s default that is 2,880 scans per worker per day purely to
+// notice a crash. This pipeline is explicitly allowed to lag (see CLAUDE.md's two-speed
+// design), so recovering an orphaned job 5 minutes later instead of 30 seconds later costs
+// nothing real and removes 90% of those scans.
+const STALLED_INTERVAL_MS = Number(process.env.WORKER_STALLED_INTERVAL_MS) || 300000;
+
+// BullMQ's skipStalledCheck is all-or-nothing — there is no "run only when needed" mode.
+// Turning it ON removes the timer entirely, and with it the ONLY mechanism that recovers a
+// job whose worker died mid-run: that job stays in the active set forever and the school
+// silently never syncs. Left OFF by default for that reason; the raised interval above is
+// where the Redis saving actually comes from. Flip it only for a short-lived, disposable
+// worker where a lost job is acceptable.
+const SKIP_STALLED_CHECK = process.env.WORKER_SKIP_STALLED_CHECK === 'true';
+
+// Spread into BOTH Workers so the two never drift apart. `connection` is included here so
+// every consumer picks up the shared instance by construction rather than by remembering to
+// pass it.
+const defaultWorkerOptions = {
+    connection,
+    drainDelay: DRAIN_DELAY_SECONDS,
+    stalledInterval: STALLED_INTERVAL_MS,
+    skipStalledCheck: SKIP_STALLED_CHECK,
+};
+
+module.exports = { connection, defaultJobOptions, defaultWorkerOptions };

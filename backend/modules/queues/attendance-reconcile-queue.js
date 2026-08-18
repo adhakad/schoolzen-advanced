@@ -25,6 +25,17 @@ const attendanceReconcileQueue = new Queue(QUEUE_NAME, {
         // which is the actual intent. Outcomes are recorded in SyncState, not in BullMQ's
         // job history, so nothing observable is lost.
         removeOnComplete: true,
+        // Same reasoning, and it is NOT covered by removeOnComplete. BullMQ's add() checks
+        // `EXISTS <jobIdKey>`, and that key survives for a job in ANY state — so a reconcile
+        // that exhausts its 5 attempts and stays in the failed set holds
+        // `reconcile-<admin>-<date>` hostage for the rest of the day: every later tick is
+        // silently swallowed as a duplicate and the school never reconciles again, which is
+        // precisely the failure the retries were meant to survive. Dropping it lets the next
+        // 5-minute tick retry cleanly. The failure is still recorded — the worker's `failed`
+        // handler logs it, per CLAUDE.md's "the log is the only record" rule for this
+        // pipeline. The 500-deep trail is kept on the SYNC queue, where jobIds are one per
+        // school-day and never reused.
+        removeOnFail: true,
     },
 });
 

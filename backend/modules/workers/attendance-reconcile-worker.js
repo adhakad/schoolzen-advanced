@@ -1,6 +1,6 @@
 'use strict';
 const { Worker } = require('bullmq');
-const { connection } = require('../queues/connection');
+const { defaultWorkerOptions } = require('../queues/connection');
 const { QUEUE_NAME } = require('../queues/attendance-reconcile-queue');
 const { reconcileSchoolDate } = require('../services/attendance-reconcile');
 const logger = require('../helpers/logger');
@@ -9,7 +9,6 @@ const logger = require('../helpers/logger');
 // pure Mongo work with a fixed query budget per school-day and no outbound HTTP, so the
 // limiting factor is the database rather than a third-party API's patience.
 const CONCURRENCY = Number(process.env.RECONCILE_CONCURRENCY) || 10;
-const STALLED_INTERVAL = Number(process.env.WORKER_STALLED_INTERVAL_MS) || 30000;
 
 const processReconcileJob = async (job) => {
     const { adminId, dateKey } = job.data;
@@ -29,10 +28,11 @@ const processReconcileJob = async (job) => {
  * @returns {Worker} started, and owned by worker.js's shutdown handler.
  */
 const startAttendanceReconcileWorker = () => {
+    // Same shared connection + idle-polling tuning as the sync worker; only the
+    // concurrency ceiling differs. See queues/connection.js.
     const worker = new Worker(QUEUE_NAME, processReconcileJob, {
-        connection,
+        ...defaultWorkerOptions,
         concurrency: CONCURRENCY,
-        stalledInterval: STALLED_INTERVAL,
     });
 
     worker.on('failed', (job, error) => {

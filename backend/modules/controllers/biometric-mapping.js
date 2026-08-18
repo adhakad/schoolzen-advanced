@@ -43,6 +43,7 @@ let CreateBiometricMapping = async (req, res, next) => {
                 return res.status(400).json('This card number is already mapped to another person!');
             }
         }
+        console.log('cardNo type:', typeof cardNo, 'value:', cardNo);
         const biometricMappingData = {
             adminId: adminId,
             personType: personType,

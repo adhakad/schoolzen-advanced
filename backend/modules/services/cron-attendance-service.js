@@ -148,8 +148,23 @@ const scheduleReconcileSweep = async (opts = {}) => {
 
         // Uses the { status, date } index — deliberately NOT led by adminId, because this
         // sweep is global across schools.
+        //
+        // A school only earns a reconcile job if it has something to reconcile:
+        //   RUNNING            -> still pulling, punches may yet land
+        //   SYNCED + punches   -> has rows in PunchLog to turn into DailyAttendance
+        // A SYNCED school that ingested ZERO punches (holiday, closed, devices offline all
+        // day) is skipped. Without this it would be handed a no-op job every 5 minutes until
+        // midnight — 288 wasted jobs per idle school per day, which at 2000 schools is the
+        // difference between a quiet Redis and a busy one that never does any work.
+        // Absent is derived at read time, never written, so a skipped school loses nothing.
         const rows = await SyncStateModel.find(
-            { date: toUtcMidnight(dateKey), status: { $in: ['RUNNING', 'SYNCED'] } },
+            {
+                date: toUtcMidnight(dateKey),
+                $or: [
+                    { status: 'RUNNING' },
+                    { status: 'SYNCED', punchCount: { $gt: 0 } },
+                ],
+            },
             { adminId: 1, _id: 0 },
         ).lean();
 

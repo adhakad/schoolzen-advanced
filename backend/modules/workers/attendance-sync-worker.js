@@ -1,6 +1,6 @@
 'use strict';
 const { Worker } = require('bullmq');
-const { connection } = require('../queues/connection');
+const { defaultWorkerOptions } = require('../queues/connection');
 const { QUEUE_NAME } = require('../queues/attendance-sync-queue');
 const { addReconcileJob } = require('../queues/attendance-reconcile-queue');
 const { ingestSchoolDay } = require('../services/punch-ingest');
@@ -16,9 +16,6 @@ const logger = require('../helpers/logger');
 // Conservative by default: each job is an outbound WDMS pull plus a bulk insert, so the
 // ceiling is WDMS's tolerance rather than this process's CPU. Tune from load testing.
 const CONCURRENCY = Number(process.env.WDMS_SYNC_CONCURRENCY) || 5;
-// A school-day pull is short; 30s means a job orphaned by a crash is picked up quickly
-// instead of sitting stalled until BullMQ's 30s default happens to notice.
-const STALLED_INTERVAL = Number(process.env.WORKER_STALLED_INTERVAL_MS) || 30000;
 
 // `inc` is applied in the same round-trip as the $set so marking a run RUNNING and counting
 // the attempt can never end up as two half-applied writes.
@@ -69,10 +66,11 @@ const processSyncJob = async (job) => {
  * @returns {Worker} started, and owned by worker.js's shutdown handler.
  */
 const startAttendanceSyncWorker = () => {
+    // defaultWorkerOptions carries the shared connection plus the idle-polling tuning
+    // (drainDelay / stalledInterval / skipStalledCheck) — see queues/connection.js.
     const worker = new Worker(QUEUE_NAME, processSyncJob, {
-        connection,
+        ...defaultWorkerOptions,
         concurrency: CONCURRENCY,
-        stalledInterval: STALLED_INTERVAL,
     });
 
     // Nobody is watching a UI when this pipeline breaks, so the log is the only record.
