@@ -35,6 +35,24 @@ export interface AttendancePerson {
   code: String;
 }
 
+// The grid: one row per person, each carrying the same AttendanceDay[] the per-person
+// calendar returns — so the day-detail modal reads an identical shape either way.
+export interface AttendanceGridRow {
+  person: AttendancePerson;
+  days: AttendanceDay[];
+  summary: { [status: string]: number };
+}
+
+export interface AttendanceMonthGrid {
+  personType: string;
+  year: number;
+  month: number;              // 1-12, matching the backend — NOT JS's 0-11
+  // Column headers: the month's date skeleton, with no person attached.
+  days: { dateKey: string, day: number, weekday: number }[];
+  rows: AttendanceGridRow[];
+  summary: { [status: string]: number };
+}
+
 export interface PunchLogEntry {
   punchTime: string;
   punchState: string | null;

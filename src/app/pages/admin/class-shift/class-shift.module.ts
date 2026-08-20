@@ -1,20 +1,20 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { AttendanceRuleRoutingModule } from './attendance-rule-routing.module';
+import { ClassShiftRoutingModule } from './class-shift-routing.module';
 import { AdminSharedModule } from '../admin-shared/admin-shared.module';
-import { AttendanceRuleComponent } from './attendance-rule.component';
+import { ClassShiftComponent } from './class-shift.component';
 
 
 @NgModule({
   declarations: [
-    AttendanceRuleComponent
+    ClassShiftComponent
   ],
   imports: [
     CommonModule,
-    AttendanceRuleRoutingModule,
+    ClassShiftRoutingModule,
 
     AdminSharedModule,
   ]
 })
-export class AttendanceRuleModule { }
+export class ClassShiftModule { }

@@ -91,20 +91,14 @@
                 <p class="error-message">{{errorMsg}}</p>
               </div>
 
-              <!-- Person picker. Students are listed class-by-class — a whole school's roll
-                   is far too large for one dropdown. -->
+              <!-- Students are class-scoped. A whole school's roll times 31 columns is tens
+                   of thousands of cells, so the class picker is required, not a filter. -->
               <div class="row picker-row">
                 <div class="col-12 col-lg-4" *ngIf="personType=='student'">
                   <select class="form-control" [(ngModel)]="selectedClass" (change)="onClassChange()">
                     <option value="">-- Select class --</option>
-                    <option *ngFor="let item of classInfo" [value]="item.class">{{item.class | classSuffix}}</option>
-                  </select>
-                </div>
-                <div class="col-12 col-lg-4">
-                  <select class="form-control" [(ngModel)]="personId" (change)="onPersonChange()">
-                    <option value="">-- Select {{personType}} --</option>
-                    <option *ngFor="let person of personInfo" [value]="person._id">{{personLabel(person) | titlecase}}
-                    </option>
+                    <option *ngFor="let classKey of classOptions" [value]="classKey">{{classNumber(classKey) |
+                      classSuffix}}</option>
                   </select>
                 </div>
                 <div class="col-12 col-lg-4 sync-state" *ngIf="syncState">
@@ -114,9 +108,10 @@
                 </div>
               </div>
 
-              <!-- Month totals. 'Off' days are excluded on purpose: they were never
-                   working days, so counting them would distort the present/absent ratio. -->
-              <div class="summary-strip" *ngIf="personId && monthDays.length > 0">
+              <!-- Month totals across everyone on screen. 'Off' days are excluded on
+                   purpose: they were never working days, so counting them would distort
+                   the present/absent ratio. -->
+              <div class="summary-strip" *ngIf="gridRows.length > 0">
                 <span class="summary-item"><span class="status-chip status-present">P</span> Present
                   {{summary.Present || 0}}</span>
                 <span class="summary-item"><span class="status-chip status-late">L</span> Late
@@ -131,25 +126,41 @@
                   {{summary.Holiday || 0}}</span>
               </div>
 
-              <div class="calendar-grid" *ngIf="personId && monthDays.length > 0">
-                <div class="calendar-day" *ngFor="let day of monthDays" (click)="dayClick(day)"
-                  [class.overridden-day]="day.isOverridden">
-                  <div class="calendar-day-head">
-                    <span class="day-number">{{day.day}}</span>
-                    <span class="day-name">{{day.dateKey | date:'EEE'}}</span>
-                  </div>
-                  <span class="status-chip" [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
-                  <div class="calendar-day-times" *ngIf="day.firstIn">
-                    {{timeLabel(day.firstIn)}} &ndash; {{timeLabel(day.lastOut)}}
-                  </div>
-                  <mat-icon class="override-flag" *ngIf="day.isOverridden" title="Manually overridden">edit</mat-icon>
-                </div>
+              <div class="table-wrapper" *ngIf="gridRows.length > 0">
+                <table class="table table-hover align-middle bg-white attendance-grid">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th class="person-column">{{personType | titlecase}}</th>
+                      <th class="code-column">Code</th>
+                      <th *ngFor="let day of monthDays" class="day-column">
+                        <span class="day-number">{{day.day}}</span>
+                        <span class="day-name">{{day.dateKey | date:'EEE'}}</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of gridRows">
+                      <td class="person-column">
+                        <p class="mb-0">{{personName(row.person) | titlecase}}</p>
+                      </td>
+                      <td class="code-column">
+                        <span class="person-code">{{row.person.code || '&ndash;'}}</span>
+                      </td>
+                      <td *ngFor="let day of row.days" class="day-column" [class.weekend-column]="day.weekday==0"
+                        [title]="cellTooltip(day)" (click)="cellClick(row, day)">
+                        <span class="status-chip" [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
+                        <span class="override-dot" *ngIf="day.isOverridden" title="Manually overridden"></span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
-              <ng-container *ngIf="!loader && !personId">
-                <h2 style="text-align: center;margin-top: 150px;">Select a {{personType}} to view attendance</h2>
+              <ng-container *ngIf="!loader && personType=='student' && !selectedClass">
+                <h2 style="text-align: center;margin-top: 150px;">Select a class to view attendance</h2>
               </ng-container>
-              <ng-container *ngIf="!loader && personId && monthDays.length==0">
+              <ng-container
+                *ngIf="!loader && gridRows.length==0 && !(personType=='student' && !selectedClass)">
                 <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
               </ng-container>
 
@@ -165,6 +176,13 @@
                         <div *ngIf="modalErrorCheck">
                           <p class="error-message">{{modalErrorMsg}}</p>
                         </div>
+
+                        <!-- Which row this modal belongs to. The grid shows everyone at
+                             once, so without this an override could land on the wrong
+                             person with no way to tell. -->
+                        <p class="cell-context" *ngIf="modalPerson">
+                          <strong>{{personLabel(modalPerson) | titlecase}}</strong>
+                        </p>
 
                         <!-- The audit trail behind the cell: why this day is HalfDay. -->
                         <p class="punch-heading mb-1">Device punches</p>

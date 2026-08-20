@@ -3,8 +3,8 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { AttendanceService } from 'src/app/services/attendance.service';
-import { ClassService } from 'src/app/services/class.service';
-import { AttendanceDay, AttendancePerson, PunchLogEntry } from 'src/app/modal/attendance.model';
+import { ClassShiftService } from 'src/app/services/class-shift.service';
+import { AttendanceDay, AttendanceGridRow, AttendancePerson, PunchLogEntry } from 'src/app/modal/attendance.model';
 
 @Component({
   selector: 'app-attendance',
@@ -14,8 +14,10 @@ import { AttendanceDay, AttendancePerson, PunchLogEntry } from 'src/app/modal/at
 export class AttendanceComponent implements OnInit {
 
   personType: string = 'staff';
-  personId: string = '';
+  // Students only. Required rather than optional: a whole school's roll times 31 columns
+  // is tens of thousands of cells, and the backend refuses the request without it.
   selectedClass: string = '';
+  classOptions: String[] = [];
 
   selectedYear: number = new Date().getFullYear();
   selectedMonth: number = new Date().getMonth();   // JS 0-11 on screen; sent to the API as 1-12
@@ -25,9 +27,10 @@ export class AttendanceComponent implements OnInit {
   ];
   yearOptions: number[] = [];
 
-  personInfo: AttendancePerson[] = [];
-  classInfo: any[] = [];
-  monthDays: AttendanceDay[] = [];
+  // Column headers — the month's date skeleton, shared by every row.
+  monthDays: { dateKey: string, day: number, weekday: number }[] = [];
+  // One entry per person, each carrying that person's own AttendanceDay[].
+  gridRows: AttendanceGridRow[] = [];
   summary: any = {};
   syncState: any = null;
 
@@ -37,8 +40,11 @@ export class AttendanceComponent implements OnInit {
   adminId!: string;
   isSyncing: boolean = false;
 
-  // Day modal
+  // Day modal — scoped to the CLICKED ROW, not to a single page-level selection. The grid
+  // shows every person at once, so the punch trail and every manual write have to know
+  // which row they belong to.
   showModal: boolean = false;
+  modalPerson: AttendancePerson | null = null;
   modalDay: AttendanceDay | null = null;
   punchInfo: PunchLogEntry[] = [];
   punchLoader: boolean = false;
@@ -54,7 +60,7 @@ export class AttendanceComponent implements OnInit {
     private toastr: ToastrService,
     private adminAuthService: AdminAuthService,
     private attendanceService: AttendanceService,
-    private classService: ClassService,
+    private classShiftService: ClassShiftService,
   ) {
     this.manualForm = this.fb.group({
       status: ['', Validators.required],
@@ -67,8 +73,8 @@ export class AttendanceComponent implements OnInit {
     this.adminId = this.adminAuthService.getLoggedInAdminInfo()?.id;
     const thisYear = new Date().getFullYear();
     for (let y = thisYear - 1; y <= thisYear + 1; y++) this.yearOptions.push(y);
-    this.getClassList();
-    this.getPersonList();
+    this.getClassOptions();
+    this.getGrid();
     this.getSyncState();
   }
 
@@ -76,8 +82,7 @@ export class AttendanceComponent implements OnInit {
   private get year(): number { return Number(this.selectedYear); }
   private get month(): number { return Number(this.selectedMonth); }
 
-  // "YYYY-MM-DD" for the currently selected month's 1st — also the date the sync/
-  // sync-state calls use when the month on screen is the current one.
+  // "YYYY-MM-DD" for today — the date the sync / sync-state calls use.
   todayKey(): string {
     const now = new Date();
     const mm = `${now.getMonth() + 1}`.padStart(2, '0');
@@ -85,43 +90,46 @@ export class AttendanceComponent implements OnInit {
     return `${now.getFullYear()}-${mm}-${dd}`;
   }
 
-  getClassList(): void {
-    this.classService.getClassList().subscribe((res: any) => {
-      if (res) this.classInfo = res;
-    });
-  }
-
-  getPersonList(): void {
-    const params: any = { adminId: this.adminId, personType: this.personType };
-    if (this.personType === 'student' && this.selectedClass) params.class = this.selectedClass;
-
-    this.attendanceService.getAttendancePeople(params).subscribe(
-      (res: any) => {
-        this.personInfo = res || [];
-        // Keep the grid honest — a person from the previous type is no longer valid here.
-        this.personId = '';
-        this.monthDays = [];
-        this.summary = {};
-      },
-      (err: any) => { this.personInfo = []; this.errorCheck = true; this.errorMsg = err.error; }
+  // Only the classes this school actually runs — the same list the Class Shift page uses,
+  // not the global 15-row /v1/class table.
+  getClassOptions(): void {
+    this.classShiftService.getClassOptions(this.adminId).subscribe(
+      (res: any) => { this.classOptions = res || []; },
+      () => { this.classOptions = []; }
     );
   }
 
-  getCalendar(): void {
-    if (!this.personId) { this.monthDays = []; this.summary = {}; return; }
+  // The classSuffix pipe is typed for a number; class keys travel as strings.
+  classNumber(classKey: any): number {
+    return Number(classKey);
+  }
+
+  getGrid(): void {
+    // Students are class-scoped by design — bail out rather than firing a request the
+    // backend will reject.
+    if (this.personType === 'student' && !this.selectedClass) {
+      this.gridRows = [];
+      this.monthDays = [];
+      this.summary = {};
+      return;
+    }
+
     this.loader = true;
     this.errorCheck = false;
     this.errorMsg = '';
 
-    this.attendanceService.getAttendanceCalendar({
+    const params: any = {
       adminId: this.adminId,
       personType: this.personType,
-      personId: this.personId,
       year: String(this.year),
       month: String(this.month + 1),   // API/DB use 1-12; this.month is JS 0-11
-    }).subscribe(
+    };
+    if (this.personType === 'student') params.class = this.selectedClass;
+
+    this.attendanceService.getAttendanceCalendarMonth(params).subscribe(
       (res: any) => {
         this.monthDays = res?.days || [];
+        this.gridRows = res?.rows || [];
         this.summary = res?.summary || {};
         this.loader = false;
       },
@@ -138,12 +146,13 @@ export class AttendanceComponent implements OnInit {
     if (this.personType === type) return;
     this.personType = type;
     this.selectedClass = '';
-    this.getPersonList();
+    this.gridRows = [];
+    this.monthDays = [];
+    this.summary = {};
+    this.getGrid();
   }
 
-  onClassChange(): void { this.getPersonList(); }
-
-  onPersonChange(): void { this.getCalendar(); }
+  onClassChange(): void { this.getGrid(); }
 
   changeMonth(delta: number): void {
     let m = this.month + delta;
@@ -152,14 +161,14 @@ export class AttendanceComponent implements OnInit {
     if (m > 11) { m = 0; y++; }
     this.selectedMonth = m;
     this.selectedYear = y;
-    this.getCalendar();
+    this.getGrid();
   }
 
   onPeriodChange(): void {
     // Coerce back to numbers — <select> writes strings into the bound property.
     this.selectedYear = this.year;
     this.selectedMonth = this.month;
-    this.getCalendar();
+    this.getGrid();
   }
 
   // --- Presentation helpers ---
@@ -178,6 +187,13 @@ export class AttendanceComponent implements OnInit {
     return map[day.status] || '';
   }
 
+  // Hover text for a cell, so a status can be explained without opening the modal.
+  cellTooltip(day: AttendanceDay): string {
+    if (!day.status) return '';
+    if (!day.firstIn) return `${day.dateKey} — ${day.status}`;
+    return `${day.dateKey} — ${day.status} (${this.timeLabel(day.firstIn)} – ${this.timeLabel(day.lastOut)})`;
+  }
+
   // punchTime is stored as school wall clock expressed as UTC, so the UTC parts ARE the
   // wall clock. Reading local parts here would re-apply the browser's offset.
   timeLabel(value: string | null): string {
@@ -186,13 +202,20 @@ export class AttendanceComponent implements OnInit {
     return `${`${d.getUTCHours()}`.padStart(2, '0')}:${`${d.getUTCMinutes()}`.padStart(2, '0')}`;
   }
 
+  // Both return a primitive `string`, not the `String` wrapper the models use — the
+  // titlecase pipe in the template only accepts the primitive.
+  personName(person: AttendancePerson): string {
+    return `${person.name}`;
+  }
+
   personLabel(person: AttendancePerson): string {
     return person.code ? `${person.name} (${person.code})` : `${person.name}`;
   }
 
   // --- Day modal ---
 
-  dayClick(day: AttendanceDay): void {
+  cellClick(row: AttendanceGridRow, day: AttendanceDay): void {
+    this.modalPerson = row.person;
     this.modalDay = day;
     this.punchInfo = [];
     this.modalErrorCheck = false;
@@ -215,11 +238,12 @@ export class AttendanceComponent implements OnInit {
   }
 
   getDayPunches(day: AttendanceDay): void {
+    if (!this.modalPerson) return;
     this.punchLoader = true;
     this.attendanceService.getPunchLog({
       adminId: this.adminId,
       personType: this.personType,
-      personId: this.personId,
+      personId: this.modalPerson._id,
       date: day.dateKey,
     }).subscribe(
       (res: any) => { this.punchInfo = res || []; this.punchLoader = false; },
@@ -229,6 +253,7 @@ export class AttendanceComponent implements OnInit {
 
   closeModal(): void {
     this.showModal = false;
+    this.modalPerson = null;
     this.modalDay = null;
     this.punchInfo = [];
     this.modalErrorCheck = false;
@@ -237,12 +262,12 @@ export class AttendanceComponent implements OnInit {
 
   successDone(msg: string): void {
     this.closeModal();
-    this.getCalendar();
+    this.getGrid();
     setTimeout(() => this.toastr.success('', msg), 500);
   }
 
   manualSave(): void {
-    if (!this.manualForm.valid || !this.modalDay || this.isClick) return;
+    if (!this.manualForm.valid || !this.modalDay || !this.modalPerson || this.isClick) return;
     this.modalErrorCheck = false;
     this.modalErrorMsg = '';
     this.isClick = true;
@@ -250,7 +275,7 @@ export class AttendanceComponent implements OnInit {
     this.attendanceService.addManualAttendance({
       adminId: this.adminId,
       personType: this.personType,
-      personId: this.personId,
+      personId: this.modalPerson._id,
       date: this.modalDay.dateKey,
       status: this.manualForm.value.status,
       inTime: this.manualForm.value.inTime || '',
@@ -264,13 +289,13 @@ export class AttendanceComponent implements OnInit {
 
   // Drops the override so the reconcile worker recomputes the day from the raw punches.
   manualRemove(): void {
-    if (!this.modalDay || !this.modalDay.isOverridden || this.isClick) return;
+    if (!this.modalDay || !this.modalPerson || !this.modalDay.isOverridden || this.isClick) return;
     this.isClick = true;
 
     this.attendanceService.deleteManualAttendance({
       adminId: this.adminId,
       personType: this.personType,
-      personId: this.personId,
+      personId: this.modalPerson._id,
       date: this.modalDay.dateKey,
     }).subscribe(
       (res: any) => { this.isClick = false; this.successDone(res); },

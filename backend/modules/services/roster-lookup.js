@@ -5,7 +5,8 @@ const { parseDateKey } = require('../helpers/date-only');
 
 /**
  * The Shift this person is expected to work on this date, or null when no roster row
- * exists — the caller then falls back to the school's AttendanceRule.
+ * exists. There is no fallback baseline any more: a staff/teacher with no rostered shift
+ * simply produces no DailyAttendance row (see services/attendance-reconcile.js).
  * Express-unaware on purpose: the attendance-reconciliation worker calls this in-process,
  * never over HTTP.
  * Roster is stored as one doc per (adminId+personType+personId+year+month) with a
@@ -29,7 +30,10 @@ const getExpectedShift = async (adminId, personType, personId, date) => {
     const shiftId = roster && roster.days ? roster.days[parsed.dateKey] : null;
     if (!shiftId) return null;
 
-    const shift = await ShiftModel.findOne({ _id: shiftId });
+    // .lean(): the reconcile worker only ever READS these fields (startTime/graceMinutes),
+    // so hydrating a full Mongoose document per shift is pure overhead. _id stays an
+    // ObjectId under lean(), so the .toString() in attendance-status.js still works.
+    const shift = await ShiftModel.findOne({ _id: shiftId }).lean();
     return shift || null;
 };
 
@@ -64,7 +68,7 @@ const getExpectedShiftsForDate = async (adminId, date) => {
     if (shiftIdByPerson.size === 0) return shiftMap;
 
     const shiftIds = [...new Set(shiftIdByPerson.values())];
-    const shiftList = await ShiftModel.find({ _id: { $in: shiftIds } });
+    const shiftList = await ShiftModel.find({ _id: { $in: shiftIds } }).lean();
 
     const shiftById = new Map();
     for (const shift of shiftList) {

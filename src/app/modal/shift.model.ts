@@ -4,6 +4,12 @@ export interface Shift {
     name: String,
     startTime: String,
     endTime: String,
+    // Punch-in settings
+    earlyPunchMinutes: Number,
     graceMinutes: Number,
+    halfDayAfterMinutes: Number,
+    // Punch-out settings
+    earlyCheckoutMinutes: Number,
+    lateCheckoutMinutes: Number,
     status: String,
 }

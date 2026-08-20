@@ -30,6 +30,16 @@ const BiometricMappingModel = mongoose.model('biometric-mapping', {
         required: false,
         trim: true,
     },
+    verifyMode: {
+        // How the terminal is allowed to identify this person, pushed to WDMS as
+        // `verify_mode`. 4 = Card Only, which is the default because a card is the only
+        // credential Schoolzen actually issues — fingerprints and faces are enrolled at the
+        // device, not here, so defaulting to anything else would lock people out.
+        // Other values the terminals accept: 0 Auto, 1 Fingerprint, 3 Password, 15 Face.
+        type: Number,
+        required: false,
+        default: 4,
+    },
     wdmsId: {
         // WDMS-side employee id returned by createWdmsEmployee, cached here so a later
         // card re-assign can PATCH the same WDMS record instead of creating a duplicate.

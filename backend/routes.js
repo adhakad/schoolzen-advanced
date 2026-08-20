@@ -15,8 +15,8 @@ module.exports = app => {
     app.use('/v1/designation', require('./modules/routes/designation'));
     app.use('/v1/staff', require('./modules/routes/staff'));
     app.use('/v1/biometric-mapping', require('./modules/routes/biometric-mapping'));
-    app.use('/v1/attendance-rule', require('./modules/routes/attendance-rule'));
     app.use('/v1/shift', require('./modules/routes/shift'));
+    app.use('/v1/class-shift', require('./modules/routes/class-shift'));
     app.use('/v1/roster', require('./modules/routes/roster'));
     app.use('/v1/attendance', require('./modules/routes/attendance'));
     app.use('/v1/device', require('./modules/routes/devices/device'));

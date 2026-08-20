@@ -5,7 +5,68 @@ const BiometricMappingModel = require('../models/biometric-mapping');
 const StudentModel = require('../models/student');
 const TeacherModel = require('../models/teacher');
 const StaffModel = require('../models/staff');
-const { createWdmsEmployee, updateWdmsEmployee } = require('../services/wdms-employee');
+const { createWdmsEmployee, updateWdmsEmployee, resyncWdmsDevices } = require('../services/wdms-employee');
+// Reused rather than re-queried: this is already the canonical "which terminals belong to
+// this school and are usable" lookup, and Phase 5's isolation contract says Device is only
+// ever read by assignedSchoolId + terminalSn.
+const { getSchoolTerminalSns } = require('../services/punch-ingest');
+
+const resolvePersonName = async (personType, personId) => {
+    if (personType === 'staff') {
+        const staff = await StaffModel.findOne({ _id: personId });
+        return staff ? staff.name : '';
+    }
+    if (personType === 'teacher') {
+        const teacher = await TeacherModel.findOne({ _id: personId });
+        return teacher ? teacher.name : '';
+    }
+    if (personType === 'student') {
+        const student = await StudentModel.findOne({ _id: personId });
+        return student ? student.name : '';
+    }
+    return '';
+}
+
+/**
+ * Push one person's WDMS employee record, then tell the school's terminals to pull it.
+ *
+ * Shared by AssignCard and the standalone Resync action so the two can never drift — a
+ * resync that built its payload differently from the assign would be worse than no resync.
+ *
+ * Isolated from every local write on purpose: WDMS is a best-effort sync target, not the
+ * source of truth, so this returning false must never roll back or fail a Schoolzen save.
+ *
+ * @returns {Promise<Boolean>} false if anything WDMS-side failed
+ */
+const syncPersonToWdms = async (adminId, mapping) => {
+    try {
+        const personName = await resolvePersonName(mapping.personType, mapping.personId);
+        const person = {
+            name: personName,
+            empCode: mapping.wdmsEmpCode,
+            cardNo: mapping.cardNo,
+            verifyMode: mapping.verifyMode,
+        };
+
+        if (mapping.wdmsId) {
+            await updateWdmsEmployee(mapping.wdmsId, person);
+        } else {
+            const wdmsEmployee = await createWdmsEmployee(person);
+            // Cached so the next card change PATCHes this record instead of creating a
+            // duplicate employee in WDMS.
+            await BiometricMappingModel.findByIdAndUpdate(mapping._id, { $set: { wdmsId: wdmsEmployee.id } });
+        }
+
+        // The employee now exists in WDMS, but the terminal still holds the old copy until
+        // it is told to pull. Failure here is reported but does not undo the employee
+        // write — the next resync (manual or from the next card change) picks it up.
+        const terminalSns = await getSchoolTerminalSns(adminId);
+        return await resyncWdmsDevices(terminalSns);
+    } catch (wdmsError) {
+        console.error('WDMS person sync failed:', wdmsError.message);
+        return false;
+    }
+}
 
 let GetAllBiometricMapping = async (req, res, next) => {
     const adminId = req.params.id;
@@ -91,7 +152,7 @@ let DeleteBiometricMapping = async (req, res, next) => {
 // see CLAUDE.md's note that the two response styles aren't interchangeable; this handler
 // is a deliberate, isolated exception to carry that extra flag.
 let AssignCard = async (req, res, next) => {
-    const { adminId, personType, personId, cardNo } = req.body;
+    const { adminId, personType, personId, cardNo, verifyMode } = req.body;
     try {
         // STEP 1 — upsert BiometricMapping locally first. This must always succeed on its
         // own, independent of whether WDMS is reachable — WDMS is a best-effort sync
@@ -99,42 +160,64 @@ let AssignCard = async (req, res, next) => {
         // No separate emp_code field exists in the Assign Card modal, so personId (already
         // unique per admin+personType) doubles as the WDMS emp_code.
         const wdmsEmpCode = personId;
+        const mappingData = { cardNo: cardNo, wdmsEmpCode: wdmsEmpCode };
+        // `!= null` not truthiness — verify mode 0 (Auto) is a real setting. Omitted
+        // entirely when the form did not send one, so the model default (4, Card Only)
+        // applies on insert and an existing value is left alone on update.
+        if (verifyMode != null && verifyMode !== '') mappingData.verifyMode = Number(verifyMode);
+
         const mapping = await BiometricMappingModel.findOneAndUpdate(
             { adminId: adminId, personType: personType, personId: personId },
-            { $set: { cardNo: cardNo, wdmsEmpCode: wdmsEmpCode } },
+            { $set: mappingData },
             { upsert: true, new: true }
         );
 
-        // Resolve the person's name for the WDMS employee record.
-        let personName = '';
-        if (personType === 'staff') {
-            const staff = await StaffModel.findOne({ _id: personId });
-            personName = staff ? staff.name : '';
-        } else if (personType === 'teacher') {
-            const teacher = await TeacherModel.findOne({ _id: personId });
-            personName = teacher ? teacher.name : '';
-        } else if (personType === 'student') {
-            const student = await StudentModel.findOne({ _id: personId });
-            personName = student ? student.name : '';
-        }
-
-        // STEP 2 — sync to WDMS. Deliberately isolated in its own try/catch: a WDMS
-        // failure (device offline, bad creds, etc.) must never fail or roll back the
-        // local save from STEP 1 — it only flips wdmsSyncFailed for the frontend's toast.
-        let wdmsSyncFailed = false;
-        try {
-            const person = { name: personName, empCode: wdmsEmpCode, cardNo: cardNo };
-            if (mapping.wdmsId) {
-                await updateWdmsEmployee(mapping.wdmsId, person);
-            } else {
-                const wdmsEmployee = await createWdmsEmployee(person);
-                await BiometricMappingModel.findByIdAndUpdate(mapping._id, { $set: { wdmsId: wdmsEmployee.id } });
-            }
-        } catch (wdmsError) {
-            wdmsSyncFailed = true;
-        }
+        // STEP 2 — push to WDMS and resync the terminals. Never throws; a WDMS failure
+        // (device offline, bad creds, wrong resync path) only flips wdmsSyncFailed for the
+        // frontend's toast and never rolls back STEP 1.
+        const wdmsSyncFailed = !(await syncPersonToWdms(adminId, mapping));
 
         return res.status(200).json({ successMsg: 'Card assigned successfully.', wdmsSyncFailed: wdmsSyncFailed });
+    } catch (error) {
+        return res.status(500).json('Internal Server Error!');
+    }
+}
+
+// ---------------------------------------------------------------------------
+// POST /resync   { adminId, personType, personId, verifyMode? }
+// On-demand "push this person to the machines again", from the row action or the Assign
+// Card modal. The reason it exists: WDMS syncing is best-effort by design, so an assign
+// that happened while a device was offline leaves a card that does not open the door and
+// no way to retry short of re-entering the number.
+//
+// Doubles as the verify-mode change endpoint — sending a new verifyMode here persists it
+// and pushes it in one action.
+// ---------------------------------------------------------------------------
+let ResyncPerson = async (req, res, next) => {
+    const { adminId, personType, personId, verifyMode } = req.body;
+    try {
+        if (!adminId || !personType || !personId) {
+            return res.status(400).json('School, person type and person are required!');
+        }
+
+        // No upsert here, unlike AssignCard: with no mapping there is no card and no emp
+        // code, so there is nothing to push. Say so rather than registering a blank
+        // employee in WDMS.
+        const query = { adminId: adminId, personType: personType, personId: personId };
+        if (verifyMode != null && verifyMode !== '') {
+            const mapping = await BiometricMappingModel.findOneAndUpdate(
+                query, { $set: { verifyMode: Number(verifyMode) } }, { new: true }
+            );
+            if (!mapping) return res.status(404).json('Assign a card to this person first!');
+            const failed = !(await syncPersonToWdms(adminId, mapping));
+            return res.status(200).json({ successMsg: 'Resynced to device.', wdmsSyncFailed: failed });
+        }
+
+        const mapping = await BiometricMappingModel.findOne(query);
+        if (!mapping) return res.status(404).json('Assign a card to this person first!');
+
+        const wdmsSyncFailed = !(await syncPersonToWdms(adminId, mapping));
+        return res.status(200).json({ successMsg: 'Resynced to device.', wdmsSyncFailed: wdmsSyncFailed });
     } catch (error) {
         return res.status(500).json('Internal Server Error!');
     }
@@ -152,6 +235,9 @@ let BulkAssignCard = async (req, res, next) => {
     try {
         let successCount = 0;
         let failed = []; // { code, cardNo, reason }
+        // Every in-flight WDMS employee write, so the single resync below can wait for all
+        // of them to settle before telling the terminals to pull.
+        const wdmsWrites = [];
 
         for (const record of records) {
             const code = (record.code || '').toString().trim();
@@ -193,21 +279,39 @@ let BulkAssignCard = async (req, res, next) => {
                 // doesn't block the response on hundreds of sequential WDMS calls.
                 // Failures are only logged — they never turn a successful local save
                 // into a failed row in the response.
-                const person = { name: personDoc.name, empCode: wdmsEmpCode, cardNo: cardNo };
+                const person = {
+                    name: personDoc.name,
+                    empCode: wdmsEmpCode,
+                    cardNo: cardNo,
+                    verifyMode: mapping.verifyMode,
+                };
                 if (mapping.wdmsId) {
-                    updateWdmsEmployee(mapping.wdmsId, person).catch((wdmsError) => {
+                    wdmsWrites.push(updateWdmsEmployee(mapping.wdmsId, person).catch((wdmsError) => {
                         console.error(`WDMS bulk sync failed for ${personType} ${personId}:`, wdmsError.message);
-                    });
+                    }));
                 } else {
-                    createWdmsEmployee(person).then((wdmsEmployee) => {
+                    wdmsWrites.push(createWdmsEmployee(person).then((wdmsEmployee) => {
                         return BiometricMappingModel.findByIdAndUpdate(mapping._id, { $set: { wdmsId: wdmsEmployee.id } });
                     }).catch((wdmsError) => {
                         console.error(`WDMS bulk sync failed for ${personType} ${personId}:`, wdmsError.message);
-                    });
+                    }));
                 }
             } catch (rowError) {
                 failed.push({ code: code, cardNo: cardNo, reason: 'Failed to save mapping' });
             }
+        }
+
+        // ONE resync for the whole CSV, not one per row — a 400-row import would otherwise
+        // ask the terminals to re-pull 400 times. Chained off the employee writes so it
+        // cannot fire before the records it is meant to publish exist, and deliberately not
+        // awaited so the response returns as soon as the local saves are done.
+        if (wdmsWrites.length > 0) {
+            Promise.allSettled(wdmsWrites)
+                .then(() => getSchoolTerminalSns(adminId))
+                .then((terminalSns) => resyncWdmsDevices(terminalSns))
+                .catch((resyncError) => {
+                    console.error('WDMS bulk resync failed:', resyncError.message);
+                });
         }
 
         return res.status(200).json({ successCount: successCount, failedCount: failed.length, failed: failed });
@@ -224,4 +328,5 @@ module.exports = {
     DeleteBiometricMapping,
     AssignCard,
     BulkAssignCard,
+    ResyncPerson,
 }

@@ -38,7 +38,13 @@ export class ShiftComponent implements OnInit {
       name: ['', Validators.required],
       startTime: ['09:00', Validators.required],
       endTime: ['17:00', Validators.required],
+      // Punch-in settings
+      earlyPunchMinutes: [30, [Validators.required, Validators.min(0)]],
       graceMinutes: [10, [Validators.required, Validators.min(0)]],
+      halfDayAfterMinutes: [120, [Validators.required, Validators.min(0)]],
+      // Punch-out settings
+      earlyCheckoutMinutes: [30, [Validators.required, Validators.min(0)]],
+      lateCheckoutMinutes: [60, [Validators.required, Validators.min(0)]],
       status: ['active'],
     })
   }
@@ -92,7 +98,12 @@ export class ShiftComponent implements OnInit {
     this.errorCheck = false;
     this.errorMsg = '';
     this.isClick = false;
-    this.shiftForm.reset({ startTime: '09:00', endTime: '17:00', graceMinutes: 10, status: 'active' });
+    this.shiftForm.reset({
+      startTime: '09:00', endTime: '17:00',
+      earlyPunchMinutes: 30, graceMinutes: 10, halfDayAfterMinutes: 120,
+      earlyCheckoutMinutes: 30, lateCheckoutMinutes: 60,
+      status: 'active',
+    });
   }
   updateShiftModel(shift: any) {
     this.showModal = true;

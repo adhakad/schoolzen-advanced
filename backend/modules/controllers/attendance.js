@@ -2,7 +2,7 @@
 const DailyAttendanceModel = require('../models/daily-attendance');
 const PunchLogModel = require('../models/punch-log');
 const SyncStateModel = require('../models/sync-state');
-const { getPersonMonth, getSchoolDaySummary } = require('../services/attendance-calendar');
+const { getPersonMonth, getSchoolMonthGrid, getSchoolDaySummary } = require('../services/attendance-calendar');
 const { getActivePeople, personCode } = require('../services/person-lookup');
 const { toUtcMidnight, toDateKey, parseDateKey } = require('../helpers/date-only');
 const { atWallClock, nowWallClock } = require('../helpers/attendance-time');
@@ -42,6 +42,42 @@ let GetAttendanceCalendar = async (req, res, next) => {
         return res.status(200).json(result);
     } catch (error) {
         logger.error('attendance.GetAttendanceCalendar', error);
+        return res.status(500).json('Internal Server Error!');
+    }
+};
+
+// ---------------------------------------------------------------------------
+// GET /calendar-month?adminId=&personType=&year=&month=&class=
+// Every person of one type for one month — the grid. `class` is mandatory for students:
+// a whole school's roll times 31 columns is tens of thousands of cells, so the endpoint
+// refuses rather than quietly trying to serve it.
+// ---------------------------------------------------------------------------
+let GetAttendanceMonthGrid = async (req, res, next) => {
+    const { adminId, personType } = req.query;
+    const year = Number(req.query.year);
+    const month = Number(req.query.month);
+    try {
+        if (!adminId || !['student', 'teacher', 'staff'].includes(personType)) {
+            return res.status(400).json('School and a valid person type are required!');
+        }
+        // Never let a bad period fall through to an unbounded scan.
+        if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+            return res.status(400).json('A valid year and month (1-12) are required!');
+        }
+        if (personType === 'student' && !req.query.class) {
+            return res.status(400).json('Select a class to view student attendance!');
+        }
+
+        const result = await getSchoolMonthGrid({
+            adminId,
+            personType,
+            year,
+            month,
+            class: req.query.class,
+        });
+        return res.status(200).json(result);
+    } catch (error) {
+        logger.error('attendance.GetAttendanceMonthGrid', error);
         return res.status(500).json('Internal Server Error!');
     }
 };
@@ -341,6 +377,7 @@ let GetQueueHealth = async (req, res, next) => {
 
 module.exports = {
     GetAttendanceCalendar,
+    GetAttendanceMonthGrid,
     GetDaySummary,
     GetAttendancePeople,
     GetPunchLog,

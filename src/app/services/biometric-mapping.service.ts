@@ -15,4 +15,9 @@ export class BiometricMappingService {
   bulkAssignCard(data: any) {
     return this.http.post(`${this.url}/bulk-assign-card`, data);
   }
+  // Re-push this person's WDMS employee record and tell the school's terminals to pull it.
+  // data: { adminId, personType, personId, verifyMode? } — sending verifyMode also saves it.
+  resyncToDevice(data: any) {
+    return this.http.post(`${this.url}/resync`, data);
+  }
 }

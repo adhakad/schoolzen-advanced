@@ -51,6 +51,19 @@ export class TeacherComponent implements OnInit {
   assignCardIsClick: boolean = false;
   assignCardErrorCheck: boolean = false;
   assignCardErrorMsg: string = '';
+  // How the terminal is allowed to identify this person. Pushed to WDMS as verify_mode.
+  // Card Only is the default because a card is the only credential Schoolzen issues —
+  // fingerprints and faces are enrolled at the device itself.
+  verifyModeOptions: any[] = [
+    { value: 4, label: 'Card Only' },
+    { value: 0, label: 'Auto' },
+    { value: 1, label: 'Fingerprint' },
+    { value: 3, label: 'Password' },
+    { value: 15, label: 'Face' },
+  ];
+  // Separate from assignCardIsClick: a resync can be fired from a table row with no modal
+  // open, so the two guards must not share a flag.
+  resyncIsClick: boolean = false;
 
   // Bulk Assign Card (CSV) modal state
   showBulkAssignCardModal: boolean = false;
@@ -69,6 +82,7 @@ export class TeacherComponent implements OnInit {
     })
     this.assignCardForm = this.fb.group({
       cardNo: ['', Validators.required],
+      verifyMode: [4],
     })
     this.teacherPermissionForm = this.fb.group({
       _id: [''],
@@ -433,7 +447,9 @@ export class TeacherComponent implements OnInit {
 
   openAssignCardModal(teacher: any) {
     this.assignCardPerson = teacher;
-    this.assignCardForm.reset();
+    // Card Only, matching the model default — the existing mapping is not loaded here, so
+    // the form always opens on the default rather than silently showing a stale mode.
+    this.assignCardForm.reset({ cardNo: '', verifyMode: 4 });
     this.assignCardErrorCheck = false;
     this.assignCardErrorMsg = '';
     this.assignCardIsClick = false;
@@ -456,6 +472,7 @@ export class TeacherComponent implements OnInit {
         personType: 'teacher',
         personId: this.assignCardPerson._id,
         cardNo: this.assignCardForm.value.cardNo,
+        verifyMode: this.assignCardForm.value.verifyMode,
       };
       this.biometricMappingService.assignCard(params).subscribe((res: any) => {
         this.assignCardIsClick = false;
@@ -475,6 +492,48 @@ export class TeacherComponent implements OnInit {
         this.assignCardErrorMsg = err.error;
       });
     }
+  }
+
+  // Re-push this person to the terminals on demand. WDMS syncing is best-effort, so a card
+  // assigned while a device was offline is saved locally but never reaches the door — this
+  // is the retry, without having to re-enter the card number.
+  // Called from the table row (no modal) and from the Assign Card modal footer, where it
+  // also saves whatever verify mode is currently selected.
+  resyncToDevice(teacher: any, fromModal: boolean = false) {
+    if (this.resyncIsClick) {
+      return;
+    }
+    this.resyncIsClick = true;
+    let params: any = {
+      adminId: this.adminId,
+      personType: 'teacher',
+      personId: teacher._id,
+    };
+    if (fromModal) params.verifyMode = this.assignCardForm.value.verifyMode;
+
+    this.biometricMappingService.resyncToDevice(params).subscribe((res: any) => {
+      this.resyncIsClick = false;
+      if (fromModal) this.closeAssignCardModal();
+      if (res && res.wdmsSyncFailed) {
+        setTimeout(() => {
+          this.toastr.warning('Could not reach the biometric device — try again once it is online.', 'Resync Failed');
+        }, 500);
+      } else {
+        setTimeout(() => {
+          this.toastr.success('', res.successMsg);
+        }, 500);
+      }
+    }, err => {
+      this.resyncIsClick = false;
+      if (fromModal) {
+        this.assignCardErrorCheck = true;
+        this.assignCardErrorMsg = err.error;
+      } else {
+        setTimeout(() => {
+          this.toastr.error('', err.error);
+        }, 500);
+      }
+    });
   }
 
   openBulkAssignCardModal() {

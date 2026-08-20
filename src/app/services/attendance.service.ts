@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { AttendanceCalendar, AttendancePerson, PunchLogEntry } from '../modal/attendance.model';
+import { AttendanceCalendar, AttendanceMonthGrid, AttendancePerson, PunchLogEntry } from '../modal/attendance.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,6 +13,11 @@ export class AttendanceService {
   // params: { adminId, personType, personId, year, month } — month is 1-12, not JS 0-11
   getAttendanceCalendar(params: any) {
     return this.http.get<AttendanceCalendar>(`${this.url}/calendar`, { params });
+  }
+  // The grid. params: { adminId, personType, year, month, class? } — class is REQUIRED for
+  // students; the backend 400s without it rather than serving a 60,000-cell table.
+  getAttendanceCalendarMonth(params: any) {
+    return this.http.get<AttendanceMonthGrid>(`${this.url}/calendar-month`, { params });
   }
   getDaySummary(params: any) {
     return this.http.get(`${this.url}/day-summary`, { params });

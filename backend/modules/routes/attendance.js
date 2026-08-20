@@ -5,6 +5,7 @@ const validate = require('../middleware/validate');
 const { manualAttendanceSchema, syncNowSchema } = require('../validators/attendance');
 const {
     GetAttendanceCalendar,
+    GetAttendanceMonthGrid,
     GetDaySummary,
     GetAttendancePeople,
     GetPunchLog,
@@ -19,6 +20,7 @@ const {
 router.get('/health', GetQueueHealth);
 
 router.get('/calendar', GetAttendanceCalendar);      // GET — query params
+router.get('/calendar-month', GetAttendanceMonthGrid);
 router.get('/day-summary', GetDaySummary);
 router.get('/people', GetAttendancePeople);
 router.get('/punch-log', GetPunchLog);

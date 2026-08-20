@@ -1,1 +1,18 @@
 @import'../dashboard/dashboard.component.css';
+
+/* Section heading inside the create/update modal. The five minute-settings fields split
+   into an arrival group and a departure group; without a label the form reads as one long
+   undifferentiated list of numbers. */
+.settings-group-title {
+  margin: 1vh 0 1.5vh;
+  color: #382066;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+
+/* The first group sits directly under End Time, so it does not need the extra top gap the
+   later ones use to separate them from the field above. */
+.settings-group-title:first-of-type {
+  margin-top: 0;
+}

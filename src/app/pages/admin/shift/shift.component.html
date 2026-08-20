@@ -62,7 +62,11 @@
                       <th>Name</th>
                       <th>Start Time</th>
                       <th>End Time</th>
-                      <th>Grace (min)</th>
+                      <th>Early In</th>
+                      <th>Grace</th>
+                      <th>Half Day After</th>
+                      <th>Early Out</th>
+                      <th>Late Out</th>
                       <th>Status</th>
                       <th>Edit</th>
                       <th>Remove</th>
@@ -83,7 +87,19 @@
                         <p class="mb-0">{{shift.endTime}}</p>
                       </td>
                       <td>
+                        <p class="mb-0">{{shift.earlyPunchMinutes}}</p>
+                      </td>
+                      <td>
                         <p class="mb-0">{{shift.graceMinutes}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{shift.halfDayAfterMinutes}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{shift.earlyCheckoutMinutes}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{shift.lateCheckoutMinutes}}</p>
                       </td>
                       <td>
                         <p class="mb-0">{{shift.status | titlecase}}</p>
@@ -133,6 +149,16 @@
                           <mat-hint *ngIf="!shiftForm.get('endTime')?.valid && shiftForm.get('endTime')?.touched"
                             class="form-text text-danger">End time is required</mat-hint>
                         </mat-form-field>
+                        <h3 class="settings-group-title">Punch-In Settings</h3>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Early Punch (min)</mat-label>
+                          <input matInput type="number" min="0" formControlName="earlyPunchMinutes">
+                          <mat-hint *ngIf="shiftForm.get('earlyPunchMinutes')?.valid">How early before start time an
+                            arrival punch is accepted. Anything earlier is ignored</mat-hint>
+                          <mat-hint
+                            *ngIf="!shiftForm.get('earlyPunchMinutes')?.valid && shiftForm.get('earlyPunchMinutes')?.touched"
+                            class="form-text text-danger">Enter a valid number of minutes</mat-hint>
+                        </mat-form-field>
                         <mat-form-field appearance="outline">
                           <mat-label>Grace Minutes</mat-label>
                           <input matInput type="number" min="0" formControlName="graceMinutes">
@@ -142,6 +168,36 @@
                             *ngIf="!shiftForm.get('graceMinutes')?.valid && shiftForm.get('graceMinutes')?.touched"
                             class="form-text text-danger">Enter a valid number of minutes</mat-hint>
                         </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Half Day After (min)</mat-label>
+                          <input matInput type="number" min="0" formControlName="halfDayAfterMinutes">
+                          <mat-hint *ngIf="shiftForm.get('halfDayAfterMinutes')?.valid">Minutes after start time past
+                            which an arrival counts as Half Day</mat-hint>
+                          <mat-hint
+                            *ngIf="!shiftForm.get('halfDayAfterMinutes')?.valid && shiftForm.get('halfDayAfterMinutes')?.touched"
+                            class="form-text text-danger">Enter a valid number of minutes</mat-hint>
+                        </mat-form-field>
+
+                        <h3 class="settings-group-title">Punch-Out Settings</h3>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Early Checkout (min)</mat-label>
+                          <input matInput type="number" min="0" formControlName="earlyCheckoutMinutes">
+                          <mat-hint *ngIf="shiftForm.get('earlyCheckoutMinutes')?.valid">How early before end time a
+                            departure punch is accepted. This is also where the arrival window closes</mat-hint>
+                          <mat-hint
+                            *ngIf="!shiftForm.get('earlyCheckoutMinutes')?.valid && shiftForm.get('earlyCheckoutMinutes')?.touched"
+                            class="form-text text-danger">Enter a valid number of minutes</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Late Checkout (min)</mat-label>
+                          <input matInput type="number" min="0" formControlName="lateCheckoutMinutes">
+                          <mat-hint *ngIf="shiftForm.get('lateCheckoutMinutes')?.valid">How late after end time a
+                            departure punch is still accepted</mat-hint>
+                          <mat-hint
+                            *ngIf="!shiftForm.get('lateCheckoutMinutes')?.valid && shiftForm.get('lateCheckoutMinutes')?.touched"
+                            class="form-text text-danger">Enter a valid number of minutes</mat-hint>
+                        </mat-form-field>
+
                         <mat-form-field appearance="outline">
                           <mat-label>Status</mat-label>
                           <mat-select matInput formControlName="status">

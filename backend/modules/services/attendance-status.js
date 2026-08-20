@@ -3,90 +3,163 @@ const { atWallClock, minutesBetween } = require('../helpers/attendance-time');
 const logger = require('../helpers/logger');
 
 // PURE status computation — no DB, no Express, no I/O. Everything it needs is passed in,
-// which is what makes the late/half-day banding testable in isolation and keeps the
-// reconcile worker to orchestration only.
+// which is what makes the banding testable in isolation and keeps the reconcile worker to
+// orchestration only.
+//
+// THE SHIFT IS THE ONLY SOURCE OF TIMING. There is no school-wide fallback rule any more:
+// staff and teachers get their shift from Roster, students from ClassShift, and a person
+// with neither produces no row at all. That is deliberate — a fallback baseline is how you
+// end up silently recording a whole school as Present against a default nobody configured.
+//
+// Two windows per shift, and a punch outside BOTH is ignored entirely:
+//
+//   startTime                                        endTime
+//      |                                                |
+//   [--+---------- ARRIVAL ----------)[---- DEPARTURE --+----]
+//   ^                                ^                       ^
+//   startTime                    endTime                 endTime
+//   - earlyPunchMinutes          - earlyCheckoutMinutes  + lateCheckoutMinutes
+//
+// The arrival window is HALF-OPEN and ends exactly where the departure window begins, so a
+// single punch can never be counted as both an arrival and a departure. That is also why
+// there is no "only one punch today" special case: firstIn and lastOut are structurally
+// incapable of being the same row.
 
-const DEFAULT_LATE_AFTER = 15;
-const DEFAULT_HALF_DAY_AFTER = 120;
+const MS_PER_MINUTE = 60 * 1000;
+
+const addMinutes = (date, minutes) => new Date(date.getTime() + minutes * MS_PER_MINUTE);
+
+// Shift fields are `required` with defaults on the model, but a document written before
+// those fields existed has none of them. Falling back to the model defaults keeps an old
+// shift working instead of producing NaN windows that silently match no punches.
+const SHIFT_DEFAULTS = {
+    earlyPunchMinutes: 30,
+    graceMinutes: 10,
+    halfDayAfterMinutes: 120,
+    earlyCheckoutMinutes: 30,
+    lateCheckoutMinutes: 60,
+};
+
+const minutesOf = (shift, field) => {
+    const value = Number(shift[field]);
+    return Number.isFinite(value) ? value : SHIFT_DEFAULTS[field];
+};
 
 /**
- * @param {Object}   args
- * @param {Date}     args.date        UTC-midnight calendar day
- * @param {Array}    args.punches     [{ punchTime: Date }, ...] for this person on this date
- * @param {Object}   args.rule        AttendanceRule for the school (may be null)
- * @param {Object}   args.shift       Roster-resolved Shift, or null to fall back to the rule
- * @param {String}   args.personType  'student' | 'teacher' | 'staff'
- * @param {String}   args.adminId     for log context only
- * @returns {Object|null} null when there are no punches — the caller writes NO row and the
- *                        calendar derives Absent at read time.
+ * Turn a Shift plus a calendar day into the two absolute time windows a punch is matched
+ * against. Computed ONCE per shift per job, not once per person — a 500-pupil class on one
+ * shift shares one set of windows.
+ *
+ * Everything stays in the "school wall clock expressed as UTC" frame that
+ * helpers/attendance-time.js enforces, so these are directly comparable with a stored
+ * punchTime by plain epoch arithmetic.
+ *
+ * @param {Object} args
+ * @param {Date}   args.date  UTC-midnight calendar day
+ * @param {Object} args.shift lean Shift document
+ * @param {String} args.adminId for log context only
+ * @returns {Object|null} { shiftId, expectedStart, shiftStart, inFrom, inTo, outFrom, outTo,
+ *                          graceMinutes, halfDayAfterMinutes } — null if the shift's
+ *                          startTime/endTime cannot be parsed.
  */
-const computeStatus = ({ date, punches, rule, shift, personType, adminId }) => {
-    if (!Array.isArray(punches) || punches.length === 0) return null;
+const buildShiftWindows = ({ date, shift, adminId }) => {
+    if (!shift || !date) return null;
 
-    // Students are never rostered (models/roster.js enums personType to staff|teacher), so
-    // a student's status comes from the school-wide AttendanceRule ONLY. Enforced here
-    // rather than trusting every call site to have filtered correctly.
-    const effectiveShift = personType === 'student' ? null : (shift || null);
+    const shiftStart = atWallClock(date, shift.startTime);
+    const shiftEnd = atWallClock(date, shift.endTime);
+    if (!shiftStart || !shiftEnd) {
+        logger.warn('attendance-status.unparseableShiftTimes', {
+            adminId, shiftId: shift._id, startTime: shift.startTime, endTime: shift.endTime,
+        });
+        return null;
+    }
 
-    // Sort once; firstIn/lastOut/punchCount all fall out of the ordering.
-    const sorted = [...punches].sort((a, b) => a.punchTime - b.punchTime);
-    const punchCount = sorted.length;
-    const firstIn = sorted[0].punchTime;
-    // A lone punch is an arrival, not a departure — pairing it with itself would render a
-    // zero-minute working day.
-    const lastOut = punchCount > 1 ? sorted[punchCount - 1].punchTime : null;
+    const earlyPunchMinutes = minutesOf(shift, 'earlyPunchMinutes');
+    const graceMinutes = minutesOf(shift, 'graceMinutes');
+    const earlyCheckoutMinutes = minutesOf(shift, 'earlyCheckoutMinutes');
+    const lateCheckoutMinutes = minutesOf(shift, 'lateCheckoutMinutes');
 
-    const shiftId = effectiveShift ? effectiveShift._id.toString() : null;
-    const expectedStart = effectiveShift ? effectiveShift.startTime : (rule ? rule.workStart : null);
+    let halfDayAfterMinutes = minutesOf(shift, 'halfDayAfterMinutes');
+    if (halfDayAfterMinutes <= graceMinutes) {
+        // A misconfigured shift (halfDayAfter 10 against a 15-minute grace) would otherwise
+        // mark punctual people HalfDay. Clamp to an empty Late band instead.
+        logger.warn('attendance-status.halfDayAfterTooSmall', {
+            adminId, shiftId: shift._id, halfDayAfterMinutes, graceMinutes,
+        });
+        halfDayAfterMinutes = graceMinutes + 1;
+    }
 
-    const base = {
-        firstIn,
-        lastOut,
-        punchCount,
-        shiftId,
-        expectedStart: expectedStart || null,
+    const inFrom = addMinutes(shiftStart, -earlyPunchMinutes);
+    let inTo = addMinutes(shiftEnd, -earlyCheckoutMinutes);
+    let outFrom = inTo;
+    let outTo = addMinutes(shiftEnd, lateCheckoutMinutes);
+
+    if (inTo <= inFrom) {
+        // Either an overnight shift (endTime < startTime, out of scope — punches after
+        // midnight belong to the previous attendance day but reconcile groups by each
+        // punch's own dateKey), or a very short shift whose checkout window opens before
+        // anyone could arrive. Either way the arrival window has collapsed to nothing and
+        // EVERY punch would be discarded. Fall back to the half-day boundary so the day is
+        // still assessable, and say so.
+        logger.warn('attendance-status.collapsedArrivalWindow', {
+            adminId, shiftId: shift._id, startTime: shift.startTime, endTime: shift.endTime,
+        });
+        inTo = addMinutes(shiftStart, halfDayAfterMinutes);
+        outFrom = inTo;
+        if (outTo < outFrom) outTo = outFrom;
+    }
+
+    return {
+        shiftId: shift._id.toString(),
+        expectedStart: shift.startTime,
+        shiftStart,
+        inFrom,
+        inTo,     // exclusive
+        outFrom,  // inclusive
+        outTo,    // inclusive
+        graceMinutes,
+        halfDayAfterMinutes,
     };
+};
 
-    // No baseline to measure against — the person demonstrably showed up, so record
-    // Present rather than inventing a Late they can't be judged against.
-    if (!expectedStart) {
-        logger.warn('attendance-status.noBaseline', { adminId, personType, date });
-        return { ...base, status: 'Present', lateByMinutes: null };
-    }
+/**
+ * One person's day, from their windowed punches.
+ *
+ * @param {Object} args
+ * @param {Date}   args.firstIn    earliest punch inside the ARRIVAL window, or null
+ * @param {Date}   args.lastOut    latest punch inside the DEPARTURE window, or null
+ * @param {Number} args.punchCount every punch that day, in-window or not — the audit count
+ *                                 behind the calendar cell, not an input to the status
+ * @param {Object} args.windows    from buildShiftWindows()
+ * @returns {Object|null} null when there is no in-window arrival: the caller writes NO row
+ *                        and the calendar derives Absent at read time.
+ */
+const computeStatus = ({ firstIn, lastOut, punchCount, windows }) => {
+    // No arrival inside the window means the person is Absent, even if they punched — a
+    // departure-only or wildly-out-of-hours punch is not evidence they worked the shift.
+    if (!firstIn || !windows) return null;
 
-    // Grace: a rostered shift's own graceMinutes wins over the school-wide lateAfter (per
-    // the contract stated in models/shift.js). `!= null` not truthiness — graceMinutes: 0
-    // means "no grace at all" and must not silently fall through to the rule.
-    const lateAfter = (effectiveShift && effectiveShift.graceMinutes != null)
-        ? effectiveShift.graceMinutes
-        : (rule ? rule.lateAfter : DEFAULT_LATE_AFTER);
-
-    // halfDayAfter ALWAYS comes from the school rule — Shift has no equivalent field. The
-    // shift narrows *when the day starts*; the school rule decides *how late is half a day*.
-    let halfDayAfter = rule ? rule.halfDayAfter : DEFAULT_HALF_DAY_AFTER;
-    if (halfDayAfter <= lateAfter) {
-        // A misconfigured school (e.g. halfDayAfter 10 against a 15-min shift grace) would
-        // otherwise mark punctual people HalfDay. Clamp to an empty Late band instead.
-        logger.warn('attendance-status.halfDayAfterTooSmall', { adminId, halfDayAfter, lateAfter });
-        halfDayAfter = lateAfter + 1;
-    }
-
-    const expected = atWallClock(date, expectedStart);
-    const lateByMinutes = minutesBetween(firstIn, expected);
+    // The whole decision, in one comparison against one number: how many minutes after the
+    // shift's own start time their first accepted punch landed. Negative = arrived early.
+    const lateByMinutes = minutesBetween(firstIn, windows.shiftStart);
 
     let status;
-    if (lateByMinutes <= lateAfter) status = 'Present';
-    else if (lateByMinutes <= halfDayAfter) status = 'Late';
+    if (lateByMinutes <= windows.graceMinutes) status = 'Present';
+    else if (lateByMinutes <= windows.halfDayAfterMinutes) status = 'Late';
     else status = 'HalfDay';
 
-    // Overnight shifts are out of scope: when endTime < startTime the after-midnight
-    // punches belong to the previous attendance day, but reconcile groups by each punch's
-    // own dateKey. Surface it rather than being silently wrong.
-    if (effectiveShift && effectiveShift.endTime && effectiveShift.endTime < effectiveShift.startTime) {
-        logger.warn('attendance-status.overnightShift', { adminId, shiftId, date });
-    }
-
-    return { ...base, status, lateByMinutes };
+    return {
+        status,
+        firstIn,
+        // null when nobody punched inside the departure window. Applies to every person
+        // type now — under the shift model a student's checkout is configured exactly like
+        // a staff member's, so there is no reason to discard theirs.
+        lastOut: lastOut || null,
+        punchCount,
+        lateByMinutes,
+        shiftId: windows.shiftId,
+        expectedStart: windows.expectedStart,
+    };
 };
 
 // Single ordered resolver so override precedence lives in exactly one place.
@@ -103,4 +176,4 @@ const resolveStatus = ({ holiday, leave, computed }) => {
     return computed;
 };
 
-module.exports = { computeStatus, resolveStatus };
+module.exports = { buildShiftWindows, computeStatus, resolveStatus };

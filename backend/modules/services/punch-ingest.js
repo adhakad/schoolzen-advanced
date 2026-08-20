@@ -85,6 +85,60 @@ const getMappingIndex = async (adminId) => {
     return index;
 };
 
+// A person cannot meaningfully punch twice within this many seconds. Anything closer is the
+// terminal double-reading one card swipe, or somebody tapping again because the beep was
+// not loud enough.
+const MIN_PUNCH_INTERVAL_MS = (Number(process.env.MIN_PUNCH_INTERVAL_SECONDS) || 60) * 1000;
+
+/**
+ * Collapse device double-taps.
+ *
+ * Compares each punch against the last ACCEPTED punch for that person, not the last one
+ * seen. Five taps two seconds apart therefore collapse to one, not to three — chaining off
+ * the last-seen punch would let a slow drip of near-duplicates all survive.
+ *
+ * Runs before insertMany rather than at reconcile time because a discarded punch has no
+ * value at all: PunchLog is an audit trail of what people did, and six identical rows for
+ * one swipe are noise in the punch-trail modal as much as they are rows in the database.
+ *
+ * The unique punchHash index already rejects EXACT re-sends across syncs; this catches the
+ * different case of distinct-but-meaningless timestamps.
+ *
+ * @param {Array} rows PunchLog documents, unsorted
+ * @returns {{ kept: Array, throttledCount: Number }}
+ */
+const throttlePunches = (rows) => {
+    if (MIN_PUNCH_INTERVAL_MS <= 0 || rows.length < 2) return { kept: rows, throttledCount: 0 };
+
+    // Sort by person then time so one linear pass sees each person's punches in order.
+    const sorted = [...rows].sort((a, b) => {
+        const keyA = `${a.personType}|${a.personId}`;
+        const keyB = `${b.personType}|${b.personId}`;
+        if (keyA !== keyB) return keyA < keyB ? -1 : 1;
+        return a.punchTime - b.punchTime;
+    });
+
+    const kept = [];
+    let currentPersonKey = null;
+    let lastAcceptedTime = 0;
+
+    for (const row of sorted) {
+        const personKey = `${row.personType}|${row.personId}`;
+        if (personKey !== currentPersonKey) {
+            // First punch of a new person is always kept.
+            currentPersonKey = personKey;
+            lastAcceptedTime = row.punchTime.getTime();
+            kept.push(row);
+            continue;
+        }
+        if (row.punchTime.getTime() - lastAcceptedTime < MIN_PUNCH_INTERVAL_MS) continue;
+        lastAcceptedTime = row.punchTime.getTime();
+        kept.push(row);
+    }
+
+    return { kept, throttledCount: rows.length - kept.length };
+};
+
 /**
  * Pull + insert one school-day of punches.
  *
@@ -93,7 +147,7 @@ const getMappingIndex = async (adminId) => {
  * @param {String} args.dateKey "YYYY-MM-DD"
  * @returns {Promise<Object>} {
  *   skipped, reason, fetchedCount, insertedCount, duplicateCount, unmappedCount,
- *   invalidCount, dateKeys
+ *   invalidCount, throttledCount, dateKeys
  * }
  * `dateKeys` is every calendar day the inserted punches actually fell on — usually just
  * `dateKey`, but a terminal with a skewed clock can emit a punch either side of midnight
@@ -108,6 +162,7 @@ const ingestSchoolDay = async ({ adminId, dateKey }) => {
         duplicateCount: 0,
         unmappedCount: 0,
         invalidCount: 0,
+        throttledCount: 0,
         dateKeys: [],
     };
 
@@ -195,12 +250,21 @@ const ingestSchoolDay = async ({ adminId, dateKey }) => {
 
     if (rows.length === 0) return result;
 
+    // Drop device double-taps BEFORE the insert — a discarded punch is noise in the audit
+    // trail as much as it is a row in the database.
+    const { kept: punchRows, throttledCount } = throttlePunches(rows);
+    result.throttledCount = throttledCount;
+    if (throttledCount > 0) {
+        logger.info('punch-ingest.throttledPunches', { adminId, dateKey, throttledCount });
+    }
+    if (punchRows.length === 0) return result;
+
     // Idempotent by index, not by application code: re-running the same window just
     // collides on punchHash and the duplicates are dropped. ordered:false so one collision
     // does not abort the remaining inserts.
     let insertedCount = 0;
     try {
-        const inserted = await PunchLogModel.insertMany(rows, { ordered: false });
+        const inserted = await PunchLogModel.insertMany(punchRows, { ordered: false });
         insertedCount = inserted.length;
     } catch (error) {
         // Mongoose surfaces the partial success on the thrown BulkWriteError.
@@ -219,21 +283,62 @@ const ingestSchoolDay = async ({ adminId, dateKey }) => {
     }
 
     result.insertedCount = insertedCount;
-    result.duplicateCount = rows.length - insertedCount;
+    // Against the THROTTLED count, not the fetched one — a punch dropped as a double-tap
+    // was never offered to the index, so calling it a duplicate would double-count it.
+    result.duplicateCount = punchRows.length - insertedCount;
     result.dateKeys = [...dateKeySet];
+
+    // Nothing new landed (a re-sync of a window we already hold, every row rejected by the
+    // punchHash index). There is no changed data to reconcile and nothing to notify, so
+    // both hand-offs below are skipped.
+    if (insertedCount === 0) return result;
+
+    // HAND-OFF TO THE SLOW PATH — this belongs HERE, not in the caller.
+    //
+    // It used to live in workers/attendance-sync-worker.js, which meant the enqueue was
+    // coupled to one specific caller instead of to the insert itself: any other path that
+    // ingested punches (a manual re-pull, a backfill script, a future webhook) committed
+    // rows to PunchLog that nothing ever turned into DailyAttendance. Putting it directly
+    // after the successful insertMany makes "punches landed" and "the day is queued for
+    // recompute" a single fact with no way to have one without the other.
+    //
+    // Every calendar day the punches ACTUALLY fell on is enqueued, not just the requested
+    // one — a terminal with a skewed clock emits punches either side of midnight, and the
+    // neighbouring day needs recomputing too.
+    //
+    // Required lazily and never allowed to throw, exactly like publishPunchBatch below:
+    // the PunchLog rows are already committed, so a Redis outage must not fail this job and
+    // trigger a retry that re-ingests a window it already holds. The 5-minute reconcile
+    // sweep in cron-attendance-service.js re-enqueues the day regardless, so a lost enqueue
+    // costs latency, never correctness.
+    try {
+        const { addReconcileJob } = require('../queues/attendance-reconcile-queue');
+        for (const affectedDateKey of result.dateKeys) {
+            // jobId-deduped inside addReconcileJob, so calling it once per batch (or twice
+            // for the same day) collapses into the single queued reconcile. THAT is the
+            // debounce — there is no manual timer anywhere.
+            await addReconcileJob(adminId, affectedDateKey);
+        }
+    } catch (queueError) {
+        logger.error('punch-ingest.reconcileEnqueueFailed', queueError);
+    }
 
     // The "real-time feel". Fire-and-forget and deliberately last: the rows are already
     // committed, so a publish failure costs a live nudge and nothing else.
-    if (insertedCount > 0) {
-        await publishPunchBatch(adminId, rows.map((row) => ({
-            personType: row.personType,
-            personId: row.personId,
-            punchTime: row.punchTime,
-            dateKey: toDateKey(row.date),
-        })));
-    }
+    await publishPunchBatch(adminId, punchRows.map((row) => ({
+        personType: row.personType,
+        personId: row.personId,
+        punchTime: row.punchTime,
+        dateKey: toDateKey(row.date),
+    })));
 
     return result;
 };
 
-module.exports = { ingestSchoolDay, buildPunchHash, getSchoolTerminalSns, getMappingIndex };
+module.exports = {
+    ingestSchoolDay,
+    buildPunchHash,
+    getSchoolTerminalSns,
+    getMappingIndex,
+    throttlePunches,
+};

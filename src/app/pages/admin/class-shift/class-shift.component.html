@@ -1,0 +1,152 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Class Shift</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Class Shift</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div *ngIf="errorCheck">
+                <p class="error-message">{{errorMsg}}</p>
+              </div>
+
+              <p class="page-note">Students are not rostered day by day &mdash; their shift comes from the class they
+                are in. A class with no shift here produces no attendance for its students.</p>
+
+              <div *ngIf="shiftInfo.length == 0 && !loader">
+                <p class="mb-0">No active shifts yet &mdash; create one on the <strong>Shift</strong> page before
+                  assigning a class.</p>
+              </div>
+
+              <form [formGroup]="classShiftForm" (ngSubmit)="classShiftAssign()" *ngIf="shiftInfo.length > 0">
+                <div class="row">
+                  <div class="col-12 col-lg-6">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Select shift</mat-label>
+                      <mat-select matInput formControlName="shiftId">
+                        <mat-option value="">-- Select --</mat-option>
+                        <div *ngFor="let shift of shiftInfo">
+                          <mat-option value="{{shift._id}}">{{shift.name | titlecase}} ({{shift.startTime}} -
+                            {{shift.endTime}})</mat-option>
+                        </div>
+                      </mat-select>
+                      <mat-hint *ngIf="!classShiftForm.get('shiftId')?.valid && classShiftForm.get('shiftId')?.touched"
+                        class="form-text text-danger">Shift is required</mat-hint>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <div class="col-12 pt-0 pb-0">
+                  <h3 class="checklist-title">Choose Classes For This Shift</h3>
+                </div>
+                <p class="checklist-empty" *ngIf="classOptions.length == 0 && !loader">No classes found &mdash; add
+                  students first, the class list is built from them.</p>
+                <div class="row" *ngIf="classOptions.length > 0">
+                  <div class="col-6 col-lg-3 mb-2" *ngFor="let classKey of classOptions">
+                    <mat-checkbox class="example-margin" [checked]="selectedClasses.includes(classKey)"
+                      (change)="toggleClass(classKey)">
+                      {{classNumber(classKey) | classSuffix}}
+                      <small class="current-shift" *ngIf="currentShiftName(classKey)">{{currentShiftName(classKey) |
+                        titlecase}}</small>
+                    </mat-checkbox>
+                  </div>
+                </div>
+                <button type="button" mat-button class="select-all-button" *ngIf="classOptions.length > 0"
+                  (click)="selectAllClasses()">Select all classes</button>
+
+                <div class="assign-footer">
+                  <button type="submit" mat-raised-button
+                    [disabled]="!classShiftForm.valid || selectedClasses.length == 0 || isClick" class="submit-button">
+                    <span *ngIf="isClick" class="submitting-content">
+                      <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                    </span>
+                    Assign
+                  </button>
+                </div>
+              </form>
+
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>Class</th>
+                      <th>Shift</th>
+                      <th>Timing</th>
+                      <th>Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="classShiftInfo && classShiftInfo.length>0">
+                    <tr *ngFor="let classShift of classShiftInfo">
+                      <td>
+                        <p class="mb-0">{{classNumber(classShift.class) | classSuffix}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{classShift.shiftName | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{classShift.startTime}} &ndash; {{classShift.endTime}}</p>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="deleteClassShiftModel(classShift._id)">delete</mat-icon>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <ng-container *ngIf="!loader && (!classShiftInfo || classShiftInfo.length==0)">
+                <h2 style="text-align: center;margin-top: 60px;">No Record Found</h2>
+              </ng-container>
+
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">DELETE CLASS SHIFT</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <div>
+                      <h4 style="margin-left: 20px;">To remove this class shift, click ok to confirm.</h4>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
+                          (click)="classShiftDelete(deleteById)">Ok</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

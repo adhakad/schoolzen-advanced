@@ -78,6 +78,7 @@
                       <th>Status</th>
                       <th>All Permissions</th>
                       <th>Assign Card</th>
+                      <th>Resync</th>
                       <th>Remove</th>
                     </tr>
                   </thead>
@@ -111,6 +112,9 @@
                       </td>
                       <td class="mb-0">
                         <mat-icon (click)="openAssignCardModal(teacher)">credit_card</mat-icon>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="resyncToDevice(teacher)">sync</mat-icon>
                       </td>
                       <td class="mb-0">
                         <!-- <mat-icon (click)="updateTeacherModel(teacher)">edit</mat-icon> -->
@@ -324,8 +328,24 @@
                             *ngIf="!assignCardForm.get('cardNo')?.valid && assignCardForm.get('cardNo')?.touched"
                             class="form-text text-danger">Card number is required</mat-hint>
                         </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Verify Mode</mat-label>
+                          <mat-select matInput formControlName="verifyMode">
+                            <div *ngFor="let mode of verifyModeOptions">
+                              <mat-option [value]="mode.value">{{mode.label}}</mat-option>
+                            </div>
+                          </mat-select>
+                          <mat-hint>How the device is allowed to identify this person</mat-hint>
+                        </mat-form-field>
                       </div>
                       <div class="modal-footer">
+                        <button type="button" mat-raised-button class="delete-button"
+                          [disabled]="resyncIsClick" (click)="resyncToDevice(assignCardPerson, true)">
+                          <span *ngIf="resyncIsClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Resync to Device
+                        </button>
                         <button type="submit" mat-raised-button
                           [disabled]="!assignCardForm.valid || assignCardIsClick"
                           class="submit-button">Submit</button>

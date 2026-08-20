@@ -1,6 +1,7 @@
 'use strict';
 const ShiftModel = require('../models/shift');
 const RosterModel = require('../models/roster');
+const ClassShiftModel = require('../models/class-shift');
 
 let countShift = async (req, res, next) => {
     try {
@@ -58,7 +59,8 @@ let GetSingleShift = async (req, res, next) => {
 }
 
 let CreateShift = async (req, res, next) => {
-    const { adminId, name, startTime, endTime, graceMinutes, status } = req.body;
+    const { adminId, name, startTime, endTime, earlyPunchMinutes, graceMinutes,
+        halfDayAfterMinutes, earlyCheckoutMinutes, lateCheckoutMinutes, status } = req.body;
     try {
         const checkShift = await ShiftModel.findOne({ adminId: adminId, name: name });
         if (checkShift) {
@@ -69,7 +71,11 @@ let CreateShift = async (req, res, next) => {
             name: name,
             startTime: startTime,
             endTime: endTime,
+            earlyPunchMinutes: earlyPunchMinutes,
             graceMinutes: graceMinutes,
+            halfDayAfterMinutes: halfDayAfterMinutes,
+            earlyCheckoutMinutes: earlyCheckoutMinutes,
+            lateCheckoutMinutes: lateCheckoutMinutes,
             status: status,
         }
         const createShift = await ShiftModel.create(shiftData);
@@ -90,7 +96,11 @@ let UpdateShift = async (req, res, next) => {
             name: req.body.name,
             startTime: req.body.startTime,
             endTime: req.body.endTime,
+            earlyPunchMinutes: req.body.earlyPunchMinutes,
             graceMinutes: req.body.graceMinutes,
+            halfDayAfterMinutes: req.body.halfDayAfterMinutes,
+            earlyCheckoutMinutes: req.body.earlyCheckoutMinutes,
+            lateCheckoutMinutes: req.body.lateCheckoutMinutes,
             status: req.body.status,
         }
         const update = await ShiftModel.findByIdAndUpdate(id, { $set: shiftData }, { new: true });
@@ -110,6 +120,13 @@ let DeleteShift = async (req, res, next) => {
         const checkRoster = await RosterModel.findOne({ shiftId: id });
         if (checkRoster) {
             return res.status(400).json('This shift is assigned in the roster and cannot be deleted!');
+        }
+        // Same guard on the student side: a ClassShift pointing at a deleted shift would
+        // leave that whole class with no resolvable baseline, so every student in it would
+        // silently stop producing DailyAttendance rows.
+        const checkClassShift = await ClassShiftModel.findOne({ shiftId: id });
+        if (checkClassShift) {
+            return res.status(400).json('This shift is assigned to a class and cannot be deleted!');
         }
         const dlt = await ShiftModel.findByIdAndRemove(id);
         return res.status(200).json('Shift deleted successfully.');

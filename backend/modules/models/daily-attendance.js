@@ -62,14 +62,14 @@ const DailyAttendanceModel = mongoose.model('daily-attendance', {
         default: null,
     },
     expectedStart: {
-        // The "HH:mm" actually used, from the roster shift or the school rule. Persisted so
-        // a status can be explained after the fact even if the rule/shift later changes.
+        // The shift's "HH:mm" startTime as it was when this row was computed. Persisted so a
+        // status can still be explained after the fact if the shift is later re-timed.
         type: String,
         trim: true,
     },
     shiftId: {
-        // Set only when a Roster entry supplied the expected shift (staff/teacher).
-        // Always null for students — they are never rostered.
+        // Always set — a row only exists because a shift was resolved for the person.
+        // Staff/teacher get theirs from Roster, students from ClassShift.
         type: String,
         trim: true,
         default: null,

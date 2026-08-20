@@ -38,12 +38,50 @@ const atWallClock = (utcMidnightDate, hhmm) => {
     return new Date(utcMidnightDate.getTime() + minutes * MIN_MS);
 };
 
-// The only safe way to read a WDMS punch timestamp. Accepts "YYYY-MM-DD HH:mm:ss" and the
-// ISO "YYYY-MM-DDTHH:mm:ss" variant; seconds optional.
+// Matches a trailing UTC offset: "Z", "+05:30", "-0800". Anchored to the end of the string
+// so it cannot be confused with the date's own hyphens.
+const OFFSET_SUFFIX = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+// The only safe way to read a WDMS punch timestamp. Handles BOTH shapes an iclock instance
+// can emit, and normalises each into the one frame this file exists to enforce — school wall
+// clock expressed as UTC:
+//
+//   1. NAIVE  "YYYY-MM-DD HH:mm:ss" / "YYYY-MM-DDTHH:mm:ss"  (what our WDMS sends today)
+//      The digits ARE the school's wall clock, because the terminal is configured to the
+//      school's own timezone and WDMS stores what the terminal reported. So they are read
+//      verbatim — no conversion, because there is no offset to convert FROM. Applying one
+//      here would shift every punch by SCHOOL_TIMEZONE's offset and mark punctual arrivals
+//      as HalfDay.
+//
+//   2. OFFSET-BEARING  "...T09:18:44Z" / "...+05:30" / "...-0800"
+//      This is a true instant, NOT a wall clock, and the old parser silently dropped the
+//      suffix — storing 09:18 as if it were 09:18 local when it actually meant 14:48 IST.
+//      Every punch would land ~5h30m early against workStart and the whole school would
+//      read Present. So the instant is converted into SCHOOL_TIMEZONE first, and only the
+//      resulting local wall-clock fields are kept.
+//
+// Which shape arrives is a property of the WDMS deployment, not of our code, so both are
+// accepted rather than assumed.
 const parseWdmsPunchTime = (value) => {
     if (!value) return null;
-    const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(value.toString().trim());
+    const raw = value.toString().trim();
+
+    const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(raw);
     if (!m) return null;
+
+    if (OFFSET_SUFFIX.test(raw)) {
+        // setZone:true keeps the offset the string carried instead of reinterpreting it in
+        // the server's timezone; .setZone(SCHOOL_TZ) then re-expresses that same instant as
+        // the school's local time, and DST/offset history comes from luxon's tz database
+        // rather than a hardcoded +5:30.
+        const local = DateTime.fromISO(raw.replace(' ', 'T'), { setZone: true }).setZone(SCHOOL_TZ);
+        if (!local.isValid) return null;
+        return new Date(Date.UTC(
+            local.year, local.month - 1, local.day,
+            local.hour, local.minute, local.second,
+        ));
+    }
+
     return new Date(Date.UTC(
         Number(m[1]), Number(m[2]) - 1, Number(m[3]),
         Number(m[4]), Number(m[5]), Number(m[6] || 0),

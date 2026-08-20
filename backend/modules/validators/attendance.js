@@ -17,7 +17,7 @@ const manualAttendanceSchema = Joi.object({
     personId: Joi.string().trim().required(),
     date: Joi.string().trim().pattern(DATE_KEY).required(),
     status: Joi.string().trim().valid('Present', 'Absent', 'HalfDay', 'Late', 'Leave', 'Holiday').required(),
-    // Wall-clock "HH:mm", same format as AttendanceRule.workStart and Shift.startTime.
+    // Wall-clock "HH:mm", same format as Shift.startTime.
     // Empty string allowed so the form can clear a time without sending null.
     inTime: Joi.string().trim().pattern(HH_MM).allow('', null),
     outTime: Joi.string().trim().pattern(HH_MM).allow('', null),
