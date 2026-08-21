@@ -6,14 +6,41 @@ const DeviceModel = require('../models/devices/device');
 const { fetchWdmsTransactions } = require('./wdms-transaction');
 const { publishPunchBatch } = require('./punch-publisher');
 const { toWdmsEmpCode } = require('./wdms-employee');
+const { getExpectedShiftsForDate } = require('./roster-lookup');
+const { getStudentShiftMap } = require('./class-shift-lookup');
+const { buildShiftWindows } = require('./attendance-status');
 const { parseWdmsPunchTime } = require('../helpers/attendance-time');
 const { toUtcMidnight, toDateKey } = require('../helpers/date-only');
 const logger = require('../helpers/logger');
 
-// THE FAST PATH. Pull a school-day's raw punches out of WDMS and land them in PunchLog —
-// nothing else. No status, no roster, no rule lookup: every derived value is the reconcile
-// worker's job (services/attendance-reconcile.js). Keeping this path to "fetch, map, insert,
-// notify" is what lets a 2000-school 8-10am peak feel instant while reconciliation lags.
+// THE FAST PATH. Pull a school-day's raw punches out of WDMS, keep only the punches that
+// MEAN something, and land those in PunchLog. Still no status, no banding, no Holiday or
+// Leave resolution — every derived value is the reconcile worker's job
+// (services/attendance-reconcile.js).
+//
+// WHAT "MEAN SOMETHING" MEANS, and why the filtering happens HERE rather than at read time:
+// a terminal reports every card tap. A child who taps at the gate, again on the way to
+// assembly, and twice more at lunch produces four rows describing one arrival. Stored, they
+// are four rows of landfill per person per day at 2M students — and they make the punch
+// trail in the day-detail modal unreadable for the one human who ever looks at it. So:
+//
+//   staff / teacher -> the FIRST punch in the arrival window and the FIRST in the
+//                      departure window. At most 2 rows per person per day.
+//   student         -> the FIRST punch in the arrival window. At most 1 row per day.
+//                      A school does not clock children out (see computeStatus).
+//   no shift        -> nothing to measure against, so only the double-tap throttle applies
+//                      and the rest is kept. reconcile then skips them and says so via
+//                      its unshiftedPunchers warn.
+//
+// THREE CONSEQUENCES, all intended:
+//   1. PunchLog is no longer a complete audit trail of taps. It is a record of the punches
+//      that decided the day. DailyAttendance.punchCount is therefore 1 or 2, not a tap count.
+//   2. A punch discarded because the person had no shift AT INGEST TIME cannot be recovered
+//      by assigning them one later — only by re-pulling that window from WDMS.
+//   3. This path is no longer zero-computation. It now costs a fixed ~5 extra indexed reads
+//      per school-day (Roster scan + its Shift lookup, ClassShift scan + its Shift lookup,
+//      Student class lookup) — independent of headcount AND of punch volume, which is what
+//      keeps it viable during the 8-10am peak.
 //
 // Reads Device ONLY by assignedSchoolId + terminalSn, per the Phase 5 isolation contract —
 // it never touches salesPersonId/addedBy or any other sales-side field.
@@ -85,13 +112,21 @@ const getMappingIndex = async (adminId) => {
     return index;
 };
 
-// A person cannot meaningfully punch twice within this many seconds. Anything closer is the
-// terminal double-reading one card swipe, or somebody tapping again because the beep was
-// not loud enough.
-const MIN_PUNCH_INTERVAL_MS = (Number(process.env.MIN_PUNCH_INTERVAL_SECONDS) || 60) * 1000;
+// The minimum gap between two punches by the same person that we are willing to treat as
+// two separate events.
+//
+// This is the FALLBACK filter — it applies ONLY to people with no resolvable shift, because
+// for everyone else filterToShiftWindows() below has already reduced the day to one arrival
+// and (for staff) one departure. Hence the deliberately blunt default of 18000s / 5 hours:
+// with no shift to measure against, the only defensible assumption is that a person's day
+// contains one arrival and one departure separated by most of a working day.
+//
+// It must NOT be applied to shifted people. A 09:00-13:00 shift has its in and out punches
+// four hours apart, and a 5-hour throttle would silently delete the departure.
+const MIN_PUNCH_INTERVAL_MS = (Number(process.env.MIN_PUNCH_INTERVAL_SECONDS) || 18000) * 1000;
 
 /**
- * Collapse device double-taps.
+ * Collapse device double-taps for people with NO shift assigned.
  *
  * Compares each punch against the last ACCEPTED punch for that person, not the last one
  * seen. Five taps two seconds apart therefore collapse to one, not to three — chaining off
@@ -139,6 +174,111 @@ const throttlePunches = (rows) => {
     return { kept, throttledCount: rows.length - kept.length };
 };
 
+// `${personType}|${personId}` — the same composite key the reconcile worker batches on.
+const personKeyOf = (personType, personId) => `${personType}|${personId}`;
+
+/**
+ * Reduce a school-day's mapped punches to the ones that decide the day.
+ *
+ * See the file header for the rules and for why this runs before insertMany. In short:
+ * one arrival per person, plus one departure for staff and teachers, and nothing else.
+ *
+ * Grouped by the punch's OWN dateKey rather than the requested one — a terminal with a
+ * skewed clock emits punches either side of midnight, and each calendar day has to resolve
+ * against its own roster.
+ *
+ * Cost: one getStudentShiftMap for the whole call (ClassShift has no date dimension) plus
+ * one getExpectedShiftsForDate per distinct dateKey — normally exactly one. Shift windows
+ * are memoised per shift+day, so a 500-pupil class on one shift builds one pair of windows,
+ * not 500.
+ *
+ * @param {Object} args
+ * @param {String} args.adminId
+ * @param {Array}  args.rows mapped PunchLog documents, unsorted
+ * @returns {Promise<{ kept: Array, unshifted: Array, windowFilteredCount: Number,
+ *                     unshiftedPersonCount: Number }>}
+ *          `unshifted` is handed to throttlePunches by the caller; `kept` is already final.
+ */
+const filterToShiftWindows = async ({ adminId, rows }) => {
+    const result = { kept: [], unshifted: [], windowFilteredCount: 0, unshiftedPersonCount: 0 };
+    if (rows.length === 0) return result;
+
+    // dateKey -> personKey -> that person's punches on that day.
+    const byDateKey = new Map();
+    for (const row of rows) {
+        const dateKey = toDateKey(row.date);
+        if (!byDateKey.has(dateKey)) byDateKey.set(dateKey, new Map());
+        const byPerson = byDateKey.get(dateKey);
+        const personKey = personKeyOf(row.personType, row.personId);
+        if (!byPerson.has(personKey)) byPerson.set(personKey, []);
+        byPerson.get(personKey).push(row);
+    }
+
+    // ClassShift is date-independent, so this resolves every day at once — and only for the
+    // students who actually punched, never the whole roll.
+    const studentIds = [...new Set(
+        rows.filter((row) => row.personType === 'student').map((row) => row.personId),
+    )];
+    const studentShifts = await getStudentShiftMap(adminId, studentIds);
+
+    // Memo key is shiftId + dateKey: the same shift on two different days is two different
+    // pairs of absolute windows.
+    const windowsByKey = new Map();
+
+    for (const [dateKey, byPerson] of byDateKey) {
+        const date = toUtcMidnight(dateKey);
+        const rosterShifts = await getExpectedShiftsForDate(adminId, dateKey);
+
+        for (const [personKey, personRows] of byPerson) {
+            const { personType, personId } = personRows[0];
+
+            const shift = personType === 'student'
+                ? studentShifts.get(personId)
+                : rosterShifts.get(personKey);
+
+            let windows = null;
+            if (shift) {
+                const memoKey = `${shift._id.toString()}|${dateKey}`;
+                if (!windowsByKey.has(memoKey)) {
+                    // Returns null on an unparseable startTime/endTime and logs it. Such a
+                    // person falls through to the unshifted bucket rather than losing every
+                    // punch to a broken settings row.
+                    windowsByKey.set(memoKey, buildShiftWindows({ date, shift, adminId }));
+                }
+                windows = windowsByKey.get(memoKey);
+            }
+
+            if (!windows) {
+                result.unshifted.push(...personRows);
+                result.unshiftedPersonCount += 1;
+                continue;
+            }
+
+            // Ascending, so "first in the window" is a single forward scan.
+            const sorted = [...personRows].sort((a, b) => a.punchTime - b.punchTime);
+
+            // Half-open arrival window, matching the reconcile aggregation exactly: $lt on
+            // inTo, so one punch can never be both the arrival and the departure.
+            const firstIn = sorted.find((row) => (
+                row.punchTime >= windows.inFrom && row.punchTime < windows.inTo
+            )) || null;
+
+            // FIRST punch of the departure window, not the last — once somebody has left,
+            // a later tap on the way back through the gate is not a second departure.
+            // Students never get one at all.
+            const firstOut = personType === 'student' ? null : (sorted.find((row) => (
+                row.punchTime >= windows.outFrom && row.punchTime <= windows.outTo
+            )) || null);
+
+            const keptForPerson = [firstIn, firstOut].filter(Boolean);
+            result.kept.push(...keptForPerson);
+            result.windowFilteredCount += personRows.length - keptForPerson.length;
+        }
+    }
+
+    return result;
+};
+
 /**
  * Pull + insert one school-day of punches.
  *
@@ -147,7 +287,7 @@ const throttlePunches = (rows) => {
  * @param {String} args.dateKey "YYYY-MM-DD"
  * @returns {Promise<Object>} {
  *   skipped, reason, fetchedCount, insertedCount, duplicateCount, unmappedCount,
- *   invalidCount, throttledCount, dateKeys
+ *   invalidCount, windowFilteredCount, unshiftedPersonCount, throttledCount, dateKeys
  * }
  * `dateKeys` is every calendar day the inserted punches actually fell on — usually just
  * `dateKey`, but a terminal with a skewed clock can emit a punch either side of midnight
@@ -162,6 +302,11 @@ const ingestSchoolDay = async ({ adminId, dateKey }) => {
         duplicateCount: 0,
         unmappedCount: 0,
         invalidCount: 0,
+        // Punches dropped because they fell outside their owner's shift windows.
+        windowFilteredCount: 0,
+        // People whose punches could not be windowed at all — no Roster row, no ClassShift
+        // for their class, or an unparseable shift.
+        unshiftedPersonCount: 0,
         throttledCount: 0,
         dateKeys: [],
     };
@@ -250,13 +395,35 @@ const ingestSchoolDay = async ({ adminId, dateKey }) => {
 
     if (rows.length === 0) return result;
 
-    // Drop device double-taps BEFORE the insert — a discarded punch is noise in the audit
-    // trail as much as it is a row in the database.
-    const { kept: punchRows, throttledCount } = throttlePunches(rows);
+    // Reduce to the punches that decide the day, BEFORE the insert — see the file header.
+    const {
+        kept: shiftFiltered, unshifted, windowFilteredCount, unshiftedPersonCount,
+    } = await filterToShiftWindows({ adminId, rows });
+
+    result.windowFilteredCount = windowFilteredCount;
+    result.unshiftedPersonCount = unshiftedPersonCount;
+
+    // The double-tap throttle applies ONLY to the people we could not window. Running it
+    // over the shifted set as well would delete the departure punch of any shift shorter
+    // than MIN_PUNCH_INTERVAL_SECONDS.
+    const { kept: throttledUnshifted, throttledCount } = throttlePunches(unshifted);
     result.throttledCount = throttledCount;
-    if (throttledCount > 0) {
-        logger.info('punch-ingest.throttledPunches', { adminId, dateKey, throttledCount });
+
+    if (windowFilteredCount > 0 || throttledCount > 0) {
+        logger.info('punch-ingest.filteredPunches', {
+            adminId, dateKey, windowFilteredCount, throttledCount,
+        });
     }
+    if (unshiftedPersonCount > 0) {
+        // The ingest-side twin of attendance-reconcile's unshiftedPunchers warn. These
+        // people's punches are stored but will produce no attendance until somebody gives
+        // them a Roster row (staff/teacher) or maps their class to a shift (student).
+        logger.warn('punch-ingest.unshiftedPunchers', {
+            adminId, dateKey, unshiftedPersonCount,
+        });
+    }
+
+    const punchRows = [...shiftFiltered, ...throttledUnshifted];
     if (punchRows.length === 0) return result;
 
     // Idempotent by index, not by application code: re-running the same window just
@@ -283,10 +450,15 @@ const ingestSchoolDay = async ({ adminId, dateKey }) => {
     }
 
     result.insertedCount = insertedCount;
-    // Against the THROTTLED count, not the fetched one — a punch dropped as a double-tap
-    // was never offered to the index, so calling it a duplicate would double-count it.
+    // Against the FILTERED count, not the fetched one — a punch dropped as out-of-window or
+    // as a double-tap was never offered to the index, so calling it a duplicate would
+    // double-count it.
     result.duplicateCount = punchRows.length - insertedCount;
-    result.dateKeys = [...dateKeySet];
+    // Only the days punches were actually kept for. dateKeySet covers every day the FETCHED
+    // punches fell on, which after windowing can include a day nothing survived from —
+    // enqueuing a reconcile for that day would be work with no input.
+    result.dateKeys = [...new Set(punchRows.map((row) => toDateKey(row.date)))]
+        .filter((key) => dateKeySet.has(key));
 
     // Nothing new landed (a re-sync of a window we already hold, every row rejected by the
     // punchHash index). There is no changed data to reconcile and nothing to notify, so
@@ -340,5 +512,6 @@ module.exports = {
     buildPunchHash,
     getSchoolTerminalSns,
     getMappingIndex,
+    filterToShiftWindows,
     throttlePunches,
 };

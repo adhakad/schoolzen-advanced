@@ -22,9 +22,14 @@
                         <mat-radio-group (change)="switchPersonType($event.value)">
                           <mat-radio-button value="staff" [checked]="personType=='staff'">Staff</mat-radio-button>
                           <mat-radio-button value="teacher" [checked]="personType=='teacher'">Teacher</mat-radio-button>
+                          <mat-radio-button value="student" [checked]="personType=='student'">Student</mat-radio-button>
                         </mat-radio-group>
                       </div>
-                      <div class="col-6">
+                      <!-- Period picker and Bulk Assign are staff/teacher only. A class's
+                           shift has no month dimension — it stands until changed — so
+                           paging through months would imply a per-month setting that does
+                           not exist. -->
+                      <div class="col-6" *ngIf="personType!='student'">
                         <div class="period-picker">
                           <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
                           <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
@@ -36,7 +41,7 @@
                           <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
                         </div>
                       </div>
-                      <div class="col-3">
+                      <div class="col-3" *ngIf="personType!='student'">
                         <button class="submit-button" mat-raised-button
                           (click)="openBulkModal()"><mat-icon>add</mat-icon>Bulk Assign</button>
                       </div>
@@ -57,9 +62,10 @@
                     <mat-radio-group (change)="switchPersonType($event.value)">
                       <mat-radio-button value="staff" [checked]="personType=='staff'">Staff</mat-radio-button>
                       <mat-radio-button value="teacher" [checked]="personType=='teacher'">Teacher</mat-radio-button>
+                      <mat-radio-button value="student" [checked]="personType=='student'">Student</mat-radio-button>
                     </mat-radio-group>
                   </div>
-                  <div class="col-12 mt-3">
+                  <div class="col-12 mt-3" *ngIf="personType!='student'">
                     <div class="period-picker">
                       <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
                       <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
@@ -71,7 +77,7 @@
                       <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
                     </div>
                   </div>
-                  <div class="col-12 mt-3"><button class="submit-button" mat-raised-button
+                  <div class="col-12 mt-3" *ngIf="personType!='student'"><button class="submit-button" mat-raised-button
                       (click)="openBulkModal()"><mat-icon>add</mat-icon>Bulk Assign</button></div>
                 </div>
               </div>
@@ -88,7 +94,7 @@
                 <p class="mb-0">No active shifts yet &mdash; create one on the <strong>Shift</strong> page before
                   assigning a roster.</p>
               </div>
-              <div class="table-wrapper">
+              <div class="table-wrapper" *ngIf="personType!='student'">
                 <table class="table table-hover align-middle bg-white roster-grid">
                   <thead class="bg-light">
                     <tr class="text-muted">
@@ -116,14 +122,107 @@
                   </tbody>
                 </table>
               </div>
-              <ng-container *ngIf="!loader && (!personInfo || personInfo.length==0)">
+              <ng-container *ngIf="!loader && personType!='student' && (!personInfo || personInfo.length==0)">
                 <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
               </ng-container>
-              <div class="shift-legend" *ngIf="shiftInfo.length > 0">
+              <div class="shift-legend" *ngIf="personType!='student' && shiftInfo.length > 0">
                 <span *ngFor="let shift of shiftInfo, let i=index" class="legend-item">
                   <span [class]="'shift-chip shift-color-' + (i % 6)">{{shiftShortName(shift._id)}}</span>
-                  {{shift.name | titlecase}} ({{shift.startTime}} &ndash; {{shift.endTime}})
+                  {{shift.name | titlecase}} ({{shift.startTime | timeAmPm}} &ndash; {{shift.endTime | timeAmPm}})
                 </span>
+              </div>
+
+              <!-- ==================================================================
+                   STUDENT TAB — class-level shift assignment.
+                   No grid: a student's shift comes from their CLASS, so there is no
+                   per-person, per-day cell to click. One row here covers a whole cohort
+                   for every date at once.
+                   =================================================================== -->
+              <div class="assign-panel" *ngIf="personType=='student'">
+                <div *ngIf="studentErrorCheck">
+                  <p class="error-message">{{studentErrorMsg}}</p>
+                </div>
+
+                <div class="row">
+                  <div class="col-12 col-lg-5">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Select shift</mat-label>
+                      <mat-select matInput [(ngModel)]="studentShiftId" [ngModelOptions]="{standalone: true}">
+                        <mat-option value="">-- Select --</mat-option>
+                        <div *ngFor="let shift of shiftInfo">
+                          <mat-option value="{{shift._id}}">{{shift.name}} ({{shift.startTime | timeAmPm}} -
+                            {{shift.endTime | timeAmPm}})</mat-option>
+                        </div>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <!-- Quick links. selectClassRange filters the school's OWN class list, so a
+                     school that stops at class 8 simply gets fewer chips. -->
+                <div class="quick-links">
+                  <button type="button" mat-button class="select-all-button" (click)="selectAllClasses()">Select
+                    All</button>
+                  <button type="button" mat-button class="select-all-button" (click)="clearClasses()">Clear</button>
+                  <button type="button" mat-button class="select-all-button" (click)="selectClassRange(1,5)">Class
+                    1-5</button>
+                  <button type="button" mat-button class="select-all-button" (click)="selectClassRange(6,10)">Class
+                    6-10</button>
+                </div>
+
+                <div class="class-chip-row">
+                  <button type="button" mat-button *ngFor="let classKey of classOptions" class="weekday-button"
+                    [class.active]="isClassSelected(classKey)" (click)="toggleClass(classKey)">
+                    {{classNumber(classKey) | classSuffix}}
+                    <small class="chip-shift" *ngIf="currentShiftName(classKey)">{{currentShiftName(classKey) |
+                      titlecase}}</small>
+                  </button>
+                </div>
+                <p class="selected-count" *ngIf="classOptions.length > 0">{{selectedClasses.length}} class(es)
+                  selected</p>
+                <p class="selected-count" *ngIf="!loader && classOptions.length == 0">No classes found &mdash; add
+                  students first, then assign their class a shift here.</p>
+
+                <button type="button" class="submit-button" mat-raised-button
+                  [disabled]="!studentShiftId || selectedClasses.length==0 || studentIsClick" (click)="studentAssign()">
+                  <span *ngIf="studentIsClick" class="submitting-content">
+                    <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                  </span>
+                  Assign Shift
+                </button>
+
+                <div class="table-wrapper mt-4" *ngIf="classShiftInfo.length > 0">
+                  <table class="table table-hover align-middle bg-white">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th>Class</th>
+                        <th>Shift</th>
+                        <th>Timing</th>
+                        <th>Change</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of classShiftInfo">
+                        <td>
+                          <p class="mb-0">{{classNumber(row.class) | classSuffix}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{row.shiftName | titlecase}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{row.startTime | timeAmPm}} &ndash; {{row.endTime | timeAmPm}}</p>
+                        </td>
+                        <td class="mb-0">
+                          <mat-icon (click)="changeClassShift(row)">edit</mat-icon>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <ng-container *ngIf="!loader && classShiftInfo.length == 0 && classOptions.length > 0">
+                  <p class="selected-count mt-4">No class has a shift yet. Every student stays unassessed until their
+                    class is mapped to one.</p>
+                </ng-container>
               </div>
 
               <div class="modal fade show" [class.show]="showModal">
@@ -147,8 +246,8 @@
                           <mat-select matInput formControlName="shiftId">
                             <mat-option value="">-- Select --</mat-option>
                             <div *ngFor="let shift of shiftInfo">
-                              <mat-option value="{{shift._id}}">{{shift.name}} ({{shift.startTime}} -
-                                {{shift.endTime}})</mat-option>
+                              <mat-option value="{{shift._id}}">{{shift.name}} ({{shift.startTime | timeAmPm}} -
+                                {{shift.endTime | timeAmPm}})</mat-option>
                             </div>
                           </mat-select>
                           <mat-error *ngIf="!cellForm.get('shiftId')?.valid && cellForm.get('shiftId')?.touched">Shift is
@@ -193,8 +292,8 @@
                           <mat-select matInput formControlName="shiftId">
                             <mat-option value="">-- Select --</mat-option>
                             <div *ngFor="let shift of shiftInfo">
-                              <mat-option value="{{shift._id}}">{{shift.name}} ({{shift.startTime}} -
-                                {{shift.endTime}})</mat-option>
+                              <mat-option value="{{shift._id}}">{{shift.name}} ({{shift.startTime | timeAmPm}} -
+                                {{shift.endTime | timeAmPm}})</mat-option>
                             </div>
                           </mat-select>
                           <mat-error *ngIf="!bulkForm.get('shiftId')?.valid && bulkForm.get('shiftId')?.touched">Shift is

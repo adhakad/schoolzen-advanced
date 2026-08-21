@@ -9,6 +9,7 @@ import { NumberToWordsPipe } from '../number-to-words.pipe';
 import { FormatMarksTypePipe } from '../format-marks-type.pipe';
 import { TitlecaseSeparatorPipe } from '../titlecase-separator.pipe';
 import { StreamTitleCasePipe } from '../stream-title-case.pipe';
+import { TimeAmPmPipe } from '../time-am-pm.pipe';
 
 
 @NgModule({
@@ -21,7 +22,8 @@ import { StreamTitleCasePipe } from '../stream-title-case.pipe';
     NumberToWordsPipe,
     FormatMarksTypePipe,
     TitlecaseSeparatorPipe,
-    StreamTitleCasePipe
+    StreamTitleCasePipe,
+    TimeAmPmPipe
   ],
   imports: [
     CommonModule
@@ -35,7 +37,8 @@ import { StreamTitleCasePipe } from '../stream-title-case.pipe';
     NumberToWordsPipe,
     FormatMarksTypePipe,
     TitlecaseSeparatorPipe,
-    StreamTitleCasePipe
+    StreamTitleCasePipe,
+    TimeAmPmPipe
   ]
 })
 export class SharedPipeModule { }

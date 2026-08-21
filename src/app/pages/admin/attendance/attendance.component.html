@@ -116,25 +116,30 @@
                   {{summary.Present || 0}}</span>
                 <span class="summary-item"><span class="status-chip status-late">L</span> Late
                   {{summary.Late || 0}}</span>
-                <span class="summary-item"><span class="status-chip status-halfday">H</span> Half Day
+                <span class="summary-item"><span class="status-chip status-halfday">HD</span> Half Day
                   {{summary.HalfDay || 0}}</span>
                 <span class="summary-item"><span class="status-chip status-absent">A</span> Absent
                   {{summary.Absent || 0}}</span>
                 <span class="summary-item"><span class="status-chip status-leave">LV</span> Leave
                   {{summary.Leave || 0}}</span>
-                <span class="summary-item"><span class="status-chip status-holiday">HO</span> Holiday
+                <span class="summary-item"><span class="status-chip status-holiday">H</span> Holiday
                   {{summary.Holiday || 0}}</span>
               </div>
 
-              <div class="table-wrapper" *ngIf="gridRows.length > 0">
+              <!-- PERSON x DATE CALENDAR GRID.
+                   Two sticky identity columns on the left, then one column per date
+                   scrolling horizontally underneath. #gridWrapper is what scrollToToday()
+                   parks on today's column after each load. -->
+              <div class="table-wrapper" #gridWrapper *ngIf="gridRows.length > 0">
                 <table class="table table-hover align-middle bg-white attendance-grid">
                   <thead class="bg-light">
                     <tr class="text-muted">
                       <th class="person-column">{{personType | titlecase}}</th>
-                      <th class="code-column">Code</th>
-                      <th *ngFor="let day of monthDays" class="day-column">
+                      <th class="code-column">{{personType=='student' ? 'Roll No' : 'Code'}}</th>
+                      <th *ngFor="let day of monthDays" class="day-column" [class.today-column]="isToday(day)">
                         <span class="day-number">{{day.day}}</span>
                         <span class="day-name">{{day.dateKey | date:'EEE'}}</span>
+                        <span class="today-badge" *ngIf="isToday(day)">Today</span>
                       </th>
                     </tr>
                   </thead>
@@ -142,13 +147,24 @@
                     <tr *ngFor="let row of gridRows">
                       <td class="person-column">
                         <p class="mb-0">{{personName(row.person) | titlecase}}</p>
+                        <!-- The shift belongs HERE, once per row — not repeated in all 31
+                             cells, where it would be 31 copies of the same string. -->
+                        <small class="row-shift" *ngIf="row.shiftName">{{row.shiftName | titlecase}}
+                          <ng-container *ngIf="row.shiftStart">({{row.shiftStart | timeAmPm}} &ndash;
+                            {{row.shiftEnd | timeAmPm}})</ng-container>
+                        </small>
                       </td>
                       <td class="code-column">
                         <span class="person-code">{{row.person.code || '&ndash;'}}</span>
                       </td>
                       <td *ngFor="let day of row.days" class="day-column" [class.weekend-column]="day.weekday==0"
+                        [class.today-column]="isToday(day)" [class.future-cell]="isFuture(day)"
                         [title]="cellTooltip(day)" (click)="cellClick(row, day)">
                         <span class="status-chip" [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
+                        <!-- In and out on two lines under the chip. lastOut is always absent
+                             for a student — they are never checked out. -->
+                        <span class="cell-time" *ngIf="day.firstIn">{{timeLabel(day.firstIn) | timeAmPm}}</span>
+                        <span class="cell-time" *ngIf="day.lastOut">{{timeLabel(day.lastOut) | timeAmPm}}</span>
                         <span class="override-dot" *ngIf="day.isOverridden" title="Manually overridden"></span>
                       </td>
                     </tr>
@@ -190,7 +206,7 @@
                           this day.</p>
                         <div class="punch-list mb-3" *ngIf="punchInfo.length > 0">
                           <span class="punch-item" *ngFor="let punch of punchInfo">
-                            {{timeLabel(punch.punchTime)}}
+                            {{timeLabel(punch.punchTime) | timeAmPm}}
                             <small *ngIf="punch.source=='MANUAL'">(manual)</small>
                           </span>
                         </div>
@@ -203,7 +219,7 @@
                           <mat-label>Status</mat-label>
                           <mat-select matInput formControlName="status">
                             <mat-option value="">-- Select --</mat-option>
-                            <div *ngFor="let status of statusOptions">
+                            <div *ngFor="let status of availableStatusOptions()">
                               <mat-option value="{{status}}">{{status}}</mat-option>
                             </div>
                           </mat-select>

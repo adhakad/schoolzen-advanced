@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { toAmPm } from 'src/app/pipes/time-am-pm.pipe';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
+import { ClassShiftService } from 'src/app/services/class-shift.service';
 import { RosterService } from 'src/app/services/roster.service';
 import { ShiftService } from 'src/app/services/shift.service';
 import { StaffService } from 'src/app/services/staff.service';
@@ -65,10 +67,26 @@ export class RosterComponent implements OnInit {
   bulkErrorCheck: boolean = false;
   bulkErrorMsg: string    = '';
 
+  // ---- STUDENT TAB (ClassShift) ------------------------------------------
+  // Students are NOT rostered day by day — there is no grid on this tab and no period
+  // picker, because a class's shift is permanent until somebody changes it. One row per
+  // class covers every pupil in it for every date at once, which is why the backend model
+  // (class-shift.js) has no date dimension.
+  //
+  // Everything below is additive: the staff/teacher state above is untouched.
+  classOptions: String[]    = [];
+  classShiftInfo: any[]     = [];   // current class -> shift assignments, with the shift joined in
+  selectedClasses: String[] = [];   // ticked chips in the assign form
+  studentShiftId: string    = '';
+  studentIsClick: boolean   = false;
+  studentErrorCheck: boolean = false;
+  studentErrorMsg: string    = '';
+
   constructor(
     private fb: FormBuilder,
     private toastr: ToastrService,
     private adminAuthService: AdminAuthService,
+    private classShiftService: ClassShiftService,
     private rosterService: RosterService,
     private shiftService: ShiftService,
     private staffService: StaffService,
@@ -168,6 +186,16 @@ export class RosterComponent implements OnInit {
     this.personInfo = [];
     this.rosterMap  = {};
     this.bulkForm.patchValue({ personIds: [] });
+
+    // Students take a completely different path — no person list, no monthly roster fetch.
+    // Neither is meaningful for them: getPersonList() would call a staff/teacher service,
+    // and getRosterMonth() would query a collection whose personType enum excludes them.
+    if (type === 'student') {
+      this.loader = true;
+      this.getClassOptions();
+      this.getClassShiftList();
+      return;
+    }
     this.getPersonList();
   }
 
@@ -224,7 +252,10 @@ export class RosterComponent implements OnInit {
 
   shiftTooltip(shiftId: string): string {
     const s = this.getShift(shiftId);
-    return s ? `${s.name} (${s.startTime} - ${s.endTime})` : 'Unknown shift';
+    // toAmPm, not the timeAmPm pipe — this string is built here rather than in the
+    // template, so a pipe cannot reach it. Same function the pipe delegates to, so the
+    // tooltip and the legend below the grid can never disagree about the format.
+    return s ? `${s.name} (${toAmPm(s.startTime)} - ${toAmPm(s.endTime)})` : 'Unknown shift';
   }
 
   shiftColorIndex(shiftId: string): number {
@@ -371,6 +402,120 @@ export class RosterComponent implements OnInit {
         setTimeout(() => this.toastr.success('', `${res.clearedCount} day(s) cleared.`), 500);
       },
       (err: any) => { this.bulkErrorCheck = true; this.bulkErrorMsg = err.error; this.bulkIsClick = false; }
+    );
+  }
+
+  // ==========================================================================
+  // STUDENT TAB — class -> shift assignment
+  //
+  // Nothing below touches the staff/teacher grid, its modals, or its month navigation.
+  // A student's shift is a property of their CLASS, so there is no per-person cell to
+  // click and no month to page through: one assignment stands until it is changed.
+  // ==========================================================================
+
+  // The classes this school actually runs, from its own student records — not the global
+  // /v1/class table, which returns the same 15 rows to every school.
+  getClassOptions(): void {
+    this.classShiftService.getClassOptions(this.adminId).subscribe(
+      (res: any) => { this.classOptions = res || []; },
+      ()          => { this.classOptions = []; }
+    );
+  }
+
+  getClassShiftList(): void {
+    this.classShiftService.getClassShiftList(this.adminId).subscribe(
+      (res: any) => { this.classShiftInfo = res || []; this.loader = false; },
+      (err: any) => { this.errorCheck = true; this.errorMsg = err.error; this.loader = false; }
+    );
+  }
+
+  // ---- Class chip selection ----
+
+  toggleClass(classKey: String): void {
+    const index = this.selectedClasses.indexOf(classKey);
+    if (index > -1) this.selectedClasses.splice(index, 1);
+    else this.selectedClasses.push(classKey);
+  }
+
+  isClassSelected(classKey: String): boolean {
+    return this.selectedClasses.indexOf(classKey) > -1;
+  }
+
+  selectAllClasses(): void {
+    this.selectedClasses = [...this.classOptions];
+  }
+
+  clearClasses(): void {
+    this.selectedClasses = [];
+  }
+
+  // "Class 1-5" / "Class 6-10" shortcuts. Filters the school's OWN class list numerically
+  // rather than assuming 1..12 exist — a school that only runs up to class 8 just gets
+  // fewer chips selected instead of a range that half-misses.
+  // Sentinel classes 200/201/202 (Nursery/LKG/UKG) sort far above any real range, so they
+  // are never caught by these.
+  selectClassRange(from: number, to: number): void {
+    this.selectedClasses = this.classOptions.filter((classKey: String) => {
+      const value = Number(classKey);
+      return Number.isFinite(value) && value >= from && value <= to;
+    });
+  }
+
+  // The classSuffix pipe is typed for a number and compares numerically ("1st", "Nursery"
+  // for the 200/201/202 sentinels). Class keys travel as strings here to match the
+  // ClassShift model, so coerce at the render boundary rather than widening a shared pipe.
+  classNumber(classKey: any): number {
+    return Number(classKey);
+  }
+
+  // The shift a class is currently on, shown inline on the chip so the consequence of
+  // ticking it is visible before submitting.
+  // Returns a primitive `string`, not the `String` wrapper the models use — the titlecase
+  // pipe only accepts the primitive.
+  currentShiftName(classKey: String): string {
+    const row = this.classShiftInfo.find((item: any) => String(item.class) === String(classKey));
+    return row ? String(row.shiftName) : '';
+  }
+
+  // ---- Assign ----
+
+  // Seeds the form from an existing row so "Change" is one click away from being submitted,
+  // rather than making the user hunt for that class in the chip list.
+  changeClassShift(row: any): void {
+    this.selectedClasses    = [String(row.class)];
+    this.studentShiftId     = String(row.shiftId);
+    this.studentErrorCheck  = false;
+    this.studentErrorMsg    = '';
+  }
+
+  studentAssign(): void {
+    if (!this.studentShiftId || this.selectedClasses.length === 0) {
+      this.studentErrorCheck = true;
+      this.studentErrorMsg   = 'Select a shift and at least one class.';
+      return;
+    }
+    if (this.studentIsClick) return;
+    this.studentErrorCheck = false;
+    this.studentErrorMsg   = '';
+    this.studentIsClick    = true;
+
+    this.classShiftService.bulkAssignClassShift({
+      adminId: this.adminId,
+      shiftId: this.studentShiftId,
+      classes: this.selectedClasses,
+    }).subscribe(
+      (res: any) => {
+        this.studentIsClick  = false;
+        this.selectedClasses = [];
+        this.studentShiftId  = '';
+        this.getClassShiftList();
+        setTimeout(() => this.toastr.success('', res), 500);
+      },
+      (err: any) => {
+        this.studentErrorCheck = true;
+        this.studentErrorMsg   = err.error;
+        this.studentIsClick    = false;
+      }
     );
   }
 }

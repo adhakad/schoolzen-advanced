@@ -1,10 +1,11 @@
 @import'../dashboard/dashboard.component.css';
 
 /* Section heading inside the create/update modal. The five minute-settings fields split
-   into an arrival group and a departure group; without a label the form reads as one long
-   undifferentiated list of numbers. */
+   into the two that apply to everybody and the three that are staff/teacher only; without
+   a label the form reads as one long undifferentiated list of numbers — and, worse, gives
+   a school owner no way to know that Half Day After does nothing for a student. */
 .settings-group-title {
-  margin: 1vh 0 1.5vh;
+  margin: 1vh 0 .5vh;
   color: #382066;
   font-size: 14px;
   font-weight: 600;
@@ -15,4 +16,15 @@
    later ones use to separate them from the field above. */
 .settings-group-title:first-of-type {
   margin-top: 0;
+}
+
+/* The "who does this apply to" line under each heading. Deliberately full-sentence rather
+   than a terse tag: this is the only place the student/staff split is ever explained to
+   the person configuring it. */
+.settings-group-note {
+  margin-bottom: 1.5vh;
+  color: #646089;
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: .3px;
 }

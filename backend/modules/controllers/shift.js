@@ -3,6 +3,39 @@ const ShiftModel = require('../models/shift');
 const RosterModel = require('../models/roster');
 const ClassShiftModel = require('../models/class-shift');
 
+// ---------------------------------------------------------------------------
+// The five numeric settings, none of which has a model default any more (see
+// models/shift.js). Mongoose's `required` would already reject a missing one, but it
+// reports it as a 500-shaped ValidationError with a message no school owner can act on —
+// and `required` does NOT reject a negative number or the empty string a blank <input
+// type="number"> submits. So they are checked here first, one specific message each, in
+// the fail-fast style the rest of this codebase uses.
+// ---------------------------------------------------------------------------
+const NUMERIC_FIELDS = [
+    ['earlyPunchMinutes', 'Early punch minutes'],
+    ['graceMinutes', 'Grace minutes'],
+    ['halfDayAfterMinutes', 'Half day after minutes'],
+    ['earlyCheckoutMinutes', 'Early checkout minutes'],
+    ['lateCheckoutMinutes', 'Late checkout minutes'],
+];
+
+/**
+ * @returns {String|null} the error message, or null when every field is usable.
+ */
+const validateShiftNumbers = (body) => {
+    for (const [field, label] of NUMERIC_FIELDS) {
+        const raw = body[field];
+        if (raw === undefined || raw === null || raw === '') {
+            return `${label} is required!`;
+        }
+        const value = Number(raw);
+        if (!Number.isFinite(value) || value < 0) {
+            return `${label} must be a number of minutes, 0 or more!`;
+        }
+    }
+    return null;
+};
+
 let countShift = async (req, res, next) => {
     try {
         const adminId = req.params.adminId;
@@ -62,6 +95,14 @@ let CreateShift = async (req, res, next) => {
     const { adminId, name, startTime, endTime, earlyPunchMinutes, graceMinutes,
         halfDayAfterMinutes, earlyCheckoutMinutes, lateCheckoutMinutes, status } = req.body;
     try {
+        if (!name || !startTime || !endTime) {
+            return res.status(400).json('Name, start time and end time are required!');
+        }
+        const numberError = validateShiftNumbers(req.body);
+        if (numberError) {
+            return res.status(400).json(numberError);
+        }
+
         const checkShift = await ShiftModel.findOne({ adminId: adminId, name: name });
         if (checkShift) {
             return res.status(400).json('Shift already exist!');
@@ -88,6 +129,14 @@ let CreateShift = async (req, res, next) => {
 let UpdateShift = async (req, res, next) => {
     try {
         const id = req.params.id;
+        if (!req.body.name || !req.body.startTime || !req.body.endTime) {
+            return res.status(400).json('Name, start time and end time are required!');
+        }
+        const numberError = validateShiftNumbers(req.body);
+        if (numberError) {
+            return res.status(400).json(numberError);
+        }
+
         const checkShift = await ShiftModel.findOne({ adminId: req.body.adminId, name: req.body.name, _id: { $ne: id } });
         if (checkShift) {
             return res.status(400).json('Shift already exist!');

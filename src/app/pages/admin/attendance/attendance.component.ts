@@ -1,10 +1,16 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
+import { toAmPm } from 'src/app/pipes/time-am-pm.pipe';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { AttendanceService } from 'src/app/services/attendance.service';
 import { ClassShiftService } from 'src/app/services/class-shift.service';
 import { AttendanceDay, AttendanceGridRow, AttendancePerson, PunchLogEntry } from 'src/app/modal/attendance.model';
+
+// Width of one date column, in px. HARD-TIED to `.attendance-grid .day-column { width }` in
+// attendance.component.css — scrollToToday() multiplies by it to find today's offset, so
+// changing one without the other scrolls to the wrong column.
+const DAY_COLUMN_PX = 64;
 
 @Component({
   selector: 'app-attendance',
@@ -55,6 +61,14 @@ export class AttendanceComponent implements OnInit {
 
   statusOptions: string[] = ['Present', 'Late', 'HalfDay', 'Absent', 'Leave', 'Holiday'];
 
+  // The horizontally-scrolling grid container, so the view can be parked on today's column
+  // rather than on the 1st of the month.
+  @ViewChild('gridWrapper') gridWrapper!: ElementRef<HTMLElement>;
+
+  // "Today" in "YYYY-MM-DD", cached once. Every cell asks whether it is today or in the
+  // future, and 31 columns x N people is a lot of calls to rebuild a Date for.
+  today: string = '';
+
   constructor(
     private fb: FormBuilder,
     private toastr: ToastrService,
@@ -71,6 +85,7 @@ export class AttendanceComponent implements OnInit {
 
   ngOnInit(): void {
     this.adminId = this.adminAuthService.getLoggedInAdminInfo()?.id;
+    this.today = this.todayKey();
     const thisYear = new Date().getFullYear();
     for (let y = thisYear - 1; y <= thisYear + 1; y++) this.yearOptions.push(y);
     this.getClassOptions();
@@ -132,9 +147,34 @@ export class AttendanceComponent implements OnInit {
         this.gridRows = res?.rows || [];
         this.summary = res?.summary || {};
         this.loader = false;
+        // After the *ngFor has actually rendered the columns — scrollLeft on a wrapper
+        // whose content is still one row wide silently clamps to 0.
+        setTimeout(() => this.scrollToToday(), 0);
       },
       (err: any) => { this.errorCheck = true; this.errorMsg = err.error; this.loader = false; }
     );
+  }
+
+  /**
+   * Park the horizontal scroll on today's column so the page opens on the day somebody
+   * actually came here to look at. Earlier dates stay one scroll-left away; later ones are
+   * dimmed and sit to the right.
+   *
+   * No-op when the month on screen is not the current one — there is no "today" to scroll
+   * to in April, and forcing a position there would just look broken.
+   */
+  scrollToToday(): void {
+    const wrapper = this.gridWrapper?.nativeElement;
+    if (!wrapper || this.monthDays.length === 0) return;
+
+    const index = this.monthDays.findIndex((day) => day.dateKey === this.today);
+    if (index < 0) {
+      wrapper.scrollLeft = 0;
+      return;
+    }
+    // Clamped by the browser to the real maximum, so late-month dates simply land at the
+    // far right rather than overscrolling.
+    wrapper.scrollLeft = index * DAY_COLUMN_PX;
   }
 
   getSyncState(): void {
@@ -181,17 +221,33 @@ export class AttendanceComponent implements OnInit {
 
   statusShort(day: AttendanceDay): string {
     const map: any = {
-      Present: 'P', Late: 'L', HalfDay: 'H', Absent: 'A',
-      Leave: 'LV', Holiday: 'HO', Off: '–',
+      Present: 'P', Late: 'L', HalfDay: 'HD', Absent: 'A',
+      Holiday: 'H', Leave: 'LV', Off: '–',
     };
     return map[day.status] || '';
   }
 
+  // Lexicographic compare on "YYYY-MM-DD" — no Date arithmetic, and the same comparison
+  // services/attendance-calendar.js uses server-side, so the two can never disagree about
+  // which days are still to come.
+  isFuture(day: AttendanceDay): boolean {
+    return day.dateKey > this.today;
+  }
+
+  isToday(day: { dateKey: string }): boolean {
+    return day.dateKey === this.today;
+  }
+
   // Hover text for a cell, so a status can be explained without opening the modal.
+  // toAmPm, not the timeAmPm pipe — a title string is assembled here, where a pipe cannot
+  // reach. Same function the pipe delegates to, so the tooltip and the times printed in
+  // the cell itself always read identically.
   cellTooltip(day: AttendanceDay): string {
     if (!day.status) return '';
     if (!day.firstIn) return `${day.dateKey} — ${day.status}`;
-    return `${day.dateKey} — ${day.status} (${this.timeLabel(day.firstIn)} – ${this.timeLabel(day.lastOut)})`;
+    const firstIn = toAmPm(this.timeLabel(day.firstIn));
+    const lastOut = toAmPm(this.timeLabel(day.lastOut));
+    return `${day.dateKey} — ${day.status} (${firstIn} – ${lastOut})`;
   }
 
   // punchTime is stored as school wall clock expressed as UTC, so the UTC parts ARE the
@@ -200,6 +256,16 @@ export class AttendanceComponent implements OnInit {
     if (!value) return '–';
     const d = new Date(value);
     return `${`${d.getUTCHours()}`.padStart(2, '0')}:${`${d.getUTCMinutes()}`.padStart(2, '0')}`;
+  }
+
+  // Statuses an admin may set by hand. HalfDay is withheld on the student tab because the
+  // reconciler can never produce it for a student (see computeStatus) — offering it here
+  // would let a manual override create a status the automatic path would never agree with.
+  availableStatusOptions(): string[] {
+    if (this.personType === 'student') {
+      return this.statusOptions.filter((status) => status !== 'HalfDay');
+    }
+    return this.statusOptions;
   }
 
   // Both return a primitive `string`, not the `String` wrapper the models use — the
@@ -215,6 +281,11 @@ export class AttendanceComponent implements OnInit {
   // --- Day modal ---
 
   cellClick(row: AttendanceGridRow, day: AttendanceDay): void {
+    // A future date has nothing to show and nothing to override. The cell is already
+    // pointer-events:none in CSS; this is the guard for anything that reaches the handler
+    // another way (keyboard, a programmatic call).
+    if (this.isFuture(day)) return;
+
     this.modalPerson = row.person;
     this.modalDay = day;
     this.punchInfo = [];

@@ -32,19 +32,23 @@ export class ShiftComponent implements OnInit {
   isClick: boolean = false;
 
   constructor(private fb: FormBuilder, private toastr: ToastrService, private adminAuthService: AdminAuthService, private shiftService: ShiftService) {
+    // NO DEFAULTS on any timing field, deliberately — see the same note on models/shift.js.
+    // A pre-filled 09:00/30/10/120 is how a school ends up running its whole attendance on
+    // numbers nobody chose. Every field starts empty and must be filled by hand; `status` is
+    // the one exception because it is a lifecycle flag, not a timing rule.
     this.shiftForm = this.fb.group({
       _id: [''],
       adminId: [''],
       name: ['', Validators.required],
-      startTime: ['09:00', Validators.required],
-      endTime: ['17:00', Validators.required],
+      startTime: ['', Validators.required],
+      endTime: ['', Validators.required],
       // Punch-in settings
-      earlyPunchMinutes: [30, [Validators.required, Validators.min(0)]],
-      graceMinutes: [10, [Validators.required, Validators.min(0)]],
-      halfDayAfterMinutes: [120, [Validators.required, Validators.min(0)]],
-      // Punch-out settings
-      earlyCheckoutMinutes: [30, [Validators.required, Validators.min(0)]],
-      lateCheckoutMinutes: [60, [Validators.required, Validators.min(0)]],
+      earlyPunchMinutes: [null, [Validators.required, Validators.min(0)]],
+      graceMinutes: [null, [Validators.required, Validators.min(0)]],
+      // Staff/teacher only — never read when the person is a student.
+      halfDayAfterMinutes: [null, [Validators.required, Validators.min(0)]],
+      earlyCheckoutMinutes: [null, [Validators.required, Validators.min(0)]],
+      lateCheckoutMinutes: [null, [Validators.required, Validators.min(0)]],
       status: ['active'],
     })
   }
@@ -98,12 +102,9 @@ export class ShiftComponent implements OnInit {
     this.errorCheck = false;
     this.errorMsg = '';
     this.isClick = false;
-    this.shiftForm.reset({
-      startTime: '09:00', endTime: '17:00',
-      earlyPunchMinutes: 30, graceMinutes: 10, halfDayAfterMinutes: 120,
-      earlyCheckoutMinutes: 30, lateCheckoutMinutes: 60,
-      status: 'active',
-    });
+    // Everything blank except status — nothing is seeded, so the school owner has to make
+    // every timing decision explicitly.
+    this.shiftForm.reset({ status: 'active' });
   }
   updateShiftModel(shift: any) {
     this.showModal = true;

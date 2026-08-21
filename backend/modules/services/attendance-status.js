@@ -125,7 +125,20 @@ const buildShiftWindows = ({ date, shift, adminId }) => {
 /**
  * One person's day, from their windowed punches.
  *
+ * STUDENTS ARE BANDED DIFFERENTLY, and deliberately so. A school records that a child
+ * turned up and whether they were late; it does not clock them out, and "half a day of
+ * school" is not a thing anybody acts on. So for personType 'student':
+ *   - the ARRIVAL punch is the entire decision — Present or Late, never HalfDay
+ *   - lastOut is always null (services/punch-ingest.js does not even store an out-punch
+ *     for a student, so there would be nothing to report anyway)
+ *   - halfDayAfterMinutes / earlyCheckoutMinutes / lateCheckoutMinutes are never read
+ *
+ * Those three fields stay on the Shift model for staff and teachers. Note that the
+ * DEPARTURE window is still BUILT for a student's shift — it is what closes the arrival
+ * window at endTime - earlyCheckoutMinutes — it just never produces a value.
+ *
  * @param {Object} args
+ * @param {String} args.personType 'student' | 'teacher' | 'staff'
  * @param {Date}   args.firstIn    earliest punch inside the ARRIVAL window, or null
  * @param {Date}   args.lastOut    latest punch inside the DEPARTURE window, or null
  * @param {Number} args.punchCount every punch that day, in-window or not — the audit count
@@ -134,7 +147,7 @@ const buildShiftWindows = ({ date, shift, adminId }) => {
  * @returns {Object|null} null when there is no in-window arrival: the caller writes NO row
  *                        and the calendar derives Absent at read time.
  */
-const computeStatus = ({ firstIn, lastOut, punchCount, windows }) => {
+const computeStatus = ({ personType, firstIn, lastOut, punchCount, windows }) => {
     // No arrival inside the window means the person is Absent, even if they punched — a
     // departure-only or wildly-out-of-hours punch is not evidence they worked the shift.
     if (!firstIn || !windows) return null;
@@ -142,19 +155,20 @@ const computeStatus = ({ firstIn, lastOut, punchCount, windows }) => {
     // The whole decision, in one comparison against one number: how many minutes after the
     // shift's own start time their first accepted punch landed. Negative = arrived early.
     const lateByMinutes = minutesBetween(firstIn, windows.shiftStart);
+    const isStudent = personType === 'student';
 
     let status;
     if (lateByMinutes <= windows.graceMinutes) status = 'Present';
+    else if (isStudent) status = 'Late';
     else if (lateByMinutes <= windows.halfDayAfterMinutes) status = 'Late';
     else status = 'HalfDay';
 
     return {
         status,
         firstIn,
-        // null when nobody punched inside the departure window. Applies to every person
-        // type now — under the shift model a student's checkout is configured exactly like
-        // a staff member's, so there is no reason to discard theirs.
-        lastOut: lastOut || null,
+        // null for every student, and for anyone who did not punch inside the departure
+        // window.
+        lastOut: isStudent ? null : (lastOut || null),
         punchCount,
         lateByMinutes,
         shiftId: windows.shiftId,

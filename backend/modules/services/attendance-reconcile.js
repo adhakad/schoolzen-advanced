@@ -2,10 +2,8 @@
 const mongoose = require('mongoose');
 const PunchLogModel = require('../models/punch-log');
 const DailyAttendanceModel = require('../models/daily-attendance');
-const ClassShiftModel = require('../models/class-shift');
-const ShiftModel = require('../models/shift');
-const StudentModel = require('../models/student');
 const { getExpectedShiftsForDate } = require('./roster-lookup');
+const { getStudentShiftMap } = require('./class-shift-lookup');
 const { getHolidayForDate } = require('./holiday-lookup');
 const { getApprovedLeavesForDate } = require('./leave-lookup');
 const { buildShiftWindows, computeStatus, resolveStatus } = require('./attendance-status');
@@ -82,47 +80,6 @@ const getPunchersForDate = async (adminId, date) => {
 };
 
 /**
- * Students have no Roster — models/roster.js enums personType to staff|teacher, because
- * rostering 2000 pupils day by day is not something a school would ever do. Their shift
- * comes from the class they are in instead.
- *
- * Only the students who ACTUALLY PUNCHED are looked up, so this is never a full roll scan.
- *
- * @param {String} adminId
- * @param {String[]} studentIds personIds of students who punched today
- * @returns {Promise<Map<String, Object>>} personId -> Shift
- */
-const getStudentShiftMap = async (adminId, studentIds) => {
-    const shiftByStudentId = new Map();
-    if (studentIds.length === 0) return shiftByStudentId;
-
-    const [classShiftRows, students] = await Promise.all([
-        ClassShiftModel.find({ adminId }, { class: 1, shiftId: 1, _id: 0 }).lean(),
-        StudentModel.find({ _id: { $in: studentIds } }, { class: 1 }).lean(),
-    ]);
-    if (classShiftRows.length === 0) return shiftByStudentId;
-
-    // One lookup for the distinct shifts, not one per class.
-    const shiftIds = [...new Set(classShiftRows.map((row) => row.shiftId))];
-    const shiftList = await ShiftModel.find({ _id: { $in: shiftIds } }).lean();
-    const shiftById = new Map(shiftList.map((shift) => [shift._id.toString(), shift]));
-
-    // String() on both sides: ClassShift.class is a String, student.class is a Number.
-    // Neither has to know about the other's type — see the note in models/class-shift.js.
-    const shiftByClass = new Map();
-    for (const row of classShiftRows) {
-        const shift = shiftById.get(row.shiftId);
-        if (shift) shiftByClass.set(String(row.class), shift);
-    }
-
-    for (const student of students) {
-        const shift = shiftByClass.get(String(student.class));
-        if (shift) shiftByStudentId.set(student._id.toString(), shift);
-    }
-    return shiftByStudentId;
-};
-
-/**
  * PASS 2 — the earliest ARRIVAL and the latest DEPARTURE for every person, with each
  * person measured against their own shift's windows.
  *
@@ -154,6 +111,10 @@ const aggregateWindowedPunches = async (adminId, date, buckets) => {
                 // departure window starts, so this is what stops one punch counting twice.
                 punchTime: { $gte: bucket.windows.inFrom, $lt: bucket.windows.inTo },
             });
+            // Students have no departure — computeStatus discards lastOut for them and
+            // punch-ingest never stored an out-punch in the first place. Not adding the
+            // branch at all keeps the $or narrow rather than matching rows we throw away.
+            if (personType === 'student') continue;
             outWindowClauses.push({
                 personType,
                 personId: { $in: personIds },
@@ -164,23 +125,28 @@ const aggregateWindowedPunches = async (adminId, date, buckets) => {
     if (inWindowClauses.length === 0) return empty;
 
     const groupId = { personType: '$personType', personId: '$personId' };
+    const facetSpec = {
+        arrivals: [
+            { $match: { $or: inWindowClauses } },
+            { $group: { _id: groupId, firstIn: { $min: '$punchTime' } } },
+        ],
+    };
+    // A student-only school leaves this empty, and `$or: []` is a hard aggregation error —
+    // so the sub-pipeline is omitted entirely rather than run against nothing.
+    if (outWindowClauses.length > 0) {
+        facetSpec.departures = [
+            { $match: { $or: outWindowClauses } },
+            { $group: { _id: groupId, lastOut: { $max: '$punchTime' } } },
+        ];
+    }
+
     const [facets] = await PunchLogModel.aggregate([
         { $match: { adminId, date } },
-        {
-            $facet: {
-                arrivals: [
-                    { $match: { $or: inWindowClauses } },
-                    { $group: { _id: groupId, firstIn: { $min: '$punchTime' } } },
-                ],
-                departures: [
-                    { $match: { $or: outWindowClauses } },
-                    { $group: { _id: groupId, lastOut: { $max: '$punchTime' } } },
-                ],
-            },
-        },
+        { $facet: facetSpec },
     ]);
 
-    return facets || empty;
+    if (!facets) return empty;
+    return { arrivals: facets.arrivals || [], departures: facets.departures || [] };
 };
 
 /**
@@ -326,6 +292,10 @@ const reconcileSchoolDate = async ({ adminId, dateKey }) => {
         if (!windows) continue; // overridden or unshifted — already counted above
 
         const computed = computeStatus({
+            // Students are banded differently — Present/Late off the arrival alone, and no
+            // lastOut at all. computeStatus owns that branch; this just tells it which
+            // kind of person it is looking at.
+            personType,
             firstIn: firstInByPersonKey.get(personKey) || null,
             lastOut: lastOutByPersonKey.get(personKey) || null,
             punchCount: puncher.punchCount,
@@ -448,5 +418,8 @@ module.exports = {
     reconcileSchoolDate,
     getSchoolsWithPunchesForDate,
     getPunchersForDate,
+    // Re-exported from services/class-shift-lookup.js, where it now lives so the fast path
+    // can reach it without requiring this module. Kept here so existing importers of
+    // attendance-reconcile.getStudentShiftMap keep working.
     getStudentShiftMap,
 };

@@ -42,7 +42,6 @@ const routes: Routes = [
   { path: 'admin/designation', loadChildren: () => import('src/app/pages/admin/designation/designation.module').then((module) => module.DesignationModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/staff', loadChildren: () => import('src/app/pages/admin/staff/staff.module').then((module) => module.StaffModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/shift', loadChildren: () => import('src/app/pages/admin/shift/shift.module').then((module) => module.ShiftModule), canActivate: [AdminAuthGuard] },
-  { path: 'admin/class-shift', loadChildren: () => import('src/app/pages/admin/class-shift/class-shift.module').then((module) => module.ClassShiftModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/roster', loadChildren: () => import('src/app/pages/admin/roster/roster.module').then((module) => module.RosterModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/attendance', loadChildren: () => import('src/app/pages/admin/attendance/attendance.module').then((module) => module.AttendanceModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class', loadChildren: () => import('src/app/pages/admin/class/class.module').then((module) => module.ClassModule), canActivate: [AdminAuthGuard] },

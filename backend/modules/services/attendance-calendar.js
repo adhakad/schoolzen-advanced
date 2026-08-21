@@ -2,6 +2,7 @@
 const DailyAttendanceModel = require('../models/daily-attendance');
 const RosterModel = require('../models/roster');
 const ClassShiftModel = require('../models/class-shift');
+const ShiftModel = require('../models/shift');
 const { getHolidayMapForMonth } = require('./holiday-lookup');
 const { getLeaveMapForMonth } = require('./leave-lookup');
 const { getActivePeople, getPerson, personCode } = require('./person-lookup');
@@ -212,6 +213,41 @@ const getPersonMonth = async ({ adminId, personType, personId, year, month }) =>
 };
 
 /**
+ * The shift a person is CURRENTLY on, for the grid's Name column.
+ *
+ * The grid shows one row per person and 31 date columns; repeating the shift name in every
+ * cell would be 31 copies of the same string per row. It belongs once, next to the name.
+ *
+ * "Currently" for a staff member or teacher means the latest day this month they are
+ * rostered on that is not in the future — that is the shift a reader is looking at the row
+ * to understand. A person rostered only for days still to come falls back to their first
+ * such day rather than showing nothing.
+ *
+ * @param {Object} rosterDays "YYYY-MM-DD" -> shiftId, from the monthly snapshot
+ * @param {String} todayKey
+ * @returns {String|null} shiftId
+ */
+const currentShiftIdOf = (rosterDays, todayKey) => {
+    const dateKeys = Object.keys(rosterDays || {}).filter((key) => rosterDays[key]).sort();
+    if (dateKeys.length === 0) return null;
+    // Lexicographic compare is safe on "YYYY-MM-DD" — same trick buildDayEntries uses.
+    const past = dateKeys.filter((key) => key <= todayKey);
+    const chosen = past.length > 0 ? past[past.length - 1] : dateKeys[0];
+    return rosterDays[chosen];
+};
+
+// Name plus RAW "HH:mm" timings — never a pre-formatted display string. The grid renders
+// these through the timeAmPm pipe (pipes/time-am-pm.pipe.ts) so a school office reads
+// "8:00 AM" instead of "08:00", and a label assembled here would arrive as one opaque
+// string the pipe cannot reach into. Timings ride along with the name because two shifts
+// called "Morning" and "Morning B" are indistinguishable at 10px otherwise.
+const shiftSummaryOf = (shift) => ({
+    shiftName: shift ? String(shift.name) : '',
+    shiftStart: shift && shift.startTime ? String(shift.startTime) : '',
+    shiftEnd: shift && shift.endTime ? String(shift.endTime) : '',
+});
+
+/**
  * A whole school's month for one person type — the calendar grid.
  *
  * A fixed number of round-trips regardless of headcount: 1 people scan, 1 DailyAttendance
@@ -262,7 +298,7 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
                 .find({ adminId, personType, year, month }, { personId: 1, days: 1, _id: 0 })
                 .lean(),
         personType === 'student'
-            ? ClassShiftModel.find({ adminId }, { class: 1, _id: 0 }).lean()
+            ? ClassShiftModel.find({ adminId }, { class: 1, shiftId: 1, _id: 0 }).lean()
             : [],
     ]);
 
@@ -278,6 +314,7 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
     }
 
     const classesWithShift = new Set(classShiftRows.map((row) => String(row.class)));
+    const shiftIdByClass = new Map(classShiftRows.map((row) => [String(row.class), row.shiftId]));
 
     // personId -> its own dateKey -> row. One pass over the flat result rather than a
     // filter per person, which would be O(people x rows).
@@ -289,6 +326,32 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
     }
 
     const todayKey = toDateKey(toUtcMidnight(nowWallClock()));
+
+    // ---- Each person's current shift, for the grid's Name column --------------
+    // ONE lookup for the distinct shifts the whole school is on, never one per person: a
+    // 400-pupil school running two shifts costs two documents.
+    const shiftIdByPersonId = new Map();
+    if (personType === 'student') {
+        for (const person of people) {
+            const shiftId = shiftIdByClass.get(String(person.class));
+            if (shiftId) shiftIdByPersonId.set(person._id.toString(), shiftId);
+        }
+    } else {
+        for (const [personId, rosterDays] of rosterDaysByPersonId) {
+            const shiftId = currentShiftIdOf(rosterDays, todayKey);
+            if (shiftId) shiftIdByPersonId.set(personId, shiftId);
+        }
+    }
+
+    const shiftById = new Map();
+    const shiftIds = [...new Set(shiftIdByPersonId.values())];
+    if (shiftIds.length > 0) {
+        const shiftList = await ShiftModel
+            .find({ _id: { $in: shiftIds } }, { name: 1, startTime: 1, endTime: 1 })
+            .lean();
+        for (const shift of shiftList) shiftById.set(shift._id.toString(), shift);
+    }
+
     const gridSummary = emptySummary();
     const gridRows = [];
 
@@ -309,12 +372,16 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
 
         for (const status of Object.keys(summary)) gridSummary[status] += summary[status];
 
+        const shift = shiftById.get(shiftIdByPersonId.get(personId)) || null;
+
         gridRows.push({
             person: {
                 _id: person._id,
                 name: person.name,
                 code: personCode(personType, person),
             },
+            // Once per row, never per cell — see currentShiftIdOf above.
+            ...shiftSummaryOf(shift),
             days,
             summary,
         });

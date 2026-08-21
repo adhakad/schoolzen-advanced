@@ -69,17 +69,17 @@
   position: sticky;
   left: 0;
   z-index: 2;
-  min-width: 150px;
-  max-width: 150px;
+  min-width: 140px;
+  max-width: 140px;
   text-align: left;
 }
 
 .attendance-grid .code-column {
   position: sticky;
-  left: 150px;
+  left: 140px;      /* MUST equal .person-column's width, or the two overlap mid-scroll */
   z-index: 2;
-  min-width: 90px;
-  max-width: 90px;
+  min-width: 56px;
+  max-width: 56px;
   text-align: left;
 }
 
@@ -103,12 +103,26 @@
   font-size: 12px;
 }
 
+/* The person's current shift, under their name. Muted and small because it is context for
+   the row, not a value being reported. */
+.row-shift {
+  display: block;
+  color: #8a8a9e;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+/* 64px wide / 52px tall: enough for the status chip plus an in-time and an out-time
+   stacked underneath it. DAY_COLUMN_PX in attendance.component.ts MUST match this width —
+   scrollToToday() multiplies by it to find today's offset. */
 .attendance-grid .day-column {
   position: relative;
-  width: 40px;
-  min-width: 40px;
+  width: 64px;
+  min-width: 64px;
+  height: 52px;
   padding: 4px 2px;
   text-align: center;
+  vertical-align: top;
   font-size: 12px;
   cursor: pointer;
 }
@@ -137,6 +151,43 @@
 /* Body cells only — the header row is never tinted. */
 .attendance-grid tbody .weekend-column {
   background: #f3f1fa;
+}
+
+/* The in and out times, stacked under the status chip. Deliberately quiet: the chip
+   answers "what happened", these answer "when" for the reader who wants the detail. */
+.cell-time {
+  display: block;
+  color: #8a8a9e;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+/* Future dates carry no judgement and nothing to click. Dimmed rather than hidden so the
+   month still reads as a whole month. pointer-events:none is the real guard; cellClick()
+   also returns early for these. */
+.future-cell {
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* Today. A blue rail down both edges of the column, header included, so the eye finds it
+   immediately after the auto-scroll parks on it. Inset shadow rather than a border so it
+   does not shift the 64px column width and desynchronise scrollToToday(). */
+.attendance-grid .today-column {
+  box-shadow: inset 2px 0 0 #3d9be9, inset -2px 0 0 #3d9be9;
+}
+
+.today-badge {
+  display: block;
+  margin: 2px auto 0;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #3d9be9;
+  color: #FFF;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  text-transform: uppercase;
 }
 
 /* Narrower than the summary strip's chip: 31 of these have to fit across one row. */
@@ -171,12 +222,15 @@
   letter-spacing: .2px;
 }
 
+/* P green, L yellow, HD orange, A red, H grey. Holiday is grey on purpose — the school was
+   shut, which is the absence of a judgement about the person, so it must not compete
+   visually with the days that do say something about them. */
 .status-present { background: #16b978; }
 .status-late    { background: #f5a623; }
 .status-halfday { background: #ff8a3d; }
 .status-absent  { background: #e4409a; }
 .status-leave   { background: #3d9be9; }
-.status-holiday { background: #6c4ab6; }
+.status-holiday { background: #9a95ab; }
 
 /* Non-working days and future dates carry no judgement, so they stay unpainted — the
    working days between them are what the eye should land on. */

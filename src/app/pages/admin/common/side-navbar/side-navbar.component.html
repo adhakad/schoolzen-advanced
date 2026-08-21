@@ -97,12 +97,8 @@
         <span>Shift</span>
       </button>
     </li>
-    <li class="nav-item">
-      <button mat-button class="menu-button" [routerLink]="['/admin/class-shift']" routerLinkActive="active-link">
-        <mat-icon>co_present</mat-icon>
-        <span>Class Shift</span>
-      </button>
-    </li>
+    <!-- Class Shift has no entry of its own: assigning a class to a shift is the Student
+         tab of the Roster page, alongside the Staff and Teacher tabs. -->
     <li class="nav-item">
       <button mat-button class="menu-button" [routerLink]="['/admin/roster']" routerLinkActive="active-link">
         <mat-icon>calendar_month</mat-icon>

@@ -39,6 +39,14 @@ export interface AttendancePerson {
 // calendar returns — so the day-detail modal reads an identical shape either way.
 export interface AttendanceGridRow {
   person: AttendancePerson;
+  // The person's current shift, resolved once per row by the backend. It belongs in the
+  // Name column, NOT in every cell: 31 columns times one shift name is 31 copies of the
+  // same string per row.
+  // Times arrive as raw "HH:mm" and are rendered through the timeAmPm pipe — the backend
+  // deliberately does not pre-format them into a display string.
+  shiftName: string;
+  shiftStart: string;         // "08:00"
+  shiftEnd: string;           // "14:00"
   days: AttendanceDay[];
   summary: { [status: string]: number };
 }

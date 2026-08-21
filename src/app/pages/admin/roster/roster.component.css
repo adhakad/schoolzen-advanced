@@ -162,3 +162,64 @@
   font-size: 12px;
   padding-left: 0;
 }
+
+/* ==========================================================================
+   STUDENT TAB — class -> shift assignment.
+   Additive only: nothing above this line is touched, so the staff/teacher grid keeps
+   rendering exactly as it did. The class chips deliberately reuse .weekday-button and
+   .weekday-button.active from the bulk-assign modal — same interaction (a toggleable
+   pill), so it should look the same rather than inventing a second chip style.
+   ========================================================================== */
+.assign-panel {
+  padding-top: .5vh;
+}
+
+.quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 1vh;
+}
+
+.class-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 1vh;
+}
+
+/* Chips carry two lines — the class, and the shift it is currently on — so they need more
+   height and a stacked layout than the single-word weekday pills they inherit from. */
+.class-chip-row .weekday-button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  line-height: 1.25;
+  margin-right: 0;
+  margin-bottom: 0;
+  padding: 6px 10px;
+}
+
+/* The class's existing shift, so the consequence of re-assigning it is visible BEFORE
+   submitting rather than after. Inherits colour when the chip is active, because #8a8a9e
+   on the purple fill is unreadable. */
+.chip-shift {
+  display: block;
+  color: #8a8a9e;
+  font-size: 10px;
+  letter-spacing: .2px;
+  text-transform: none;
+}
+
+.weekday-button.active .chip-shift {
+  color: #e8ddff;
+}
+
+.selected-count {
+  margin-bottom: 1.5vh;
+  color: #646089;
+  font-size: 12px;
+  letter-spacing: .3px;
+}

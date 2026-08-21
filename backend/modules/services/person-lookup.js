@@ -52,11 +52,16 @@ const getPerson = async (personType, personId) => {
 };
 
 // Display code differs per type too — staff carry an admin-assigned empCode, teachers a
-// numeric teacherUserId, students an admissionNo.
+// numeric teacherUserId, students a roll number.
+//
+// Students prefer rollNumber over admissionNo: the attendance grid labels that column
+// "Roll No", and a roll number is what a class teacher scanning a register actually knows.
+// admissionNo is the fallback for a student who has not been given one.
 const personCode = (personType, person) => {
     if (!person) return '';
     if (personType === 'staff') return person.empCode || '';
     if (personType === 'teacher') return person.teacherUserId != null ? String(person.teacherUserId) : '';
+    if (person.rollNumber != null && person.rollNumber !== '') return String(person.rollNumber);
     return person.admissionNo != null ? String(person.admissionNo) : '';
 };
 

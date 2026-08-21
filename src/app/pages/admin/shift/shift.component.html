@@ -81,10 +81,10 @@
                         <p class="mb-0">{{shift.name | titlecase}}</p>
                       </td>
                       <td>
-                        <p class="mb-0">{{shift.startTime}}</p>
+                        <p class="mb-0">{{shift.startTime | timeAmPm}}</p>
                       </td>
                       <td>
-                        <p class="mb-0">{{shift.endTime}}</p>
+                        <p class="mb-0">{{shift.endTime | timeAmPm}}</p>
                       </td>
                       <td>
                         <p class="mb-0">{{shift.earlyPunchMinutes}}</p>
@@ -149,7 +149,11 @@
                           <mat-hint *ngIf="!shiftForm.get('endTime')?.valid && shiftForm.get('endTime')?.touched"
                             class="form-text text-danger">End time is required</mat-hint>
                         </mat-form-field>
+                        <!-- APPLIES TO EVERYONE — students included. A student's whole day
+                             is decided by these two: did they arrive inside the window, and
+                             were they inside the grace period when they did. -->
                         <h3 class="settings-group-title">Punch-In Settings</h3>
+                        <p class="settings-group-note">Applies to staff, teachers and students.</p>
                         <mat-form-field appearance="outline">
                           <mat-label>Early Punch (min)</mat-label>
                           <input matInput type="number" min="0" formControlName="earlyPunchMinutes">
@@ -168,6 +172,13 @@
                             *ngIf="!shiftForm.get('graceMinutes')?.valid && shiftForm.get('graceMinutes')?.touched"
                             class="form-text text-danger">Enter a valid number of minutes</mat-hint>
                         </mat-form-field>
+
+                        <!-- STAFF/TEACHER ONLY. Spelled out because a school owner filling
+                             this form has no way to know otherwise that these three do
+                             nothing for students. -->
+                        <h3 class="settings-group-title">Staff / Teacher Only</h3>
+                        <p class="settings-group-note">These do not apply to students &mdash; a student's day is decided
+                          by their arrival punch alone, so they are never marked Half Day and are never checked out.</p>
                         <mat-form-field appearance="outline">
                           <mat-label>Half Day After (min)</mat-label>
                           <input matInput type="number" min="0" formControlName="halfDayAfterMinutes">
@@ -177,8 +188,6 @@
                             *ngIf="!shiftForm.get('halfDayAfterMinutes')?.valid && shiftForm.get('halfDayAfterMinutes')?.touched"
                             class="form-text text-danger">Enter a valid number of minutes</mat-hint>
                         </mat-form-field>
-
-                        <h3 class="settings-group-title">Punch-Out Settings</h3>
                         <mat-form-field appearance="outline">
                           <mat-label>Early Checkout (min)</mat-label>
                           <input matInput type="number" min="0" formControlName="earlyCheckoutMinutes">
