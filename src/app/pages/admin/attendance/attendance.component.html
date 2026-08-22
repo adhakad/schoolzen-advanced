@@ -15,11 +15,6 @@
                     <button mat-button class="menu-button">
                       <span>Attendance</span>
                     </button>
-                    <!-- Whether punches landing right now will show up without a reload.
-                         Bound to the socket's own connect/disconnect. -->
-                    <span class="live-badge" [class.live-on]="liveConnected">
-                      <span class="live-dot"></span>{{liveConnected ? 'Live' : 'Offline'}}
-                    </span>
                   </div>
                   <div class="col-9" style="text-align: right;">
                     <div class="row">
@@ -59,9 +54,6 @@
                     <button mat-button class="menu-button">
                       <span>Attendance</span>
                     </button>
-                    <span class="live-badge" [class.live-on]="liveConnected">
-                      <span class="live-dot"></span>{{liveConnected ? 'Live' : 'Offline'}}
-                    </span>
                   </div>
                   <div class="col-12 mt-3">
                     <mat-radio-group (change)="switchPersonType($event.value)">
@@ -134,6 +126,35 @@
                   {{summary.Holiday || 0}}</span>
               </div>
 
+              <!-- LIVE STRIP. What the deleted Live Attendance page used to be, folded in
+                   above the grid it was always describing: today's headline numbers plus a
+                   scrolling list of who has just walked in. Everything here is driven by the
+                   socket, so it moves without the page being reloaded. -->
+              <div class="live-strip" *ngIf="gridRows.length > 0">
+                <div class="live-counts">
+                  <!-- Whether punches landing right now will show up without a reload. Bound
+                       to the socket's own connect/disconnect, so it never claims to be live
+                       when it is not. -->
+                  <span class="live-badge" [class.live-on]="liveConnected">
+                    <span class="live-dot"></span>{{liveConnected ? 'Live' : 'Offline'}}
+                  </span>
+                  <span class="count-item"><b>{{todayStats.present}}</b> Present</span>
+                  <span class="count-item"><b>{{todayStats.late}}</b> Late</span>
+                  <!-- Arrived, but nothing has yet decided whether they were on time. Its own
+                       bucket rather than folded into Present — see recomputeTodayStats(). -->
+                  <span class="count-item count-punched"><b>{{todayStats.punched}}</b> Punched</span>
+                  <span class="count-item"><b>{{todayStats.absent}}</b> Absent</span>
+                </div>
+                <div class="live-feed">
+                  <p class="feed-empty" *ngIf="recentArrivals.length==0">Nobody has punched in yet today.</p>
+                  <div class="feed-item" *ngFor="let arrival of recentArrivals">
+                    <span class="pulse-ring"><span class="ring"></span><span class="dot"></span></span>
+                    <span class="feed-name">{{arrival.name | titlecase}}</span>
+                    <span class="feed-time">{{timeLabel(arrival.punchTime) | timeAmPm}}</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- PERSON x DATE CALENDAR GRID.
                    Two sticky identity columns on the left, then one column per date
                    scrolling horizontally underneath. #gridWrapper is what scrollToToday()
@@ -165,14 +186,35 @@
                       <td class="code-column">
                         <span class="person-code">{{row.person.code || '&ndash;'}}</span>
                       </td>
+                      <!-- THREE MUTUALLY EXCLUSIVE CELL STATES: future, punch-pending, and
+                           settled. Kept as separate ng-containers rather than one block with
+                           conditional bits, because the punch-pending state deliberately
+                           shows NO chip at all — it is not a chip with a different colour. -->
                       <td *ngFor="let day of row.days" class="day-column" [class.weekend-column]="day.weekday==0"
                         [class.today-column]="isToday(day)" [class.future-cell]="isFuture(day)"
-                        [title]="cellTooltip(day)" (click)="cellClick(row, day)">
-                        <span class="status-chip" [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
-                        <!-- In and out on two lines under the chip. lastOut is always absent
-                             for a student — they are never checked out. -->
-                        <span class="cell-time" *ngIf="day.firstIn">{{timeLabel(day.firstIn) | timeAmPm}}</span>
-                        <span class="cell-time" *ngIf="day.lastOut">{{timeLabel(day.lastOut) | timeAmPm}}</span>
+                        [class.flash]="day.flash" [title]="cellTooltip(day)" (click)="cellClick(row, day)">
+
+                        <!-- Nothing has happened yet and nothing can be overridden. -->
+                        <ng-container *ngIf="isFuture(day)">
+                          <span class="cell-empty">&mdash;</span>
+                        </ng-container>
+
+                        <!-- A raw punch the fast path is holding, not yet classified. The dot
+                             says "they're here"; the chip has to wait for the reconcile worker,
+                             which is the only thing that can tell Present from Late. -->
+                        <ng-container *ngIf="!isFuture(day) && isPendingPunch(day)">
+                          <span class="pulse-ring"><span class="ring"></span><span class="dot"></span></span>
+                          <span class="cell-time">{{timeLabel(day.firstIn) | timeAmPm}}</span>
+                        </ng-container>
+
+                        <!-- Whatever reconcile decided. In and out on two lines under the chip;
+                             lastOut is always absent for a student — they are never checked out. -->
+                        <ng-container *ngIf="!isFuture(day) && !isPendingPunch(day)">
+                          <span class="status-chip" [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
+                          <span class="cell-time" *ngIf="day.firstIn">{{timeLabel(day.firstIn) | timeAmPm}}</span>
+                          <span class="cell-time" *ngIf="day.lastOut">{{timeLabel(day.lastOut) | timeAmPm}}</span>
+                        </ng-container>
+
                         <span class="override-dot" *ngIf="day.isOverridden" title="Manually overridden"></span>
                       </td>
                     </tr>

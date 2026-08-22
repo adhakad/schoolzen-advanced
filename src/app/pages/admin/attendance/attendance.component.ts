@@ -7,12 +7,21 @@ import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { AttendanceService } from 'src/app/services/attendance.service';
 import { AttendanceSocketService } from 'src/app/services/attendance-socket.service';
 import { ClassShiftService } from 'src/app/services/class-shift.service';
-import { AttendanceDay, AttendanceGridRow, AttendancePerson, PunchEvent, PunchEventPunch, PunchLogEntry } from 'src/app/modal/attendance.model';
+import { AttendanceDay, AttendanceGridRow, AttendancePerson, FeedArrival, PunchEvent, PunchEventPunch, PunchLogEntry, ReconcileEvent, TodayStats } from 'src/app/modal/attendance.model';
 
 // Width of one date column, in px. HARD-TIED to `.attendance-grid .day-column { width }` in
 // attendance.component.css — scrollToToday() multiplies by it to find today's offset, so
 // changing one without the other scrolls to the wrong column.
-const DAY_COLUMN_PX = 64;
+const DAY_COLUMN_PX = 60;
+
+// How many arrivals the live feed strip keeps. It is a "what just happened" list, not a log —
+// the per-person punch trail already lives behind the day modal.
+const MAX_RECENT_ARRIVALS = 50;
+
+// The one-shot green cell flash, in ms. MUST match the `cellFlash` keyframe duration in
+// attendance.component.css, or the class is removed before the animation finishes (or lingers
+// after it, blocking the next flash on that cell).
+const FLASH_MS = 1500;
 
 @Component({
   selector: 'app-attendance',
@@ -71,11 +80,19 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   // future, and 31 columns x N people is a lot of calls to rebuild a Date for.
   today: string = '';
 
-  // Live layer (Phase 7). The grid is a historical view, so this only ever touches cells for
-  // dates already on screen — see applyPunch().
+  // Live layer. The grid is a historical view, so this only ever touches cells for dates
+  // already on screen — see applyPunch().
   liveConnected: boolean = false;
+  // The feed strip above the grid: who has walked in, most recent first. Sourced from the
+  // grid's own rows rather than /v1/attendance/live, because a PunchEvent carries no name —
+  // the feed has to join against people already loaded either way.
+  recentArrivals: FeedArrival[] = [];
+  // Today's counters. The API's `summary` is month-wide and cannot answer "how many are in
+  // right now", so these are recomputed from each row's today cell.
+  todayStats: TodayStats = { present: 0, late: 0, punched: 0, absent: 0 };
   private punchSub: Subscription | undefined;
   private connectedSub: Subscription | undefined;
+  private reconciledSub: Subscription | undefined;
 
   constructor(
     private fb: FormBuilder,
@@ -107,6 +124,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       .subscribe((connected) => { this.liveConnected = connected; });
     this.punchSub = this.attendanceSocketService.onPunch()
       .subscribe((event: PunchEvent) => { this.applyPunchEvent(event); });
+    this.reconciledSub = this.attendanceSocketService.onReconciled()
+      .subscribe((event: ReconcileEvent) => { this.applyReconciled(event); });
   }
 
   // The socket service is providedIn:'root', so these subscriptions outlive the component.
@@ -114,6 +133,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.punchSub?.unsubscribe();
     this.connectedSub?.unsubscribe();
+    this.reconciledSub?.unsubscribe();
   }
 
   // Native <select> hands back strings — always read the period through these.
@@ -142,17 +162,26 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     return Number(classKey);
   }
 
-  getGrid(): void {
+  /**
+   * @param silent keep the current scroll position and skip the spinner. Used by the
+   *        reconcile refresh, which happens under the admin without them asking — blanking
+   *        the grid and jumping back to today would be the page yanking itself around.
+   */
+  getGrid(silent: boolean = false): void {
     // Students are class-scoped by design — bail out rather than firing a request the
     // backend will reject.
     if (this.personType === 'student' && !this.selectedClass) {
       this.gridRows = [];
       this.monthDays = [];
       this.summary = {};
+      this.recentArrivals = [];
+      this.resetTodayStats();
       return;
     }
 
-    this.loader = true;
+    const keepScrollLeft = silent ? (this.gridWrapper?.nativeElement.scrollLeft ?? 0) : 0;
+
+    if (!silent) this.loader = true;
     this.errorCheck = false;
     this.errorMsg = '';
 
@@ -170,12 +199,63 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.gridRows = res?.rows || [];
         this.summary = res?.summary || {};
         this.loader = false;
+        this.seedRecentArrivals();
+        this.recomputeTodayStats();
         // After the *ngFor has actually rendered the columns — scrollLeft on a wrapper
         // whose content is still one row wide silently clamps to 0.
-        setTimeout(() => this.scrollToToday(), 0);
+        setTimeout(() => {
+          if (silent) {
+            if (this.gridWrapper) this.gridWrapper.nativeElement.scrollLeft = keepScrollLeft;
+          } else {
+            this.scrollToToday();
+          }
+        }, 0);
       },
       (err: any) => { this.errorCheck = true; this.errorMsg = err.error; this.loader = false; }
     );
+  }
+
+  // The feed's opening state, from the rows just loaded. Everything after this arrives over
+  // the socket and is prepended by applyPunch().
+  private seedRecentArrivals(): void {
+    const arrivals: FeedArrival[] = [];
+    for (const row of this.gridRows) {
+      const today = row.days.find((day) => day.dateKey === this.today);
+      if (!today || !today.firstIn) continue;
+      arrivals.push({
+        personId: `${row.person._id}`,
+        name: `${row.person.name}`,
+        punchTime: today.firstIn,
+      });
+    }
+    // Lexicographic on the ISO string, newest first — no Date parsing, same comparison the
+    // dedupe in applyPunch() uses.
+    arrivals.sort((a, b) => (a.punchTime < b.punchTime ? 1 : -1));
+    this.recentArrivals = arrivals.slice(0, MAX_RECENT_ARRIVALS);
+  }
+
+  private resetTodayStats(): void {
+    this.todayStats = { present: 0, late: 0, punched: 0, absent: 0 };
+  }
+
+  /**
+   * Today's counters across everyone on screen.
+   *
+   * 'Punched' is deliberately its own bucket rather than being folded into Present: those
+   * people have arrived but nothing has yet decided whether they were on time, so counting
+   * them as Present would state something the pipeline has not worked out.
+   */
+  private recomputeTodayStats(): void {
+    const stats: TodayStats = { present: 0, late: 0, punched: 0, absent: 0 };
+    for (const row of this.gridRows) {
+      const day = row.days.find((gridDay) => gridDay.dateKey === this.today);
+      if (!day) continue;
+      if (this.isPendingPunch(day)) { stats.punched += 1; continue; }
+      if (day.status === 'Present') stats.present += 1;
+      else if (day.status === 'Late') stats.late += 1;
+      else if (day.status === 'Absent') stats.absent += 1;
+    }
+    this.todayStats = stats;
   }
 
   /**
@@ -212,6 +292,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.gridRows = [];
     this.monthDays = [];
     this.summary = {};
+    // The feed and the counters describe the tab that was on screen, not this one. Clearing
+    // them here rather than waiting for the reload stops the previous tab's arrivals being
+    // shown against the new tab's heading for the length of a request.
+    this.recentArrivals = [];
+    this.resetTodayStats();
     this.getGrid();
   }
 
@@ -259,6 +344,24 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   isToday(day: { dateKey: string }): boolean {
     return day.dateKey === this.today;
+  }
+
+  /**
+   * A raw punch is held for this cell but nothing has classified it yet, so it shows a pulsing
+   * dot and the punch time instead of a status chip.
+   *
+   * The 'Absent' case is the important one. 'Absent' is DERIVED at read time
+   * (services/attendance-calendar.js) for a working day with no DailyAttendance row — so
+   * somebody who walked in thirty seconds ago is still labelled 'A' until the reconcile worker
+   * runs. Showing a red Absent chip against a person standing in the building is the exact
+   * thing this state exists to prevent.
+   *
+   * A real reconciled status — Present, Late, HalfDay, Leave, Holiday — always wins: once the
+   * slow path has decided, its answer is better than the dot's.
+   */
+  isPendingPunch(day: AttendanceDay): boolean {
+    if (!day.livePunch) return false;
+    return !day.status || day.status === 'Absent';
   }
 
   // Hover text for a cell, so a status can be explained without opening the modal.
@@ -411,27 +514,34 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   private applyPunchEvent(event: PunchEvent): void {
     if (!event || !Array.isArray(event.punches)) return;
     // A punch for staff while the student tab is open belongs to a grid that isn't loaded.
+    let touched = false;
     for (const punch of event.punches) {
       if (punch.personType !== this.personType) continue;
-      this.applyPunch(punch);
+      if (this.applyPunch(punch)) touched = true;
     }
+    // Once per batch, not once per punch — a 200-punch batch would otherwise walk every row
+    // 200 times to produce the same four numbers.
+    if (touched) this.recomputeTodayStats();
   }
 
-  private applyPunch(punch: PunchEventPunch): void {
+  /**
+   * @returns true if a cell actually changed, so the caller knows whether to recount.
+   */
+  private applyPunch(punch: PunchEventPunch): boolean {
     const row = this.gridRows.find((gridRow) => `${gridRow.person._id}` === `${punch.personId}`);
-    if (!row) return;
+    if (!row) return false;
 
     // Only dates the month on screen actually has a column for — a punch for August while
     // September is displayed has nowhere to go, and the next load will pick it up.
     const day = row.days.find((gridDay) => gridDay.dateKey === punch.dateKey);
-    if (!day) return;
+    if (!day) return false;
 
     // DEDUPE. punch-ingest.js publishes every row it offered to the unique punchHash index,
     // not just the ones actually inserted, so a re-sync of a window we already hold
     // re-broadcasts punches this grid has. Comparing against what the cell already shows
     // drops them with no client-side bookkeeping.
     const newest = day.lastOut || day.firstIn;
-    if (newest && punch.punchTime <= newest) return;
+    if (newest && punch.punchTime <= newest) return false;
 
     if (!day.firstIn) {
       day.firstIn = punch.punchTime;
@@ -446,6 +556,47 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       day.lastOut = punch.punchTime;
     }
     day.punchCount += 1;
+
+    // The cell now holds a punch nothing has classified. isPendingPunch() decides whether that
+    // actually shows as a dot — a day already carrying a real status keeps its chip.
+    day.livePunch = true;
+
+    // One-shot flash. Cleared on a timer rather than by animationend so a second punch landing
+    // mid-animation cannot leave the class stuck on.
+    day.flash = true;
+    setTimeout(() => { day.flash = false; }, FLASH_MS);
+
+    // The feed is a "who just walked in" list, so it only tracks today and only the arrival.
+    if (this.isToday(day)) {
+      const personId = `${row.person._id}`;
+      this.recentArrivals = [
+        { personId, name: `${row.person.name}`, punchTime: punch.punchTime },
+        ...this.recentArrivals.filter((arrival) => arrival.personId !== personId),
+      ].slice(0, MAX_RECENT_ARRIVALS);
+    }
+
+    return true;
+  }
+
+  /**
+   * The reconcile worker finished a school-day, so the statuses this grid is showing for that
+   * date are now stale — every pending dot has a real answer waiting behind it.
+   *
+   * Refetched rather than patched: reconcile can change any person's status for that date
+   * (a leave approved, a holiday added, a late arrival re-graded), and the event deliberately
+   * carries no per-person detail. Silent, so it does not blank the grid or scroll it.
+   */
+  private applyReconciled(event: ReconcileEvent): void {
+    if (!event || !event.dateKey) return;
+    // A date this month does not show has nothing on screen to correct; the next load of that
+    // month reads the reconciled rows anyway.
+    if (!this.monthDays.some((day) => day.dateKey === event.dateKey)) return;
+
+    for (const row of this.gridRows) {
+      const day = row.days.find((gridDay) => gridDay.dateKey === event.dateKey);
+      if (day) day.livePunch = false;
+    }
+    this.getGrid(true);
   }
 
   // --- Sync ---

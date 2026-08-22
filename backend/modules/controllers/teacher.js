@@ -98,13 +98,17 @@ let TeacherPermission = async (req, res, next) => {
     try {
         const adminId = req.params.id;
         const teacherId = req.params.teacherId;
-        let { marksheetPermission, admitCardPermission, studentPermission, admissionPermission, feeCollectionPermission, promoteFailPermission, transferCertificatePermission } = req.body.type;
+        let { marksheetPermission, admitCardPermission, studentPermission, admissionPermission, feeCollectionPermission, promoteFailPermission, transferCertificatePermission, attendancePermission } = req.body.type;
         const checkTeacher = await TeacherModel.findOne({ _id: teacherId, adminId: adminId });
         if (!checkTeacher) {
             return res.status(400).json("Invalid request!")
         }
 
+        // Defaulted to [] rather than assumed present: attendancePermission was added after
+        // this endpoint shipped, so a client that has not been updated omits it entirely and
+        // would otherwise blow up on .map of undefined — taking the other seven with it.
         function getUniqueClasses(permissionArray) {
+            if (!Array.isArray(permissionArray)) return [];
             return [...new Set(permissionArray.map(item => parseInt(Object.keys(item)[0])))];
         }
 
@@ -128,6 +132,14 @@ let TeacherPermission = async (req, res, next) => {
             promoteFail: promoteFailClass,
             transferCertificate: transferCertificateClass
         };
+
+        // Only written when the client actually sent it. Every key in classPermissions is
+        // rewritten unconditionally below, so including attendance while an un-updated client
+        // omits it would silently revoke a teacher's attendance access on every unrelated
+        // permission save.
+        if (attendancePermission !== undefined) {
+            classPermissions.attendance = getUniqueClasses(attendancePermission);
+        }
 
         for (const key in classPermissions) {
             let classArray = [...new Set(classPermissions[key])]; // Remove duplicates

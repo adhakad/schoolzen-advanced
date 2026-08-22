@@ -107,3 +107,30 @@ No manual backend restart needed on token expiry — auto-refresh and retry on e
 - In `backend/modules/models/shift.js` (or wherever the Shift schema is): remove `required: true` from these three fields, allow null/undefined
 - Backend reconcile already skips these fields for students — no change needed there
 - Frontend form section label already says "Staff/Teacher Only" — no UI change needed, just the validator fix
+
+---
+
+## Class-Level Socket Rooms for Teacher Panel
+
+### Backend — Socket.io room structure
+Currently only one room per school: `school:<adminId>`. Add class-level rooms alongside it:
+- When a punch arrives for a student, emit to BOTH `school:<adminId>` AND `school:<adminId>:class:<className>` (e.g. `school:abc123:class:5`)
+- Staff/teacher punches emit only to `school:<adminId>` (no class room needed)
+- Room join logic in the socket auth middleware: if the JWT is a teacher token, also join `school:<adminId>:class:<assignedClass>` based on the teacher's assigned class (read from teacher collection or from a teacherClass field). If admin token, join only `school:<adminId>` (admin sees all)
+
+### Frontend — Teacher panel attendance page
+- Add an attendance page to the teacher panel (under `/teacher/attendance`)
+- Teacher sees only their assigned class — class selector is NOT shown (auto-scoped)
+- Same grid design as admin attendance (sticky name + code columns, date columns, live punch dot, status chips, today column auto-scroll)
+- Teacher connects to Socket.io room `school:<adminId>:class:<assignedClass>` — receives only their class's punch events
+- Live feed strip shows only their class's recent punches
+- Add "Attendance" to the teacher sidebar nav
+
+### Admin attendance page
+- Admin remains on `school:<adminId>` room — sees all persons (staff + teacher + all classes)
+- Student tab in admin attendance: class selector required (unchanged)
+- No change to admin behavior
+
+### Backend attendance API
+- Existing calendar/day-summary endpoints already scope by adminId + personType + class — no new endpoints needed
+- Teacher calls the same endpoints but with their class pre-filled (from JWT or teacher profile)

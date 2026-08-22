@@ -1,0 +1,164 @@
+<app-header-nav></app-header-nav>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-nav></app-side-nav>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="col-12">
+              <div class="row">
+                <div class="col-12 col-lg-5">
+                  <button mat-button class="menu-button">
+                    <span>Attendance</span>
+                  </button>
+                  <!-- One class: a label, because a picker with a single option is a control
+                       that can only be set to what it already says. -->
+                  <span class="single-class" *ngIf="myClasses.length==1">
+                    {{classNumber(selectedClass) | classSuffix}}
+                  </span>
+                </div>
+                <div class="col-12 col-lg-7" style="text-align: right;">
+                  <div class="row">
+                    <div class="col-12 col-lg-5" *ngIf="showClassPicker">
+                      <select class="form-control" [(ngModel)]="selectedClass" (change)="onClassChange()">
+                        <option *ngFor="let classKey of myClasses" [value]="classKey">
+                          {{classNumber(classKey) | classSuffix}}</option>
+                      </select>
+                    </div>
+                    <div class="col-12" [class.col-lg-7]="showClassPicker" [class.col-lg-12]="!showClassPicker">
+                      <div class="period-picker">
+                        <mat-icon (click)="changeMonth(-1)">chevron_left</mat-icon>
+                        <select class="form-control" [(ngModel)]="selectedMonth" (change)="onPeriodChange()">
+                          <option *ngFor="let month of monthNames, let m=index" [ngValue]="m">{{month}}</option>
+                        </select>
+                        <select class="form-control" [(ngModel)]="selectedYear" (change)="onPeriodChange()">
+                          <option *ngFor="let year of yearOptions" [ngValue]="year">{{year}}</option>
+                        </select>
+                        <mat-icon (click)="changeMonth(1)">chevron_right</mat-icon>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div *ngIf="errorCheck">
+                <p class="error-message">{{errorMsg}}</p>
+              </div>
+
+              <!-- Month totals across the class on screen. 'Off' days are excluded on purpose:
+                   they were never school days, so counting them would distort the ratio. -->
+              <div class="summary-strip" *ngIf="gridRows.length > 0">
+                <span class="summary-item"><span class="status-chip status-present">P</span> Present
+                  {{summary.Present || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-late">L</span> Late
+                  {{summary.Late || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-absent">A</span> Absent
+                  {{summary.Absent || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-leave">LV</span> Leave
+                  {{summary.Leave || 0}}</span>
+                <span class="summary-item"><span class="status-chip status-holiday">H</span> Holiday
+                  {{summary.Holiday || 0}}</span>
+              </div>
+
+              <!-- LIVE STRIP. Scoped to this teacher's class by the socket room they were put
+                   in at handshake, so nothing here needs filtering on this side. -->
+              <div class="live-strip" *ngIf="gridRows.length > 0">
+                <div class="live-counts">
+                  <span class="live-badge" [class.live-on]="liveConnected">
+                    <span class="live-dot"></span>{{liveConnected ? 'Live' : 'Offline'}}
+                  </span>
+                  <span class="count-item"><b>{{todayStats.present}}</b> Present</span>
+                  <span class="count-item"><b>{{todayStats.late}}</b> Late</span>
+                  <span class="count-item count-punched"><b>{{todayStats.punched}}</b> Punched</span>
+                  <span class="count-item"><b>{{todayStats.absent}}</b> Absent</span>
+                </div>
+                <div class="live-feed">
+                  <p class="feed-empty" *ngIf="recentArrivals.length==0">Nobody has punched in yet today.</p>
+                  <div class="feed-item" *ngFor="let arrival of recentArrivals">
+                    <span class="pulse-ring"><span class="ring"></span><span class="dot"></span></span>
+                    <span class="feed-name">{{arrival.name | titlecase}}</span>
+                    <span class="feed-time">{{timeLabel(arrival.punchTime) | timeAmPm}}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STUDENT x DATE CALENDAR GRID. Read-only: correcting a day is an admin
+                   action, so there is no cell click and no manual-entry modal here. -->
+              <div class="table-wrapper" #gridWrapper *ngIf="gridRows.length > 0">
+                <table class="table table-hover align-middle bg-white attendance-grid">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th class="person-column">Student</th>
+                      <th class="code-column">Roll No</th>
+                      <th *ngFor="let day of monthDays" class="day-column" [class.today-column]="isToday(day)">
+                        <span class="day-number">{{day.day}}</span>
+                        <span class="day-name">{{day.dateKey | date:'EEE'}}</span>
+                        <span class="today-badge" *ngIf="isToday(day)">Today</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of gridRows">
+                      <td class="person-column">
+                        <p class="mb-0">{{personName(row.person) | titlecase}}</p>
+                        <!-- The class's shift, once per row — not repeated in all 31 cells. -->
+                        <small class="row-shift" *ngIf="row.shiftName">{{row.shiftName | titlecase}}
+                          <ng-container *ngIf="row.shiftStart">({{row.shiftStart | timeAmPm}} &ndash;
+                            {{row.shiftEnd | timeAmPm}})</ng-container>
+                        </small>
+                      </td>
+                      <td class="code-column">
+                        <span class="person-code">{{row.person.code || '&ndash;'}}</span>
+                      </td>
+                      <td *ngFor="let day of row.days" class="day-column" [class.weekend-column]="day.weekday==0"
+                        [class.today-column]="isToday(day)" [class.future-cell]="isFuture(day)"
+                        [class.flash]="day.flash" [title]="cellTooltip(day)">
+
+                        <ng-container *ngIf="isFuture(day)">
+                          <span class="cell-empty">&mdash;</span>
+                        </ng-container>
+
+                        <!-- Punch held, reconcile pending — see the admin grid for why this
+                             shows no chip. -->
+                        <ng-container *ngIf="!isFuture(day) && isPendingPunch(day)">
+                          <span class="pulse-ring"><span class="ring"></span><span class="dot"></span></span>
+                          <span class="cell-time">{{timeLabel(day.firstIn) | timeAmPm}}</span>
+                        </ng-container>
+
+                        <ng-container *ngIf="!isFuture(day) && !isPendingPunch(day)">
+                          <span class="status-chip"
+                            [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
+                          <span class="cell-time" *ngIf="day.firstIn">{{timeLabel(day.firstIn) | timeAmPm}}</span>
+                        </ng-container>
+
+                        <span class="override-dot" *ngIf="day.isOverridden" title="Manually overridden"></span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Three distinct empty states: no permission at all, permission but no rows,
+                   and still loading. "No classes assigned" is not the same as "no records". -->
+              <ng-container *ngIf="permissionLoaded && myClasses.length==0">
+                <h2 style="text-align: center;margin-top: 150px;">No classes assigned for attendance</h2>
+                <p style="text-align: center;">Ask your school administrator to grant attendance access.</p>
+              </ng-container>
+              <ng-container *ngIf="!loader && permissionLoaded && myClasses.length > 0 && gridRows.length==0">
+                <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

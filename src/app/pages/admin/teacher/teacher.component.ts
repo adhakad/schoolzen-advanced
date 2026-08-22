@@ -39,6 +39,7 @@ export class TeacherComponent implements OnInit {
   selectedAdmitCardPermissionClass: any[] = [];
   selectedPromoteFailPermissionClass: any[] = [];
   selectedTransferCertificatePermissionClass: any[] = [];
+  selectedAttendancePermissionClass: any[] = [];
   teacherObjId: string = '';
 
   loader: Boolean = true;
@@ -95,6 +96,7 @@ export class TeacherComponent implements OnInit {
         feeCollectionPermission: this.fb.array([], [Validators.required]),
         promoteFailPermission: this.fb.array([], [Validators.required]),
         transferCertificatePermission: this.fb.array([], [Validators.required]),
+        attendancePermission: this.fb.array([], [Validators.required]),
       }),
     });
   }
@@ -191,6 +193,16 @@ export class TeacherComponent implements OnInit {
     }
   }
 
+  attendancePermission(option: number, event: any) {
+    if (event.checked) {
+      if (!this.selectedAttendancePermissionClass.includes(option)) {
+        this.selectedAttendancePermissionClass.push(option);
+      }
+    } else {
+      this.selectedAttendancePermissionClass = this.selectedAttendancePermissionClass.filter(cls => cls !== option);
+    }
+  }
+
   isMarksheetPermissionSelected(option: number): boolean {
     return this.selectedMarksheetPermissionClass.includes(option);
   }
@@ -211,6 +223,9 @@ export class TeacherComponent implements OnInit {
   }
   isTransferCertificatePermissionSelected(option: number): boolean {
     return this.selectedTransferCertificatePermissionClass.includes(option);
+  }
+  isAttendancePermissionSelected(option: number): boolean {
+    return this.selectedAttendancePermissionClass.includes(option);
   }
 
   getTeacher($event: any) {
@@ -238,6 +253,9 @@ export class TeacherComponent implements OnInit {
           this.selectedAdmitCardPermissionClass = [...res.teacherList[0].admitCardPermission.classes];
           this.selectedPromoteFailPermissionClass = [...res.teacherList[0].promoteFailPermission.classes];
           this.selectedTransferCertificatePermissionClass = [...res.teacherList[0].transferCertificatePermission.classes];
+          // Optional-chained: attendancePermission was added after this collection had rows,
+          // so a teacher saved before that has no such field and would blow up the spread.
+          this.selectedAttendancePermissionClass = [...(res.teacherList[0].attendancePermission?.classes || [0])];
           this.paginationValues.next({ type: 'page-init', page: params.page, totalTableRecords: res.countTeacher });
           return resolve(true);
         }
@@ -253,6 +271,7 @@ export class TeacherComponent implements OnInit {
     const controlFive = <FormArray>this.teacherPermissionForm.get('type.feeCollectionPermission');
     const controlSix = <FormArray>this.teacherPermissionForm.get('type.promoteFailPermission');
     const controlSeven = <FormArray>this.teacherPermissionForm.get('type.transferCertificatePermission');
+    const controlEight = <FormArray>this.teacherPermissionForm.get('type.attendancePermission');
     controlOne.clear();
     controlTwo.clear();
     controlThree.clear();
@@ -260,6 +279,7 @@ export class TeacherComponent implements OnInit {
     controlFive.clear();
     controlSix.clear();
     controlSeven.clear();
+    controlEight.clear();
     this.teacherObjId = '';
     this.teacherPermissionForm.reset();
 
@@ -345,7 +365,18 @@ export class TeacherComponent implements OnInit {
       controlSeven.push(this.patchTransferCertificateValues(x))
       this.teacherPermissionForm.reset();
     })
+    const controlEight = <FormArray>this.teacherPermissionForm.get('type.attendancePermission');
+    this.selectedAttendancePermissionClass.forEach((x: any) => {
+      controlEight.push(this.patchAttendanceValues(x))
+      this.teacherPermissionForm.reset();
+    })
 
+  }
+
+  patchAttendanceValues(selectedAttendancePermissionClass: any) {
+    return this.fb.group(
+      { [selectedAttendancePermissionClass]: [selectedAttendancePermissionClass] }
+    )
   }
   patchMarksheetValues(selectedMarksheetPermissionClass: any) {
     return this.fb.group(

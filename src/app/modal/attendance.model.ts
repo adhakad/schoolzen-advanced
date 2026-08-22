@@ -17,6 +17,32 @@ export interface AttendanceDay {
   expectedStart: string | null;
   isOverridden: boolean;
   source: string | null;
+
+  // --- Client-side only, never sent by the backend ---
+  // A raw punch arrived over the socket and the reconcile worker has not classified it yet.
+  // The cell shows a pulsing dot and the punch time instead of a status chip, because the
+  // fast path genuinely cannot tell whether 10:32 is Present or Late.
+  livePunch?: boolean;
+  // Drives the one-shot green flash when a punch lands on the cell.
+  flash?: boolean;
+}
+
+// One entry in the live feed strip above the grid. Assembled from the grid's own rows, not
+// from the socket payload — a PunchEvent carries no name, so the feed has to join against
+// people already on screen, and the grid is exactly that set.
+export interface FeedArrival {
+  personId: string;
+  name: string;
+  punchTime: string;          // ISO, same wall-clock-as-UTC frame as everything else here
+}
+
+// Today's totals across the people on screen. The API's `summary` is MONTH-wide and so cannot
+// answer "how many are present right now"; this is recomputed from each row's today cell.
+export interface TodayStats {
+  present: number;
+  late: number;
+  punched: number;            // raw punches held, reconcile pending
+  absent: number;
 }
 
 export interface AttendanceCalendar {
@@ -79,12 +105,26 @@ export interface PunchEventPunch {
   personId: string;
   punchTime: string;          // ISO; school wall clock expressed as UTC, like every other time here
   dateKey: string;            // "YYYY-MM-DD"
+  // The student's class, or null for staff/teacher. The backend routes a punch into
+  // `school:<adminId>:class:<class>` by this, so a teacher panel receives only its own
+  // classes — the client never has to filter on it.
+  class: string | null;
 }
 
 export interface PunchEvent {
   adminId: string;
   count: number;              // the real batch size; `punches` is capped at 200, newest first
   punches: PunchEventPunch[];
+}
+
+// Emitted once the reconcile worker has finished a school+date, so a cell showing a raw punch
+// can be replaced with the status that was actually decided. Deliberately carries no
+// per-person detail — a school-day reconcile can touch everyone, which would be far larger
+// than the refetch the page does in response.
+export interface ReconcileEvent {
+  adminId: string;
+  dateKey: string;            // "YYYY-MM-DD"
+  summary: { [key: string]: any } | null;
 }
 
 // One row of the live board. Sourced from raw PunchLog, NOT DailyAttendance — so there is no

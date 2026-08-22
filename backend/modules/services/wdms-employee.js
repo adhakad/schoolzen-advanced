@@ -1,6 +1,6 @@
 'use strict';
 const axios = require('axios').default;
-const { getWdmsToken } = require('./wdms-token');
+const { withWdmsAuthRetry } = require('./wdms-request');
 const { WDMS_BASE_URL, WDMS_DEFAULT_DEPT_ID, WDMS_DEFAULT_POSITION_ID, WDMS_RESYNC_PATH } = process.env;
 const WDMS_DEFAULT_AREA_ID = process.env.WDMS_DEFAULT_AREA_ID || '1';
 
@@ -42,12 +42,11 @@ const buildEmployeePayload = (person) => {
 
 const createWdmsEmployee = async (person) => {
     try {
-        const token = await getWdmsToken();
-        const response = await axios.post(
+        const response = await withWdmsAuthRetry((token) => axios.post(
             `${WDMS_BASE_URL}/personnel/api/employees/`,
             buildEmployeePayload(person),
             { headers: { Authorization: `JWT ${token}` } }
-        );
+        ));
         return response.data;
     } catch (error) {
         console.error('WDMS Create Employee Error:', error.response?.data || error.message);
@@ -57,12 +56,11 @@ const createWdmsEmployee = async (person) => {
 
 const updateWdmsEmployee = async (wdmsId, person) => {
     try {
-        const token = await getWdmsToken();
-        const response = await axios.patch(
+        const response = await withWdmsAuthRetry((token) => axios.patch(
             `${WDMS_BASE_URL}/personnel/api/employees/${wdmsId}/`,
             buildEmployeePayload(person),
             { headers: { Authorization: `JWT ${token}` } }
-        );
+        ));
         return response.data;
     } catch (error) {
         console.error('WDMS Update Employee Error:', error.response?.data || error.message);
@@ -88,14 +86,13 @@ const updateWdmsEmployee = async (wdmsId, person) => {
  */
 const resyncWdmsDevices = async (terminalSns) => {
     try {
-        const token = await getWdmsToken();
         const path = WDMS_RESYNC_PATH || '/iclock/api/terminals/resync_data/';
         const body = (Array.isArray(terminalSns) && terminalSns.length > 0)
             ? { sns: terminalSns }
             : {};
-        await axios.post(`${WDMS_BASE_URL}${path}`, body, {
+        await withWdmsAuthRetry((token) => axios.post(`${WDMS_BASE_URL}${path}`, body, {
             headers: { Authorization: `JWT ${token}` },
-        });
+        }));
         return true;
     } catch (error) {
         // Logged, never rethrown. A device that has not caught up yet is a delay; failing

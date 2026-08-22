@@ -300,6 +300,20 @@
                             </div>
                           </div>
                         </section>
+                        <ng-container>
+                          <h3>Attendance</h3>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin"
+                                [checked]="isAttendancePermissionSelected(class)"
+                                (change)="attendancePermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
                       </div>
                       <div class="modal-footer">
                         <button class="submit-button" mat-raised-button type="submit">Submit</button>

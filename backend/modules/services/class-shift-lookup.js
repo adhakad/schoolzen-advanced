@@ -58,4 +58,28 @@ const getStudentShiftMap = async (adminId, studentIds) => {
     return shiftByStudentId;
 };
 
-module.exports = { getStudentShiftMap };
+/**
+ * personId -> class, for students. One query regardless of headcount.
+ *
+ * The fast path needs this to route a punch into its class room: BiometricMapping carries
+ * only { wdmsEmpCode, personType, personId }, so the class a punch belongs to is not known
+ * anywhere in the ingest chain. getStudentShiftMap above reads the same documents but
+ * resolves them all the way to a Shift; the publisher needs the raw class and nothing else.
+ *
+ * @param {String[]} studentIds
+ * @returns {Promise<Map<String, String>>} personId -> class, as a String
+ */
+const getStudentClassMap = async (studentIds) => {
+    const classByStudentId = new Map();
+    if (studentIds.length === 0) return classByStudentId;
+
+    const students = await StudentModel.find({ _id: { $in: studentIds } }, { class: 1 }).lean();
+    // String() for the same reason getStudentShiftMap does it: student.class is a Number,
+    // while ClassShift.class and the room name are Strings.
+    for (const student of students) {
+        classByStudentId.set(student._id.toString(), String(student.class));
+    }
+    return classByStudentId;
+};
+
+module.exports = { getStudentShiftMap, getStudentClassMap };

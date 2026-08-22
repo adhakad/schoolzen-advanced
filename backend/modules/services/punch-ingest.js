@@ -7,7 +7,7 @@ const { fetchWdmsTransactions } = require('./wdms-transaction');
 const { publishPunchBatch } = require('./punch-publisher');
 const { toWdmsEmpCode } = require('./wdms-employee');
 const { getExpectedShiftsForDate } = require('./roster-lookup');
-const { getStudentShiftMap } = require('./class-shift-lookup');
+const { getStudentShiftMap, getStudentClassMap } = require('./class-shift-lookup');
 const { buildShiftWindows } = require('./attendance-status');
 const { parseWdmsPunchTime } = require('../helpers/attendance-time');
 const { toUtcMidnight, toDateKey } = require('../helpers/date-only');
@@ -495,6 +495,23 @@ const ingestSchoolDay = async ({ adminId, dateKey }) => {
         logger.error('punch-ingest.reconcileEnqueueFailed', queueError);
     }
 
+    // The class each student punch belongs to, so sockets/punch-subscriber.js can fan it into
+    // that class's room for the teacher panel. BiometricMapping carries no class, so this is
+    // the only place it can be resolved — one query for the whole batch, and only for the
+    // students actually in it. Staff and teacher punches have no class dimension.
+    //
+    // Best-effort: a failure here costs the class-room fan-out, never the school-room emit
+    // that every admin depends on.
+    let classByStudentId = new Map();
+    try {
+        const studentIds = [...new Set(punchRows
+            .filter((row) => row.personType === 'student')
+            .map((row) => row.personId))];
+        classByStudentId = await getStudentClassMap(studentIds);
+    } catch (classError) {
+        logger.error('punch-ingest.classLookupFailed', classError);
+    }
+
     // The "real-time feel". Fire-and-forget and deliberately last: the rows are already
     // committed, so a publish failure costs a live nudge and nothing else.
     await publishPunchBatch(adminId, punchRows.map((row) => ({
@@ -502,6 +519,9 @@ const ingestSchoolDay = async ({ adminId, dateKey }) => {
         personId: row.personId,
         punchTime: row.punchTime,
         dateKey: toDateKey(row.date),
+        class: row.personType === 'student'
+            ? (classByStudentId.get(String(row.personId)) || null)
+            : null,
     })));
 
     return result;

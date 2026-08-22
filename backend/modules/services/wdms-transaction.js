@@ -1,6 +1,6 @@
 'use strict';
 const axios = require('axios').default;
-const { getWdmsToken } = require('./wdms-token');
+const { withWdmsAuthRetry } = require('./wdms-request');
 const logger = require('../helpers/logger');
 const { WDMS_BASE_URL, WDMS_COMPANY_UUID } = process.env;
 
@@ -23,8 +23,6 @@ const MAX_PAGES = 500;
  * @returns {Promise<Array>} raw WDMS transaction objects
  */
 const fetchWdmsTransactions = async ({ startTime, endTime, terminalSns }) => {
-    const token = await getWdmsToken();
-
     const params = {
         page_size: PAGE_SIZE,
         start_time: startTime,
@@ -46,10 +44,15 @@ const fetchWdmsTransactions = async ({ startTime, endTime, terminalSns }) => {
     let requestParams = params;
 
     while (url && pages < MAX_PAGES) {
-        const response = await axios.get(url, {
-            params: requestParams,
+        // Wrapped PER PAGE, not around the whole loop. A school-day pull can run for minutes
+        // and outlive its token mid-pagination; retrying one page re-authenticates and carries
+        // on, where retrying the loop would restart the whole fetch from page 1.
+        const pageUrl = url;
+        const pageParams = requestParams;
+        const response = await withWdmsAuthRetry((token) => axios.get(pageUrl, {
+            params: pageParams,
             headers: { Authorization: `JWT ${token}` },
-        });
+        }));
         const page = response.data.data || response.data.results || [];
         transactions = transactions.concat(page);
         url = response.data.next || null;

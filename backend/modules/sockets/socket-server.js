@@ -17,6 +17,11 @@ const ALLOWED_ORIGINS = (process.env.SOCKET_CORS_ORIGINS || '')
 
 const roomForSchool = (adminId) => `${ROOM_PREFIX}${adminId}`;
 
+// A class-scoped room INSIDE a school: `school:<adminId>:class:<class>`. Student punches are
+// fanned into these by sockets/punch-subscriber.js so a teacher receives only their own
+// classes. Kept next to roomForSchool so the two naming schemes can never drift apart.
+const roomForClass = (adminId, className) => `${ROOM_PREFIX}${adminId}:class:${className}`;
+
 let io = null;
 
 /**
@@ -41,11 +46,19 @@ const initSocketServer = (httpServer) => {
         io.use(authenticateSocket);
 
         io.on('connection', (socket) => {
-            const { adminId, role } = socket.data;
+            const { adminId, role, classes } = socket.data;
             const room = roomForSchool(adminId);
             socket.join(room);
 
-            logger.info('socket.connected', { socketId: socket.id, adminId, role, room });
+            // Teachers only. middleware/socket-auth.js resolves this from the verified token,
+            // never from anything the client sent, so a teacher cannot ask for a class they
+            // were not granted. Admins arrive with [] and see the whole school via `room`.
+            const classRooms = (classes || []).map((className) => roomForClass(adminId, className));
+            for (const classRoom of classRooms) socket.join(classRoom);
+
+            logger.info('socket.connected', {
+                socketId: socket.id, adminId, role, room, classRooms,
+            });
 
             socket.on('disconnect', (reason) => {
                 logger.info('socket.disconnected', { socketId: socket.id, adminId, reason });
@@ -104,4 +117,6 @@ const closeSocketServer = async () => {
     }
 };
 
-module.exports = { initSocketServer, getIo, getSocketStats, closeSocketServer, roomForSchool };
+module.exports = {
+    initSocketServer, getIo, getSocketStats, closeSocketServer, roomForSchool, roomForClass,
+};

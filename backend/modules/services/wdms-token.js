@@ -37,6 +37,22 @@ const getWdmsToken = async () => {
     }
 };
 
+// Drop the cached token so the next getWdmsToken() re-authenticates.
+//
+// WDMS can revoke a token long before the 23h TTL above expires — a password change, an admin
+// session reset, a WDMS restart. Without this the cache keeps serving the dead token until the
+// TTL runs out, which in practice meant restarting the backend by hand. services/wdms-request.js
+// calls this on a 401 and retries once.
+//
+// No-op in effect when WDMS_TOKEN is set: getWdmsToken() returns that static value before it
+// ever looks at the cache, so a retry there replays the same token. That is the operator's
+// choice and deliberately not worked around.
+const clearWdmsToken = () => {
+    cachedToken = null;
+    cachedTokenExpiresAt = 0;
+};
+
 module.exports = {
     getWdmsToken,
+    clearWdmsToken,
 };

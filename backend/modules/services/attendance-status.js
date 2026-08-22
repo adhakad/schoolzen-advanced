@@ -29,9 +29,10 @@ const MS_PER_MINUTE = 60 * 1000;
 
 const addMinutes = (date, minutes) => new Date(date.getTime() + minutes * MS_PER_MINUTE);
 
-// Shift fields are `required` with defaults on the model, but a document written before
-// those fields existed has none of them. Falling back to the model defaults keeps an old
-// shift working instead of producing NaN windows that silently match no punches.
+// Read-time fallbacks. Two kinds of document need them: one written before these fields
+// existed, and a student-only shift that legitimately omits the three staff/teacher fields
+// (see models/shift.js). Falling back keeps both working instead of producing NaN windows
+// that silently match no punches.
 const SHIFT_DEFAULTS = {
     earlyPunchMinutes: 30,
     graceMinutes: 10,
@@ -41,7 +42,12 @@ const SHIFT_DEFAULTS = {
 };
 
 const minutesOf = (shift, field) => {
-    const value = Number(shift[field]);
+    const raw = shift[field];
+    // null and '' are checked BEFORE Number(), which turns both into a perfectly finite 0 —
+    // a missing halfDayAfterMinutes would otherwise mean "every arrival is a half day"
+    // rather than "use the default".
+    if (raw === null || raw === undefined || raw === '') return SHIFT_DEFAULTS[field];
+    const value = Number(raw);
     return Number.isFinite(value) ? value : SHIFT_DEFAULTS[field];
 };
 

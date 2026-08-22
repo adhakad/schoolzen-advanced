@@ -27,7 +27,9 @@ const MAX_PAYLOAD_PUNCHES = 200;
  * next batch (or a page refresh) resolves it.
  *
  * @param {String} adminId
- * @param {Array}  punches [{ personType, personId, punchTime, dateKey }, ...]
+ * @param {Array}  punches [{ personType, personId, punchTime, dateKey, class }, ...]
+ *                 `class` is the student's class, or null for staff/teacher — it is what
+ *                 sockets/punch-subscriber.js fans a punch into its class room by.
  */
 const publishPunchBatch = async (adminId, punches) => {
     if (!adminId || !Array.isArray(punches) || punches.length === 0) return;
@@ -49,6 +51,7 @@ const publishPunchBatch = async (adminId, punches) => {
                     personId: punch.personId,
                     punchTime: punch.punchTime,
                     dateKey: punch.dateKey,
+                    class: punch.class || null,
                 })),
         };
 

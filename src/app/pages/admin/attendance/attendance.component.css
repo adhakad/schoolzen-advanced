@@ -1,5 +1,23 @@
 @import'../dashboard/dashboard.component.css';
 
+/* The page's colour tokens, scoped to this component — there is no global theme layer in this
+   app (no :root block exists anywhere in src/), and adding one would repaint every page. These
+   are the EXISTING palette given names, not new colours: --bg-accent is the same blue already
+   used by the today rail and the Today badge, --text-success the same green as the live badge.
+   Named because the today tint and the flash keyframe both have to land on exactly the same
+   value, and two hand-copied hexes drift. */
+:host {
+  --bg-accent: #3d9be9;
+  --surface-2: #ffffff;
+  --text-success: #16b978;
+  --bg-success: #d6f5e8;
+  --text-warning: #b97708;
+  --bg-warning: #fdf0d9;
+  --text-danger: #a8256d;
+  --bg-danger: #fbe0ee;
+  --text-muted: #8a8a9e;
+}
+
 /* Month view as a wrapping day grid rather than the roster's person x day table — this
    page shows ONE person's month, so the second axis the roster needs doesn't exist here. */
 
@@ -95,6 +113,89 @@
   gap: 6px;
 }
 
+/* LIVE STRIP — the merged-in Live Attendance board. Two rows: today's headline numbers, then
+   a horizontally scrolling list of arrivals. It sits above the grid because it answers the
+   question somebody opens this page at 8am to ask, which the month grid answers only
+   indirectly. */
+.live-strip {
+  margin-bottom: 2vh;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f7f6fb;
+}
+
+.live-counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.count-item {
+  color: #646089;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+
+.count-item b {
+  color: #382066;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* The one number that is still moving. Green ties it to the pulsing dots in the grid and the
+   feed, so it reads as "these are the live ones" rather than as another status total. */
+.count-punched b {
+  color: var(--text-success);
+}
+
+/* Horizontal scroll, NOT wrap: the feed is newest-first, so the interesting end must stay put
+   at the left instead of the list growing downwards and pushing the grid off screen. */
+.live-feed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.feed-item {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid #e4e0ee;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+/* The feed's ring is the grid's ring, just without the cell's top margin. */
+.live-feed .pulse-ring {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.feed-name {
+  color: #3f3d56;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.feed-time {
+  color: var(--text-success);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.feed-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 /* PERSON x DAY GRID — same shape and the same sticky-column technique as
    pages/admin/roster, so the two attendance pages read as one system. Layout only:
    nothing here repaints a thead cell, so the shared purple table header from
@@ -151,14 +252,15 @@
   line-height: 1.25;
 }
 
-/* 64px wide / 52px tall: enough for the status chip plus an in-time and an out-time
-   stacked underneath it. DAY_COLUMN_PX in attendance.component.ts MUST match this width —
+/* 60px wide / 58px tall: enough for the status chip plus an in-time and an out-time stacked
+   underneath it, and for the taller pulse-ring state that replaces the chip while a punch is
+   awaiting reconcile. DAY_COLUMN_PX in attendance.component.ts MUST match this width —
    scrollToToday() multiplies by it to find today's offset. */
 .attendance-grid .day-column {
   position: relative;
-  width: 64px;
-  min-width: 64px;
-  height: 52px;
+  width: 60px;
+  min-width: 60px;
+  height: 58px;
   padding: 4px 2px;
   text-align: center;
   vertical-align: top;
@@ -209,11 +311,71 @@
   pointer-events: none;
 }
 
+/* The em-dash a future cell shows in place of a status. Quiet on purpose: it means "not yet",
+   which is the absence of a fact rather than one worth reading. */
+.cell-empty {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 22px;
+}
+
 /* Today. A blue rail down both edges of the column, header included, so the eye finds it
    immediately after the auto-scroll parks on it. Inset shadow rather than a border so it
-   does not shift the 64px column width and desynchronise scrollToToday(). */
+   does not shift the 60px column width and desynchronise scrollToToday(). */
 .attendance-grid .today-column {
-  box-shadow: inset 2px 0 0 #3d9be9, inset -2px 0 0 #3d9be9;
+  box-shadow: inset 2px 0 0 var(--bg-accent), inset -2px 0 0 var(--bg-accent);
+}
+
+/* ...plus a wash across the column's body cells, so today reads as a column rather than as a
+   pair of edges. BODY ONLY — the thead cell keeps the shared purple header from
+   dashboard.component.css. Solid hex first for engines without color-mix. */
+.attendance-grid tbody .today-column {
+  background: #ecf5fd;
+  background: color-mix(in srgb, var(--bg-accent) 15%, var(--surface-2));
+}
+
+/* PUNCH RECEIVED, RECONCILE PENDING. A dot with an expanding ring — deliberately not a chip:
+   a chip is a verdict, and at this point the pipeline has not reached one. It says "they are
+   here", and the chip replaces it when the reconcile worker says what that meant. */
+.pulse-ring {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  margin: 2px auto 0;
+}
+
+.pulse-ring .dot {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--text-success);
+}
+
+.pulse-ring .ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--text-success);
+  opacity: 0;
+  animation: ringPulse 2s ease-out infinite;
+}
+
+@keyframes ringPulse {
+  0% { transform: scale(.6); opacity: .8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* One-shot green flash as a punch lands, settling back to the today tint it sits on. The end
+   state MUST match .today-column's background above or the cell visibly jumps when the
+   animation finishes. FLASH_MS in attendance.component.ts must match this duration. */
+.attendance-grid .day-column.flash {
+  animation: cellFlash 1.5s ease-out;
+}
+
+@keyframes cellFlash {
+  0% { background: var(--bg-success); }
+  100% { background: color-mix(in srgb, var(--bg-accent) 15%, var(--surface-2)); }
 }
 
 .today-badge {
@@ -247,29 +409,39 @@
   background: #8C52FF;
 }
 
+/* Soft-tinted rather than solid-filled: a month grid puts up to 31 of these in a row per
+   person, and 31 saturated blocks of colour fight each other for attention. A pale ground
+   with darker same-hue text carries the same meaning at a fraction of the visual weight, and
+   leaves the pulsing dot as the loudest thing on the grid — which is the point, since it is
+   the only cell that is actually changing.
+
+   NO `color` here. Each variant sets its own, and a base white would be inherited by every
+   one of them and make all six unreadable. */
 .status-chip {
   display: inline-block;
+  /* border-box so the Holiday variant's 1px border is absorbed rather than making that one
+     chip 2px taller than the five beside it. */
+  box-sizing: border-box;
   min-width: 26px;
   height: 22px;
   padding: 0 6px;
-  line-height: 22px;
-  border-radius: 5px;
-  color: #FFF;
+  line-height: 20px;
+  border-radius: 4px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   text-align: center;
   letter-spacing: .2px;
 }
 
-/* P green, L yellow, HD orange, A red, H grey. Holiday is grey on purpose — the school was
-   shut, which is the absence of a judgement about the person, so it must not compete
-   visually with the days that do say something about them. */
-.status-present { background: #16b978; }
-.status-late    { background: #f5a623; }
-.status-halfday { background: #ff8a3d; }
-.status-absent  { background: #e4409a; }
-.status-leave   { background: #3d9be9; }
-.status-holiday { background: #9a95ab; }
+/* P green, L amber, HD orange, A red, LV blue, H grey. Holiday is the only one with a border
+   instead of a fill — the school was shut, which is the absence of a judgement about the
+   person, so it must not compete with the days that do say something about them. */
+.status-present { background: var(--bg-success); color: #0f8f5c; }
+.status-late    { background: var(--bg-warning); color: var(--text-warning); }
+.status-halfday { background: #ffe8d6;           color: #c2571a; }
+.status-absent  { background: var(--bg-danger);  color: var(--text-danger); }
+.status-leave   { background: #dcecfb;           color: #1f6fad; }
+.status-holiday { background: #efedf4;           color: #6c6880; border: 1px solid #d9d5e4; }
 
 /* Non-working days and future dates carry no judgement, so they stay unpainted — the
    working days between them are what the eye should land on. */

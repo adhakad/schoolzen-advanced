@@ -25,12 +25,19 @@ const ShiftModel = mongoose.model('shift', {
 
     // NO DEFAULTS on any of the five numeric fields below, deliberately. A default here is
     // how a school ends up running its whole attendance on numbers nobody chose — silently,
-    // and only discovered when a month of payroll is already wrong. They are all `required`
-    // instead, so a create that omits one is a hard validation failure. The Shift form
+    // and only discovered when a month of payroll is already wrong. The Shift form
     // (pages/admin/shift) matches this: every field starts empty.
     //
-    // services/attendance-status.js keeps a SHIFT_DEFAULTS read-time fallback, which exists
-    // ONLY for documents written before these fields did — not as a write-time default.
+    // REQUIRED vs OPTIONAL splits on who reads the field. earlyPunchMinutes and graceMinutes
+    // are read for EVERY person type, so they stay required. The three below them are read
+    // only when the person is staff or a teacher (see computeStatus in
+    // services/attendance-status.js), and a shift attached to a class via ClassShift is used
+    // by students alone — requiring them there forced a school running student-only
+    // attendance to invent three numbers that would never be read.
+    //
+    // services/attendance-status.js keeps a SHIFT_DEFAULTS read-time fallback. It was written
+    // for documents saved before these fields existed, and now also covers a student-only
+    // shift that legitimately omits them.
 
     // ---- Punch-in settings -------------------------------------------------
     earlyPunchMinutes: {
@@ -48,9 +55,8 @@ const ShiftModel = mongoose.model('shift', {
     },
     halfDayAfterMinutes: {
         // STAFF/TEACHER ONLY. Minutes after startTime past which an arrival counts as
-        // 'HalfDay'. Never read when the person is a student.
+        // 'HalfDay'. Never read when the person is a student, hence optional.
         type: Number,
-        required: true,
     },
 
     // ---- Punch-out settings (STAFF/TEACHER ONLY) ---------------------------
@@ -62,12 +68,10 @@ const ShiftModel = mongoose.model('shift', {
         // the arrival window — see services/attendance-status.js — so the two windows meet
         // exactly and no punch can be counted as both an arrival and a departure.
         type: Number,
-        required: true,
     },
     lateCheckoutMinutes: {
         // How long AFTER endTime a departure punch is still accepted.
         type: Number,
-        required: true,
     },
     status: {
         type: String,

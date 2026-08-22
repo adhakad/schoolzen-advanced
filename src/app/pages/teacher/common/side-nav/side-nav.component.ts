@@ -15,6 +15,7 @@ export class SideNavComponent implements OnInit {
   feeCollectionPermission:boolean = false;
   promoteFailPermission:boolean = false;
   transferCertificatePermission:boolean = false;
+  attendancePermission:boolean = false;
   adminId!: String
   constructor(private teacherAuthService:TeacherAuthService,private teacherService:TeacherService) { }
 
@@ -55,6 +56,7 @@ export class SideNavComponent implements OnInit {
     this.marksheetPermission = res.marksheetPermission?.status || false;
     this.promoteFailPermission = res.promoteFailPermission?.status || false;
     this.transferCertificatePermission = res.transferCertificatePermission?.status || false;
+    this.attendancePermission = res.attendancePermission?.status || false;
   }
 
 }

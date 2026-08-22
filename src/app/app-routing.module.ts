@@ -44,9 +44,6 @@ const routes: Routes = [
   { path: 'admin/shift', loadChildren: () => import('src/app/pages/admin/shift/shift.module').then((module) => module.ShiftModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/roster', loadChildren: () => import('src/app/pages/admin/roster/roster.module').then((module) => module.RosterModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/attendance', loadChildren: () => import('src/app/pages/admin/attendance/attendance.module').then((module) => module.AttendanceModule), canActivate: [AdminAuthGuard] },
-  // A SIBLING of admin/attendance, not a child. As 'admin/attendance/live' it would keep the
-  // sidebar's Attendance button lit via routerLinkActive, which has no exact option set.
-  { path: 'admin/live-attendance', loadChildren: () => import('src/app/pages/admin/live-attendance/live-attendance.module').then((module) => module.LiveAttendanceModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class', loadChildren: () => import('src/app/pages/admin/class/class.module').then((module) => module.ClassModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/subject', loadChildren: () => import('src/app/pages/admin/subject/subject.module').then((module) => module.SubjectModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class-subject', loadChildren: () => import('src/app/pages/admin/class-subject/class-subject.module').then((module) => module.ClassSubjectModule), canActivate: [AdminAuthGuard] },
@@ -65,6 +62,7 @@ const routes: Routes = [
   { path: 'teacher/login', loadChildren: () => import('src/app/pages/auth/teacher-auth/teacher-login/teacher-login.module').then((module) => module.TeacherLoginModule) },
   { path: 'teacher/dashboard', loadChildren: () => import('src/app/pages/teacher/teacher-dashboard/teacher-dashboard.module').then((module) => module.TeacherDashboardModule), canActivate: [TeacherAuthGuard] },
 
+  { path: 'teacher/attendance', loadChildren: () => import('src/app/pages/teacher/teacher-attendance/teacher-attendance.module').then((module) => module.TeacherAttendanceModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/admission', loadChildren: () => import('src/app/pages/teacher/teacher-admission/teacher-admission.module').then((module) => module.TeacherAdmissionModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/admit-card', loadChildren: () => import('src/app/pages/teacher/teacher-admit-card/teacher-admit-card.module').then((module) => module.TeacherAdmitCardModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/marksheet', loadChildren: () => import('src/app/pages/teacher/teacher-student-marksheet/teacher-student-marksheet.module').then((module) => module.TeacherStudentMarksheetModule), canActivate: [TeacherAuthGuard] },

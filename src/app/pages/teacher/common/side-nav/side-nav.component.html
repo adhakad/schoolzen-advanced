@@ -8,6 +8,16 @@
       </button>
     </li>
     <li class="nav-item">
+      <button *ngIf="attendancePermission" mat-button class="menu-button" routerLink="/teacher/attendance" routerLinkActive="active-link">
+        <mat-icon>fact_check</mat-icon>
+        <span>Attendance</span>
+      </button>
+      <button *ngIf="!attendancePermission" mat-button class="menu-button">
+        <mat-icon>lock</mat-icon>
+        <span>Attendance</span>
+      </button>
+    </li>
+    <li class="nav-item">
       <button *ngIf="admissionPermission" mat-button class="menu-button" routerLink="/teacher/admission" routerLinkActive="active-link">
         <mat-icon>dialpad</mat-icon>
         <span>Admission</span>

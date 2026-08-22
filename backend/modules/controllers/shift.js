@@ -4,30 +4,48 @@ const RosterModel = require('../models/roster');
 const ClassShiftModel = require('../models/class-shift');
 
 // ---------------------------------------------------------------------------
-// The five numeric settings, none of which has a model default any more (see
-// models/shift.js). Mongoose's `required` would already reject a missing one, but it
-// reports it as a 500-shaped ValidationError with a message no school owner can act on —
-// and `required` does NOT reject a negative number or the empty string a blank <input
-// type="number"> submits. So they are checked here first, one specific message each, in
-// the fail-fast style the rest of this codebase uses.
+// The five numeric settings, none of which has a model default (see models/shift.js).
+// Mongoose's `required` would already reject a missing one, but it reports it as a
+// 500-shaped ValidationError with a message no school owner can act on — and `required`
+// does NOT reject a negative number or the empty string a blank <input type="number">
+// submits. So they are checked here first, one specific message each, in the fail-fast
+// style the rest of this codebase uses.
+//
+// The split mirrors models/shift.js: the first two are read for every person type, the
+// last three only for staff and teachers. A shift used purely for students (attached to a
+// class via ClassShift) may leave the optional three blank — but if a value IS supplied it
+// still has to be a sane number of minutes.
 // ---------------------------------------------------------------------------
-const NUMERIC_FIELDS = [
+const REQUIRED_NUMERIC_FIELDS = [
     ['earlyPunchMinutes', 'Early punch minutes'],
     ['graceMinutes', 'Grace minutes'],
+];
+
+const OPTIONAL_NUMERIC_FIELDS = [
     ['halfDayAfterMinutes', 'Half day after minutes'],
     ['earlyCheckoutMinutes', 'Early checkout minutes'],
     ['lateCheckoutMinutes', 'Late checkout minutes'],
 ];
 
+const isBlank = (raw) => raw === undefined || raw === null || raw === '';
+
+// A blank optional field is stored as "absent", never as null or 0. minutesOf() in
+// services/attendance-status.js falls back to its default for an absent value, which is the
+// behaviour a student-only shift wants — whereas a stored 0 would be read as a real setting.
+const optionalMinutes = (raw) => (isBlank(raw) ? undefined : Number(raw));
+
 /**
  * @returns {String|null} the error message, or null when every field is usable.
  */
 const validateShiftNumbers = (body) => {
-    for (const [field, label] of NUMERIC_FIELDS) {
-        const raw = body[field];
-        if (raw === undefined || raw === null || raw === '') {
+    for (const [field, label] of REQUIRED_NUMERIC_FIELDS) {
+        if (isBlank(body[field])) {
             return `${label} is required!`;
         }
+    }
+    for (const [field, label] of [...REQUIRED_NUMERIC_FIELDS, ...OPTIONAL_NUMERIC_FIELDS]) {
+        const raw = body[field];
+        if (isBlank(raw)) continue;   // already rejected above if it was required
         const value = Number(raw);
         if (!Number.isFinite(value) || value < 0) {
             return `${label} must be a number of minutes, 0 or more!`;
@@ -114,9 +132,9 @@ let CreateShift = async (req, res, next) => {
             endTime: endTime,
             earlyPunchMinutes: earlyPunchMinutes,
             graceMinutes: graceMinutes,
-            halfDayAfterMinutes: halfDayAfterMinutes,
-            earlyCheckoutMinutes: earlyCheckoutMinutes,
-            lateCheckoutMinutes: lateCheckoutMinutes,
+            halfDayAfterMinutes: optionalMinutes(halfDayAfterMinutes),
+            earlyCheckoutMinutes: optionalMinutes(earlyCheckoutMinutes),
+            lateCheckoutMinutes: optionalMinutes(lateCheckoutMinutes),
             status: status,
         }
         const createShift = await ShiftModel.create(shiftData);
@@ -147,12 +165,23 @@ let UpdateShift = async (req, res, next) => {
             endTime: req.body.endTime,
             earlyPunchMinutes: req.body.earlyPunchMinutes,
             graceMinutes: req.body.graceMinutes,
-            halfDayAfterMinutes: req.body.halfDayAfterMinutes,
-            earlyCheckoutMinutes: req.body.earlyCheckoutMinutes,
-            lateCheckoutMinutes: req.body.lateCheckoutMinutes,
             status: req.body.status,
         }
-        const update = await ShiftModel.findByIdAndUpdate(id, { $set: shiftData }, { new: true });
+
+        // The three optional fields are $set when supplied and $unset when cleared. They
+        // CANNOT go through $set as undefined: Mongoose strips undefined from an update, so
+        // blanking a field in the form would silently leave the old number in place.
+        const unsetData = {};
+        for (const [field] of OPTIONAL_NUMERIC_FIELDS) {
+            const value = optionalMinutes(req.body[field]);
+            if (value === undefined) unsetData[field] = '';
+            else shiftData[field] = value;
+        }
+
+        const updateOps = { $set: shiftData };
+        if (Object.keys(unsetData).length > 0) updateOps.$unset = unsetData;
+
+        const update = await ShiftModel.findByIdAndUpdate(id, updateOps, { new: true });
         return res.status(200).json('Shift updated successfully.');
     } catch (error) {
         return res.status(500).json('Internal Server Error!');

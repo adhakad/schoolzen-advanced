@@ -1,5 +1,6 @@
 'use strict';
 const { CHANNEL } = require('../services/punch-publisher');
+const { RECONCILE_CHANNEL } = require('../services/reconcile-publisher');
 const logger = require('../helpers/logger');
 
 // The API-side half of the seam services/punch-publisher.js describes.
@@ -8,8 +9,36 @@ const logger = require('../helpers/logger');
 // so the worker publishes onto a Redis channel and this file re-emits each payload into the
 // matching school's room. Nothing on the publish side changes — this is the additive half that
 // punch-publisher.js's header comment was written against.
+//
+// Two channels now, one subscriber: raw punches (the fast path) and reconcile-complete (the
+// slow path). They share a connection because a second SUBSCRIBE on the same client costs
+// nothing — Redis pub/sub is push, so neither channel adds a polling loop.
 
 const ROOM_PREFIX = 'school:';
+
+/**
+ * Fan a punch payload into the class rooms of the students it mentions.
+ *
+ * Only STUDENT punches have a class. Staff and teacher punches are school-wide — a class room
+ * would have nothing to do with them, and the teacher panel that these rooms exist for shows
+ * pupils, not colleagues.
+ *
+ * Each class receives ONLY its own punches, not the whole batch filtered client-side: the room
+ * is the access boundary, so a class-scoped socket must never be sent another class's data.
+ */
+const emitToClassRooms = (io, payload) => {
+    const byClass = new Map();
+    for (const punch of payload.punches) {
+        if (punch.personType !== 'student' || !punch.class) continue;
+        if (!byClass.has(punch.class)) byClass.set(punch.class, []);
+        byClass.get(punch.class).push(punch);
+    }
+
+    for (const [className, punches] of byClass) {
+        io.to(`${ROOM_PREFIX}${payload.adminId}:class:${className}`)
+            .emit('attendance:punch', { ...payload, count: punches.length, punches });
+    }
+};
 
 let subscriber = null;
 
@@ -38,20 +67,30 @@ const startPunchSubscriber = (io) => {
 
         subscriber.on('error', (error) => logger.error('punch-subscriber.error', error));
 
-        subscriber.subscribe(CHANNEL, (error) => {
+        subscriber.subscribe(CHANNEL, RECONCILE_CHANNEL, (error) => {
             if (error) return logger.error('punch-subscriber.subscribeFailed', error);
-            logger.info('punch-subscriber.subscribed', { channel: CHANNEL });
+            logger.info('punch-subscriber.subscribed', {
+                channels: [CHANNEL, RECONCILE_CHANNEL],
+            });
         });
 
         subscriber.on('message', (channel, raw) => {
-            if (channel !== CHANNEL) return;
+            if (channel !== CHANNEL && channel !== RECONCILE_CHANNEL) return;
             try {
                 const payload = JSON.parse(raw);
                 // No adminId means no room to deliver to. Dropping it is correct: broadcasting
                 // to every school is the one thing this layer must never do.
                 if (!payload || !payload.adminId) return;
 
+                // Reconcile is school-wide — its summary has no per-class dimension, and every
+                // page that cares responds by refetching its own scope anyway.
+                if (channel === RECONCILE_CHANNEL) {
+                    io.to(`${ROOM_PREFIX}${payload.adminId}`).emit('attendance:reconciled', payload);
+                    return;
+                }
+
                 io.to(`${ROOM_PREFIX}${payload.adminId}`).emit('attendance:punch', payload);
+                if (Array.isArray(payload.punches)) emitToClassRooms(io, payload);
             } catch (error) {
                 // One malformed message must not kill the listener for every school.
                 logger.error('punch-subscriber.badPayload', error);

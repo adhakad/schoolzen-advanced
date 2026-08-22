@@ -3,6 +3,7 @@ const { Worker } = require('bullmq');
 const { defaultWorkerOptions } = require('../queues/connection');
 const { QUEUE_NAME } = require('../queues/attendance-reconcile-queue');
 const { reconcileSchoolDate } = require('../services/attendance-reconcile');
+const { publishReconcileDone } = require('../services/reconcile-publisher');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 
@@ -28,6 +29,16 @@ const processReconcileJob = async (job) => {
     // school-day was ever recomputed — and the counterpart to sync's .done, which the health
     // endpoint's SyncState half cannot answer for reconcile.
     logger.info('attendance-reconcile-worker.done', { adminId, dateKey, ...summary });
+
+    // Tell any connected page that this school-day now has real statuses. Until this existed
+    // a cell that had just received a raw punch showed its "pending" dot until somebody
+    // reloaded — the fast path can say WHEN someone arrived, only this job can say whether
+    // that made them Present or Late.
+    //
+    // Fire-and-forget and deliberately last, matching the publish at the end of
+    // services/punch-ingest.js: the rows are committed, so a Redis hiccup must not fail a
+    // finished job and trigger a retry that recomputes a day it already got right.
+    await publishReconcileDone(adminId, dateKey, summary);
 
     return summary;
 };

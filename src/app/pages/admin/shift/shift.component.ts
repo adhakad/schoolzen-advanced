@@ -45,10 +45,13 @@ export class ShiftComponent implements OnInit {
       // Punch-in settings
       earlyPunchMinutes: [null, [Validators.required, Validators.min(0)]],
       graceMinutes: [null, [Validators.required, Validators.min(0)]],
-      // Staff/teacher only — never read when the person is a student.
-      halfDayAfterMinutes: [null, [Validators.required, Validators.min(0)]],
-      earlyCheckoutMinutes: [null, [Validators.required, Validators.min(0)]],
-      lateCheckoutMinutes: [null, [Validators.required, Validators.min(0)]],
+      // Staff/teacher only — never read when the person is a student, so OPTIONAL. A shift
+      // attached to a class via ClassShift is used by students alone; requiring these three
+      // forced such a school to invent numbers nothing would ever read. Still validated when
+      // a value IS given, and the backend mirrors this split (controllers/shift.js).
+      halfDayAfterMinutes: [null, [Validators.min(0)]],
+      earlyCheckoutMinutes: [null, [Validators.min(0)]],
+      lateCheckoutMinutes: [null, [Validators.min(0)]],
       status: ['active'],
     })
   }

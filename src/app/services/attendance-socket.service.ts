@@ -3,7 +3,7 @@ import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from 'src/environments/environment';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
-import { PunchEvent } from 'src/app/modal/attendance.model';
+import { PunchEvent, ReconcileEvent } from 'src/app/modal/attendance.model';
 
 // The frontend end of the Phase 6/7 fast path: WDMS punch -> PunchLog insert -> Redis publish
 // -> backend/modules/sockets/punch-subscriber.js -> this socket -> the page, with no polling
@@ -19,6 +19,7 @@ import { PunchEvent } from 'src/app/modal/attendance.model';
 export class AttendanceSocketService {
   private socket: Socket | null = null;
   private punch = new Subject<PunchEvent>();
+  private reconciled = new Subject<ReconcileEvent>();
   private connected = new BehaviorSubject<boolean>(false);
 
   constructor(private adminAuthService: AdminAuthService) {
@@ -48,6 +49,10 @@ export class AttendanceSocketService {
     this.socket.on('connect_error', () => this.connected.next(false));
 
     this.socket.on('attendance:punch', (event: PunchEvent) => this.punch.next(event));
+    // The slow path's counterpart. A punch tells the grid WHEN somebody arrived; only this
+    // says whether that made them Present or Late, so it is what turns a pending dot into a
+    // real chip without the page being reloaded.
+    this.socket.on('attendance:reconciled', (event: ReconcileEvent) => this.reconciled.next(event));
   }
 
   disconnect(): void {
@@ -63,6 +68,10 @@ export class AttendanceSocketService {
   // do on this side.
   onPunch(): Observable<PunchEvent> {
     return this.punch.asObservable();
+  }
+
+  onReconciled(): Observable<ReconcileEvent> {
+    return this.reconciled.asObservable();
   }
 
   onConnected(): Observable<boolean> {
