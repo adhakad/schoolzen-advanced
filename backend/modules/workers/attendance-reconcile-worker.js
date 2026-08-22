@@ -3,6 +3,7 @@ const { Worker } = require('bullmq');
 const { defaultWorkerOptions } = require('../queues/connection');
 const { QUEUE_NAME } = require('../queues/attendance-reconcile-queue');
 const { reconcileSchoolDate } = require('../services/attendance-reconcile');
+const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 
 // Consumer for the SLOW path. Higher concurrency than the sync worker: a reconcile job is
@@ -21,6 +22,13 @@ const processReconcileJob = async (job) => {
     // NOTE: this job is removed from Redis the moment it completes (see the removeOnComplete
     // comment in queues/attendance-reconcile-queue.js) — that is deliberate, and it is what
     // frees `reconcile-<admin>-<date>` for the next 5-minute tick to re-enqueue.
+    //
+    // Which is exactly why the success has to be logged HERE. BullMQ keeps no completed-job
+    // history for this queue, so once the job is gone this line is the ONLY record that a
+    // school-day was ever recomputed — and the counterpart to sync's .done, which the health
+    // endpoint's SyncState half cannot answer for reconcile.
+    logger.info('attendance-reconcile-worker.done', { adminId, dateKey, ...summary });
+
     return summary;
 };
 
@@ -47,6 +55,10 @@ const startAttendanceReconcileWorker = () => {
     });
 
     worker.on('error', (error) => logger.error('attendance-reconcile-worker.error', error));
+
+    // Same liveness key pattern as the sync worker — the health endpoint checks BOTH, so a
+    // reconcile worker that dies while sync keeps running is still visible from outside.
+    startHeartbeat(QUEUE_NAME);
 
     logger.info('attendance-reconcile-worker.started', { queue: QUEUE_NAME, concurrency: CONCURRENCY });
     return worker;

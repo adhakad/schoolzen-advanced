@@ -5,6 +5,7 @@ const { QUEUE_NAME } = require('../queues/attendance-sync-queue');
 const { ingestSchoolDay } = require('../services/punch-ingest');
 const SyncStateModel = require('../models/sync-state');
 const { toUtcMidnight } = require('../helpers/date-only');
+const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 
 // A REAL BullMQ consumer — the thing the reference project never had (it defined queues and
@@ -93,6 +94,10 @@ const startAttendanceSyncWorker = () => {
     });
 
     worker.on('error', (error) => logger.error('attendance-sync-worker.error', error));
+
+    // Publish liveness for the health endpoint, which runs in the API process and has no other
+    // way to see this one. See workers/heartbeat.js.
+    startHeartbeat(QUEUE_NAME);
 
     logger.info('attendance-sync-worker.started', { queue: QUEUE_NAME, concurrency: CONCURRENCY });
     return worker;

@@ -15,6 +15,11 @@
                     <button mat-button class="menu-button">
                       <span>Attendance</span>
                     </button>
+                    <!-- Whether punches landing right now will show up without a reload.
+                         Bound to the socket's own connect/disconnect. -->
+                    <span class="live-badge" [class.live-on]="liveConnected">
+                      <span class="live-dot"></span>{{liveConnected ? 'Live' : 'Offline'}}
+                    </span>
                   </div>
                   <div class="col-9" style="text-align: right;">
                     <div class="row">
@@ -54,6 +59,9 @@
                     <button mat-button class="menu-button">
                       <span>Attendance</span>
                     </button>
+                    <span class="live-badge" [class.live-on]="liveConnected">
+                      <span class="live-dot"></span>{{liveConnected ? 'Live' : 'Offline'}}
+                    </span>
                   </div>
                   <div class="col-12 mt-3">
                     <mat-radio-group (change)="switchPersonType($event.value)">

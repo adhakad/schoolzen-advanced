@@ -3,7 +3,10 @@ const DailyAttendanceModel = require('../models/daily-attendance');
 const PunchLogModel = require('../models/punch-log');
 const SyncStateModel = require('../models/sync-state');
 const { getPersonMonth, getSchoolMonthGrid, getSchoolDaySummary } = require('../services/attendance-calendar');
+const { getLiveBoard } = require('../services/attendance-live');
 const { getActivePeople, personCode } = require('../services/person-lookup');
+const { readHeartbeat } = require('../workers/heartbeat');
+const { getSocketStats } = require('../sockets/socket-server');
 const { toUtcMidnight, toDateKey, parseDateKey } = require('../helpers/date-only');
 const { atWallClock, nowWallClock } = require('../helpers/attendance-time');
 const logger = require('../helpers/logger');
@@ -125,6 +128,42 @@ let GetAttendancePeople = async (req, res, next) => {
         })));
     } catch (error) {
         logger.error('attendance.GetAttendancePeople', error);
+        return res.status(500).json('Internal Server Error!');
+    }
+};
+
+// ---------------------------------------------------------------------------
+// GET /live?adminId=&personType=&date=&class=
+// The live board's opening snapshot: who has punched in so far today, and who hasn't. Every
+// update after this one arrives over the socket instead (sockets/punch-subscriber.js), so this
+// is fetched ONCE per page load and never polled.
+//
+// Reads PunchLog rather than DailyAttendance on purpose — see the header of
+// services/attendance-live.js.
+// ---------------------------------------------------------------------------
+let GetLiveBoard = async (req, res, next) => {
+    const { adminId, personType } = req.query;
+    try {
+        if (!adminId || !['student', 'teacher', 'staff'].includes(personType)) {
+            return res.status(400).json('School and a valid person type are required!');
+        }
+
+        // Defaults to the SCHOOL's today, not the server's — a UTC container would otherwise
+        // serve yesterday's board for the whole of the morning punch window.
+        const parsed = req.query.date && parseDateKey(req.query.date);
+        const dateKey = parsed ? parsed.dateKey : toDateKey(toUtcMidnight(nowWallClock()));
+
+        // Same class-scoping rule as the grid: a whole school's roll is not a live board.
+        if (personType === 'student' && !req.query.class) {
+            return res.status(400).json('Select a class to view student attendance!');
+        }
+        const extra = {};
+        if (personType === 'student') extra.class = req.query.class;
+
+        const board = await getLiveBoard({ adminId, personType, dateKey, extra });
+        return res.status(200).json(board);
+    } catch (error) {
+        logger.error('attendance.GetLiveBoard', error);
         return res.status(500).json('Internal Server Error!');
     }
 };
@@ -338,13 +377,18 @@ let GetQueueHealth = async (req, res, next) => {
             // report yesterday's health for the whole of the morning punch window.
             : toDateKey(toUtcMidnight(nowWallClock()));
 
-        const [syncCounts, reconcileCounts, syncWorkers, reconcileWorkers, stateRows] = await Promise.all([
+        const [syncCounts, reconcileCounts, syncBeat, reconcileBeat, stateRows] = await Promise.all([
             require('../queues/attendance-sync-queue').attendanceSyncQueue.getJobCounts(),
             require('../queues/attendance-reconcile-queue').attendanceReconcileQueue.getJobCounts(),
-            // Empty arrays here with a non-zero waiting count is THE symptom of a dead
-            // worker process — the single most useful thing this endpoint reports.
-            require('../queues/attendance-sync-queue').attendanceSyncQueue.getWorkers(),
-            require('../queues/attendance-reconcile-queue').attendanceReconcileQueue.getWorkers(),
+            // A dead beat alongside a non-zero waiting count is THE symptom of a dead worker
+            // process — the single most useful thing this endpoint reports.
+            //
+            // These used to be BullMQ's Queue.getWorkers(), which answers by running Redis
+            // CLIENT LIST. That is unreliable on managed Redis (this project runs on Upstash),
+            // so it could report zero workers while both were processing jobs happily. A key
+            // the worker SETs and this GETs needs no introspection. See workers/heartbeat.js.
+            readHeartbeat('attendance-sync'),
+            readHeartbeat('attendance-reconcile'),
             SyncStateModel.aggregate([
                 { $match: { date: toUtcMidnight(dateKey) } },
                 { $group: { _id: '$status', count: { $sum: 1 } } },
@@ -361,10 +405,13 @@ let GetQueueHealth = async (req, res, next) => {
                 'attendance-reconcile': reconcileCounts,
             },
             workers: {
-                'attendance-sync': syncWorkers.length,
-                'attendance-reconcile': reconcileWorkers.length,
+                'attendance-sync': syncBeat,
+                'attendance-reconcile': reconcileBeat,
             },
-            workersAlive: syncWorkers.length > 0 && reconcileWorkers.length > 0,
+            workersAlive: syncBeat.alive && reconcileBeat.alive,
+            // Phase 7's live layer, counted in THIS process — a stalled socket server is as
+            // invisible from outside as a stalled worker was.
+            sockets: getSocketStats(),
             syncState: syncStateCounts,
         });
     } catch (error) {
@@ -380,6 +427,7 @@ module.exports = {
     GetAttendanceMonthGrid,
     GetDaySummary,
     GetAttendancePeople,
+    GetLiveBoard,
     GetPunchLog,
     CreateManualAttendance,
     DeleteManualAttendance,

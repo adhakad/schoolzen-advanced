@@ -67,3 +67,45 @@ export interface PunchLogEntry {
   terminalSn: string | null;
   source: string;
 }
+
+// --- Phase 7: the live layer ---
+//
+// Mirrors the payload backend/modules/services/punch-publisher.js puts on Redis and
+// sockets/punch-subscriber.js re-emits as 'attendance:punch'. Deliberately carries no name
+// and no in/out flag — the fast path does zero lookups, so the page resolves names from the
+// people it already loaded.
+export interface PunchEventPunch {
+  personType: string;
+  personId: string;
+  punchTime: string;          // ISO; school wall clock expressed as UTC, like every other time here
+  dateKey: string;            // "YYYY-MM-DD"
+}
+
+export interface PunchEvent {
+  adminId: string;
+  count: number;              // the real batch size; `punches` is capped at 200, newest first
+  punches: PunchEventPunch[];
+}
+
+// One row of the live board. Sourced from raw PunchLog, NOT DailyAttendance — so there is no
+// status here: the fast path genuinely cannot know whether 10:32 is Present or Late.
+export interface LiveBoardPerson {
+  _id: string;
+  name: string;
+  code: string;
+  firstIn: string | null;     // the arrival
+  lastPunch: string | null;   // most recent sighting; null when there was only one punch
+  punchCount: number;
+  arrived: boolean;
+  // Client-side only, for the "just walked in" flash — never sent by the backend.
+  justArrived?: boolean;
+}
+
+export interface LiveBoard {
+  dateKey: string;
+  personType: string;
+  total: number;
+  arrivedCount: number;
+  notArrivedCount: number;
+  people: LiveBoardPerson[];
+}

@@ -9,6 +9,7 @@ const { DbConnect } = require('./modules/helpers/database');
 const { connection } = require('./modules/queues/connection');
 const startAttendanceSyncWorker = require('./modules/workers/attendance-sync-worker');
 const startAttendanceReconcileWorker = require('./modules/workers/attendance-reconcile-worker');
+const { stopHeartbeats } = require('./modules/workers/heartbeat');
 const logger = require('./modules/helpers/logger');
 
 // SEPARATE PROCESS from app.js, started with `npm run worker`.
@@ -39,6 +40,9 @@ const shutdown = async (signal) => {
     logger.info('worker.shutdown.start', { signal });
 
     try {
+        // Stop beating BEFORE closing the connection, or a beat mid-shutdown races the quit()
+        // below and logs a spurious write failure on every clean restart.
+        stopHeartbeats();
         await Promise.all(workers.map((worker) => worker.close()));
         await connection.quit();
         await mongoose.connection.close();

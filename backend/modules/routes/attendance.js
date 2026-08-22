@@ -8,6 +8,7 @@ const {
     GetAttendanceMonthGrid,
     GetDaySummary,
     GetAttendancePeople,
+    GetLiveBoard,
     GetPunchLog,
     CreateManualAttendance,
     DeleteManualAttendance,
@@ -23,6 +24,9 @@ router.get('/calendar', GetAttendanceCalendar);      // GET — query params
 router.get('/calendar-month', GetAttendanceMonthGrid);
 router.get('/day-summary', GetDaySummary);
 router.get('/people', GetAttendancePeople);
+// The live board's opening snapshot. Fetched once per page load — every update after it
+// arrives over the socket, so this is never polled.
+router.get('/live', GetLiveBoard);
 router.get('/punch-log', GetPunchLog);
 router.get('/sync-state', GetSyncState);
 

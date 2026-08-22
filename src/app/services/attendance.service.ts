@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { AttendanceCalendar, AttendanceMonthGrid, AttendancePerson, PunchLogEntry } from '../modal/attendance.model';
+import { AttendanceCalendar, AttendanceMonthGrid, AttendancePerson, LiveBoard, PunchLogEntry } from '../modal/attendance.model';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +28,12 @@ export class AttendanceService {
   }
   getPunchLog(params: any) {
     return this.http.get<PunchLogEntry[]>(`${this.url}/punch-log`, { params });
+  }
+  // The live board's opening snapshot, read from raw PunchLog rather than the reconcile-lagged
+  // DailyAttendance. Called ONCE per page load — updates arrive over the socket, not by polling.
+  // params: { adminId, personType, date?, class? } — class is REQUIRED for students
+  getLiveBoard(params: any) {
+    return this.http.get<LiveBoard>(`${this.url}/live`, { params });
   }
   getSyncState(params: any) {
     return this.http.get(`${this.url}/sync-state`, { params });

@@ -1,11 +1,13 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { toAmPm } from 'src/app/pipes/time-am-pm.pipe';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { AttendanceService } from 'src/app/services/attendance.service';
+import { AttendanceSocketService } from 'src/app/services/attendance-socket.service';
 import { ClassShiftService } from 'src/app/services/class-shift.service';
-import { AttendanceDay, AttendanceGridRow, AttendancePerson, PunchLogEntry } from 'src/app/modal/attendance.model';
+import { AttendanceDay, AttendanceGridRow, AttendancePerson, PunchEvent, PunchEventPunch, PunchLogEntry } from 'src/app/modal/attendance.model';
 
 // Width of one date column, in px. HARD-TIED to `.attendance-grid .day-column { width }` in
 // attendance.component.css — scrollToToday() multiplies by it to find today's offset, so
@@ -17,7 +19,7 @@ const DAY_COLUMN_PX = 64;
   templateUrl: './attendance.component.html',
   styleUrls: ['./attendance.component.css']
 })
-export class AttendanceComponent implements OnInit {
+export class AttendanceComponent implements OnInit, OnDestroy {
 
   personType: string = 'staff';
   // Students only. Required rather than optional: a whole school's roll times 31 columns
@@ -69,11 +71,18 @@ export class AttendanceComponent implements OnInit {
   // future, and 31 columns x N people is a lot of calls to rebuild a Date for.
   today: string = '';
 
+  // Live layer (Phase 7). The grid is a historical view, so this only ever touches cells for
+  // dates already on screen — see applyPunch().
+  liveConnected: boolean = false;
+  private punchSub: Subscription | undefined;
+  private connectedSub: Subscription | undefined;
+
   constructor(
     private fb: FormBuilder,
     private toastr: ToastrService,
     private adminAuthService: AdminAuthService,
     private attendanceService: AttendanceService,
+    private attendanceSocketService: AttendanceSocketService,
     private classShiftService: ClassShiftService,
   ) {
     this.manualForm = this.fb.group({
@@ -91,6 +100,20 @@ export class AttendanceComponent implements OnInit {
     this.getClassOptions();
     this.getGrid();
     this.getSyncState();
+
+    // Shared, idempotent connection — the live board opens the same socket.
+    this.attendanceSocketService.connect();
+    this.connectedSub = this.attendanceSocketService.onConnected()
+      .subscribe((connected) => { this.liveConnected = connected; });
+    this.punchSub = this.attendanceSocketService.onPunch()
+      .subscribe((event: PunchEvent) => { this.applyPunchEvent(event); });
+  }
+
+  // The socket service is providedIn:'root', so these subscriptions outlive the component.
+  // Without this, leaving and returning to the page would stack a dead handler per visit.
+  ngOnDestroy(): void {
+    this.punchSub?.unsubscribe();
+    this.connectedSub?.unsubscribe();
   }
 
   // Native <select> hands back strings — always read the period through these.
@@ -372,6 +395,57 @@ export class AttendanceComponent implements OnInit {
       (res: any) => { this.isClick = false; this.successDone(res); },
       (err: any) => { this.modalErrorCheck = true; this.modalErrorMsg = err.error; this.isClick = false; }
     );
+  }
+
+  // --- Live punches (Phase 7) ---
+
+  /**
+   * A punch batch landed for this school. The grid is updated IN PLACE — no refetch, no
+   * debounce timer — because a raw punch carries nothing the grid has to recompute.
+   *
+   * What deliberately does NOT happen here is a status change. The fast path genuinely cannot
+   * tell whether 10:32 is Present or Late: that needs the shift, the roster, holidays and
+   * leave, which is the reconcile worker's job. So the cell gains its punch time immediately
+   * and its chip fills in on the next load, once reconcile has run.
+   */
+  private applyPunchEvent(event: PunchEvent): void {
+    if (!event || !Array.isArray(event.punches)) return;
+    // A punch for staff while the student tab is open belongs to a grid that isn't loaded.
+    for (const punch of event.punches) {
+      if (punch.personType !== this.personType) continue;
+      this.applyPunch(punch);
+    }
+  }
+
+  private applyPunch(punch: PunchEventPunch): void {
+    const row = this.gridRows.find((gridRow) => `${gridRow.person._id}` === `${punch.personId}`);
+    if (!row) return;
+
+    // Only dates the month on screen actually has a column for — a punch for August while
+    // September is displayed has nowhere to go, and the next load will pick it up.
+    const day = row.days.find((gridDay) => gridDay.dateKey === punch.dateKey);
+    if (!day) return;
+
+    // DEDUPE. punch-ingest.js publishes every row it offered to the unique punchHash index,
+    // not just the ones actually inserted, so a re-sync of a window we already hold
+    // re-broadcasts punches this grid has. Comparing against what the cell already shows
+    // drops them with no client-side bookkeeping.
+    const newest = day.lastOut || day.firstIn;
+    if (newest && punch.punchTime <= newest) return;
+
+    if (!day.firstIn) {
+      day.firstIn = punch.punchTime;
+    } else if (this.personType !== 'student') {
+      // A lone punch is an arrival, never a departure, so the second punch onwards is what
+      // fills lastOut — matching how the backend builds the row.
+      //
+      // Never for a student: computeStatus (services/attendance-status.js) forces lastOut to
+      // null for them because "when a child left school" is not something anybody acts on, and
+      // punch-ingest does not even store their out-punches. Writing it here would paint a
+      // checkout time that vanishes on the next load.
+      day.lastOut = punch.punchTime;
+    }
+    day.punchCount += 1;
   }
 
   // --- Sync ---

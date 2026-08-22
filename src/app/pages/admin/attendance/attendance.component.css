@@ -39,6 +39,45 @@
   color: #e4409a;
 }
 
+/* Live-connection state next to the page title. Grey until the socket actually connects, so
+   it never claims punches will arrive live when they will not. Same treatment as the live
+   attendance board's badge. */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  padding: 2px 9px;
+  border-radius: 5px;
+  background: #eceaf5;
+  color: #8a8a9e;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  vertical-align: middle;
+}
+
+.live-badge.live-on {
+  background: #16b978;
+  color: #FFF;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.live-badge.live-on .live-dot {
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .25; }
+}
+
 .summary-strip {
   display: flex;
   flex-wrap: wrap;
