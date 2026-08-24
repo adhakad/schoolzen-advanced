@@ -4,7 +4,7 @@ const RosterModel = require('../models/roster');
 const ClassShiftModel = require('../models/class-shift');
 const ShiftModel = require('../models/shift');
 const { getHolidayMapForMonth } = require('./holiday-lookup');
-const { getLeaveMapForMonth } = require('./leave-lookup');
+const { getLeaveMapForMonth, getLeaveMapForSchoolMonth } = require('./leave-lookup');
 const { getActivePeople, getPerson, personCode } = require('./person-lookup');
 const { toUtcMidnight, toDateKey } = require('../helpers/date-only');
 const { nowWallClock } = require('../helpers/attendance-time');
@@ -280,7 +280,7 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
 
     const personIds = people.map((person) => person._id.toString());
 
-    const [rows, holidayMap, rosterList, classShiftRows] = await Promise.all([
+    const [rows, holidayMap, leaveByPersonId, rosterList, classShiftRows] = await Promise.all([
         DailyAttendanceModel
             .find({
                 adminId,
@@ -290,6 +290,9 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
             })
             .lean(),
         getHolidayMapForMonth(adminId, year, month),
+        // ONE query for the whole school-month. The per-person getLeaveMapForMonth would be
+        // one query per row here, which is why leave-lookup.js carries this batched form.
+        getLeaveMapForSchoolMonth(adminId, personType, year, month),
         // One scan of the monthly snapshots for the whole school, not one findOne per
         // person. Empty for students, who are never rostered.
         personType === 'student'
@@ -302,10 +305,8 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
             : [],
     ]);
 
-    // Leave is taken from the stored rows only. getLeaveMapForMonth is per person, so
-    // deriving Leave for un-punched days here would be one query per row. When Phase 8
-    // lands it needs a batched school-month form; until then a leave day only shows once
-    // the reconciler has written it, which is also the only way it reaches payroll.
+    // Reused for anyone with no approved leave this month, so the common case allocates
+    // nothing per row.
     const emptyLeaveMap = new Map();
 
     const rosterDaysByPersonId = new Map();
@@ -361,7 +362,7 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
             monthDays,
             rowByDateKey: rowsByPersonId.get(personId) || new Map(),
             holidayMap,
-            leaveMap: emptyLeaveMap,
+            leaveMap: leaveByPersonId.get(personId) || emptyLeaveMap,
             todayKey,
             isExpected: buildExpectationFn({
                 personType,

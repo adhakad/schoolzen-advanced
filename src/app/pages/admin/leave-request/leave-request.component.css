@@ -1,0 +1,136 @@
+@import'../dashboard/dashboard.component.css';
+
+/* Section headings inside the apply modal — same treatment as the Shift and Leave Type
+   forms, so all three settings-shaped modals read as one family. */
+.settings-group-title {
+  margin: 1vh 0 .5vh;
+  color: #382066;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+
+.settings-group-title:first-of-type {
+  margin-top: 0;
+}
+
+.settings-group-note {
+  margin-bottom: 1.5vh;
+  color: #646089;
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: .3px;
+}
+
+/* The person-type radios sit between a heading and a mat-form-field, neither of which
+   supplies the gap a field would. */
+.type-radio {
+  display: block;
+  margin-bottom: 1.5vh;
+}
+
+/* THE BALANCE STRIP. Deliberately loud: it is the one number that decides whether this
+   request can be approved at all, and burying it in a hint under the type dropdown is how
+   somebody files two weeks against a six-day allowance. */
+.balance-strip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2vh;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #f4f1fb;
+  border: 1px solid #e2dcf3;
+}
+
+.balance-remaining {
+  color: #382066;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.balance-label {
+  color: #646089;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: .3px;
+}
+
+.balance-loading {
+  color: #646089;
+  font-size: 12px;
+}
+
+/* Confirmation bodies for approve / reject / delete. These carry real consequences —
+   approve writes attendance, delete removes it — so each one spells out what will happen
+   rather than asking "are you sure?". */
+.confirm-title {
+  margin-bottom: 1vh;
+  color: #382066;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.confirm-note {
+  margin-bottom: 0;
+  color: #646089;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Status chips reuse the attendance calendar's palette so 'Leave' means the same colour
+   wherever it appears in the product. */
+.status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+.status-pending {
+  background: #fdf0da;
+  color: #a4711f;
+}
+
+.status-approved {
+  background: #dcecfb;
+  color: #1f6fad;
+}
+
+.status-rejected {
+  background: #fbe0e0;
+  color: #b03a3a;
+}
+
+.approve-icon {
+  color: #1f8a4c;
+  cursor: pointer;
+}
+
+.reject-icon {
+  color: #b03a3a;
+  cursor: pointer;
+}
+
+/* Who acted on the request, shown in the Action column once there is nothing left to do. */
+.action-by {
+  color: #646089;
+  font-size: 12px;
+}
+
+.person-code {
+  color: #646089;
+  font-size: 11px;
+}
+
+/* A reason can run long. Truncate rather than let one row stretch the whole table; the
+   full text is on the title attribute. */
+.reason-cell {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

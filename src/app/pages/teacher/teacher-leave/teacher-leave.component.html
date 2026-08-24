@@ -1,0 +1,193 @@
+<app-header-nav></app-header-nav>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-nav></app-side-nav>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="col-12">
+              <div class="row">
+                <div class="col-12 col-lg-3">
+                  <button mat-button class="menu-button">
+                    <span>Leave</span>
+                  </button>
+                </div>
+                <div class="col-12 col-lg-9" style="text-align: right;">
+                  <div class="row">
+                    <div class="col-12 col-lg-5 mt-2">
+                      <mat-radio-group (change)="switchMode($event.value)">
+                        <mat-radio-button value="teacher" [checked]="mode=='teacher'">My Leave</mat-radio-button>
+                        <mat-radio-button value="student" [checked]="mode=='student'"
+                          [disabled]="!canApplyForStudents">Student Leave</mat-radio-button>
+                      </mat-radio-group>
+                    </div>
+                    <div class="col-12 col-lg-4" *ngIf="mode==='student' && showClassPicker">
+                      <select class="form-control" [(ngModel)]="selectedClass" (change)="onClassChange()">
+                        <option *ngFor="let classKey of myClasses" [value]="classKey">
+                          {{classNumber(classKey) | classSuffix}}</option>
+                      </select>
+                    </div>
+                    <!-- One class: a label, because a picker with a single option is a control
+                         that can only be set to what it already says. -->
+                    <div class="col-12 col-lg-4 mt-2" *ngIf="mode==='student' && myClasses.length==1">
+                      <span class="single-class">{{classNumber(selectedClass) | classSuffix}}</span>
+                    </div>
+                    <div class="col-12 col-lg-3">
+                      <button class="submit-button" mat-raised-button
+                        (click)="addLeaveRequestModel()"><mat-icon>add</mat-icon>Apply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <!-- Told apart from "no records" on purpose: nothing here is broken, the
+                   permission simply has not been granted. -->
+              <div class="empty-note" *ngIf="permissionLoaded && mode==='student' && !canApplyForStudents">
+                You do not have leave permission for any class. Ask your school administration to grant it.
+              </div>
+
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>No.</th>
+                      <th *ngIf="mode==='student'">Student</th>
+                      <th>Leave Type</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Days</th>
+                      <th>Reason</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="leaveRequestInfo && leaveRequestInfo.length>0">
+                    <tr *ngFor="let request of leaveRequestInfo,let i=index">
+                      <td>
+                        <p class="mb-0">{{number*10+i+1-10}}</p>
+                      </td>
+                      <td *ngIf="mode==='student'">
+                        <p class="mb-0">{{request.personName | titlecase}}</p>
+                        <p class="mb-0 person-code" *ngIf="request.personCode">{{request.personCode}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{request.leaveTypeName | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{request.fromDate | date:'dd MMM yyyy'}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{request.toDate | date:'dd MMM yyyy'}}</p>
+                      </td>
+                      <td>
+                        <!-- Blank until approval: a Pending request has not been expanded yet. -->
+                        <p class="mb-0">{{request.status === 'Approved' ? request.dayCount : '&ndash;'}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0 reason-cell" [title]="request.reason">{{request.reason || '&ndash;'}}</p>
+                      </td>
+                      <td>
+                        <span class="status-chip" [ngClass]="'status-' + (request.status | lowercase)">
+                          {{request.status}}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <app-pagination [paginationValues]="paginationValues" (onChange)="getLeaveRequest($event)">
+                </app-pagination>
+              </div>
+
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">APPLY {{mode === 'student' ? 'STUDENT' : ''}} LEAVE</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="leaveForm" (ngSubmit)="leaveRequestAdd()">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+
+                        <mat-form-field appearance="outline" *ngIf="mode==='student'">
+                          <mat-label>Student</mat-label>
+                          <mat-select matInput formControlName="personId" (selectionChange)="onPersonChange()">
+                            <mat-option *ngFor="let person of peopleOptions" [value]="person._id">
+                              {{person.name | titlecase}}{{person.code ? ' (' + person.code + ')' : ''}}
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Leave Type</mat-label>
+                          <mat-select matInput formControlName="leaveTypeId">
+                            <mat-option *ngFor="let leaveType of leaveTypeOptions" [value]="leaveType._id">
+                              {{leaveType.name | titlecase}}
+                            </mat-option>
+                          </mat-select>
+                          <mat-hint *ngIf="leaveTypeOptions.length === 0" class="form-text text-danger">
+                            No leave type is available. Ask your school administration to set one up
+                          </mat-hint>
+                          <mat-hint
+                            *ngIf="!leaveForm.get('leaveTypeId')?.valid && leaveForm.get('leaveTypeId')?.touched"
+                            class="form-text text-danger">Select a leave type</mat-hint>
+                        </mat-form-field>
+
+                        <div class="balance-strip" *ngIf="selectedBalance">
+                          <span class="balance-remaining">{{selectedBalance.remaining}}</span>
+                          <span class="balance-label">day(s) left of {{selectedBalance.maxDaysPerYear}}
+                            &mdash; {{selectedBalance.used}} already taken this year</span>
+                        </div>
+                        <div class="balance-strip balance-loading" *ngIf="balanceLoading">Loading balance&hellip;</div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>From Date (dd/mm/yyyy)</mat-label>
+                          <input matInput readonly [matDatepicker]="fromDatePicker" formControlName="fromDate" />
+                          <mat-datepicker-toggle matSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
+                          <mat-datepicker #fromDatePicker></mat-datepicker>
+                          <mat-error *ngIf="!leaveForm.get('fromDate')?.valid && leaveForm.get('fromDate')?.touched">
+                            From date is required</mat-error>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>To Date (dd/mm/yyyy)</mat-label>
+                          <input matInput readonly [matDatepicker]="toDatePicker" formControlName="toDate" />
+                          <mat-datepicker-toggle matSuffix [for]="toDatePicker"></mat-datepicker-toggle>
+                          <mat-datepicker #toDatePicker></mat-datepicker>
+                          <mat-error *ngIf="!leaveForm.get('toDate')?.valid && leaveForm.get('toDate')?.touched">
+                            To date is required</mat-error>
+                        </mat-form-field>
+                        <p class="settings-group-note">Sundays and declared holidays inside the range are skipped.
+                          Your school administration approves or rejects this request.</p>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Reason</mat-label>
+                          <textarea matInput rows="2" formControlName="reason"></textarea>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button [disabled]="!leaveForm.valid || isClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,34 @@
+/* The shell classes (.main-card, .table-wrapper, .big-container, the purple table header),
+   exactly as every other teacher page pulls them in. */
+@import'../../admin/dashboard/dashboard.component.css';
+
+/* The status chips, balance strip and truncated reason cell are the admin leave page's,
+   imported rather than copied so 'Approved' can never mean one colour here and another
+   there. */
+@import'../../admin/leave-request/leave-request.component.css';
+
+/* Matches the teacher attendance page's single-class label, so the two teacher pages agree
+   on how one permitted class is presented. */
+.single-class {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 5px;
+  background: #eceaf5;
+  color: #646089;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+/* "You have no permission" is a different statement from "there are no records", and the
+   table's own empty state cannot make that distinction. */
+.empty-note {
+  margin: 2vh 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #f4f1fb;
+  border: 1px solid #e2dcf3;
+  color: #646089;
+  font-size: 13px;
+  line-height: 1.5;
+}

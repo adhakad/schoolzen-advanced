@@ -17,6 +17,17 @@
         <span>Attendance</span>
       </button>
     </li>
+    <!-- NOT gated, unlike every entry around it. Applying for your OWN leave is not a
+         permission a school grants — every teacher can do it. leavePermission governs only
+         the Student Leave half of that page, which the page itself disables when it is
+         missing, so locking the whole menu item would hide the part that needs no
+         permission at all. -->
+    <li class="nav-item">
+      <button mat-button class="menu-button" routerLink="/teacher/leave" routerLinkActive="active-link">
+        <mat-icon>pending_actions</mat-icon>
+        <span>Leave</span>
+      </button>
+    </li>
     <li class="nav-item">
       <button *ngIf="admissionPermission" mat-button class="menu-button" routerLink="/teacher/admission" routerLinkActive="active-link">
         <mat-icon>dialpad</mat-icon>

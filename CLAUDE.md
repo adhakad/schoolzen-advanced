@@ -487,13 +487,15 @@ phase — e.g. by triggering a manual punch and watching it appear live.
 
 ### Phase 8
 ```
-Read CLAUDE.md fully. Create a detailed plan for the Leave module: LeaveType
-(configurable categories) and LeaveRequest (apply/list/approve/reject), and how
-an approved leave should feed into DailyAttendance as an override for the
-relevant dates. Build both backend and frontend (leave type settings page, and
-a leave request/approve/reject page) together, following the New Module
-Checklist and naming conventions, so it's testable end-to-end locally after
-this phase.
+Read CLAUDE.md fully. Create a detailed plan for the Leave module.
+
+LEAVE TYPE (admin configures): name, isPaid (boolean), maxDaysPerYear, applicableTo (enum: all/staff/teacher/student), status (active/inactive). Admin creates multiple types (Sick Leave, Casual Leave, etc.).
+
+LEAVE REQUEST: staff/teacher/student applies with leaveTypeId, fromDate, toDate, reason. Status flow: Pending -> Approved/Rejected by admin. On approval, write DailyAttendance rows for each date in the range with status 'Leave', source 'MANUAL', isOverridden: true, leaveRequestId reference — so reconcile never overwrites them. On rejection, do nothing to DailyAttendance.
+
+LEAVE BALANCE: track used days per person per leaveType per year (count from approved requests). Show remaining balance on the request form.
+
+BUILD: backend (LeaveType model/controller/routes, LeaveRequest model/controller/routes) and frontend (Leave Types settings page under admin settings, Leave Requests page with apply/list/approve/reject tabs) together. Follow the New Module Checklist and naming conventions. Testable end-to-end locally after this phase.
 ```
 
 ### Phase 9

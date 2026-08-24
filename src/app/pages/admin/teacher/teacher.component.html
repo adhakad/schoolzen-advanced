@@ -314,6 +314,24 @@
                             </div>
                           </div>
                         </section>
+                        <ng-container>
+                          <h3>Leave</h3>
+                          <!-- Applying for their OWN leave needs no permission and is not
+                               gated by this. These classes decide only whose pupils they may
+                               file leave for. -->
+                          <p class="permission-note">Which classes this teacher may apply for student leave on behalf
+                            of. Their own leave never needs a permission.</p>
+                        </ng-container>
+                        <section class="example-section mb-3">
+                          <div class="row">
+                            <div class="col-4" *ngFor="let class of classInfo,let i=index;">
+                              <mat-checkbox class="example-margin" [checked]="isLeavePermissionSelected(class)"
+                                (change)="leavePermission(class, $event)">
+                                {{class | classSuffix}}
+                              </mat-checkbox>
+                            </div>
+                          </div>
+                        </section>
                       </div>
                       <div class="modal-footer">
                         <button class="submit-button" mat-raised-button type="submit">Submit</button>

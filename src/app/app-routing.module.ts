@@ -44,6 +44,8 @@ const routes: Routes = [
   { path: 'admin/shift', loadChildren: () => import('src/app/pages/admin/shift/shift.module').then((module) => module.ShiftModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/roster', loadChildren: () => import('src/app/pages/admin/roster/roster.module').then((module) => module.RosterModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/attendance', loadChildren: () => import('src/app/pages/admin/attendance/attendance.module').then((module) => module.AttendanceModule), canActivate: [AdminAuthGuard] },
+  { path: 'admin/leave-type', loadChildren: () => import('src/app/pages/admin/leave-type/leave-type.module').then((module) => module.LeaveTypeModule), canActivate: [AdminAuthGuard] },
+  { path: 'admin/leave-request', loadChildren: () => import('src/app/pages/admin/leave-request/leave-request.module').then((module) => module.LeaveRequestModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class', loadChildren: () => import('src/app/pages/admin/class/class.module').then((module) => module.ClassModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/subject', loadChildren: () => import('src/app/pages/admin/subject/subject.module').then((module) => module.SubjectModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class-subject', loadChildren: () => import('src/app/pages/admin/class-subject/class-subject.module').then((module) => module.ClassSubjectModule), canActivate: [AdminAuthGuard] },
@@ -63,6 +65,7 @@ const routes: Routes = [
   { path: 'teacher/dashboard', loadChildren: () => import('src/app/pages/teacher/teacher-dashboard/teacher-dashboard.module').then((module) => module.TeacherDashboardModule), canActivate: [TeacherAuthGuard] },
 
   { path: 'teacher/attendance', loadChildren: () => import('src/app/pages/teacher/teacher-attendance/teacher-attendance.module').then((module) => module.TeacherAttendanceModule), canActivate: [TeacherAuthGuard] },
+  { path: 'teacher/leave', loadChildren: () => import('src/app/pages/teacher/teacher-leave/teacher-leave.module').then((module) => module.TeacherLeaveModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/admission', loadChildren: () => import('src/app/pages/teacher/teacher-admission/teacher-admission.module').then((module) => module.TeacherAdmissionModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/admit-card', loadChildren: () => import('src/app/pages/teacher/teacher-admit-card/teacher-admit-card.module').then((module) => module.TeacherAdmitCardModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/marksheet', loadChildren: () => import('src/app/pages/teacher/teacher-student-marksheet/teacher-student-marksheet.module').then((module) => module.TeacherStudentMarksheetModule), canActivate: [TeacherAuthGuard] },

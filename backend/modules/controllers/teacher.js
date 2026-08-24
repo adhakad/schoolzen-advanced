@@ -98,7 +98,7 @@ let TeacherPermission = async (req, res, next) => {
     try {
         const adminId = req.params.id;
         const teacherId = req.params.teacherId;
-        let { marksheetPermission, admitCardPermission, studentPermission, admissionPermission, feeCollectionPermission, promoteFailPermission, transferCertificatePermission, attendancePermission } = req.body.type;
+        let { marksheetPermission, admitCardPermission, studentPermission, admissionPermission, feeCollectionPermission, promoteFailPermission, transferCertificatePermission, attendancePermission, leavePermission } = req.body.type;
         const checkTeacher = await TeacherModel.findOne({ _id: teacherId, adminId: adminId });
         if (!checkTeacher) {
             return res.status(400).json("Invalid request!")
@@ -139,6 +139,10 @@ let TeacherPermission = async (req, res, next) => {
         // permission save.
         if (attendancePermission !== undefined) {
             classPermissions.attendance = getUniqueClasses(attendancePermission);
+        }
+        // Same guard, same reason — leavePermission was added in Phase 8, later still.
+        if (leavePermission !== undefined) {
+            classPermissions.leave = getUniqueClasses(leavePermission);
         }
 
         for (const key in classPermissions) {

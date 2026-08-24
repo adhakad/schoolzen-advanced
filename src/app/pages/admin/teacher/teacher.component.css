@@ -1,1 +1,13 @@
 @import'../dashboard/dashboard.component.css';
+
+/* The permission modal is nine identical grids of class checkboxes under nine identical
+   headings, so a block whose scope is NOT simply "these classes" has to say so — otherwise
+   an unticked Leave section reads as "this teacher cannot take leave", which is not what it
+   means. */
+.permission-note {
+  margin-bottom: 1vh;
+  color: #646089;
+  font-size: 12px;
+  line-height: 1.45;
+  letter-spacing: .3px;
+}

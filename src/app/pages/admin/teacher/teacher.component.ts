@@ -40,6 +40,7 @@ export class TeacherComponent implements OnInit {
   selectedPromoteFailPermissionClass: any[] = [];
   selectedTransferCertificatePermissionClass: any[] = [];
   selectedAttendancePermissionClass: any[] = [];
+  selectedLeavePermissionClass: any[] = [];
   teacherObjId: string = '';
 
   loader: Boolean = true;
@@ -97,6 +98,7 @@ export class TeacherComponent implements OnInit {
         promoteFailPermission: this.fb.array([], [Validators.required]),
         transferCertificatePermission: this.fb.array([], [Validators.required]),
         attendancePermission: this.fb.array([], [Validators.required]),
+        leavePermission: this.fb.array([], [Validators.required]),
       }),
     });
   }
@@ -203,6 +205,16 @@ export class TeacherComponent implements OnInit {
     }
   }
 
+  leavePermission(option: number, event: any) {
+    if (event.checked) {
+      if (!this.selectedLeavePermissionClass.includes(option)) {
+        this.selectedLeavePermissionClass.push(option);
+      }
+    } else {
+      this.selectedLeavePermissionClass = this.selectedLeavePermissionClass.filter(cls => cls !== option);
+    }
+  }
+
   isMarksheetPermissionSelected(option: number): boolean {
     return this.selectedMarksheetPermissionClass.includes(option);
   }
@@ -226,6 +238,9 @@ export class TeacherComponent implements OnInit {
   }
   isAttendancePermissionSelected(option: number): boolean {
     return this.selectedAttendancePermissionClass.includes(option);
+  }
+  isLeavePermissionSelected(option: number): boolean {
+    return this.selectedLeavePermissionClass.includes(option);
   }
 
   getTeacher($event: any) {
@@ -256,6 +271,8 @@ export class TeacherComponent implements OnInit {
           // Optional-chained: attendancePermission was added after this collection had rows,
           // so a teacher saved before that has no such field and would blow up the spread.
           this.selectedAttendancePermissionClass = [...(res.teacherList[0].attendancePermission?.classes || [0])];
+          // Same treatment — leavePermission arrived in Phase 8, later still.
+          this.selectedLeavePermissionClass = [...(res.teacherList[0].leavePermission?.classes || [0])];
           this.paginationValues.next({ type: 'page-init', page: params.page, totalTableRecords: res.countTeacher });
           return resolve(true);
         }
@@ -272,6 +289,7 @@ export class TeacherComponent implements OnInit {
     const controlSix = <FormArray>this.teacherPermissionForm.get('type.promoteFailPermission');
     const controlSeven = <FormArray>this.teacherPermissionForm.get('type.transferCertificatePermission');
     const controlEight = <FormArray>this.teacherPermissionForm.get('type.attendancePermission');
+    const controlNine = <FormArray>this.teacherPermissionForm.get('type.leavePermission');
     controlOne.clear();
     controlTwo.clear();
     controlThree.clear();
@@ -280,6 +298,7 @@ export class TeacherComponent implements OnInit {
     controlSix.clear();
     controlSeven.clear();
     controlEight.clear();
+    controlNine.clear();
     this.teacherObjId = '';
     this.teacherPermissionForm.reset();
 
@@ -370,12 +389,22 @@ export class TeacherComponent implements OnInit {
       controlEight.push(this.patchAttendanceValues(x))
       this.teacherPermissionForm.reset();
     })
+    const controlNine = <FormArray>this.teacherPermissionForm.get('type.leavePermission');
+    this.selectedLeavePermissionClass.forEach((x: any) => {
+      controlNine.push(this.patchLeaveValues(x))
+      this.teacherPermissionForm.reset();
+    })
 
   }
 
   patchAttendanceValues(selectedAttendancePermissionClass: any) {
     return this.fb.group(
       { [selectedAttendancePermissionClass]: [selectedAttendancePermissionClass] }
+    )
+  }
+  patchLeaveValues(selectedLeavePermissionClass: any) {
+    return this.fb.group(
+      { [selectedLeavePermissionClass]: [selectedLeavePermissionClass] }
     )
   }
   patchMarksheetValues(selectedMarksheetPermissionClass: any) {

@@ -111,6 +111,21 @@
         <span>Attendance</span>
       </button>
     </li>
+    <!-- Two entries, not one: configuring the leave categories is a settings job done once a
+         year, while approving requests is a daily queue. Folding them together would bury
+         the queue behind a tab on a page nobody opens. -->
+    <li class="nav-item">
+      <button mat-button class="menu-button" [routerLink]="['/admin/leave-request']" routerLinkActive="active-link">
+        <mat-icon>pending_actions</mat-icon>
+        <span>Leave</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button mat-button class="menu-button" [routerLink]="['/admin/leave-type']" routerLinkActive="active-link">
+        <mat-icon>event_busy</mat-icon>
+        <span>Leave Type</span>
+      </button>
+    </li>
     <!-- <li class="nav-item">
       <button mat-button class="menu-button" [routerLink]="['/admin/class']" routerLinkActive="active-link">
         <mat-icon>note_add</mat-icon>

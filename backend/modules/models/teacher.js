@@ -132,6 +132,29 @@ const TeacherModel = mongoose.model('teacher', {
             default: [0]
         }
     },
+    // Which classes this teacher may apply for LEAVE on behalf of. Separate from
+    // attendancePermission on purpose: watching a class's attendance and being able to file
+    // an absence against a pupil's record are different powers, and a school may well grant
+    // the first far more widely than the second.
+    //
+    // A teacher can always apply for their OWN leave — that needs no permission and is not
+    // gated by this. `status` here governs the student side only; see
+    // CreateTeacherLeaveRequest in controllers/leave-request.js, which is the sole enforcer.
+    //
+    // `[0]` is the default sentinel the other blocks use for "none" — readers must filter it
+    // out rather than treat it as class zero.
+    leavePermission: {
+        status: {
+            type: Boolean,
+            required: true,
+            default: false
+        },
+        classes: {
+            type: [Number],
+            required: true,
+            default: [0]
+        }
+    },
     status: {
         type: String,
         required: true,

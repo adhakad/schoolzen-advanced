@@ -1,0 +1,186 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Leave Type</span>
+                    </button>
+                  </div>
+                  <div class="col-9" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-2 offset-5">
+                        <button class="submit-button" mat-raised-button
+                          (click)="addLeaveTypeModel()"><mat-icon>add</mat-icon>Create</button>
+                      </div>
+                      <div class="col-5">
+                        <input type="text" class="form-control" placeholder="Search..." id="searchText"
+                          name="searchText" #searchText="ngModel" [(ngModel)]="filters.searchText"
+                          (keyup)="getLeaveType({page : 1, limit : 0})">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Leave Type</span>
+                    </button>
+                  </div>
+                  <div class="col-7 mt-3">
+                    <input type="text" class="form-control" placeholder="Search..." id="searchText" name="searchText"
+                      #searchText="ngModel" [(ngModel)]="filters.searchText"
+                      (keyup)="getLeaveType({page : 1, limit : 0})">
+                  </div>
+                  <div class="col-5 mt-3"><button class="submit-button" mat-raised-button
+                      (click)="addLeaveTypeModel()"><mat-icon>add</mat-icon>Create</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>No.</th>
+                      <th>Name</th>
+                      <th>Applies To</th>
+                      <th>Days / Year</th>
+                      <th>Paid</th>
+                      <th>Status</th>
+                      <th>Edit</th>
+                      <th>Remove</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="leaveTypeInfo && leaveTypeInfo.length>0">
+                    <tr *ngFor="let leaveType of leaveTypeInfo,let i=index">
+                      <td>
+                        <p class="mb-0">{{number*10+i+1-10}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{leaveType.name | titlecase}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{leaveType.applicableTo === 'all' ? 'Everyone' : (leaveType.applicableTo |
+                          titlecase)}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{leaveType.maxDaysPerYear}}</p>
+                      </td>
+                      <td>
+                        <span class="pay-chip" [class.pay-chip-paid]="leaveType.isPaid">{{leaveType.isPaid ? 'Paid' :
+                          'Unpaid'}}</span>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{leaveType.status | titlecase}}</p>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="updateLeaveTypeModel(leaveType)">edit</mat-icon>
+                      </td>
+                      <td class="mb-0">
+                        <mat-icon (click)="deleteLeaveTypeModel(leaveType._id)">delete</mat-icon>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pagination">
+                <app-pagination [paginationValues]="paginationValues" (onChange)="getLeaveType($event)">
+                </app-pagination>
+              </div>
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{updateMode?'UPDATE': deleteMode ? 'DELETE':'CREATE'}} LEAVE TYPE</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="leaveTypeForm" (ngSubmit)="leaveTypeAddUpdate()" *ngIf="!deleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Name</mat-label>
+                          <input matInput type="text" formControlName="name">
+                          <mat-hint *ngIf="leaveTypeForm.get('name')?.valid">For example Sick Leave, Casual Leave,
+                            Maternity Leave</mat-hint>
+                          <mat-hint *ngIf="!leaveTypeForm.get('name')?.valid && leaveTypeForm.get('name')?.touched"
+                            class="form-text text-danger">Name is required</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Applies To</mat-label>
+                          <mat-select matInput formControlName="applicableTo">
+                            <mat-option value="all">Everyone</mat-option>
+                            <mat-option value="staff">Staff</mat-option>
+                            <mat-option value="teacher">Teacher</mat-option>
+                            <mat-option value="student">Student</mat-option>
+                          </mat-select>
+                          <mat-hint>Who may take this leave. Only matching people see it on the request form</mat-hint>
+                        </mat-form-field>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Days Per Year</mat-label>
+                          <input matInput type="number" min="1" formControlName="maxDaysPerYear">
+                          <mat-hint *ngIf="leaveTypeForm.get('maxDaysPerYear')?.valid">The annual cap. Checked when a
+                            request is approved, not when it is submitted</mat-hint>
+                          <mat-hint
+                            *ngIf="!leaveTypeForm.get('maxDaysPerYear')?.valid && leaveTypeForm.get('maxDaysPerYear')?.touched"
+                            class="form-text text-danger">Enter a valid number of days</mat-hint>
+                        </mat-form-field>
+
+                        <h3 class="settings-group-title">Payroll</h3>
+                        <p class="settings-group-note">A paid leave day is salaried as normal. An unpaid one is
+                          deducted when payroll is generated &mdash; nothing in attendance changes either way.</p>
+                        <div class="paid-toggle">
+                          <mat-slide-toggle formControlName="isPaid">Paid leave</mat-slide-toggle>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Status</mat-label>
+                          <mat-select matInput formControlName="status">
+                            <mat-option value="active">Active</mat-option>
+                            <mat-option value="inactive">Inactive</mat-option>
+                          </mat-select>
+                          <mat-hint>An inactive type stays on past requests but cannot be chosen on a new one</mat-hint>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button [disabled]="!leaveTypeForm.valid || isClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+                    <div *ngIf="deleteMode">
+                      <h4 style="margin-left: 20px;">To delete leave type, click ok to confirm.</h4>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
+                          (click)="leaveTypeDelete(deleteById)">Ok</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
