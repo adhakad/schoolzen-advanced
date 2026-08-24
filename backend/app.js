@@ -7,6 +7,7 @@ const express = require('express');
 const app = express();
 const http = require('http');
 const { DbConnect } = require('./modules/helpers/database');
+const { ensureIndexes } = require('./modules/helpers/ensure-indexes');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");
@@ -17,7 +18,13 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 app.use(cors());
-DbConnect();
+// Index sync runs once the connection is actually open, on every startup — local and
+// production alike. It is deliberately NOT awaited before listen(): index builds on large
+// collections take time, and the API has no reason to be unreachable while they run.
+// ensureIndexes never throws, so the catch here only ever sees a failed connect.
+DbConnect()
+    .then(ensureIndexes)
+    .catch((error) => console.error('startup index sync skipped:', error.message));
 // app.use(function (req, res, next) {
 //   res.header("Access-Control-Allow-Origin", "*");
 //   res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE");

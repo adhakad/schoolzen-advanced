@@ -6,7 +6,7 @@
  * This app server will get started from server/app.json file when required parameters can be
  * altered based on environment.
  */
-const { PORT, BASE_URL, DB_URL, REDIS_URL, WDMS_COMPANY_UUID} = process.env;
+const { PORT, BASE_URL, DB_URL, REDIS_URL, WDMS_COMPANY_UUID, SKIP_INDEX_SYNC } = process.env;
 var config = {
     /**
      * server configuration
@@ -35,6 +35,15 @@ var config = {
      */
     wdms: {
         companyUuid: WDMS_COMPANY_UUID || '',
+    },
+    /**
+     * Startup index sync (helpers/ensure-indexes.js). On by default — it is what keeps the
+     * declared indexes and the real ones from drifting apart. Set SKIP_INDEX_SYNC=true only
+     * to hold indexes still during a migration window, since syncIndexes() also DROPS any
+     * index a schema no longer declares.
+     */
+    indexes: {
+        skipSync: String(SKIP_INDEX_SYNC || '').toLowerCase() === 'true',
     },
 };
 
