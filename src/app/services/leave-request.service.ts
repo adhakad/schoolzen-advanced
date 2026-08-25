@@ -30,11 +30,20 @@ export class LeaveRequestService {
   addTeacherLeaveRequest(data: any) {
     return this.http.post(`${this.url}/teacher`, data);
   }
+  // data: { actionBy, forceApprove? }. forceApprove skips the balance check and nothing else
+  // — every other guard still applies. Sent only after the admin confirms the overdraw.
   approveLeaveRequest(id: String, data: any) {
     return this.http.put(`${this.url}/${id}/approve`, data);
   }
   rejectLeaveRequest(id: String, data: any) {
     return this.http.put(`${this.url}/${id}/reject`, data);
+  }
+  // Takes back an APPROVED leave without losing the record: the request survives as
+  // 'Cancelled' with its reason, its leaveDates and its dayCount, and only the attendance
+  // rows the approval wrote are removed. Delete below is the other undo and erases the row.
+  // data: { cancellationReason, actionBy }
+  cancelLeaveRequest(id: String, data: any) {
+    return this.http.patch(`${this.url}/${id}/cancel`, data);
   }
   // Deleting an APPROVED request also removes the DailyAttendance rows it wrote and queues
   // those days for recompute — this is the undo path, not just a list tidy-up.

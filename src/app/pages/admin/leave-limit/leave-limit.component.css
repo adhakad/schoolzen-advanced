@@ -1,0 +1,5 @@
+/* leave-request.component.css is this module's shared stylesheet — the teacher leave page
+   imports it the same way — so the table, chip, filter-row and grid styles are defined once
+   and used by all three Leave screens rather than copied per page. It imports the dashboard
+   base itself. */
+@import '../leave-request/leave-request.component.css';

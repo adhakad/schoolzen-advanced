@@ -11,95 +11,95 @@
             <div class="desktop-option">
               <div class="col-12">
                 <div class="row">
-                  <div class="col-2">
+                  <div class="col-6">
                     <button mat-button class="menu-button">
-                      <span>Leave</span>
+                      <span>Leave Requests</span>
                     </button>
                   </div>
-                  <div class="col-10" style="text-align: right;">
-                    <div class="row">
-                      <div class="col-4 mt-2">
-                        <mat-radio-group (change)="switchStatus($event.value)">
-                          <mat-radio-button value="Pending" [checked]="statusFilter=='Pending'">Pending</mat-radio-button>
-                          <mat-radio-button value="Approved"
-                            [checked]="statusFilter=='Approved'">Approved</mat-radio-button>
-                          <mat-radio-button value="Rejected"
-                            [checked]="statusFilter=='Rejected'">Rejected</mat-radio-button>
-                          <mat-radio-button value="all" [checked]="statusFilter=='all'">All</mat-radio-button>
-                        </mat-radio-group>
-                      </div>
-                      <div class="col-5 mt-2">
-                        <mat-radio-group (change)="switchPersonTypeFilter($event.value)">
-                          <mat-radio-button value="all" [checked]="personTypeFilter=='all'">Everyone</mat-radio-button>
-                          <mat-radio-button value="staff" [checked]="personTypeFilter=='staff'">Staff</mat-radio-button>
-                          <mat-radio-button value="teacher"
-                            [checked]="personTypeFilter=='teacher'">Teacher</mat-radio-button>
-                          <mat-radio-button value="student"
-                            [checked]="personTypeFilter=='student'">Student</mat-radio-button>
-                        </mat-radio-group>
-                      </div>
-                      <div class="col-3">
-                        <button class="submit-button" mat-raised-button
-                          (click)="addLeaveRequestModel()"><mat-icon>add</mat-icon>Apply</button>
-                      </div>
-                    </div>
+                  <!-- Setting how many days a person gets is a settings job on its own page,
+                       reachable from here because approval now depends on it. Not a tab —
+                       this screen has one job. -->
+                  <div class="col-6" style="text-align: right;">
+                    <button mat-button class="settings-link" [routerLink]="['/admin/leave-limit']">
+                      <mat-icon>tune</mat-icon>Set Leave Limits
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
+
             <div class="mobile-option">
               <div class="col-12">
                 <div class="row">
                   <div class="col-12">
                     <button mat-button class="menu-button">
-                      <span>Leave</span>
+                      <span>Leave Requests</span>
                     </button>
                   </div>
-                  <div class="col-12 mt-3">
-                    <mat-radio-group (change)="switchStatus($event.value)">
-                      <mat-radio-button value="Pending" [checked]="statusFilter=='Pending'">Pending</mat-radio-button>
-                      <mat-radio-button value="Approved"
-                        [checked]="statusFilter=='Approved'">Approved</mat-radio-button>
-                      <mat-radio-button value="Rejected"
-                        [checked]="statusFilter=='Rejected'">Rejected</mat-radio-button>
-                      <mat-radio-button value="all" [checked]="statusFilter=='all'">All</mat-radio-button>
-                    </mat-radio-group>
+                  <div class="col-12">
+                    <button mat-button class="settings-link" [routerLink]="['/admin/leave-limit']">
+                      <mat-icon>tune</mat-icon>Set Leave Limits
+                    </button>
                   </div>
-                  <div class="col-12 mt-3">
-                    <mat-radio-group (change)="switchPersonTypeFilter($event.value)">
-                      <mat-radio-button value="all" [checked]="personTypeFilter=='all'">Everyone</mat-radio-button>
-                      <mat-radio-button value="staff" [checked]="personTypeFilter=='staff'">Staff</mat-radio-button>
-                      <mat-radio-button value="teacher"
-                        [checked]="personTypeFilter=='teacher'">Teacher</mat-radio-button>
-                      <mat-radio-button value="student"
-                        [checked]="personTypeFilter=='student'">Student</mat-radio-button>
-                    </mat-radio-group>
-                  </div>
-                  <div class="col-12 mt-3"><button class="submit-button" mat-raised-button
-                      (click)="addLeaveRequestModel()"><mat-icon>add</mat-icon>Apply</button></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
         <div class="main-container">
           <div class="col-12 col-lg-12 big-container">
             <div class="main-card">
+
+              <h3 class="page-purpose">Leave Requests Waiting for Your Approval</h3>
+              <p class="page-note">
+                Approve a request to mark those days as leave on the attendance register. Reject it to decline it and
+                leave attendance untouched.
+              </p>
+
+              <!-- Filters and the page's one action share a single toolbar directly above the
+                   table, so there is nothing floating between the heading and the rows. -->
+              <div class="filter-row">
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>Show</mat-label>
+                  <mat-select matInput [(ngModel)]="statusFilter" [ngModelOptions]="{standalone: true}"
+                    (selectionChange)="switchStatus()">
+                    <mat-option value="Pending">Pending{{pendingCount > 0 ? ' (' + pendingCount + ')' : ''}}
+                    </mat-option>
+                    <mat-option value="Approved">Approved</mat-option>
+                    <mat-option value="Rejected">Rejected</mat-option>
+                    <mat-option value="Cancelled">Cancelled</mat-option>
+                    <mat-option value="all">All requests</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>People</mat-label>
+                  <mat-select matInput [(ngModel)]="personTypeFilter" [ngModelOptions]="{standalone: true}"
+                    (selectionChange)="switchPersonTypeFilter()">
+                    <mat-option value="all">Everyone</mat-option>
+                    <mat-option value="staff">Staff</mat-option>
+                    <mat-option value="teacher">Teachers</mat-option>
+                    <mat-option value="student">Students</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <button class="submit-button toolbar-button" mat-raised-button
+                  (click)="addLeaveRequestModel()"><mat-icon>add</mat-icon>Apply for Leave</button>
+              </div>
+
               <div class="table-wrapper">
                 <table class="table table-hover align-middle bg-white">
                   <thead class="bg-light">
                     <tr class="text-muted">
                       <th>No.</th>
-                      <th>Person</th>
-                      <th>Type</th>
+                      <th>Name</th>
                       <th>Leave Type</th>
                       <th>From</th>
                       <th>To</th>
                       <th>Days</th>
-                      <th>Reason</th>
                       <th>Status</th>
                       <th>Action</th>
-                      <th>Remove</th>
                     </tr>
                   </thead>
                   <tbody *ngIf="leaveRequestInfo && leaveRequestInfo.length>0">
@@ -109,13 +109,19 @@
                       </td>
                       <td>
                         <p class="mb-0">{{request.personName | titlecase}}</p>
-                        <p class="mb-0 person-code" *ngIf="request.personCode">{{request.personCode}}</p>
-                      </td>
-                      <td>
-                        <p class="mb-0">{{request.personType | titlecase}}</p>
+                        <p class="mb-0 person-code">
+                          {{(request.personDesignation ? request.personDesignation : request.personType) |
+                          titlecase}}<span *ngIf="request.personCode"> &middot; {{request.personCode}}</span>
+                        </p>
                       </td>
                       <td>
                         <p class="mb-0">{{request.leaveTypeName | titlecase}}</p>
+                        <!-- The balance, in the row rather than a block of its own: enough to
+                             decide with, small enough not to compete with the name. -->
+                        <p class="mb-0 person-code" *ngIf="request.status === 'Pending'"
+                          [title]="'Of ' + request.balanceAllocated + ' days allowed this year'">
+                          {{request.balanceRemaining}} days left
+                        </p>
                       </td>
                       <td>
                         <p class="mb-0">{{request.fromDate | date:'dd MMM yyyy'}}</p>
@@ -124,147 +130,181 @@
                         <p class="mb-0">{{request.toDate | date:'dd MMM yyyy'}}</p>
                       </td>
                       <td>
-                        <!-- Blank until approval: a Pending request has not been expanded
-                             yet, and showing the raw range length here would promise days
-                             that Sundays and holidays are about to remove. -->
-                        <p class="mb-0">{{request.status === 'Approved' ? request.dayCount : '&ndash;'}}</p>
+                        <!-- Working days: Sundays and holidays inside the range are skipped,
+                             so this is smaller than the raw span and is what gets counted. -->
+                        <p class="mb-0">{{request.workingDays}}</p>
                       </td>
                       <td>
-                        <p class="mb-0 reason-cell" [title]="request.reason">{{request.reason || '&ndash;'}}</p>
+                        <!-- Badge plus one plain line. The colour alone cannot tell Approved,
+                             Completed, Rejected and Cancelled apart for someone seeing this
+                             page for the first time; the line says what each means. -->
+                        <span class="status-chip" [ngClass]="statusClass(request)">{{statusLabel(request)}}</span>
+                        <p class="mb-0 status-note">{{statusNote(request)}}</p>
                       </td>
-                      <td>
-                        <span class="status-chip" [ngClass]="'status-' + (request.status | lowercase)">
-                          {{request.status}}
-                        </span>
-                      </td>
-                      <td class="mb-0">
+                      <td class="mb-0 action-cell">
+                        <!-- Reject and Cancel are never the same button: Reject declines a
+                             request that has changed nothing yet, Cancel takes back a leave
+                             that is already on the register. -->
                         <ng-container *ngIf="request.status === 'Pending'">
-                          <mat-icon class="approve-icon" title="Approve"
-                            (click)="approveLeaveRequestModel(request)">check_circle</mat-icon>
-                          <mat-icon class="reject-icon" title="Reject"
-                            (click)="rejectLeaveRequestModel(request)">cancel</mat-icon>
+                          <button mat-button class="row-action approve-action"
+                            (click)="approveLeaveRequestModel(request)">
+                            <mat-icon>check_circle</mat-icon>Approve
+                          </button>
+                          <button mat-button class="row-action reject-action"
+                            (click)="rejectLeaveRequestModel(request)">
+                            <mat-icon>cancel</mat-icon>Reject
+                          </button>
                         </ng-container>
-                        <p class="mb-0 action-by" *ngIf="request.status !== 'Pending'">
-                          {{request.actionBy ? (request.actionBy | titlecase) : '&ndash;'}}
-                        </p>
-                      </td>
-                      <td class="mb-0">
-                        <mat-icon (click)="deleteLeaveRequestModel(request)">delete</mat-icon>
+
+                        <button mat-button class="row-action reject-action" *ngIf="canCancel(request)"
+                          (click)="cancelLeaveRequestModel(request)">
+                          <mat-icon>undo</mat-icon>Cancel
+                        </button>
+
+                        <!-- A completed leave is locked. Nothing to offer, and the backend
+                             refuses a cancel on it anyway. -->
+                        <span class="row-locked" *ngIf="request.status === 'Approved' && request.isCompleted">
+                          &ndash;
+                        </span>
+
+                        <button mat-button class="row-action"
+                          *ngIf="request.status === 'Rejected' || request.status === 'Cancelled'"
+                          (click)="deleteLeaveRequestModel(request)">
+                          <mat-icon>delete</mat-icon>Delete
+                        </button>
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+
+              <ng-container *ngIf="!loader && (!leaveRequestInfo || leaveRequestInfo.length==0)">
+                <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+              </ng-container>
+
               <div class="pagination">
                 <app-pagination [paginationValues]="paginationValues" (onChange)="getLeaveRequest($event)">
                 </app-pagination>
               </div>
 
+              <!-- ==================================================================
+                   MODALS — apply, and the four confirmations. All in the app's
+                   standard modal, the same one Shift and Leave Type use.
+                   ================================================================== -->
               <div class="modal fade show" [class.show]="showModal">
                 <div class="modal-dialog modal-dialog-top" role="document">
                   <div class="modal-content">
                     <div class="modal-header">
                       <h5 class="modal-title">
-                        {{approveMode ? 'APPROVE' : rejectMode ? 'REJECT' : deleteMode ? 'DELETE' : 'APPLY'}} LEAVE
+                        {{approveMode ? 'APPROVE LEAVE' : rejectMode ? 'REJECT LEAVE' : cancelMode ? 'CANCEL LEAVE' :
+                        deleteMode ? 'DELETE REQUEST' : 'APPLY FOR LEAVE'}}
                       </h5>
                       <mat-icon matRipple (click)="closeModal()">close</mat-icon>
                     </div>
 
-                    <!-- CREATE -->
+                    <!-- APPLY -->
                     <form [formGroup]="leaveForm" (ngSubmit)="leaveRequestAdd()"
-                      *ngIf="!deleteMode && !approveMode && !rejectMode">
+                      *ngIf="!deleteMode && !approveMode && !rejectMode && !cancelMode">
                       <div class="modal-body">
                         <div *ngIf="errorCheck">
                           <p class="error-message">{{errorMsg}}</p>
                         </div>
 
-                        <h3 class="settings-group-title">Who</h3>
-                        <mat-radio-group class="type-radio" (change)="switchFormPersonType($event.value)">
-                          <mat-radio-button value="staff" [checked]="formPersonType=='staff'">Staff</mat-radio-button>
-                          <mat-radio-button value="teacher"
-                            [checked]="formPersonType=='teacher'">Teacher</mat-radio-button>
-                          <mat-radio-button value="student"
-                            [checked]="formPersonType=='student'">Student</mat-radio-button>
-                        </mat-radio-group>
+                        <mat-form-field appearance="outline">
+                          <mat-label>Who is this leave for?</mat-label>
+                          <mat-select matInput [(ngModel)]="formPersonType" [ngModelOptions]="{standalone: true}"
+                            (selectionChange)="switchFormPersonType()">
+                            <mat-option value="staff">A staff member</mat-option>
+                            <mat-option value="teacher">A teacher</mat-option>
+                            <mat-option value="student">A student</mat-option>
+                          </mat-select>
+                        </mat-form-field>
 
                         <!-- Students are listed class by class: a whole school's roll is not
-                             a usable dropdown. -->
+                             a usable dropdown. classLabel, never the raw stored number —
+                             Nursery is stored as 200. -->
                         <mat-form-field appearance="outline" *ngIf="formPersonType === 'student'">
                           <mat-label>Class</mat-label>
                           <mat-select matInput [(ngModel)]="formClass" [ngModelOptions]="{standalone: true}"
                             (selectionChange)="onFormClassChange()">
                             <mat-option *ngFor="let classKey of classOptions" [value]="classKey">
-                              {{classNumber(classKey) | classSuffix}}
+                              {{classKey | classLabel}}
                             </mat-option>
                           </mat-select>
                         </mat-form-field>
 
                         <mat-form-field appearance="outline">
-                          <mat-label>Person</mat-label>
+                          <mat-label>Name</mat-label>
                           <mat-select matInput formControlName="personId" (selectionChange)="onPersonChange()">
                             <mat-option *ngFor="let person of peopleOptions" [value]="person._id">
                               {{person.name | titlecase}}{{person.code ? ' (' + person.code + ')' : ''}}
                             </mat-option>
                           </mat-select>
-                          <mat-hint
-                            *ngIf="formPersonType === 'student' && !formClass">Select a class first</mat-hint>
-                          <mat-hint
-                            *ngIf="!leaveForm.get('personId')?.valid && leaveForm.get('personId')?.touched"
-                            class="form-text text-danger">Select a person</mat-hint>
+                          <mat-hint *ngIf="formPersonType === 'student' && !formClass">Choose a class first</mat-hint>
+                          <mat-hint *ngIf="!leaveForm.get('personId')?.valid && leaveForm.get('personId')?.touched"
+                            class="form-text text-danger">Choose a name</mat-hint>
                         </mat-form-field>
 
-                        <h3 class="settings-group-title">Leave</h3>
                         <mat-form-field appearance="outline">
-                          <mat-label>Leave Type</mat-label>
+                          <mat-label>Type of leave</mat-label>
                           <mat-select matInput formControlName="leaveTypeId">
                             <mat-option *ngFor="let leaveType of leaveTypeOptions" [value]="leaveType._id">
                               {{leaveType.name | titlecase}}
                             </mat-option>
                           </mat-select>
                           <mat-hint *ngIf="leaveTypeOptions.length === 0" class="form-text text-danger">
-                            No active leave type applies to a {{formPersonType}}. Create one under Leave Type first
+                            No leave type has been set up for these people. Create one on the Leave Type page first
                           </mat-hint>
-                          <mat-hint
-                            *ngIf="!leaveForm.get('leaveTypeId')?.valid && leaveForm.get('leaveTypeId')?.touched"
-                            class="form-text text-danger">Select a leave type</mat-hint>
+                          <mat-hint *ngIf="!leaveForm.get('leaveTypeId')?.valid && leaveForm.get('leaveTypeId')?.touched"
+                            class="form-text text-danger">Choose a type of leave</mat-hint>
                         </mat-form-field>
 
-                        <!-- The balance for the chosen type, this calendar year. Shown before
-                             the dates so the person filing knows what there is to spend. -->
-                        <div class="balance-strip" *ngIf="selectedBalance">
-                          <span class="balance-remaining">{{selectedBalance.remaining}}</span>
-                          <span class="balance-label">day(s) left of {{selectedBalance.maxDaysPerYear}}
-                            &mdash; {{selectedBalance.used}} already taken this year</span>
-                        </div>
-                        <div class="balance-strip balance-loading" *ngIf="balanceLoading">Loading balance&hellip;</div>
+                        <!-- Said as a sentence, before the dates, so whoever is filling this in
+                             knows what there is to spend without reading a number off a chart. -->
+                        <p class="balance-sentence" *ngIf="balanceSentence">{{balanceSentence}}</p>
+                        <p class="balance-sentence balance-loading" *ngIf="balanceLoading">Checking how many days are
+                          left&hellip;</p>
+                        <p class="balance-sentence balance-problem" *ngIf="notAssigned">
+                          This person has not been given this leave yet, so it cannot be approved. Set a limit for them
+                          on the <strong>Set Leave Limits</strong> page first.
+                        </p>
 
+                        <!-- [min] on both pickers, [startAt] so the calendar opens on today:
+                             leave is applied for, never backdated from this form. -->
                         <mat-form-field appearance="outline">
-                          <mat-label>From Date (dd/mm/yyyy)</mat-label>
-                          <input matInput readonly [matDatepicker]="fromDatePicker" formControlName="fromDate" />
+                          <mat-label>First day of leave</mat-label>
+                          <input matInput readonly [matDatepicker]="fromDatePicker" [min]="today"
+                            formControlName="fromDate" (dateChange)="onDateChange()" />
                           <mat-datepicker-toggle matSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
-                          <mat-datepicker #fromDatePicker></mat-datepicker>
+                          <mat-datepicker #fromDatePicker [startAt]="today"></mat-datepicker>
                           <mat-error *ngIf="!leaveForm.get('fromDate')?.valid && leaveForm.get('fromDate')?.touched">
-                            From date is required</mat-error>
+                            Choose the first day</mat-error>
                         </mat-form-field>
                         <mat-form-field appearance="outline">
-                          <mat-label>To Date (dd/mm/yyyy)</mat-label>
-                          <input matInput readonly [matDatepicker]="toDatePicker" formControlName="toDate" />
+                          <mat-label>Last day of leave</mat-label>
+                          <input matInput readonly [matDatepicker]="toDatePicker" [min]="minToDate"
+                            formControlName="toDate" (dateChange)="onDateChange()" />
                           <mat-datepicker-toggle matSuffix [for]="toDatePicker"></mat-datepicker-toggle>
-                          <mat-datepicker #toDatePicker></mat-datepicker>
+                          <mat-datepicker #toDatePicker [startAt]="minToDate"></mat-datepicker>
                           <mat-error *ngIf="!leaveForm.get('toDate')?.valid && leaveForm.get('toDate')?.touched">
-                            To date is required</mat-error>
+                            Choose the last day</mat-error>
                         </mat-form-field>
-                        <p class="settings-group-note">Sundays and declared holidays inside the range are skipped, so
-                          they are never counted against the balance.</p>
 
-                        <mat-form-field appearance="outline">
-                          <mat-label>Reason</mat-label>
-                          <textarea matInput rows="2" formControlName="reason"></textarea>
-                        </mat-form-field>
+                        <p class="settings-group-note" *ngIf="plannedDays > 0 && !balanceExceeded">
+                          That is <strong>{{plannedDays}} working day(s)</strong>. Sundays and school holidays inside
+                          these dates are not counted.
+                        </p>
+                        <p class="settings-group-note" *ngIf="plannedDays === 0">
+                          Sundays and school holidays inside these dates are not counted.
+                        </p>
+                        <!-- Shown the moment the dates make the leave too long, not after a
+                             failed submit. Submit is disabled while it is up. -->
+                        <p class="balance-sentence balance-problem" *ngIf="balanceExceeded">{{exceededMessage}}</p>
                       </div>
                       <div class="modal-footer">
-                        <button type="submit" mat-raised-button [disabled]="!leaveForm.valid || isClick"
-                          class="submit-button">Submit</button>
+                        <button type="submit" mat-raised-button
+                          [disabled]="!leaveForm.valid || isClick || balanceExceeded"
+                          class="submit-button">Apply for Leave</button>
                       </div>
                     </form>
 
@@ -274,17 +314,24 @@
                         <div *ngIf="errorCheck">
                           <p class="error-message">{{errorMsg}}</p>
                         </div>
-                        <h4 class="confirm-title">Approve {{actionRequest?.leaveTypeName | titlecase}} for
+                        <h4 class="confirm-title">Approve {{actionRequest?.workingDays}} day(s) of
+                          {{actionRequest?.leaveTypeName | titlecase}} for
                           {{actionRequest?.personName | titlecase}}?</h4>
                         <p class="confirm-note">
                           {{actionRequest?.fromDate | date:'dd MMM yyyy'}} to
-                          {{actionRequest?.toDate | date:'dd MMM yyyy'}}. Attendance will be marked Leave on every
-                          working day in this range, and those days are then locked against the biometric sync.
+                          {{actionRequest?.toDate | date:'dd MMM yyyy'}} will be marked as leave on the attendance
+                          register, and the machine punches for those days will not change it.
+                        </p>
+                        <p class="confirm-note confirm-warning" *ngIf="balanceBlocked">
+                          This is more leave than {{actionRequest?.personName | titlecase}} has left. Approve anyway
+                          only if you mean to give extra days.
                         </p>
                       </div>
                       <div class="modal-footer">
-                        <button class="submit-button" mat-raised-button type="button" [disabled]="isClick"
-                          (click)="leaveRequestApprove()">Approve</button>
+                        <button class="submit-button" mat-raised-button type="button" *ngIf="!balanceBlocked"
+                          [disabled]="isClick" (click)="leaveRequestApprove()">Approve</button>
+                        <button class="delete-button" mat-raised-button type="button" *ngIf="balanceBlocked"
+                          [disabled]="isClick" (click)="leaveRequestApprove(true)">Approve anyway</button>
                       </div>
                     </div>
 
@@ -296,12 +343,39 @@
                         </div>
                         <h4 class="confirm-title">Reject {{actionRequest?.leaveTypeName | titlecase}} for
                           {{actionRequest?.personName | titlecase}}?</h4>
-                        <p class="confirm-note">Attendance is left exactly as it is &mdash; a rejected request never
-                          marks anything.</p>
+                        <p class="confirm-note">Nothing changes on the attendance register. The request stays in the
+                          list, marked Rejected.</p>
                       </div>
                       <div class="modal-footer">
                         <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
                           (click)="leaveRequestReject()">Reject</button>
+                      </div>
+                    </div>
+
+                    <!-- CANCEL -->
+                    <div *ngIf="cancelMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">Take back this approved leave?</h4>
+                        <p class="confirm-note">
+                          The leave marks will be removed from the attendance register for
+                          {{actionRequest?.fromDate | date:'dd MMM yyyy'}} to
+                          {{actionRequest?.toDate | date:'dd MMM yyyy'}}, and those days go back to
+                          {{actionRequest?.personName | titlecase}}'s balance. The request stays in the list, marked
+                          Cancelled.
+                        </p>
+                        <mat-form-field appearance="outline" class="mt-3">
+                          <mat-label>Why is it being taken back?</mat-label>
+                          <textarea matInput rows="2" [(ngModel)]="cancelReason"
+                            [ngModelOptions]="{standalone: true}"></textarea>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button"
+                          [disabled]="isClick || !cancelReason.trim()"
+                          (click)="leaveRequestCancel()">Take Back Leave</button>
                       </div>
                     </div>
 
@@ -311,25 +385,19 @@
                         <div *ngIf="errorCheck">
                           <p class="error-message">{{errorMsg}}</p>
                         </div>
-                        <h4 class="confirm-title">Delete this leave request?</h4>
-                        <p class="confirm-note" *ngIf="actionRequest?.status === 'Approved'">
-                          This leave is already approved. Deleting it also removes the
-                          {{actionRequest?.dayCount}} attendance day(s) it marked, and those days will be recalculated
-                          from the biometric punches instead.
-                        </p>
-                        <p class="confirm-note" *ngIf="actionRequest?.status !== 'Approved'">
-                          Nothing was marked on the attendance calendar for this request, so only the request itself is
-                          removed.
-                        </p>
+                        <h4 class="confirm-title">Delete this request?</h4>
+                        <p class="confirm-note">It will be removed from the list for good. Attendance is not
+                          affected.</p>
                       </div>
                       <div class="modal-footer">
                         <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
-                          (click)="leaveRequestDelete()">Ok</button>
+                          (click)="leaveRequestDelete()">Delete</button>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </div>

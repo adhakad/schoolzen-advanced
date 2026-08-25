@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChunkPipe } from '../chunk.pipe';
+import { ClassLabelPipe } from '../class-label.pipe';
 import { ClassSuffixPipe } from '../class-suffix.pipe';
 import { DateToWordsPipe } from '../date-to-words.pipe';
 import { SecureEmailPipe } from '../secure-email.pipe';
@@ -15,6 +16,7 @@ import { TimeAmPmPipe } from '../time-am-pm.pipe';
 @NgModule({
   declarations: [
     ChunkPipe,
+    ClassLabelPipe,
     ClassSuffixPipe,
     DateToWordsPipe,
     SecureEmailPipe,
@@ -30,6 +32,7 @@ import { TimeAmPmPipe } from '../time-am-pm.pipe';
   ],
   exports: [
     ChunkPipe,
+    ClassLabelPipe,
     ClassSuffixPipe,
     DateToWordsPipe,
     SecureEmailPipe,

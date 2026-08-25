@@ -79,7 +79,12 @@ const LeaveRequestModel = mongoose.model('leave-request', {
     },
     status: {
         type: String,
-        enum: ['Pending', 'Approved', 'Rejected'],
+        // 'Cancelled' is an APPROVED leave taken back: the request survives with its reason,
+        // its leaveDates and its dayCount, but the DailyAttendance rows it wrote are gone.
+        // Deleting is the other undo and erases the record entirely — see the two handlers.
+        // services/leave-lookup.js matches status: 'Approved' in all three of its lookups, so
+        // a cancelled request is invisible to the reconcile pipeline by construction.
+        enum: ['Pending', 'Approved', 'Rejected', 'Cancelled'],
         default: 'Pending',
         trim: true,
     },
@@ -102,6 +107,22 @@ const LeaveRequestModel = mongoose.model('leave-request', {
         default: null,
     },
     actionAt: {
+        type: Date,
+        default: null,
+    },
+    cancellationReason: {
+        // Required by the cancel endpoint. An approved leave being taken back always has a
+        // story, and the attendance days it removes are otherwise unexplainable later.
+        type: String,
+        trim: true,
+        default: '',
+    },
+    cancelledBy: {
+        type: String,
+        trim: true,
+        default: null,
+    },
+    cancelledAt: {
         type: Date,
         default: null,
     },

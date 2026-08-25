@@ -61,8 +61,8 @@
                     <tr class="text-muted">
                       <th>No.</th>
                       <th>Name</th>
-                      <th>Applies To</th>
-                      <th>Days / Year</th>
+                      <th>Who Can Take It</th>
+                      <th>Assigned Days</th>
                       <th>Paid</th>
                       <th>Status</th>
                       <th>Edit</th>
@@ -127,31 +127,30 @@
                             class="form-text text-danger">Name is required</mat-hint>
                         </mat-form-field>
                         <mat-form-field appearance="outline">
-                          <mat-label>Applies To</mat-label>
+                          <mat-label>Who can take this leave</mat-label>
                           <mat-select matInput formControlName="applicableTo">
                             <mat-option value="all">Everyone</mat-option>
-                            <mat-option value="staff">Staff</mat-option>
-                            <mat-option value="teacher">Teacher</mat-option>
-                            <mat-option value="student">Student</mat-option>
+                            <mat-option value="staff">Staff only</mat-option>
+                            <mat-option value="teacher">Teachers only</mat-option>
+                            <mat-option value="student">Students only</mat-option>
                           </mat-select>
-                          <mat-hint>Who may take this leave. Only matching people see it on the request form</mat-hint>
+                          <mat-hint>Only these people will see this leave on the apply form</mat-hint>
                         </mat-form-field>
                         <mat-form-field appearance="outline">
-                          <mat-label>Days Per Year</mat-label>
+                          <mat-label>Assigned Days per year</mat-label>
                           <input matInput type="number" min="1" formControlName="maxDaysPerYear">
-                          <mat-hint *ngIf="leaveTypeForm.get('maxDaysPerYear')?.valid">The annual cap. Checked when a
-                            request is approved, not when it is submitted</mat-hint>
+                          <mat-hint *ngIf="leaveTypeForm.get('maxDaysPerYear')?.valid">How many days of this leave one
+                            person may take in a year. It can be changed per person on the Leave Limits page</mat-hint>
                           <mat-hint
                             *ngIf="!leaveTypeForm.get('maxDaysPerYear')?.valid && leaveTypeForm.get('maxDaysPerYear')?.touched"
                             class="form-text text-danger">Enter a valid number of days</mat-hint>
                         </mat-form-field>
 
-                        <h3 class="settings-group-title">Payroll</h3>
-                        <p class="settings-group-note">A paid leave day is salaried as normal. An unpaid one is
-                          deducted when payroll is generated &mdash; nothing in attendance changes either way.</p>
                         <div class="paid-toggle">
-                          <mat-slide-toggle formControlName="isPaid">Paid leave</mat-slide-toggle>
+                          <mat-slide-toggle formControlName="isPaid">Salary is paid for these days</mat-slide-toggle>
                         </div>
+                        <p class="settings-group-note">Leave this on for paid leave. Turn it off and the days are
+                          deducted from salary when payroll is generated.</p>
 
                         <mat-form-field appearance="outline">
                           <mat-label>Status</mat-label>
@@ -159,7 +158,7 @@
                             <mat-option value="active">Active</mat-option>
                             <mat-option value="inactive">Inactive</mat-option>
                           </mat-select>
-                          <mat-hint>An inactive type stays on past requests but cannot be chosen on a new one</mat-hint>
+                          <mat-hint>Inactive keeps this leave on old requests but hides it from new ones</mat-hint>
                         </mat-form-field>
                       </div>
                       <div class="modal-footer">
@@ -168,10 +167,14 @@
                       </div>
                     </form>
                     <div *ngIf="deleteMode">
-                      <h4 style="margin-left: 20px;">To delete leave type, click ok to confirm.</h4>
+                      <div class="modal-body">
+                        <h4 class="confirm-title">Delete this leave type?</h4>
+                        <p class="confirm-note">Nobody will be able to apply for it any more. Leave already approved
+                          under it stays on the attendance register.</p>
+                      </div>
                       <div class="modal-footer">
                         <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
-                          (click)="leaveTypeDelete(deleteById)">Ok</button>
+                          (click)="leaveTypeDelete(deleteById)">Delete</button>
                       </div>
                     </div>
                   </div>

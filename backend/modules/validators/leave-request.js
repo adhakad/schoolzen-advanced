@@ -19,6 +19,10 @@ const createLeaveRequestSchema = Joi.object({
     // Who is filing it. The teacher route ignores whatever arrives here and takes identity
     // from the verified token instead — see CreateTeacherLeaveRequest.
     appliedById: Joi.string().trim().allow('', null),
+    // Admin-only escape hatch past the "no leave for past dates" guard, for backfilling a
+    // genuine correction. Declared HERE and deliberately not on the teacher schema below, so
+    // stripUnknown drops it from a teacher's payload before the controller ever sees it.
+    allowPastDates: Joi.boolean().default(false),
 });
 
 // The teacher route resolves adminId and the teacher's own personId from the JWT. Neither is
@@ -35,8 +39,23 @@ const createTeacherLeaveRequestSchema = Joi.object({
     reason: Joi.string().trim().max(500).allow('', null),
 });
 
-// Approve and reject share a body: who is doing it.
+// Reject: who is doing it, and nothing else.
 const actionLeaveRequestSchema = Joi.object({
+    actionBy: Joi.string().trim().allow('', null),
+});
+
+// Approve carries one thing reject must not: the balance override. Kept as a separate schema
+// rather than a shared optional field so a forceApprove sent to /reject is stripped as
+// unknown instead of quietly accepted against a handler that has no such concept.
+const approveLeaveRequestSchema = Joi.object({
+    actionBy: Joi.string().trim().allow('', null),
+    forceApprove: Joi.boolean().default(false),
+});
+
+// Cancel: the reason is REQUIRED. An approved leave being taken back removes attendance days
+// that were already marked, and a bare status flip leaves nobody able to explain them later.
+const cancelLeaveRequestSchema = Joi.object({
+    cancellationReason: Joi.string().trim().max(500).required(),
     actionBy: Joi.string().trim().allow('', null),
 });
 
@@ -44,4 +63,6 @@ module.exports = {
     createLeaveRequestSchema,
     createTeacherLeaveRequestSchema,
     actionLeaveRequestSchema,
+    approveLeaveRequestSchema,
+    cancelLeaveRequestSchema,
 };

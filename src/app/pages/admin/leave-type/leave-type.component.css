@@ -41,3 +41,19 @@
   background: #dcecfb;
   color: #1f6fad;
 }
+
+/* Delete confirmation. Says what actually happens rather than asking "are you sure?" —
+   same treatment the Leave Requests page gives its four confirmations. */
+.confirm-title {
+  margin-bottom: 1vh;
+  color: #382066;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.confirm-note {
+  margin-bottom: 0;
+  color: #646089;
+  font-size: 13px;
+  line-height: 1.5;
+}

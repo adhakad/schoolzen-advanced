@@ -1,0 +1,169 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Set Leave Limits for Staff</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mobile-option">
+              <div class="col-12">
+                <button mat-button class="menu-button">
+                  <span>Set Leave Limits</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+
+              <h3 class="page-purpose">Set How Many Leave Days Each Person Gets</h3>
+              <p class="page-note">
+                A person can only be approved for a leave they have been given here first. Tick the people you want,
+                choose the leave, and save &mdash; anyone who already has it keeps the days they have already taken.
+              </p>
+
+              <!-- Filters and the one action on this page, in a single toolbar directly above
+                   the table. -->
+              <div class="filter-row">
+                <mat-form-field appearance="outline" class="filter-field">
+                  <mat-label>People</mat-label>
+                  <mat-select matInput [(ngModel)]="personType" [ngModelOptions]="{standalone: true}"
+                    (selectionChange)="switchPersonType()">
+                    <mat-option value="staff">Staff</mat-option>
+                    <mat-option value="teacher">Teachers</mat-option>
+                    <mat-option value="student">Students</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="filter-field" *ngIf="personType === 'student'">
+                  <mat-label>Class</mat-label>
+                  <mat-select matInput [(ngModel)]="selectedClass" [ngModelOptions]="{standalone: true}"
+                    (selectionChange)="onClassChange()">
+                    <mat-option *ngFor="let classKey of classOptions" [value]="classKey">
+                      {{classKey | classLabel}}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <p class="selection-note"><strong>{{selectedCount}}</strong> people selected</p>
+
+                <button class="submit-button toolbar-button" mat-raised-button [disabled]="selectedCount === 0"
+                  (click)="openAssignModel()"><mat-icon>add</mat-icon>Set Leave Limit</button>
+              </div>
+
+              <p class="page-note" *ngIf="personType === 'student' && !selectedClass">
+                Choose a class to see its students.
+              </p>
+              <p class="page-note" *ngIf="leaveTypes.length === 0 && !gridLoading && rows.length > 0">
+                No leave type has been set up for these people yet &mdash; create one on the
+                <strong>Leave Type</strong> page first.
+              </p>
+
+              <div class="table-wrapper" *ngIf="rows.length > 0">
+                <table class="table table-hover align-middle bg-white assignment-grid">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th class="select-column">
+                        <mat-checkbox [checked]="allSelected" (change)="toggleAll()"></mat-checkbox>
+                      </th>
+                      <th class="name-column">Name</th>
+                      <th class="department-column">{{personType === 'student' ? 'Class' : 'Department'}}</th>
+                      <th *ngFor="let leaveType of leaveTypes" class="type-column">
+                        {{leaveType.name | titlecase}}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of rows">
+                      <td class="select-column">
+                        <mat-checkbox [checked]="isRowSelected(row.personId)"
+                          (change)="toggleRow(row.personId)"></mat-checkbox>
+                      </td>
+                      <td class="name-column">
+                        <p class="mb-0">{{row.name | titlecase}}</p>
+                        <p class="mb-0 person-code" *ngIf="row.code">{{row.code}}</p>
+                      </td>
+                      <td class="department-column">{{row.department ? row.department : '—'}}</td>
+                      <td *ngFor="let leaveType of leaveTypes" class="type-column">
+                        <!-- Plain text, no bars and no percentages. -->
+                        <ng-container *ngIf="cellOf(row, leaveType._id) as cell; else notSet">
+                          <p class="mb-0 limit-days">{{cell.allocated}} days</p>
+                          <!-- Only once some have been taken: "10 days / 10 days left" on
+                               every untouched row is noise. -->
+                          <p class="mb-0 person-code" *ngIf="cell.used > 0">
+                            {{cellRemaining(cell)}} days left
+                          </p>
+                        </ng-container>
+                        <ng-template #notSet>
+                          <p class="mb-0 not-set">Not set</p>
+                          <button class="assign-link" mat-button [disabled]="isClick"
+                            (click)="assignOne(row, leaveType._id)">Set</button>
+                        </ng-template>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <ng-container *ngIf="!gridLoading && rows.length === 0 && (personType !== 'student' || selectedClass)">
+                <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+              </ng-container>
+
+              <!-- The app's standard modal, same as every other settings page here. -->
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">SET LEAVE LIMIT</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <div class="modal-body">
+                      <p class="confirm-note">
+                        <strong>{{selectedCount}}</strong> people selected. Tick each leave they should be allowed
+                        to take.
+                      </p>
+                      <div class="type-check" *ngFor="let leaveType of leaveTypes">
+                        <mat-checkbox [checked]="isTypeChecked(leaveType._id)"
+                          (change)="toggleAssignType(leaveType._id)">
+                          {{leaveType.name | titlecase}}
+                          <span class="type-days">{{leaveType.maxDaysPerYear}} assigned days a year</span>
+                        </mat-checkbox>
+                      </div>
+                      <p class="confirm-note" *ngIf="leaveTypes.length === 0">
+                        No leave type has been set up for these people yet.
+                      </p>
+                      <p class="settings-group-note">Anyone who already has one of these keeps the days they have
+                        already taken &mdash; nothing is reset.</p>
+                    </div>
+                    <div class="modal-footer">
+                      <button class="submit-button" mat-raised-button type="button"
+                        [disabled]="assignTypeIds.size === 0 || isClick" (click)="assignSelected()">Save</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

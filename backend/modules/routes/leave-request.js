@@ -7,6 +7,8 @@ const {
     createLeaveRequestSchema,
     createTeacherLeaveRequestSchema,
     actionLeaveRequestSchema,
+    approveLeaveRequestSchema,
+    cancelLeaveRequestSchema,
 } = require('../validators/leave-request');
 const {
     GetLeaveRequestPagination,
@@ -16,6 +18,7 @@ const {
     CreateTeacherLeaveRequest,
     ApproveLeaveRequest,
     RejectLeaveRequest,
+    CancelLeaveRequest,
     DeleteLeaveRequest,
 } = require('../controllers/leave-request');
 
@@ -32,8 +35,11 @@ router.post('/', validate(createLeaveRequestSchema), CreateLeaveRequest);
 // controller ever sees them.
 router.post('/teacher', isTeacherAuth, validate(createTeacherLeaveRequestSchema), CreateTeacherLeaveRequest);
 
-router.put('/:id/approve', validate(actionLeaveRequestSchema), ApproveLeaveRequest);
+router.put('/:id/approve', validate(approveLeaveRequestSchema), ApproveLeaveRequest);
 router.put('/:id/reject', validate(actionLeaveRequestSchema), RejectLeaveRequest);
+// PATCH, not PUT: cancelling amends an approved request in place rather than replacing it —
+// its leaveDates and dayCount survive as the record of what was granted.
+router.patch('/:id/cancel', validate(cancelLeaveRequestSchema), CancelLeaveRequest);
 router.delete('/:id', DeleteLeaveRequest);
 
 module.exports = router;

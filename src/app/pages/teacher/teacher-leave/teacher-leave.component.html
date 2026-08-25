@@ -17,23 +17,34 @@
                 </div>
                 <div class="col-12 col-lg-9" style="text-align: right;">
                   <div class="row">
-                    <div class="col-12 col-lg-5 mt-2">
-                      <mat-radio-group (change)="switchMode($event.value)">
-                        <mat-radio-button value="teacher" [checked]="mode=='teacher'">My Leave</mat-radio-button>
-                        <mat-radio-button value="student" [checked]="mode=='student'"
-                          [disabled]="!canApplyForStudents">Student Leave</mat-radio-button>
-                      </mat-radio-group>
+                    <!-- A dropdown, not a radio pair: every choice on the Leave screens is
+                         made the same way. -->
+                    <div class="col-12 col-lg-5">
+                      <mat-form-field appearance="outline" class="filter-field">
+                        <mat-label>Show</mat-label>
+                        <mat-select matInput [(ngModel)]="mode" [ngModelOptions]="{standalone: true}"
+                          (selectionChange)="switchMode()">
+                          <mat-option value="teacher">My leave</mat-option>
+                          <mat-option value="student" [disabled]="!canApplyForStudents">Leave for a student
+                          </mat-option>
+                        </mat-select>
+                      </mat-form-field>
                     </div>
                     <div class="col-12 col-lg-4" *ngIf="mode==='student' && showClassPicker">
-                      <select class="form-control" [(ngModel)]="selectedClass" (change)="onClassChange()">
-                        <option *ngFor="let classKey of myClasses" [value]="classKey">
-                          {{classNumber(classKey) | classSuffix}}</option>
-                      </select>
+                      <mat-form-field appearance="outline" class="filter-field">
+                        <mat-label>Class</mat-label>
+                        <mat-select matInput [(ngModel)]="selectedClass" [ngModelOptions]="{standalone: true}"
+                          (selectionChange)="onClassChange()">
+                          <mat-option *ngFor="let classKey of myClasses" [value]="classKey">
+                            {{classKey | classLabel}}
+                          </mat-option>
+                        </mat-select>
+                      </mat-form-field>
                     </div>
                     <!-- One class: a label, because a picker with a single option is a control
                          that can only be set to what it already says. -->
                     <div class="col-12 col-lg-4 mt-2" *ngIf="mode==='student' && myClasses.length==1">
-                      <span class="single-class">{{classNumber(selectedClass) | classSuffix}}</span>
+                      <span class="single-class">{{selectedClass | classLabel}}</span>
                     </div>
                     <div class="col-12 col-lg-3">
                       <button class="submit-button" mat-raised-button
@@ -53,6 +64,12 @@
               <div class="empty-note" *ngIf="permissionLoaded && mode==='student' && !canApplyForStudents">
                 You do not have leave permission for any class. Ask your school administration to grant it.
               </div>
+
+              <h3 class="page-purpose">{{mode === 'student' ? 'Leave Applied for Students' : 'My Leave'}}</h3>
+              <p class="page-note">
+                Use <strong>Apply</strong> above to send a new request. Your school administration approves or rejects
+                it &mdash; nothing is marked on the attendance register until they do.
+              </p>
 
               <div class="table-wrapper">
                 <table class="table table-hover align-middle bg-white">
@@ -87,16 +104,19 @@
                         <p class="mb-0">{{request.toDate | date:'dd MMM yyyy'}}</p>
                       </td>
                       <td>
-                        <!-- Blank until approval: a Pending request has not been expanded yet. -->
-                        <p class="mb-0">{{request.status === 'Approved' ? request.dayCount : '&ndash;'}}</p>
+                        <!-- Working days: Sundays and school holidays inside the range are
+                             skipped, so this is what the request would actually cost. -->
+                        <p class="mb-0">{{request.workingDays}}</p>
                       </td>
                       <td>
                         <p class="mb-0 reason-cell" [title]="request.reason">{{request.reason || '&ndash;'}}</p>
                       </td>
                       <td>
-                        <span class="status-chip" [ngClass]="'status-' + (request.status | lowercase)">
-                          {{request.status}}
-                        </span>
+                        <!-- Badge plus one plain line, matching the admin approvals table:
+                             the colour alone cannot tell Approved from Completed from
+                             Cancelled. -->
+                        <span class="status-chip" [ngClass]="statusClass(request)">{{statusLabel(request)}}</span>
+                        <p class="mb-0 status-note">{{statusNote(request)}}</p>
                       </td>
                     </tr>
                   </tbody>
@@ -122,7 +142,7 @@
                         </div>
 
                         <mat-form-field appearance="outline" *ngIf="mode==='student'">
-                          <mat-label>Student</mat-label>
+                          <mat-label>Which student?</mat-label>
                           <mat-select matInput formControlName="personId" (selectionChange)="onPersonChange()">
                             <mat-option *ngFor="let person of peopleOptions" [value]="person._id">
                               {{person.name | titlecase}}{{person.code ? ' (' + person.code + ')' : ''}}
@@ -131,7 +151,7 @@
                         </mat-form-field>
 
                         <mat-form-field appearance="outline">
-                          <mat-label>Leave Type</mat-label>
+                          <mat-label>Type of leave</mat-label>
                           <mat-select matInput formControlName="leaveTypeId">
                             <mat-option *ngFor="let leaveType of leaveTypeOptions" [value]="leaveType._id">
                               {{leaveType.name | titlecase}}
@@ -145,39 +165,56 @@
                             class="form-text text-danger">Select a leave type</mat-hint>
                         </mat-form-field>
 
-                        <div class="balance-strip" *ngIf="selectedBalance">
-                          <span class="balance-remaining">{{selectedBalance.remaining}}</span>
-                          <span class="balance-label">day(s) left of {{selectedBalance.maxDaysPerYear}}
-                            &mdash; {{selectedBalance.used}} already taken this year</span>
-                        </div>
-                        <div class="balance-strip balance-loading" *ngIf="balanceLoading">Loading balance&hellip;</div>
+                        <!-- Said as a sentence, before the dates, so whoever is filling this in
+                             knows what there is to spend without reading it off a chart. -->
+                        <p class="balance-sentence" *ngIf="balanceSentence">{{balanceSentence}}</p>
+                        <p class="balance-sentence balance-loading" *ngIf="balanceLoading">Checking how many days are
+                          left&hellip;</p>
+                        <p class="balance-sentence balance-problem" *ngIf="notAssigned">
+                          {{mode === 'teacher' ? 'You have' : 'This student has'}} not been given this leave yet, so it
+                          cannot be approved. Ask your school administration to set a limit for it first.
+                        </p>
 
                         <mat-form-field appearance="outline">
-                          <mat-label>From Date (dd/mm/yyyy)</mat-label>
-                          <input matInput readonly [matDatepicker]="fromDatePicker" formControlName="fromDate" />
+                          <mat-label>First day of leave</mat-label>
+                          <!-- [min] on both pickers, [startAt] so the calendar opens on today:
+                               leave is applied for, never backdated from this page — the
+                               backend refuses a past fromDate outright. -->
+                          <input matInput readonly [matDatepicker]="fromDatePicker" [min]="today"
+                            formControlName="fromDate" (dateChange)="onDateChange()" />
                           <mat-datepicker-toggle matSuffix [for]="fromDatePicker"></mat-datepicker-toggle>
-                          <mat-datepicker #fromDatePicker></mat-datepicker>
+                          <mat-datepicker #fromDatePicker [startAt]="today"></mat-datepicker>
                           <mat-error *ngIf="!leaveForm.get('fromDate')?.valid && leaveForm.get('fromDate')?.touched">
-                            From date is required</mat-error>
+                            Choose the first day</mat-error>
                         </mat-form-field>
                         <mat-form-field appearance="outline">
-                          <mat-label>To Date (dd/mm/yyyy)</mat-label>
-                          <input matInput readonly [matDatepicker]="toDatePicker" formControlName="toDate" />
+                          <mat-label>Last day of leave</mat-label>
+                          <input matInput readonly [matDatepicker]="toDatePicker" [min]="minToDate"
+                            formControlName="toDate" (dateChange)="onDateChange()" />
                           <mat-datepicker-toggle matSuffix [for]="toDatePicker"></mat-datepicker-toggle>
-                          <mat-datepicker #toDatePicker></mat-datepicker>
+                          <mat-datepicker #toDatePicker [startAt]="minToDate"></mat-datepicker>
                           <mat-error *ngIf="!leaveForm.get('toDate')?.valid && leaveForm.get('toDate')?.touched">
-                            To date is required</mat-error>
+                            Choose the last day</mat-error>
                         </mat-form-field>
-                        <p class="settings-group-note">Sundays and declared holidays inside the range are skipped.
-                          Your school administration approves or rejects this request.</p>
+                        <p class="settings-group-note" *ngIf="plannedDays > 0 && !balanceExceeded">
+                          That is <strong>{{plannedDays}} working day(s)</strong>. Sundays and school holidays inside
+                          these dates are not counted.
+                        </p>
+                        <p class="settings-group-note" *ngIf="plannedDays === 0">
+                          Sundays and school holidays inside these dates are not counted.
+                        </p>
+                        <!-- Shown the moment the dates make the leave too long, not after a
+                             failed submit. Submit is disabled while it is up. -->
+                        <p class="balance-sentence balance-problem" *ngIf="balanceExceeded">{{exceededMessage}}</p>
 
                         <mat-form-field appearance="outline">
-                          <mat-label>Reason</mat-label>
+                          <mat-label>Reason (optional)</mat-label>
                           <textarea matInput rows="2" formControlName="reason"></textarea>
                         </mat-form-field>
                       </div>
                       <div class="modal-footer">
-                        <button type="submit" mat-raised-button [disabled]="!leaveForm.valid || isClick"
+                        <button type="submit" mat-raised-button
+                          [disabled]="!leaveForm.valid || isClick || balanceExceeded"
                           class="submit-button">Submit</button>
                       </div>
                     </form>

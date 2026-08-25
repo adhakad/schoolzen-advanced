@@ -3,10 +3,14 @@ const mongoose = require('mongoose');
 const LeaveRequestModel = require('../models/leave-request');
 const LeaveTypeModel = require('../models/leave-type');
 const DailyAttendanceModel = require('../models/daily-attendance');
+const PersonLeaveAssignmentModel = require('../models/person-leave-assignment');
 const TeacherModel = require('../models/teacher');
+const DesignationModel = require('../models/designation');
 const TeacherUserModel = require('../models/users/teacher-user');
 const { getModel, getPerson, personCode } = require('../services/person-lookup');
 const { getHolidayMapForMonth } = require('../services/holiday-lookup');
+const { balanceKeyOf, getApprovedDaysByPerson, getAssignmentMap } = require('../services/leave-balance');
+const { nowWallClock } = require('../helpers/attendance-time');
 const { toUtcMidnight, toDateKey, parseDateKey, eachDateInRange } = require('../helpers/date-only');
 const logger = require('../helpers/logger');
 
@@ -107,6 +111,88 @@ const expandLeaveDates = async (adminId, personType, personId, fromKey, toKey) =
 };
 
 // ---------------------------------------------------------------------------
+// INTERNAL — how many days each PENDING or REJECTED request on a page would actually grant.
+//
+// The same three exclusions expandLeaveDates applies, but BATCHED ACROSS THE WHOLE PAGE:
+// Sundays are dropped in memory, one holiday map per distinct month the page spans, and one
+// DailyAttendance scan covering every date on the page at once. A 50-row page costs the same
+// handful of round-trips a 1-row page does — calling expandLeaveDates per row would make the
+// list endpoint, the one admins sit on all day, an N+1.
+//
+// Approved and Cancelled rows are skipped: their stored dayCount is already the expanded
+// truth, frozen at approval, and re-expanding it against today's calendar could disagree
+// with the attendance rows that were actually written.
+//
+// @returns {Promise<Map<String, Number>>} request _id -> grantable day count
+// ---------------------------------------------------------------------------
+const expandLeaveDatesForPage = async (adminId, requests) => {
+    const dayCountByRequestId = new Map();
+
+    const unexpanded = requests.filter(
+        (request) => request.status === 'Pending' || request.status === 'Rejected',
+    );
+    if (unexpanded.length === 0) return dayCountByRequestId;
+
+    const workingKeysByRequestId = new Map();
+    const months = new Map();
+    const allDateKeys = new Set();
+
+    for (const request of unexpanded) {
+        const dateKeys = eachDateInRange(toDateKey(request.fromDate), toDateKey(request.toDate), null)
+            .filter((date) => !WEEKLY_OFF_DAYS.includes(date.getUTCDay()))
+            .map((date) => toDateKey(date));
+        workingKeysByRequestId.set(String(request._id), dateKeys);
+
+        for (const dateKey of dateKeys) {
+            allDateKeys.add(dateKey);
+            const parsed = parseDateKey(dateKey);
+            if (parsed) months.set(`${parsed.year}-${parsed.month}`, parsed);
+        }
+    }
+
+    const dateList = [...allDateKeys].map((dateKey) => toUtcMidnight(dateKey));
+
+    const [holidayMaps, holidayRows] = await Promise.all([
+        Promise.all([...months.values()].map(
+            (parsed) => getHolidayMapForMonth(adminId, parsed.year, parsed.month),
+        )),
+        // School-wide, unlike expandLeaveDates's per-person read: one scan for every person
+        // on the page is cheaper than one per row, and the rows carry who they belong to.
+        dateList.length > 0
+            ? DailyAttendanceModel
+                .find(
+                    { adminId, status: 'Holiday', date: { $in: dateList } },
+                    { personType: 1, personId: 1, date: 1, _id: 0 },
+                )
+                .lean()
+            : [],
+    ]);
+
+    // A declared holiday shuts the school for everybody; a Holiday row in DailyAttendance is
+    // one person's day. They cannot share a key or one person's override would silently
+    // shorten everybody else's leave.
+    const schoolHolidayKeys = new Set();
+    for (const holidayMap of holidayMaps) {
+        for (const dateKey of holidayMap.keys()) schoolHolidayKeys.add(dateKey);
+    }
+    const personHolidayKeys = new Set();
+    for (const row of holidayRows) {
+        personHolidayKeys.add(`${row.personType}|${row.personId}|${toDateKey(row.date)}`);
+    }
+
+    for (const request of unexpanded) {
+        const requestId = String(request._id);
+        const dateKeys = workingKeysByRequestId.get(requestId) || [];
+        dayCountByRequestId.set(requestId, dateKeys.filter((dateKey) => (
+            !schoolHolidayKeys.has(dateKey)
+            && !personHolidayKeys.has(`${request.personType}|${request.personId}|${dateKey}`)
+        )).length);
+    }
+
+    return dayCountByRequestId;
+};
+
+// ---------------------------------------------------------------------------
 // INTERNAL — days already approved against one type this year, for the balance.
 // One indexed aggregation over { adminId, personType, personId, year, status }.
 // `excludeId` lets the approval path ask "everything EXCEPT the request I am about to
@@ -127,13 +213,32 @@ const getUsedDaysByType = async (adminId, personType, personId, year, excludeId)
 };
 
 // ---------------------------------------------------------------------------
-// INTERNAL — decorate a page of requests with person and leave-type names.
+// INTERNAL — decorate a page of requests with everything the approval card renders:
+// person and leave-type names, the grantable day count, and the balance preview.
 //
-// ONE query per person type and ONE for the types, never one per row: a 50-row page of
-// mixed staff/teacher/student costs at most four round-trips regardless of page size.
+// ONE query per person type and one each for the types, the used-days aggregation, the
+// entitlement rows and the page expansion — never one per row. A 50-row page of mixed
+// staff/teacher/student costs the same handful of round-trips a 1-row page does.
+//
+// THE BALANCE PREVIEW IS WHAT THE APPROVAL DECISION NEEDS. Pressing Approve spends days a
+// person may not have, and until now the admin could only find that out by opening the apply
+// form for somebody else. `balanceAfterApproval` answers it on the card itself.
 // ---------------------------------------------------------------------------
 const decorateRequests = async (requests) => {
     if (requests.length === 0) return [];
+
+    // Every row on a page is scoped to one school by the query that produced it.
+    const adminId = requests[0].adminId;
+
+    // COMPLETED IS A LABEL, NOT A STATUS. The stored status of a finished leave stays
+    // 'Approved' — nothing downstream (services/leave-lookup.js, payroll) may stop seeing it
+    // as approved. What changes is that its last day has passed, so there is nothing left to
+    // take back and CancelLeaveRequest refuses it; the row says so and offers no action.
+    //
+    // School wall clock, not the server's, for the reason enqueueReconcileForDates spells
+    // out: a container running UTC would otherwise start calling today's leave completed at
+    // 18:30 the evening before.
+    const todayKey = toDateKey(toUtcMidnight(nowWallClock()));
 
     const idsByType = new Map();
     for (const request of requests) {
@@ -143,17 +248,29 @@ const decorateRequests = async (requests) => {
 
     const typeIds = [...new Set(requests.map((request) => String(request.leaveTypeId)))];
 
-    const [peopleResults, leaveTypes] = await Promise.all([
+    const personKeys = [...new Set(requests.map((request) => `${request.personType}|${request.personId}`))]
+        .map((key) => {
+            const [personType, personId] = key.split('|');
+            return { personType, personId };
+        });
+    // A page can straddle two leave years (a December range sits in one, a January one in
+    // the next), so the aggregation is asked for every year present rather than "this" one.
+    const years = [...new Set(requests.map((request) => request.year).filter(Number.isInteger))];
+
+    const [peopleResults, leaveTypes, usedByKey, assignmentByKey, workingDaysById] = await Promise.all([
         Promise.all([...idsByType.entries()].map(async ([personType, ids]) => {
             const model = getModel(personType);
             if (!model) return [personType, []];
             const people = await model
                 .find({ _id: { $in: [...ids] } })
-                .select('name empCode teacherUserId admissionNo class rollNumber')
+                .select('name empCode teacherUserId admissionNo class rollNumber designationId')
                 .lean();
             return [personType, people];
         })),
-        LeaveTypeModel.find({ _id: { $in: typeIds } }, { name: 1, isPaid: 1 }).lean(),
+        LeaveTypeModel.find({ _id: { $in: typeIds } }, { name: 1, isPaid: 1, maxDaysPerYear: 1 }).lean(),
+        getApprovedDaysByPerson(adminId, personKeys, years.length > 0 ? years : [new Date().getFullYear()]),
+        getAssignmentMap(adminId, personKeys),
+        expandLeaveDatesForPage(adminId, requests),
     ]);
 
     const personByKey = new Map();
@@ -164,15 +281,77 @@ const decorateRequests = async (requests) => {
     }
     const leaveTypeById = new Map(leaveTypes.map((type) => [type._id.toString(), type]));
 
+    // Only STAFF carry a designationId — teachers and students have no equivalent field, so
+    // their card falls back to the person type. Run after the people fetch because the ids
+    // are not known until then, and skipped entirely on a page with no staff rows, so this
+    // stays one query per page rather than one per row.
+    const designationIds = [...new Set(
+        (peopleResults.find(([personType]) => personType === 'staff') || [null, []])[1]
+            .map((person) => person.designationId)
+            .filter(Boolean)
+            .map(String),
+    )];
+    const designationById = new Map();
+    if (designationIds.length > 0) {
+        const designations = await DesignationModel
+            .find({ _id: { $in: designationIds } }, { title: 1 })
+            .lean();
+        for (const designation of designations) {
+            designationById.set(designation._id.toString(), designation.title);
+        }
+    }
+
     return requests.map((request) => {
         const person = personByKey.get(`${request.personType}|${request.personId}`) || null;
         const leaveType = leaveTypeById.get(String(request.leaveTypeId)) || null;
+
+        const key = balanceKeyOf(request.personType, request.personId, String(request.leaveTypeId));
+        const assignment = assignmentByKey.get(key) || null;
+        // Allocation is the PER-PERSON entitlement when one was assigned, the school-wide cap
+        // otherwise — a school that gives 12 sick days to teaching staff and 6 to the office
+        // records that on the assignment, and the cap must follow the person, not the type.
+        const allocated = assignment
+            ? assignment.allocatedDays
+            : (leaveType ? leaveType.maxDaysPerYear : 0);
+
+        // Days spent by every OTHER approved request. An Approved row must not count itself
+        // or its own strip would show the days it already granted as still to be deducted.
+        const usedTotal = usedByKey.get(key) || 0;
+        const usedByOthers = Math.max(
+            0,
+            usedTotal - (request.status === 'Approved' ? (request.dayCount || 0) : 0),
+        );
+        const remaining = Math.max(0, allocated - usedByOthers);
+
+        // Approved and Cancelled rows carry the count that was actually granted; the rest are
+        // expanded, since a Pending request's dayCount is still 0 and the raw range length
+        // would promise days the Sundays and holidays inside it are about to remove.
+        const workingDays = (request.status === 'Approved' || request.status === 'Cancelled')
+            ? (request.dayCount || 0)
+            : (workingDaysById.get(String(request._id)) || 0);
+
         return {
             ...request,
             personName: person ? person.name : '',
             personCode: person ? personCode(request.personType, person) : '',
+            // The job, not the bucket: "Accountant" tells the admin more about whose leave
+            // they are approving than "Staff" does. Empty for anyone without one, and the
+            // card shows the person type in its place.
+            personDesignation: (person && person.designationId)
+                ? (designationById.get(String(person.designationId)) || '')
+                : '',
             leaveTypeName: leaveType ? leaveType.name : '',
             isPaid: leaveType ? !!leaveType.isPaid : false,
+            workingDays,
+            balanceAllocated: allocated,
+            balanceUsed: usedByOthers,
+            balanceRemaining: remaining,
+            // Deliberately NOT clamped at 0. A request that would overdraw renders a negative
+            // number in red, which is the one signal worth having before pressing Approve.
+            balanceAfterApproval: remaining - workingDays,
+            balanceAssigned: !!assignment,
+            // Lexicographic compare, exact on "YYYY-MM-DD" and free of Date arithmetic.
+            isCompleted: request.status === 'Approved' && toDateKey(request.toDate) < todayKey,
         };
     });
 };
@@ -184,6 +363,7 @@ const decorateRequests = async (requests) => {
 // ---------------------------------------------------------------------------
 const createRequest = async ({
     adminId, personType, personId, leaveTypeId, fromKey, toKey, reason, appliedByRole, appliedById,
+    allowPastDates,
 }) => {
     const fromParsed = parseDateKey(fromKey);
     const toParsed = parseDateKey(toKey);
@@ -192,6 +372,23 @@ const createRequest = async ({
     const fromDate = toUtcMidnight(fromParsed.dateKey);
     const toDate = toUtcMidnight(toParsed.dateKey);
     if (toDate < fromDate) return { status: 400, error: 'To date cannot be before from date!' };
+
+    // Leave is applied for, not recorded after the fact — a range that has already passed is
+    // almost always a mis-set datepicker, and approving it would rewrite attendance days the
+    // biometric sync has already settled. `allowPastDates` is the deliberate escape hatch for
+    // an admin backfilling a genuine correction; the teacher route hard-codes it false, so a
+    // teacher can never reach it by editing the payload.
+    //
+    // "Today" comes from the SCHOOL wall clock, not the server's — the same reason
+    // enqueueReconcileForDates spells out below. A container running UTC would otherwise
+    // reject the current Indian school day as being in the past until 05:30.
+    if (!allowPastDates) {
+        const todayKey = toDateKey(toUtcMidnight(nowWallClock()));
+        // Lexicographic compare is exact on "YYYY-MM-DD" and needs no Date arithmetic.
+        if (fromParsed.dateKey < todayKey) {
+            return { status: 400, error: 'Cannot apply leave for past dates!' };
+        }
+    }
 
     const [person, leaveType] = await Promise.all([
         getPerson(personType, personId),
@@ -215,6 +412,36 @@ const createRequest = async ({
     const dateKeys = await expandLeaveDates(adminId, personType, personId, fromParsed.dateKey, toParsed.dateKey);
     if (dateKeys.length === 0) {
         return { status: 400, error: 'This date range has no working days to grant!' };
+    }
+
+    // BALANCE IS ENFORCED HERE, NOT ONLY AT APPROVAL. Letting somebody file for more days
+    // than they have and only finding out weeks later, when an admin presses Approve, wastes
+    // both their time and the admin's. There is deliberately NO override on this path: the
+    // admin's forceApprove exists at approval time, where a named person takes responsibility
+    // for granting the extra days, and handing the same power to whoever fills the form in
+    // would make the cap advisory.
+    //
+    // Allocation and usage are read exactly the way GetLeaveBalance reads them, so the
+    // sentence the form shows and the rule the server applies can never disagree: the
+    // per-person entitlement when one was assigned, the school-wide cap otherwise, and days
+    // used from the aggregation over approved requests rather than the drift-prone counter.
+    const [usedByTypeId, assignment] = await Promise.all([
+        getUsedDaysByType(adminId, personType, personId, fromParsed.year, null),
+        PersonLeaveAssignmentModel.findOne({
+            adminId,
+            personType,
+            personId,
+            leaveTypeId: String(leaveTypeId),
+        }).lean(),
+    ]);
+    const used = usedByTypeId.get(String(leaveTypeId)) || 0;
+    const allocated = assignment ? assignment.allocatedDays : leaveType.maxDaysPerYear;
+    const remaining = Math.max(0, allocated - used);
+    if (dateKeys.length > remaining) {
+        return {
+            status: 400,
+            error: `Not enough ${leaveType.name} balance: ${remaining} day(s) left, ${dateKeys.length} requested!`,
+        };
     }
 
     // Overlap guard, fail-fast with a specific message like the rest of the codebase.
@@ -302,27 +529,36 @@ let GetLeaveBalance = async (req, res, next) => {
         }
         if (!Number.isInteger(year)) return res.status(400).json('A valid year is required!');
 
-        const [leaveTypes, usedByTypeId] = await Promise.all([
+        const [leaveTypes, usedByTypeId, assignmentByKey] = await Promise.all([
             LeaveTypeModel.find({
                 adminId,
                 status: 'active',
                 applicableTo: { $in: ['all', personType] },
             }).sort({ name: 1 }).lean(),
             getUsedDaysByType(adminId, personType, personId, year, null),
+            getAssignmentMap(adminId, [{ personType, personId }]),
         ]);
 
         return res.status(200).json(leaveTypes.map((leaveType) => {
-            const used = usedByTypeId.get(leaveType._id.toString()) || 0;
+            const typeId = leaveType._id.toString();
+            const used = usedByTypeId.get(typeId) || 0;
+            // The entitlement this person was actually granted, when somebody granted them
+            // one; the school-wide cap otherwise. `maxDaysPerYear` is still reported alongside
+            // it so the form can show both if the two ever diverge.
+            const assignment = assignmentByKey.get(balanceKeyOf(personType, personId, typeId)) || null;
+            const allocated = assignment ? assignment.allocatedDays : leaveType.maxDaysPerYear;
             return {
                 leaveTypeId: leaveType._id,
                 name: leaveType.name,
                 isPaid: leaveType.isPaid,
                 maxDaysPerYear: leaveType.maxDaysPerYear,
+                allocated,
+                assigned: !!assignment,
                 used,
                 // Clamped at 0: a cap lowered after approvals were already granted would
                 // otherwise render a negative balance, which reads as a bug rather than as
                 // "this person is over the new limit".
-                remaining: Math.max(0, leaveType.maxDaysPerYear - used),
+                remaining: Math.max(0, allocated - used),
             };
         }));
     } catch (error) {
@@ -347,7 +583,9 @@ let GetSingleLeaveRequest = async (req, res, next) => {
 // POST /  — the admin entry point. May file for any person in the school.
 // ---------------------------------------------------------------------------
 let CreateLeaveRequest = async (req, res, next) => {
-    const { adminId, personType, personId, leaveTypeId, fromDate, toDate, reason, appliedById } = req.body;
+    const {
+        adminId, personType, personId, leaveTypeId, fromDate, toDate, reason, appliedById, allowPastDates,
+    } = req.body;
     try {
         const result = await createRequest({
             adminId,
@@ -359,6 +597,8 @@ let CreateLeaveRequest = async (req, res, next) => {
             reason,
             appliedByRole: 'admin',
             appliedById,
+            // Admin only. The teacher entry point below never passes it.
+            allowPastDates: !!allowPastDates,
         });
         if (result.error) return res.status(result.status).json(result.error);
         return res.status(200).json('Leave request submitted successfully.');
@@ -425,6 +665,9 @@ let CreateTeacherLeaveRequest = async (req, res, next) => {
             reason,
             appliedByRole: 'teacher',
             appliedById: selfPersonId,
+            // Hard false, never read from the body: backfilling is an admin correction, and
+            // the teacher schema does not declare the field anyway.
+            allowPastDates: false,
         });
         if (result.error) return res.status(result.status).json(result.error);
         return res.status(200).json('Leave request submitted successfully.');
@@ -435,13 +678,19 @@ let CreateTeacherLeaveRequest = async (req, res, next) => {
 }
 
 // ---------------------------------------------------------------------------
-// PUT /:id/approve  { actionBy }
+// PUT /:id/approve  { actionBy, forceApprove }
 //
 // The only handler that writes attendance. Rows go in with isOverridden: true, which is
 // what makes them survive every later reconcile — see the file header.
+//
+// `forceApprove` is the admin override on the balance check below, and NOTHING ELSE — every
+// other guard (already-actioned, missing type, empty range) still applies. It exists because
+// the balance is a school's own policy, not a law: a person genuinely out of sick days
+// sometimes still has to be granted the leave, and the alternative was an admin editing the
+// leave type's cap for everybody just to let one request through.
 // ---------------------------------------------------------------------------
 let ApproveLeaveRequest = async (req, res, next) => {
-    const { actionBy } = req.body;
+    const { actionBy, forceApprove } = req.body;
     try {
         const id = req.params.id;
         const request = await LeaveRequestModel.findOne({ _id: id }).lean();
@@ -469,13 +718,38 @@ let ApproveLeaveRequest = async (req, res, next) => {
 
         // Excludes this request, which is still Pending and so contributes 0 anyway — but
         // passing it keeps the helper honest if the guard above ever loosens.
-        const usedByTypeId = await getUsedDaysByType(
-            request.adminId, request.personType, request.personId, request.year, id,
-        );
-        const used = usedByTypeId.get(String(request.leaveTypeId)) || 0;
-        if (used + dateKeys.length > leaveType.maxDaysPerYear) {
+        //
+        // USAGE COMES FROM THE AGGREGATION, ALLOCATION FROM THE ASSIGNMENT. The assignment's
+        // own usedDays counter is deliberately not consulted here: it is a convenience for
+        // the entitlement grid and could drift, and a drifted counter must never be able to
+        // block a leave. What the assignment does own is the per-person cap.
+        const [usedByTypeId, assignment] = await Promise.all([
+            getUsedDaysByType(request.adminId, request.personType, request.personId, request.year, id),
+            PersonLeaveAssignmentModel.findOne({
+                adminId: request.adminId,
+                personType: request.personType,
+                personId: request.personId,
+                leaveTypeId: String(request.leaveTypeId),
+            }).lean(),
+        ]);
+        // NO ENTITLEMENT, NO APPROVAL — and forceApprove deliberately does not reach this.
+        // The override below is about how MANY days a person may have; this is about whether
+        // they were ever given this kind of leave at all, which is a decision made once on
+        // the Leave Limits page rather than something to wave through from an approval
+        // dialog. Falling back to the leave type's school-wide cap here is what previously
+        // let anybody be approved for anything.
+        if (!assignment) {
             return res.status(400).json(
-                `Not enough ${leaveType.name} balance: ${leaveType.maxDaysPerYear - used} day(s) left, ${dateKeys.length} requested!`,
+                'This person has not been assigned this leave type — assign it first before approving!',
+            );
+        }
+
+        const used = usedByTypeId.get(String(request.leaveTypeId)) || 0;
+        const allocated = assignment.allocatedDays;
+
+        if (!forceApprove && used + dateKeys.length > allocated) {
+            return res.status(400).json(
+                `Not enough ${leaveType.name} balance: ${allocated - used} day(s) left, ${dateKeys.length} requested!`,
             );
         }
 
@@ -539,6 +813,21 @@ let ApproveLeaveRequest = async (req, res, next) => {
                 },
                 { session },
             );
+            // Keep the entitlement grid's running counter in step. NOT an upsert and NOT a
+            // guard: a person who was never bulk-assigned this type simply has no row, and
+            // matching nothing is the correct outcome — the approval above has already been
+            // authorised by the aggregation, which needs no assignment row to work. This
+            // must never be able to block a leave from being granted.
+            await PersonLeaveAssignmentModel.updateOne(
+                {
+                    adminId: request.adminId,
+                    personType: request.personType,
+                    personId: request.personId,
+                    leaveTypeId: String(request.leaveTypeId),
+                },
+                { $inc: { usedDays: dateKeys.length } },
+                { session },
+            );
             await session.commitTransaction();
         } catch (writeError) {
             await session.abortTransaction();
@@ -599,7 +888,6 @@ let RejectLeaveRequest = async (req, res, next) => {
 const enqueueReconcileForDates = async (adminId, dateKeys) => {
     if (!adminId || !Array.isArray(dateKeys) || dateKeys.length === 0) return 0;
 
-    const { nowWallClock } = require('../helpers/attendance-time');
     // "Today" in the SCHOOL wall clock, not the server one — a container running UTC would
     // treat the current Indian school day as a future date until 05:30 and skip it.
     const todayKey = toDateKey(toUtcMidnight(nowWallClock()));
@@ -621,6 +909,120 @@ const enqueueReconcileForDates = async (adminId, dateKeys) => {
 };
 
 // ---------------------------------------------------------------------------
+// PATCH /:id/cancel  { cancellationReason, actionBy }
+//
+// TAKING BACK AN APPROVED LEAVE WITHOUT LOSING THE RECORD. Delete below is the other undo and
+// erases the request entirely; cancel keeps it, with a reason, and only removes what the
+// approval wrote. Which one an admin wants is a real distinction — a leave that was granted
+// and then withdrawn is part of a person's history, a leave approved by mis-click is not.
+//
+// Only an Approved request can be cancelled: Pending has written nothing to take back, and
+// Rejected never granted anything in the first place.
+//
+// The deleteMany is narrowed to isOverridden + MANUAL rows, unlike delete's broader match, so
+// a day that somehow carries this leaveRequestId without being one of the rows the approval
+// wrote is left alone rather than silently removed.
+// ---------------------------------------------------------------------------
+let CancelLeaveRequest = async (req, res, next) => {
+    const { cancellationReason, actionBy } = req.body;
+    try {
+        const id = req.params.id;
+        const request = await LeaveRequestModel.findOne({ _id: id }).lean();
+        if (!request) return res.status(404).json('Leave request not found!');
+        if (request.status !== 'Approved') {
+            return res.status(400).json('Only an approved leave can be cancelled!');
+        }
+        // A LEAVE THAT HAS ALREADY BEEN TAKEN CANNOT BE UN-TAKEN. Once the last day has
+        // passed, cancelling would delete attendance rows for days that are now history and
+        // hand back balance for leave the person actually spent. The list hides the button on
+        // such a row, but this is the check that counts — the route is reachable without it.
+        //
+        // toDate, not fromDate: a leave still running is cancellable for the days remaining.
+        // School wall clock for the same reason as everywhere else in this file.
+        const todayKey = toDateKey(toUtcMidnight(nowWallClock()));
+        if (toDateKey(request.toDate) < todayKey) {
+            return res.status(400).json('This leave has already been completed and cannot be cancelled!');
+        }
+
+        const now = new Date();
+        let removedCount = 0;
+
+        // Same reasoning as the approve and delete transactions: the attendance rows and the
+        // request's own status must land together, or the calendar and the request disagree
+        // about whether the leave still stands.
+        const session = await mongoose.startSession();
+        try {
+            session.startTransaction();
+            const removed = await DailyAttendanceModel.deleteMany(
+                {
+                    adminId: request.adminId,
+                    leaveRequestId: String(request._id),
+                    isOverridden: true,
+                    source: 'MANUAL',
+                },
+                { session },
+            );
+            removedCount = removed.deletedCount || 0;
+
+            // The mirror of the increment in ApproveLeaveRequest, clamped through a pipeline
+            // update because $inc has no floor — exactly as DeleteLeaveRequest does it. A
+            // person never bulk-assigned this type simply has no row, and matching nothing is
+            // the correct outcome.
+            await PersonLeaveAssignmentModel.updateOne(
+                {
+                    adminId: request.adminId,
+                    personType: request.personType,
+                    personId: request.personId,
+                    leaveTypeId: String(request.leaveTypeId),
+                },
+                [{ $set: { usedDays: { $max: [0, { $subtract: ['$usedDays', request.dayCount || 0] }] } } }],
+                { session },
+            );
+
+            // leaveDates and dayCount are KEPT. They are what the request granted, and the
+            // cancelled card still reports it — this is a record, not a reset.
+            await LeaveRequestModel.updateOne(
+                { _id: id },
+                {
+                    $set: {
+                        status: 'Cancelled',
+                        cancellationReason: cancellationReason,
+                        cancelledBy: actionBy || null,
+                        cancelledAt: now,
+                    },
+                },
+                { session },
+            );
+            await session.commitTransaction();
+        } catch (writeError) {
+            await session.abortTransaction();
+            logger.error('leave-request.cancelWriteFailed', writeError);
+            throw writeError;
+        } finally {
+            session.endSession();
+        }
+
+        logger.info('leave-request.cancelled', {
+            adminId: request.adminId,
+            leaveRequestId: String(request._id),
+            personType: request.personType,
+            removedCount,
+        });
+
+        // Those days now have no row at all, so the calendar reads them as Absent. Queue a
+        // recompute so any real punches on them are turned back into a proper status.
+        if (Array.isArray(request.leaveDates) && request.leaveDates.length > 0) {
+            await enqueueReconcileForDates(request.adminId, request.leaveDates);
+        }
+
+        return res.status(200).json(`Leave cancelled. ${removedCount} attendance day(s) removed.`);
+    } catch (error) {
+        logger.error('leave-request.CancelLeaveRequest', error);
+        return res.status(500).json('Internal Server Error!');
+    }
+}
+
+// ---------------------------------------------------------------------------
 // DELETE /:id
 //
 // The undo path for a leave approved by mistake. Removing the request without removing its
@@ -640,6 +1042,22 @@ let DeleteLeaveRequest = async (req, res, next) => {
             if (request.status === 'Approved') {
                 await DailyAttendanceModel.deleteMany(
                     { adminId: request.adminId, leaveRequestId: String(request._id) },
+                    { session },
+                );
+                // The mirror of the increment in ApproveLeaveRequest. Without it, undoing an
+                // approval would leave the entitlement grid permanently showing days the
+                // person never actually spent — the aggregation would say one thing and the
+                // grid another. Clamped through a pipeline update because $inc has no floor,
+                // and a counter seeded before this feature existed could otherwise go
+                // negative and render as a balance larger than the allocation.
+                await PersonLeaveAssignmentModel.updateOne(
+                    {
+                        adminId: request.adminId,
+                        personType: request.personType,
+                        personId: request.personId,
+                        leaveTypeId: String(request.leaveTypeId),
+                    },
+                    [{ $set: { usedDays: { $max: [0, { $subtract: ['$usedDays', request.dayCount || 0] }] } } }],
                     { session },
                 );
             }
@@ -674,5 +1092,6 @@ module.exports = {
     CreateTeacherLeaveRequest,
     ApproveLeaveRequest,
     RejectLeaveRequest,
+    CancelLeaveRequest,
     DeleteLeaveRequest,
 }

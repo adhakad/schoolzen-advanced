@@ -1,5 +1,77 @@
 @import'../dashboard/dashboard.component.css';
 
+/* =========================================================================
+   ONE SCREEN, ONE JOB. Each tab says what it is for in a line before showing
+   anything, so nobody has to infer the purpose of the page from its columns.
+   ========================================================================= */
+.page-purpose {
+  margin-bottom: .5vh;
+  color: #382066;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+
+.page-note {
+  margin-bottom: 2vh;
+  color: #646089;
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: .3px;
+}
+
+/* Filters sit on one line directly above the table, as dropdowns rather than
+   rows of radio buttons — the same mat-select the Shift and Staff forms use —
+   with the screen's one action on the same row, so nothing floats in between. */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 1vh;
+}
+
+.filter-field {
+  width: 200px;
+}
+
+/* The primary action, sitting in the filter toolbar. Nudged up because a
+   mat-form-field carries its own subscript space and would otherwise leave the
+   button hanging low against the dropdowns. */
+.toolbar-button {
+  margin-bottom: 1.25rem;
+}
+
+/* Quiet by design: this is the way OUT of the page, to the settings screen that
+   decides who may take what. It must not compete with "Apply for Leave". */
+.settings-link {
+  color: #646089;
+  font-size: 13px;
+  letter-spacing: .3px;
+}
+
+.settings-link mat-icon {
+  margin-right: 4px;
+  font-size: 18px;
+  height: 18px;
+  width: 18px;
+  vertical-align: middle;
+}
+
+/* Always shown, even at zero: "0 people selected" is what explains why the
+   Set Limits button is greyed out. */
+.selection-note {
+  margin-bottom: 0;
+  color: #646089;
+  font-size: 13px;
+  letter-spacing: .3px;
+}
+
+.selection-note strong {
+  color: #382066;
+  font-size: 15px;
+}
+
 /* Section headings inside the apply modal — same treatment as the Shift and Leave Type
    forms, so all three settings-shaped modals read as one family. */
 .settings-group-title {
@@ -10,10 +82,6 @@
   letter-spacing: .5px;
 }
 
-.settings-group-title:first-of-type {
-  margin-top: 0;
-}
-
 .settings-group-note {
   margin-bottom: 1.5vh;
   color: #646089;
@@ -22,49 +90,37 @@
   letter-spacing: .3px;
 }
 
-/* The person-type radios sit between a heading and a mat-form-field, neither of which
-   supplies the gap a field would. */
-.type-radio {
-  display: block;
-  margin-bottom: 1.5vh;
-}
-
-/* THE BALANCE STRIP. Deliberately loud: it is the one number that decides whether this
-   request can be approved at all, and burying it in a hint under the type dropdown is how
-   somebody files two weeks against a six-day allowance. */
-.balance-strip {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+/* THE BALANCE, AS A SENTENCE. It used to be a number in a box; a box of digits is
+   something to decode, and this is the one fact that decides whether the leave being
+   filed is even possible. */
+.balance-sentence {
   margin-bottom: 2vh;
   padding: 10px 14px;
   border-radius: 8px;
   background: #f4f1fb;
   border: 1px solid #e2dcf3;
-}
-
-.balance-remaining {
   color: #382066;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.balance-label {
-  color: #646089;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.5;
   letter-spacing: .3px;
 }
 
 .balance-loading {
   color: #646089;
-  font-size: 12px;
 }
 
-/* Confirmation bodies for approve / reject / delete. These carry real consequences —
-   approve writes attendance, delete removes it — so each one spells out what will happen
-   rather than asking "are you sure?". */
+/* The same sentence shape, in the colour of a refusal: more days than the
+   person has left, or a leave they were never given. Shown while the form is
+   still being filled in, with Submit disabled behind it. */
+.balance-problem {
+  background: #fbe0e0;
+  border-color: #f0c4c4;
+  color: #8f2f2f;
+}
+
+/* Confirmation bodies. These carry real consequences — approve writes attendance, cancel
+   removes it — so each one says what will happen in a sentence rather than asking
+   "are you sure?". */
 .confirm-title {
   margin-bottom: 1vh;
   color: #382066;
@@ -73,10 +129,16 @@
 }
 
 .confirm-note {
-  margin-bottom: 0;
+  margin-bottom: 1vh;
   color: #646089;
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* Giving more days than somebody has left, once the admin has chosen to look at it. */
+.confirm-warning {
+  color: #b03a3a;
+  font-weight: 600;
 }
 
 /* Status chips reuse the attendance calendar's palette so 'Leave' means the same colour
@@ -96,8 +158,8 @@
 }
 
 .status-approved {
-  background: #dcecfb;
-  color: #1f6fad;
+  background: #dcf1e3;
+  color: #1f8a4c;
 }
 
 .status-rejected {
@@ -105,32 +167,164 @@
   color: #b03a3a;
 }
 
-.approve-icon {
-  color: #1f8a4c;
-  cursor: pointer;
-}
-
-.reject-icon {
-  color: #b03a3a;
-  cursor: pointer;
-}
-
-/* Who acted on the request, shown in the Action column once there is nothing left to do. */
-.action-by {
+.status-cancelled {
+  background: #ece8f7;
   color: #646089;
-  font-size: 12px;
 }
 
+/* Completed is an approved leave that has already been taken. Deliberately the
+   quietest of the five: it is history, and nothing on the row can be done to
+   it. Grey-blue rather than green so it is not mistaken for a live approval. */
+.status-completed {
+  background: #e6ecf5;
+  color: #4a5b78;
+}
+
+/* The plain-language line under the badge. A coloured word alone cannot tell
+   Approved from Completed from Cancelled; this sentence can. */
+.status-note {
+  margin-top: 3px;
+  color: #646089;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+/* Row actions carry their word, not just an icon — "clearly labeled" is the
+   whole point where Reject and Cancel sit in the same column and mean
+   different things. */
+.action-cell {
+  white-space: nowrap;
+}
+
+.row-action {
+  min-width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  line-height: 30px;
+}
+
+.row-action mat-icon {
+  margin-right: 3px;
+  font-size: 17px;
+  height: 17px;
+  width: 17px;
+  vertical-align: middle;
+}
+
+.approve-action {
+  color: #1f8a4c;
+}
+
+.reject-action {
+  color: #b03a3a;
+}
+
+/* A completed leave has no action at all. The dash says "nothing here" rather
+   than leaving a blank cell that reads as a rendering fault. */
+.row-locked {
+  color: #b0aec2;
+  font-size: 13px;
+}
+
+/* The second line of a table cell — a person's role, their code, or the days they have
+   left. Quiet enough that the name above it stays the thing you read first. */
 .person-code {
   color: #646089;
   font-size: 11px;
 }
 
-/* A reason can run long. Truncate rather than let one row stretch the whole table; the
-   full text is on the title attribute. */
-.reason-cell {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* =========================================================================
+   SET LEAVE LIMITS grid.
+   Checkbox and Name stay put while the leave-type columns scroll. Both need
+   an explicit background or the scrolled cells show through — the same
+   technique roster.component.css uses for its person column.
+   ========================================================================= */
+.assignment-grid .select-column {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 44px;
+  min-width: 44px;
+  text-align: center;
+}
+
+.assignment-grid .name-column {
+  position: sticky;
+  left: 44px;
+  z-index: 2;
+  min-width: 160px;
+  max-width: 160px;
+  text-align: left;
+}
+
+.assignment-grid tbody .select-column,
+.assignment-grid tbody .name-column {
+  background: #FFF;
+}
+
+/* The sticky cells sit above the row, so the hover tint has to be repainted on them
+   or the row appears to break in half under the cursor. */
+.assignment-grid tbody tr:hover .select-column,
+.assignment-grid tbody tr:hover .name-column {
+  background: #f6f4fc;
+}
+
+.assignment-grid thead .select-column,
+.assignment-grid thead .name-column {
+  background: #8C52FF;
+  z-index: 3;
+}
+
+.assignment-grid .department-column {
+  min-width: 130px;
+  color: #646089;
+  font-size: 12px;
+}
+
+.assignment-grid .type-column {
+  min-width: 120px;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* Lighter than the default control: forty of these down a page is the whole reason the
+   grid felt heavy. */
+.assignment-grid mat-checkbox {
+  transform: scale(.9);
+}
+
+/* The limit itself — plain text, no bar, no percentage. */
+.limit-days {
+  color: #382066;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.not-set {
+  color: #b0aec2;
+  font-size: 12px;
+}
+
+.assign-link {
+  min-width: auto;
+  padding: 0;
+  color: #8C52FF;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* The leave-type checklist inside the Set Limits modal. */
+.type-check {
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.type-days {
+  margin-left: 6px;
+  color: #8a8a9e;
+  font-size: 11px;
 }

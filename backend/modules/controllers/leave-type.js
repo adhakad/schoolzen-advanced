@@ -1,6 +1,7 @@
 'use strict';
 const LeaveTypeModel = require('../models/leave-type');
 const LeaveRequestModel = require('../models/leave-request');
+const PersonLeaveAssignmentModel = require('../models/person-leave-assignment');
 
 let countLeaveType = async (req, res, next) => {
     try {
@@ -166,6 +167,12 @@ let DeleteLeaveType = async (req, res, next) => {
             return res.status(400).json('This leave type is used in a leave request and cannot be deleted!');
         }
         const dlt = await LeaveTypeModel.findByIdAndRemove(id);
+        // Entitlement rows for a type nobody has ever requested are safe to remove and
+        // meaningless to keep: the grid builds its columns from LeaveType, so an orphan
+        // would be invisible forever while still occupying the unique index. No transaction
+        // — the guard above proves nothing references this type, so a failure here leaves
+        // only dead rows, not an inconsistent balance.
+        await PersonLeaveAssignmentModel.deleteMany({ leaveTypeId: id });
         return res.status(200).json('Leave type deleted successfully.');
     } catch (error) {
         return res.status(500).json('Internal Server Error!');

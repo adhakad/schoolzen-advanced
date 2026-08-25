@@ -58,6 +58,13 @@ export class TeacherLeaveComponent implements OnInit {
   leaveTypeOptions: any[] = [];
   balanceInfo: any[] = [];
   balanceLoading: boolean = false;
+  // Working days in the range currently picked, recomputed on every date change so the form
+  // can refuse an over-long leave while it is still being filled in.
+  plannedDays: number = 0;
+  // Leave is applied for, not recorded after the fact. CreateTeacherLeaveRequest passes
+  // allowPastDates: false unconditionally — there is no teacher-reachable backfill — so the
+  // picker must not offer a date the backend is certain to refuse.
+  today: Date = new Date();
 
   // Double-submit guard
   isClick: boolean = false;
@@ -147,12 +154,9 @@ export class TeacherLeaveComponent implements OnInit {
     return this.myClasses.length > 0;
   }
 
-  classNumber(classKey: any): number {
-    return Number(classKey);
-  }
-
-  switchMode(mode: string): void {
-    this.mode = mode;
+  // Two-way bound to its mat-select, so the new value is already on the field by the time
+  // selectionChange fires — this only has to reload what depends on it.
+  switchMode(): void {
     this.leaveRequestInfo = [];
     this.peopleOptions = [];
     this.balanceInfo = [];
@@ -237,16 +241,124 @@ export class TeacherLeaveComponent implements OnInit {
     this.loadBalance(this.leaveForm.value.personId);
   }
 
+  // ---- Reading a row ------------------------------------------------------
+  //
+  // The same five labels the admin approvals table shows, so a teacher and the office are
+  // reading the same words about the same request. "Completed" is the display-only split of
+  // Approved that the backend flags with isCompleted: the leave was taken and the row is
+  // finished, as against one still to come.
+
+  statusLabel(request: any): string {
+    if (request.status === 'Approved' && request.isCompleted) return 'Completed';
+    return request.status;
+  }
+
+  statusClass(request: any): string {
+    return 'status-' + this.statusLabel(request).toLowerCase();
+  }
+
+  statusNote(request: any): string {
+    switch (this.statusLabel(request)) {
+      case 'Pending': return 'Waiting for approval';
+      case 'Approved': return 'Marked on the attendance register';
+      case 'Completed': return 'These leave days have passed';
+      case 'Rejected': return 'Was never applied to attendance';
+      case 'Cancelled': return 'Leave was undone, days returned to balance';
+      default: return '';
+    }
+  }
+
+  // A range cannot end before it starts, and neither end may be in the past.
+  get minToDate(): Date {
+    return this.leaveForm.value.fromDate ? new Date(this.leaveForm.value.fromDate) : this.today;
+  }
+
   get selectedBalance(): any {
     const typeId = this.leaveForm.value.leaveTypeId;
     if (!typeId) return null;
     return this.balanceInfo.find((row: any) => String(row.leaveTypeId) === String(typeId)) || null;
   }
 
+  // "Priya has 8 Sick Leave day(s) left of 12 this year." The same fact the old number-in-a-
+  // box showed, written the way it would be said out loud. In my-leave mode the name is the
+  // teacher's own, so it reads "You have ...".
+  get balanceSentence(): string {
+    const balance = this.selectedBalance;
+    if (!balance) return '';
+    // See the admin page: a person with no entitlement row reads back the type's school-wide
+    // cap, which is not days they can actually take. notAssigned says so instead.
+    if (balance.assigned === false) return '';
+    if (this.mode === 'teacher') {
+      return `You have ${balance.remaining} ${balance.name} day(s) left of ${balance.allocated} this year.`;
+    }
+    const student = this.peopleOptions.find(
+      (option: any) => String(option._id) === String(this.leaveForm.value.personId),
+    );
+    const name = student && student.name ? student.name : 'This student';
+    return `${name} has ${balance.remaining} ${balance.name} day(s) left of ${balance.allocated} this year.`;
+  }
+
+  // ---- Live day count and balance check -----------------------------------
+
+  // Recomputed as soon as either picker changes, so the form can say "that is more than you
+  // have left" before it is submitted rather than after a round-trip.
+  onDateChange(): void {
+    this.plannedDays = this.countWorkingDays(this.leaveForm.value.fromDate, this.leaveForm.value.toDate);
+  }
+
+  /**
+   * Sundays excluded, matching WEEKLY_OFF_DAYS in the backend's expandLeaveDates.
+   *
+   * DECLARED HOLIDAYS ARE NOT EXCLUDED HERE — the browser does not have the school's holiday
+   * calendar. So this count can only ever be equal to or LARGER than what the server will
+   * grant, which means it errs towards warning about a leave the server would have allowed,
+   * never towards letting through one it will refuse. createRequest applies the same balance
+   * rule with the real holiday list and stays the authority.
+   */
+  private countWorkingDays(from: any, to: any): number {
+    if (!from || !to) return 0;
+    const start = new Date(from);
+    const end = new Date(to);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) return 0;
+
+    let count = 0;
+    const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    // A guard against a pathological range rather than a real limit.
+    let guard = 0;
+    while (cursor <= last && guard < 400) {
+      if (cursor.getDay() !== 0) count++;
+      cursor.setDate(cursor.getDate() + 1);
+      guard++;
+    }
+    return count;
+  }
+
+  // A leave type nobody has granted this person cannot be approved, so saying so on the form
+  // is kinder than letting the request sit Pending until the office hits the refusal.
+  get notAssigned(): boolean {
+    const balance = this.selectedBalance;
+    return !!balance && balance.assigned === false;
+  }
+
+  get balanceExceeded(): boolean {
+    const balance = this.selectedBalance;
+    return !!balance && this.plannedDays > 0 && this.plannedDays > balance.remaining;
+  }
+
+  get exceededMessage(): string {
+    const balance = this.selectedBalance;
+    if (!balance) return '';
+    const whose = this.mode === 'teacher' ? 'you have' : 'this student has';
+    return `These dates come to ${this.plannedDays} working day(s), but ${whose} only `
+      + `${balance.remaining} ${balance.name} day(s) left. Choose shorter dates.`;
+  }
+
   closeModal() {
     this.showModal = false;
     this.errorCheck = false;
     this.errorMsg = '';
+    this.plannedDays = 0;
   }
 
   addLeaveRequestModel() {
@@ -255,6 +367,7 @@ export class TeacherLeaveComponent implements OnInit {
     this.errorMsg = '';
     this.isClick = false;
     this.balanceInfo = [];
+    this.plannedDays = 0;
     this.leaveForm.reset({ personId: '', leaveTypeId: '', fromDate: '', toDate: '', reason: '' });
 
     if (this.mode === 'student') {
@@ -296,6 +409,22 @@ export class TeacherLeaveComponent implements OnInit {
     }
     this.errorCheck = false;
     this.errorMsg = '';
+
+    // Mirrors the backend guard so the teacher is told before the round-trip. The picker's
+    // [min] already blocks it; this catches a value patched in some other way.
+    const fromKey = this.toDateKey(this.leaveForm.value.fromDate);
+    if (fromKey < this.toDateKey(this.today)) {
+      this.errorCheck = true;
+      this.errorMsg = 'Leave can only be applied from today onwards.';
+      return;
+    }
+    // The submit button is already disabled in this state; this is the same guard for a form
+    // submitted by keyboard. createRequest refuses it server-side either way.
+    if (this.balanceExceeded) {
+      this.errorCheck = true;
+      this.errorMsg = this.exceededMessage;
+      return;
+    }
     this.isClick = true;
 
     // No adminId and no personId for own leave — the backend resolves both from the token
@@ -303,7 +432,7 @@ export class TeacherLeaveComponent implements OnInit {
     const data: any = {
       personType: this.mode,
       leaveTypeId: this.leaveForm.value.leaveTypeId,
-      fromDate: this.toDateKey(this.leaveForm.value.fromDate),
+      fromDate: fromKey,
       toDate: this.toDateKey(this.leaveForm.value.toDate),
       reason: this.leaveForm.value.reason || '',
     };
