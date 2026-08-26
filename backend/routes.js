@@ -25,6 +25,11 @@ module.exports = app => {
     app.use('/v1/holiday', require('./modules/routes/holiday'));
     app.use('/v1/holiday-template', require('./modules/routes/holiday-template'));
     app.use('/v1/holiday-assignment', require('./modules/routes/holiday-assignment'));
+    app.use('/v1/salary-group', require('./modules/routes/salary-group'));
+    app.use('/v1/salary-structure', require('./modules/routes/salary-structure'));
+    app.use('/v1/payroll', require('./modules/routes/payroll'));
+    app.use('/v1/salary-payment', require('./modules/routes/salary-payment'));
+    app.use('/v1/staff-bank-details', require('./modules/routes/staff-bank-details'));
     app.use('/v1/device', require('./modules/routes/devices/device'));
     app.use('/v1/exam-result', require('./modules/routes/exam-result'));
     app.use('/v1/exam-result-structure', require('./modules/routes/exam-result-structure'));

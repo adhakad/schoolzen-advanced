@@ -1,0 +1,209 @@
+/* leave-request.component.css is the attendance-side shared stylesheet — holiday, leave-limit
+   and the teacher leave page all import it the same way — so the table, chip, filter-row,
+   assignment-grid and confirm styles are defined once and used by every screen in this family
+   rather than copied per page. It imports the dashboard base itself. */
+@import '../leave-request/leave-request.component.css';
+
+/* =========================================================================
+   TAB STRIP.
+   Generate Payroll | Payment History, plus whichever setup view the settings
+   menu opened. Same pill the holiday and roster pages use, not mat-tab —
+   which is exported by MaterialUiModule but used nowhere in this app, so a
+   first and only usage would read as a different product.
+   ========================================================================= */
+.tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.tab-button {
+  min-width: 92px;
+  color: #382066;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 12px;
+  letter-spacing: .3px;
+  border: 1px solid #d5d0e1af;
+  border-radius: 6px;
+}
+
+.tab-button.active {
+  background: #8C52FF;
+  color: #FFF;
+  border-color: #8C52FF;
+}
+
+/* A setup view reached through the gear appears in the strip only while it is open, so the
+   two everyday tabs stay the fixed part of the bar. Outlined rather than filled: it is where
+   you are, but it is not one of the two tabs you switch between. */
+.setup-tab {
+  border-style: dashed;
+  border-color: #8C52FF;
+  color: #8C52FF;
+}
+
+.mobile-option .tab-strip {
+  justify-content: flex-start;
+}
+
+/* =========================================================================
+   STATUS CHIPS.
+   The shared stylesheet defines the leave statuses; payroll has its own five.
+   Not-generated is deliberately the quietest — it is the default state of most
+   rows for most of a month and must not read as a warning.
+   ========================================================================= */
+.status-notgenerated {
+  background: #f3f2f7;
+  color: #7a7590;
+}
+
+.status-draft {
+  background: #fff4e0;
+  color: #9a6a10;
+}
+
+.status-locked {
+  background: #e9f7ee;
+  color: #1f7a44;
+}
+
+.status-unpaid {
+  background: #fdeced;
+  color: #a52834;
+}
+
+.status-partiallypaid {
+  background: #fff4e0;
+  color: #9a6a10;
+}
+
+.status-fullypaid {
+  background: #e9f7ee;
+  color: #1f7a44;
+}
+
+/* The one number in the row a reader is actually looking for. */
+.net-salary {
+  font-weight: 600;
+  color: #252525;
+}
+
+/* The row's primary action sits beside the icon buttons, so it needs to be small enough not
+   to make the Action column the widest one in the table. */
+.row-generate {
+  min-width: 92px;
+  font-size: 12px;
+  padding: 0 12px;
+  margin-right: 10px;
+}
+
+/* =========================================================================
+   DYNAMIC ALLOWANCE / DEDUCTION ROWS.
+   Added inline with + and x rather than a modal per row — a scale with four
+   allowances would otherwise be four round trips through a nested dialog.
+   ========================================================================= */
+.component-block {
+  margin: 1.5vh 0;
+  padding: 10px 12px;
+  background: #faf9fd;
+  border: 1px solid #e0dbee;
+  border-radius: 6px;
+}
+
+.component-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.component-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #382066;
+}
+
+.component-empty {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #7a7590;
+}
+
+.component-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* The name is the part that varies; the amount is always short. Fixed proportions rather than
+   two equal halves, so "Professional Tax" is readable without wrapping. */
+.component-name {
+  flex: 2 1 0;
+}
+
+.component-amount {
+  flex: 1 1 0;
+}
+
+.component-add mat-icon,
+.component-remove mat-icon {
+  color: #8C52FF;
+}
+
+.component-remove {
+  margin-top: 6px;
+}
+
+/* =========================================================================
+   THE BREAKDOWN MODAL.
+   Three blocks — days, gross, deductions — then the net. Grouped rather than
+   listed flat because the question being answered is "where did this number
+   come from", and a flat list of fourteen rows does not answer it.
+   ========================================================================= */
+.breakdown-block {
+  margin: 1.5vh 0;
+  padding: 8px 12px;
+  border: 1px solid #e0dbee;
+  border-radius: 6px;
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 4px 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  color: #4a4a4a;
+}
+
+.breakdown-row em {
+  font-size: 11px;
+  color: #7a7590;
+  font-style: normal;
+}
+
+.breakdown-total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #e0dbee;
+  font-weight: 600;
+  color: #252525;
+}
+
+.breakdown-net {
+  background: #f6f4fc;
+  border-color: #8C52FF;
+}
+
+.breakdown-net .breakdown-total {
+  border-top: none;
+  padding-top: 0;
+  font-size: 15px;
+  color: #382066;
+}

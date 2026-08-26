@@ -1,0 +1,1045 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <!-- Two tabs in the strip, two more behind the gear. Generate and Payment History
+                 are the daily screens; Salary Groups and Assign Salary are set up a few times
+                 a year, so they sit under the settings icon exactly as Fees tucks "Create Fee
+                 Structure" and "Fee Reminder" under its own. -->
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Payroll</span>
+                    </button>
+                  </div>
+                  <div class="col-6">
+                    <div class="tab-strip">
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'generate'"
+                        (click)="switchTab('generate')">Generate Payroll</button>
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'payments'"
+                        (click)="switchTab('payments')">Payment History</button>
+                      <button type="button" mat-button class="tab-button setup-tab"
+                        *ngIf="activeTab === 'salaryGroups'">Salary Groups</button>
+                      <button type="button" mat-button class="tab-button setup-tab"
+                        *ngIf="activeTab === 'assignSalary'">Assign Salary</button>
+                    </div>
+                  </div>
+                  <div class="col-3" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-5">
+                        <mat-form-field class="custom-select">
+                          <mat-select [(ngModel)]="filterMonth" (selectionChange)="switchPeriod()" matInput>
+                            <mat-option *ngFor="let month of monthOptions" [value]="month.value">{{month.label}}
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="col-4">
+                        <mat-form-field class="custom-select">
+                          <mat-select [(ngModel)]="filterYear" (selectionChange)="switchPeriod()" matInput>
+                            <mat-option *ngFor="let year of yearOptions" [value]="year">{{year}}</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="col-3">
+                        <button class="btn setting-button" [matMenuTriggerFor]="settings">
+                          <mat-icon style="margin-top: 5px;cursor: pointer;">settings</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-9">
+                    <button mat-button class="menu-button">
+                      <span>Payroll</span>
+                    </button>
+                  </div>
+                  <div class="col-3">
+                    <button class="btn setting-button" [matMenuTriggerFor]="settings">
+                      <mat-icon style="margin-top: 5px;cursor: pointer;">settings</mat-icon>
+                    </button>
+                  </div>
+                  <div class="col-12 mt-2">
+                    <div class="tab-strip">
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'generate'"
+                        (click)="switchTab('generate')">Generate Payroll</button>
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'payments'"
+                        (click)="switchTab('payments')">Payment History</button>
+                      <button type="button" mat-button class="tab-button setup-tab"
+                        *ngIf="activeTab === 'salaryGroups'">Salary Groups</button>
+                      <button type="button" mat-button class="tab-button setup-tab"
+                        *ngIf="activeTab === 'assignSalary'">Assign Salary</button>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <mat-form-field class="custom-select">
+                      <mat-select [(ngModel)]="filterMonth" (selectionChange)="switchPeriod()" matInput>
+                        <mat-option *ngFor="let month of monthOptions" [value]="month.value">{{month.label}}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  <div class="col-6">
+                    <mat-form-field class="custom-select">
+                      <mat-select [(ngModel)]="filterYear" (selectionChange)="switchPeriod()" matInput>
+                        <mat-option *ngFor="let year of yearOptions" [value]="year">{{year}}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- (click), not routerLink: all four views live in this component and share the
+               Month/Year selection, which routing away would lose. -->
+          <mat-menu #settings="matMenu">
+            <button mat-menu-item (click)="switchTab('salaryGroups')">
+              <mat-icon>payments</mat-icon>
+              <span>Salary Groups</span>
+            </button>
+            <button mat-menu-item (click)="switchTab('assignSalary')">
+              <mat-icon>assignment_ind</mat-icon>
+              <span>Assign Salary</span>
+            </button>
+          </mat-menu>
+        </div>
+
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+
+              <!-- ==================================================================
+                   SALARY GROUPS
+                   ================================================================== -->
+              <ng-container *ngIf="activeTab === 'salaryGroups'">
+                <h3 class="page-purpose">Reusable Pay Scales</h3>
+                <p class="page-note">
+                  Set up each pay scale once, then put staff on it from <strong>Assign Salary</strong>. Editing a scale
+                  changes what the <em>next</em> payroll produces &mdash; payroll already generated keeps its own copy
+                  of the numbers.
+                </p>
+
+                <div class="filter-row">
+                  <button class="submit-button toolbar-button" mat-raised-button (click)="addSalaryGroupModel()">
+                    <mat-icon>add</mat-icon>Add Salary Group
+                  </button>
+                </div>
+
+                <div class="table-wrapper">
+                  <table class="table table-hover align-middle bg-white">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th>No.</th>
+                        <th>Name</th>
+                        <th>Mode</th>
+                        <th>Basic</th>
+                        <th>HRA</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody *ngIf="groupList && groupList.length > 0">
+                      <tr *ngFor="let group of groupList, let i = index">
+                        <td>
+                          <p class="mb-0">{{groupNumber * groupLimit + i + 1 - groupLimit}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{group.name | titlecase}}</p>
+                          <p class="mb-0 person-code" *ngIf="group.allowances?.length || group.deductions?.length">
+                            {{group.allowances?.length || 0}} allowance(s) &middot; {{group.deductions?.length || 0}}
+                            deduction(s)
+                          </p>
+                        </td>
+                        <!-- Plain language, never the stored enum. -->
+                        <td>
+                          <p class="mb-0">{{modeLabel(group.calculationMode)}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{group.basic}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{group.hra}}</p>
+                        </td>
+                        <td>
+                          <span class="status-chip"
+                            [ngClass]="group.status === 'active' ? 'status-approved' : 'status-cancelled'">
+                            {{group.status | titlecase}}
+                          </span>
+                        </td>
+                        <td class="mb-0 action-cell">
+                          <mat-icon matRipple (click)="updateSalaryGroupModel(group)">edit</mat-icon>
+                          <mat-icon matRipple (click)="deleteSalaryGroupModel(group)">delete</mat-icon>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-container *ngIf="!groupLoader && (!groupList || groupList.length === 0)">
+                  <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+                </ng-container>
+
+                <div class="pagination">
+                  <app-pagination [paginationValues]="groupPaginationValues" (onChange)="getSalaryGroup($event)">
+                  </app-pagination>
+                </div>
+              </ng-container>
+
+              <!-- ==================================================================
+                   ASSIGN SALARY
+                   ================================================================== -->
+              <ng-container *ngIf="activeTab === 'assignSalary'">
+                <h3 class="page-purpose">Put Staff on a Pay Scale</h3>
+                <p class="page-note">
+                  A staff member with no scale cannot have payroll generated. Tick several people to put them all on the
+                  same scale at once, or assign one at a time to give somebody different numbers.
+                </p>
+
+                <div class="filter-row">
+                  <p class="selection-note">
+                    <strong>{{selectedStaffIds.length}}</strong> staff selected
+                  </p>
+                  <button class="submit-button toolbar-button" mat-raised-button
+                    [disabled]="selectedStaffIds.length === 0 || isClick" (click)="bulkAssignModel()">
+                    <mat-icon>assignment_ind</mat-icon>Assign to Selected
+                  </button>
+                </div>
+
+                <p class="page-note" *ngIf="activeGroups.length === 0 && !assignLoader">
+                  No salary group has been created yet &mdash; make one under <strong>Salary Groups</strong> first.
+                </p>
+
+                <div class="table-wrapper">
+                  <table class="table table-hover align-middle bg-white assignment-grid">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th class="select-column">
+                          <mat-checkbox [checked]="allStaffSelected" (change)="toggleAllStaff()"></mat-checkbox>
+                        </th>
+                        <th class="name-column">Staff Name</th>
+                        <th class="type-column">Assigned Group</th>
+                        <th>Effective From</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody *ngIf="assignList && assignList.length > 0">
+                      <tr *ngFor="let row of assignList">
+                        <td class="select-column">
+                          <mat-checkbox [checked]="isStaffSelected(row.staffId)"
+                            (change)="toggleStaff(row.staffId)"></mat-checkbox>
+                        </td>
+                        <td class="name-column">
+                          <p class="mb-0">{{row.name | titlecase}}</p>
+                          <p class="mb-0 person-code" *ngIf="row.empCode">{{row.empCode}}</p>
+                        </td>
+                        <td class="type-column">
+                          <p class="mb-0 limit-days" *ngIf="row.salaryGroupName">
+                            {{row.salaryGroupName | titlecase}}
+                            <span class="type-days">{{modeLabel(row.calculationMode)}}</span>
+                          </p>
+                          <p class="mb-0 person-code" *ngIf="row.hasOverride">Has a personal override</p>
+                          <p class="mb-0 not-set" *ngIf="!row.salaryGroupName">Not assigned</p>
+                        </td>
+                        <td>
+                          <p class="mb-0" *ngIf="row.effectiveFrom">{{row.effectiveFrom | date:'dd MMM yyyy'}}</p>
+                          <p class="mb-0 not-set" *ngIf="!row.effectiveFrom">&mdash;</p>
+                        </td>
+                        <td class="mb-0 action-cell">
+                          <button mat-button class="row-action" (click)="assignSalaryModel(row)">
+                            <mat-icon>edit</mat-icon>{{row.salaryGroupId ? 'Change' : 'Assign'}}
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-container *ngIf="!assignLoader && (!assignList || assignList.length === 0)">
+                  <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+                </ng-container>
+
+                <div class="pagination">
+                  <app-pagination [paginationValues]="assignPaginationValues" (onChange)="getAssignSalary($event)">
+                  </app-pagination>
+                </div>
+              </ng-container>
+
+              <!-- ==================================================================
+                   GENERATE PAYROLL
+                   ================================================================== -->
+              <ng-container *ngIf="activeTab === 'generate'">
+                <h3 class="page-purpose">Payroll for {{monthLabel(filterMonth)}} {{filterYear}}</h3>
+                <p class="page-note">
+                  Days present, absent and on leave are read from the attendance register for this month &mdash; check
+                  them there first if a number looks wrong. Generating produces a <strong>Draft</strong> you can
+                  regenerate as often as you like; <strong>Lock</strong> it once you are satisfied.
+                </p>
+
+                <div class="filter-row">
+                  <mat-form-field appearance="outline" class="filter-field">
+                    <mat-label>Show</mat-label>
+                    <mat-select matInput [(ngModel)]="payrollStatusFilter" [ngModelOptions]="{standalone: true}"
+                      (selectionChange)="switchPeriod()">
+                      <mat-option value="all">Everyone</mat-option>
+                      <mat-option value="notGenerated">Not generated</mat-option>
+                      <mat-option value="DRAFT">Draft</mat-option>
+                      <mat-option value="LOCKED">Locked</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <p class="selection-note">
+                    <strong>{{selectedPayrollStaffIds.length}}</strong> staff selected
+                  </p>
+
+                  <button class="submit-button toolbar-button" mat-raised-button
+                    [disabled]="selectedPayrollStaffIds.length === 0 || isClick" (click)="bulkGeneratePayroll()">
+                    <span *ngIf="isClick && selectedPayrollStaffIds.length > 0" class="submitting-content">
+                      <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                    </span>
+                    <mat-icon>receipt_long</mat-icon>Generate for Selected
+                  </button>
+                </div>
+
+                <div class="table-wrapper">
+                  <table class="table table-hover align-middle bg-white assignment-grid">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th class="select-column">
+                          <mat-checkbox [checked]="allPayrollStaffSelected"
+                            (change)="toggleAllPayrollStaff()"></mat-checkbox>
+                        </th>
+                        <th class="name-column">Staff Name</th>
+                        <th>Month/Year</th>
+                        <th>Gross</th>
+                        <th>Deductions</th>
+                        <th>Net Salary</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody *ngIf="payrollList && payrollList.length > 0">
+                      <tr *ngFor="let row of payrollList">
+                        <td class="select-column">
+                          <mat-checkbox [checked]="isPayrollStaffSelected(row.staffId)"
+                            (change)="togglePayrollStaff(row.staffId)"></mat-checkbox>
+                        </td>
+                        <td class="name-column">
+                          <p class="mb-0">{{row.staffName | titlecase}}</p>
+                          <p class="mb-0 person-code" *ngIf="row.salaryGroupName">{{row.salaryGroupName | titlecase}}
+                          </p>
+                          <!-- The one thing that stops this row generating, said on the row
+                               rather than discovered as an error after pressing Generate. -->
+                          <p class="mb-0 not-set" *ngIf="!row.isAssigned">No salary group assigned</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{monthLabel(row.month)}} {{row.year}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{row.status ? row.grossSalary : '—'}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{row.status ? row.totalDeductions : '—'}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0 net-salary">{{row.status ? row.netSalary : '—'}}</p>
+                        </td>
+                        <td>
+                          <span class="status-chip" [ngClass]="payrollStatusClass(row)">{{payrollStatusLabel(row)}}
+                          </span>
+                        </td>
+                        <td class="mb-0 action-cell">
+                          <!-- State-dependent, the way the Fees row switches between Collect
+                               and Fee Paid. -->
+                          <button *ngIf="canGenerate(row)" class="submit-button row-generate" mat-raised-button
+                            [disabled]="!row.isAssigned || isClick" (click)="generatePayroll(row)">
+                            <span *ngIf="isClick && actionPayroll?.staffId === row.staffId" class="submitting-content">
+                              <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                            </span>
+                            {{row.status ? 'Regenerate' : 'Generate'}}
+                          </button>
+                          <mat-icon matRipple *ngIf="row.payrollId" title="View breakdown"
+                            (click)="viewPayrollModel(row)">launch</mat-icon>
+                          <mat-icon matRipple *ngIf="row.status === 'DRAFT'" title="Lock this payroll"
+                            (click)="lockPayrollModel(row)">lock</mat-icon>
+                          <mat-icon matRipple *ngIf="row.status === 'LOCKED'" title="Unlock this payroll"
+                            (click)="unlockPayrollModel(row)">lock_open</mat-icon>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-container *ngIf="!payrollLoader && (!payrollList || payrollList.length === 0)">
+                  <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+                </ng-container>
+
+                <div class="pagination">
+                  <app-pagination [paginationValues]="payrollPaginationValues" (onChange)="getPayroll($event)">
+                  </app-pagination>
+                </div>
+              </ng-container>
+
+              <!-- ==================================================================
+                   PAYMENT HISTORY
+                   ================================================================== -->
+              <ng-container *ngIf="activeTab === 'payments'">
+                <h3 class="page-purpose">Salary Payments for {{monthLabel(filterMonth)}} {{filterYear}}</h3>
+                <p class="page-note">
+                  Only <strong>locked</strong> payroll appears here &mdash; the amount has to be final before a payment
+                  can be recorded against it. A salary paid in instalments takes several entries; the row settles once
+                  they add up to the net salary.
+                </p>
+
+                <div class="filter-row">
+                  <mat-form-field appearance="outline" class="filter-field">
+                    <mat-label>Payment Mode</mat-label>
+                    <mat-select matInput [(ngModel)]="paymentModeFilter" [ngModelOptions]="{standalone: true}"
+                      (selectionChange)="switchPaymentFilter()">
+                      <mat-option value="all">Any mode</mat-option>
+                      <mat-option value="cash">Cash</mat-option>
+                      <mat-option value="bankTransfer">Bank Transfer</mat-option>
+                      <mat-option value="upi">UPI</mat-option>
+                      <mat-option value="cheque">Cheque</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="filter-field">
+                    <mat-label>Payment Status</mat-label>
+                    <mat-select matInput [(ngModel)]="paymentStatusFilter" [ngModelOptions]="{standalone: true}"
+                      (selectionChange)="switchPaymentFilter()">
+                      <mat-option value="all">Any status</mat-option>
+                      <mat-option value="Unpaid">Unpaid</mat-option>
+                      <mat-option value="Partially Paid">Partially Paid</mat-option>
+                      <mat-option value="Fully Paid">Fully Paid</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+
+                <div class="table-wrapper">
+                  <table class="table table-hover align-middle bg-white">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th>Staff Name</th>
+                        <th>Month/Year</th>
+                        <th>Net Salary</th>
+                        <th>Amount Paid</th>
+                        <th>Status</th>
+                        <th>Mode</th>
+                        <th>Date</th>
+                        <th>Paid By</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody *ngIf="historyList && historyList.length > 0">
+                      <tr *ngFor="let row of historyList">
+                        <td>
+                          <p class="mb-0">{{row.staffName | titlecase}}</p>
+                          <p class="mb-0 person-code" *ngIf="row.empCode">{{row.empCode}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{monthLabel(row.month)}} {{row.year}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0 net-salary">{{row.netSalary}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{row.amountPaid}}</p>
+                          <p class="mb-0 person-code" *ngIf="row.remainingAmount > 0">{{row.remainingAmount}} still due
+                          </p>
+                        </td>
+                        <td>
+                          <span class="status-chip"
+                            [ngClass]="paymentStatusClass(row.paymentStatus)">{{row.paymentStatus}}</span>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{paymentModeLabel(row.paymentMode) || '—'}}</p>
+                          <p class="mb-0 person-code" *ngIf="row.referenceNumber">{{row.referenceNumber}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{row.paymentDate ? (row.paymentDate | date:'dd MMM yyyy') : '—'}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{row.paidBy ? (row.paidBy | titlecase) : '—'}}</p>
+                        </td>
+                        <td class="mb-0 action-cell">
+                          <button mat-button class="row-action" *ngIf="canRecordPayment(row)"
+                            (click)="recordPaymentModel(row)">
+                            <mat-icon>payments</mat-icon>Record Payment
+                          </button>
+                          <span class="row-locked" *ngIf="!canRecordPayment(row)">&ndash;</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-container *ngIf="!paymentLoader && (!historyList || historyList.length === 0)">
+                  <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+                </ng-container>
+
+                <div class="pagination">
+                  <app-pagination [paginationValues]="paymentPaginationValues" (onChange)="getPaymentHistory($event)">
+                  </app-pagination>
+                </div>
+              </ng-container>
+
+              <!-- ==================================================================
+                   MODALS — one element, switched by modalMode. Same modal, form and
+                   spinner conventions as Fees, Shift and Leave.
+                   ================================================================== -->
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">
+                        {{modalMode === 'group' ? (updateMode ? 'EDIT SALARY GROUP' : 'ADD SALARY GROUP') :
+                        modalMode === 'deleteGroup' ? 'DELETE SALARY GROUP' :
+                        modalMode === 'assign' ? 'ASSIGN SALARY GROUP' :
+                        modalMode === 'bulkAssign' ? 'ASSIGN TO SELECTED' :
+                        modalMode === 'view' ? 'PAYROLL BREAKDOWN' :
+                        modalMode === 'lock' ? 'LOCK PAYROLL' :
+                        modalMode === 'unlock' ? 'UNLOCK PAYROLL' :
+                        modalMode === 'payment' ? 'RECORD PAYMENT' : ''}}
+                      </h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <!-- ---------- SALARY GROUP ADD / EDIT ---------- -->
+                    <form [formGroup]="groupForm" (ngSubmit)="salaryGroupAddUpdate()" *ngIf="modalMode === 'group'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Name</mat-label>
+                          <input matInput type="text" formControlName="name" placeholder="Primary Teacher Grade A">
+                          <mat-hint *ngIf="!groupForm.get('name')?.valid && groupForm.get('name')?.touched"
+                            class="form-text text-danger">Give this scale a name</mat-hint>
+                        </mat-form-field>
+
+                        <!-- A dropdown, never a radio group — the one place a select is used
+                             for a two-way choice in this module. -->
+                        <mat-form-field appearance="outline">
+                          <mat-label>How is this paid?</mat-label>
+                          <mat-select matInput formControlName="calculationMode">
+                            <mat-option value="perMonth">Per Month</mat-option>
+                            <mat-option value="perDay">Per Day</mat-option>
+                          </mat-select>
+                          <mat-hint>
+                            {{groupForm.value.calculationMode === 'perDay'
+                            ? 'The amounts below are a daily rate — pay is the rate times the days worked.'
+                            : 'The amounts below are a full month — absences are deducted from it.'}}
+                          </mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Basic</mat-label>
+                          <input matInput type="number" formControlName="basic">
+                          <mat-hint *ngIf="!groupForm.get('basic')?.valid && groupForm.get('basic')?.touched"
+                            class="form-text text-danger">Enter a basic amount</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>HRA</mat-label>
+                          <input matInput type="number" formControlName="hra">
+                        </mat-form-field>
+
+                        <!-- Rows added inline with + and ×, not a modal per row. -->
+                        <div class="component-block" formArrayName="allowances">
+                          <div class="component-head">
+                            <span class="component-title">Allowances</span>
+                            <button type="button" mat-icon-button class="component-add" (click)="addAllowanceRow()">
+                              <mat-icon>add</mat-icon>
+                            </button>
+                          </div>
+                          <p class="component-empty" *ngIf="allowanceRows.length === 0">None &mdash; add one if this
+                            scale includes transport, medical or similar.</p>
+                          <div class="component-row" *ngFor="let row of allowanceRows.controls; let i = index"
+                            [formGroupName]="i">
+                            <mat-form-field appearance="outline" class="component-name">
+                              <mat-label>Name</mat-label>
+                              <input matInput type="text" formControlName="name" placeholder="Transport">
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" class="component-amount">
+                              <mat-label>Amount</mat-label>
+                              <input matInput type="number" formControlName="amount">
+                            </mat-form-field>
+                            <button type="button" mat-icon-button class="component-remove"
+                              (click)="removeAllowanceRow(i)">
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="component-block" formArrayName="deductions">
+                          <div class="component-head">
+                            <span class="component-title">Deductions</span>
+                            <button type="button" mat-icon-button class="component-add" (click)="addDeductionRow()">
+                              <mat-icon>add</mat-icon>
+                            </button>
+                          </div>
+                          <p class="component-empty" *ngIf="deductionRows.length === 0">None &mdash; add one for PF,
+                            professional tax and the like.</p>
+                          <div class="component-row" *ngFor="let row of deductionRows.controls; let i = index"
+                            [formGroupName]="i">
+                            <mat-form-field appearance="outline" class="component-name">
+                              <mat-label>Name</mat-label>
+                              <input matInput type="text" formControlName="name" placeholder="PF">
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" class="component-amount">
+                              <mat-label>Amount</mat-label>
+                              <input matInput type="number" formControlName="amount">
+                            </mat-form-field>
+                            <button type="button" mat-icon-button class="component-remove"
+                              (click)="removeDeductionRow(i)">
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Status</mat-label>
+                          <mat-select matInput formControlName="status">
+                            <mat-option value="active">Active</mat-option>
+                            <mat-option value="inactive">Inactive</mat-option>
+                          </mat-select>
+                          <mat-hint>An inactive scale keeps its history but is not offered when assigning.</mat-hint>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button type="submit" [disabled]="isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          {{updateMode ? 'Update' : 'Save'}}
+                        </button>
+                      </div>
+                    </form>
+
+                    <!-- ---------- DELETE SALARY GROUP ---------- -->
+                    <ng-container *ngIf="modalMode === 'deleteGroup'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">Delete {{deleteGroup?.name | titlecase}}?</h4>
+                        <p class="confirm-note">
+                          Only a scale nobody is on and nothing has been generated from can be deleted. To retire one
+                          that is in use, set it to <strong>Inactive</strong> instead.
+                        </p>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button (click)="salaryGroupDelete()"
+                          [disabled]="isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Delete
+                        </button>
+                      </div>
+                    </ng-container>
+
+                    <!-- ---------- ASSIGN ONE ---------- -->
+                    <form [formGroup]="assignForm" (ngSubmit)="assignSalarySubmit()" *ngIf="modalMode === 'assign'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">{{assignRow?.name | titlecase}}</h4>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Salary Group</mat-label>
+                          <mat-select matInput formControlName="salaryGroupId">
+                            <mat-option *ngFor="let group of activeGroups" [value]="group._id">
+                              {{group.name | titlecase}}
+                              <span class="type-days">{{modeLabel(group.calculationMode)}}</span>
+                            </mat-option>
+                          </mat-select>
+                          <mat-hint
+                            *ngIf="!assignForm.get('salaryGroupId')?.valid && assignForm.get('salaryGroupId')?.touched"
+                            class="form-text text-danger">Choose a salary group</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Effective From</mat-label>
+                          <input matInput [matDatepicker]="effectivePicker" formControlName="effectiveFrom">
+                          <mat-datepicker-toggle matSuffix [for]="effectivePicker"></mat-datepicker-toggle>
+                          <mat-datepicker #effectivePicker></mat-datepicker>
+                          <mat-hint
+                            *ngIf="!assignForm.get('effectiveFrom')?.valid && assignForm.get('effectiveFrom')?.touched"
+                            class="form-text text-danger">Choose a date</mat-hint>
+                        </mat-form-field>
+
+                        <!-- Collapsed by default: most staff are on their group's numbers
+                             unchanged, and four always-visible optional fields would suggest
+                             otherwise. -->
+                        <div class="confirm-gate">
+                          <mat-checkbox [checked]="overrideEnabled" (change)="toggleOverride()">
+                            Override for this person
+                          </mat-checkbox>
+                        </div>
+
+                        <ng-container *ngIf="overrideEnabled">
+                          <p class="confirm-note">
+                            Leave a field blank to keep the group's value. Enter <strong>0</strong> to give this person
+                            none of it.
+                          </p>
+
+                          <mat-form-field appearance="outline">
+                            <mat-label>Basic (override)</mat-label>
+                            <input matInput type="number" formControlName="overrideBasic">
+                          </mat-form-field>
+
+                          <mat-form-field appearance="outline">
+                            <mat-label>HRA (override)</mat-label>
+                            <input matInput type="number" formControlName="overrideHra">
+                          </mat-form-field>
+
+                          <div class="confirm-gate">
+                            <mat-checkbox [checked]="overrideComponentsEnabled" (change)="toggleOverrideComponents()">
+                              Also override allowances and deductions
+                            </mat-checkbox>
+                          </div>
+
+                          <ng-container *ngIf="overrideComponentsEnabled">
+                            <div class="component-block" formArrayName="overrideAllowances">
+                              <div class="component-head">
+                                <span class="component-title">Allowances</span>
+                                <button type="button" mat-icon-button class="component-add"
+                                  (click)="addOverrideAllowanceRow()">
+                                  <mat-icon>add</mat-icon>
+                                </button>
+                              </div>
+                              <p class="component-empty" *ngIf="overrideAllowanceRows.length === 0">None &mdash; this
+                                person gets no allowances.</p>
+                              <div class="component-row"
+                                *ngFor="let row of overrideAllowanceRows.controls; let i = index" [formGroupName]="i">
+                                <mat-form-field appearance="outline" class="component-name">
+                                  <mat-label>Name</mat-label>
+                                  <input matInput type="text" formControlName="name">
+                                </mat-form-field>
+                                <mat-form-field appearance="outline" class="component-amount">
+                                  <mat-label>Amount</mat-label>
+                                  <input matInput type="number" formControlName="amount">
+                                </mat-form-field>
+                                <button type="button" mat-icon-button class="component-remove"
+                                  (click)="removeOverrideAllowanceRow(i)">
+                                  <mat-icon>close</mat-icon>
+                                </button>
+                              </div>
+                            </div>
+
+                            <div class="component-block" formArrayName="overrideDeductions">
+                              <div class="component-head">
+                                <span class="component-title">Deductions</span>
+                                <button type="button" mat-icon-button class="component-add"
+                                  (click)="addOverrideDeductionRow()">
+                                  <mat-icon>add</mat-icon>
+                                </button>
+                              </div>
+                              <p class="component-empty" *ngIf="overrideDeductionRows.length === 0">None &mdash; this
+                                person has no deductions.</p>
+                              <div class="component-row"
+                                *ngFor="let row of overrideDeductionRows.controls; let i = index" [formGroupName]="i">
+                                <mat-form-field appearance="outline" class="component-name">
+                                  <mat-label>Name</mat-label>
+                                  <input matInput type="text" formControlName="name">
+                                </mat-form-field>
+                                <mat-form-field appearance="outline" class="component-amount">
+                                  <mat-label>Amount</mat-label>
+                                  <input matInput type="number" formControlName="amount">
+                                </mat-form-field>
+                                <button type="button" mat-icon-button class="component-remove"
+                                  (click)="removeOverrideDeductionRow(i)">
+                                  <mat-icon>close</mat-icon>
+                                </button>
+                              </div>
+                            </div>
+                          </ng-container>
+                        </ng-container>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button type="submit" [disabled]="isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Assign
+                        </button>
+                      </div>
+                    </form>
+
+                    <!-- ---------- BULK ASSIGN ---------- -->
+                    <ng-container *ngIf="modalMode === 'bulkAssign'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">Put {{selectedStaffIds.length}} staff on one scale</h4>
+                        <p class="confirm-note">
+                          Anyone in this selection with a personal override will lose it &mdash; they all end up on
+                          exactly the group's numbers.
+                        </p>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Salary Group</mat-label>
+                          <mat-select matInput [(ngModel)]="bulkGroupId" [ngModelOptions]="{standalone: true}">
+                            <mat-option *ngFor="let group of activeGroups" [value]="group._id">
+                              {{group.name | titlecase}}
+                              <span class="type-days">{{modeLabel(group.calculationMode)}}</span>
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Effective From</mat-label>
+                          <input matInput [matDatepicker]="bulkPicker" [(ngModel)]="bulkEffectiveFrom"
+                            [ngModelOptions]="{standalone: true}">
+                          <mat-datepicker-toggle matSuffix [for]="bulkPicker"></mat-datepicker-toggle>
+                          <mat-datepicker #bulkPicker></mat-datepicker>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button (click)="bulkAssignSubmit()"
+                          [disabled]="!bulkGroupId || !bulkEffectiveFrom || isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Assign
+                        </button>
+                      </div>
+                    </ng-container>
+
+                    <!-- ---------- VIEW BREAKDOWN ---------- -->
+                    <ng-container *ngIf="modalMode === 'view'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <p class="confirm-note" *ngIf="!payrollDetail">Loading&hellip;</p>
+
+                        <ng-container *ngIf="payrollDetail">
+                          <h4 class="confirm-title">
+                            {{payrollDetail.staffName | titlecase}} &middot; {{monthLabel(payrollDetail.month)}}
+                            {{payrollDetail.year}}
+                          </h4>
+                          <p class="confirm-note">
+                            Paid {{modeLabel(payrollDetail.calculationMode)}}.
+                            {{payrollDetail.calculationMode === 'perDay'
+                            ? 'Gross is the daily rate times the days actually payable.'
+                            : 'Gross is the full month, with a deduction for days not covered by leave or holiday.'}}
+                          </p>
+
+                          <!-- The day counts first: they are what the admin is checking
+                               against the attendance register. -->
+                          <div class="breakdown-block">
+                            <div class="breakdown-row">
+                              <span>Present</span><span>{{payrollDetail.presentDays}}</span>
+                            </div>
+                            <div class="breakdown-row">
+                              <span>Absent</span><span>{{payrollDetail.absentDays}}</span>
+                            </div>
+                            <div class="breakdown-row" *ngIf="payrollDetail.halfDays > 0">
+                              <span>Half days <em>(counted as half present, half absent)</em></span>
+                              <span>{{payrollDetail.halfDays}}</span>
+                            </div>
+                            <div class="breakdown-row">
+                              <span>Paid leave</span><span>{{payrollDetail.leaveDays}}</span>
+                            </div>
+                            <div class="breakdown-row">
+                              <span>Unpaid leave</span><span>{{payrollDetail.unpaidLeaveDays}}</span>
+                            </div>
+                            <div class="breakdown-row">
+                              <span>Holidays</span><span>{{payrollDetail.holidayDays}}</span>
+                            </div>
+                            <div class="breakdown-row breakdown-total">
+                              <span>Working days</span><span>{{payrollDetail.totalWorkingDays}}</span>
+                            </div>
+                          </div>
+
+                          <div class="breakdown-block">
+                            <div class="breakdown-row">
+                              <span>Basic</span><span>{{payrollDetail.basic}}</span>
+                            </div>
+                            <div class="breakdown-row">
+                              <span>HRA</span><span>{{payrollDetail.hra}}</span>
+                            </div>
+                            <div class="breakdown-row" *ngFor="let allowance of payrollDetail.allowances">
+                              <span>{{allowance.name | titlecase}}</span><span>{{allowance.amount}}</span>
+                            </div>
+                            <div class="breakdown-row breakdown-total">
+                              <span>Gross salary</span><span>{{payrollDetail.grossSalary}}</span>
+                            </div>
+                          </div>
+
+                          <div class="breakdown-block">
+                            <div class="breakdown-row" *ngFor="let deduction of payrollDetail.deductions">
+                              <span>{{deduction.name | titlecase}}</span><span>&minus;{{deduction.amount}}</span>
+                            </div>
+                            <div class="breakdown-row" *ngIf="payrollDetail.attendanceDeduction > 0">
+                              <span>Attendance deduction</span>
+                              <span>&minus;{{payrollDetail.attendanceDeduction}}</span>
+                            </div>
+                            <div class="breakdown-row breakdown-total">
+                              <span>Total deductions</span><span>&minus;{{payrollDetail.totalDeductions}}</span>
+                            </div>
+                          </div>
+
+                          <div class="breakdown-block breakdown-net">
+                            <div class="breakdown-row breakdown-total">
+                              <span>Net salary</span><span>{{payrollDetail.netSalary}}</span>
+                            </div>
+                            <div class="breakdown-row" *ngIf="payrollDetail.status === 'LOCKED'">
+                              <span>Paid so far</span><span>{{payrollDetail.amountPaid}}</span>
+                            </div>
+                          </div>
+
+                          <p class="confirm-note" *ngIf="payrollDetail.status === 'LOCKED'">
+                            Locked{{payrollDetail.lockedBy ? ' by ' + payrollDetail.lockedBy : ''}}{{payrollDetail.lockedAt
+                            ? ' on ' + (payrollDetail.lockedAt | date:'dd MMM yyyy') : ''}}.
+                          </p>
+                        </ng-container>
+                      </div>
+                    </ng-container>
+
+                    <!-- ---------- LOCK ---------- -->
+                    <ng-container *ngIf="modalMode === 'lock'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">Lock {{actionPayroll?.staffName | titlecase}}'s payroll?</h4>
+                        <p class="confirm-note">
+                          Net salary of <strong>{{actionPayroll?.netSalary}}</strong> for
+                          {{monthLabel(filterMonth)}} {{filterYear}} becomes final. It can no longer be regenerated, and
+                          payments can then be recorded against it.
+                        </p>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button (click)="lockPayroll()" [disabled]="isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Lock
+                        </button>
+                      </div>
+                    </ng-container>
+
+                    <!-- ---------- UNLOCK ---------- -->
+                    <ng-container *ngIf="modalMode === 'unlock'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">Unlock {{actionPayroll?.staffName | titlecase}}'s payroll?</h4>
+                        <p class="confirm-note">
+                          It returns to <strong>Draft</strong> and can be regenerated, which may change the net salary.
+                          Who unlocked it and when is recorded.
+                        </p>
+                        <p class="confirm-note confirm-warning">
+                          A payroll with a payment already recorded against it cannot be unlocked.
+                        </p>
+                        <!-- Not decoration: the backend schema requires confirm: true, so an
+                             unticked box literally cannot produce a valid request. -->
+                        <div class="confirm-gate">
+                          <mat-checkbox [(ngModel)]="unlockConfirmed" [ngModelOptions]="{standalone: true}">
+                            I understand this reopens a finalised payroll
+                          </mat-checkbox>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button (click)="unlockPayroll()"
+                          [disabled]="!unlockConfirmed || isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Unlock
+                        </button>
+                      </div>
+                    </ng-container>
+
+                    <!-- ---------- RECORD PAYMENT ---------- -->
+                    <form [formGroup]="paymentForm" (ngSubmit)="recordPayment()" *ngIf="modalMode === 'payment'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">{{paymentRow?.staffName | titlecase}}</h4>
+                        <p class="confirm-note">
+                          Net salary <strong>{{paymentRow?.netSalary}}</strong>, of which
+                          <strong>{{paymentRow?.amountPaid}}</strong> has been paid.
+                          <strong>{{paymentRow?.remainingAmount}}</strong> is still due.
+                        </p>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Amount</mat-label>
+                          <input matInput type="number" formControlName="amountPaid">
+                          <mat-hint *ngIf="!paymentForm.get('amountPaid')?.valid && paymentForm.get('amountPaid')?.touched"
+                            class="form-text text-danger">Enter an amount</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Payment Date</mat-label>
+                          <input matInput [matDatepicker]="paymentPicker" formControlName="paymentDate">
+                          <mat-datepicker-toggle matSuffix [for]="paymentPicker"></mat-datepicker-toggle>
+                          <mat-datepicker #paymentPicker></mat-datepicker>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Payment Mode</mat-label>
+                          <mat-select matInput formControlName="paymentMode">
+                            <mat-option value="cash">Cash</mat-option>
+                            <mat-option value="bankTransfer">Bank Transfer</mat-option>
+                            <mat-option value="upi">UPI</mat-option>
+                            <mat-option value="cheque">Cheque</mat-option>
+                          </mat-select>
+                          <mat-hint *ngIf="!paymentForm.get('paymentMode')?.valid && paymentForm.get('paymentMode')?.touched"
+                            class="form-text text-danger">Choose how it was paid</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Reference Number</mat-label>
+                          <input matInput type="text" formControlName="referenceNumber"
+                            placeholder="UTR / cheque number">
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Remarks</mat-label>
+                          <input matInput type="text" formControlName="remarks">
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button type="submit" [disabled]="isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Record Payment
+                        </button>
+                      </div>
+                    </form>
+
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -144,6 +144,16 @@
         <span>Holiday</span>
       </button>
     </li>
+    <!-- One entry for four screens. Generating payroll and recording a payment are the two
+         everyday jobs and are tabs on this page; naming the pay scales and putting staff on
+         them are setup done a few times a year, so they sit behind the page's settings icon —
+         the same split Fees makes with "Create Fee Structure" and "Fee Reminder". -->
+    <li class="nav-item">
+      <button mat-button class="menu-button" [routerLink]="['/admin/payroll']" routerLinkActive="active-link">
+        <mat-icon>payments</mat-icon>
+        <span>Payroll</span>
+      </button>
+    </li>
     <!-- <li class="nav-item">
       <button mat-button class="menu-button" [routerLink]="['/admin/class']" routerLinkActive="active-link">
         <mat-icon>note_add</mat-icon>
