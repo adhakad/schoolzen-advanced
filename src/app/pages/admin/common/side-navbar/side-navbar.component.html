@@ -133,6 +133,17 @@
         <span>Leave Limits</span>
       </button>
     </li>
+    <!-- One entry, not three. Declaring a holiday, grouping holidays into a year and handing
+         that year to people are one job done in order — a holiday reaches nobody until it has
+         been through all three — so they are tabs inside this page. That is the opposite of
+         the Leave split above, and deliberately: those three are independent jobs on
+         different schedules. -->
+    <li class="nav-item">
+      <button mat-button class="menu-button" [routerLink]="['/admin/holiday']" routerLinkActive="active-link">
+        <mat-icon>celebration</mat-icon>
+        <span>Holiday</span>
+      </button>
+    </li>
     <!-- <li class="nav-item">
       <button mat-button class="menu-button" [routerLink]="['/admin/class']" routerLinkActive="active-link">
         <mat-icon>note_add</mat-icon>

@@ -113,8 +113,12 @@
                       </td>
                       <td *ngFor="let day of monthDays" class="day-column" [class.weekend-column]="day.isWeekend"
                         (click)="cellClick(person, day)">
+                        <!-- Rendered for ANY assigned date, future ones included: a roster is
+                             filled in ahead of time, so next month's assignments are the
+                             whole point of the grid. The tooltip names the shift and its
+                             timing. -->
                         <span *ngIf="getRosterCell(person._id, day.dateKey) as shiftId"
-                          [class]="'shift-chip shift-color-' + shiftColorIndex(shiftId)"
+                          [class]="shiftChipClass(shiftId)"
                           [title]="shiftTooltip(shiftId)">{{shiftShortName(shiftId)}}</span>
                         <span *ngIf="!getRosterCell(person._id, day.dateKey)" class="empty-cell">&ndash;</span>
                       </td>

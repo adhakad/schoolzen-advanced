@@ -311,6 +311,18 @@
   pointer-events: none;
 }
 
+/* A future day an approved Leave or an assigned Holiday already covers. It is dimmed no
+   longer: the chip is a fact the admin entered themselves, and the whole point of showing it
+   is that it reads at a glance like any other Leave/Holiday day.
+   pointer-events goes back to auto ONLY so the hover tooltip works — .future-cell's `none`
+   would suppress the native title as well as the click. The click itself stays inert through
+   cellClick()'s isFuture guard, and the cursor says so. */
+.future-cell.future-known {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: default;
+}
+
 /* The em-dash a future cell shows in place of a status. Quiet on purpose: it means "not yet",
    which is the absence of a fact rather than one worth reading. */
 .cell-empty {

@@ -192,10 +192,19 @@
                            shows NO chip at all — it is not a chip with a different colour. -->
                       <td *ngFor="let day of row.days" class="day-column" [class.weekend-column]="day.weekday==0"
                         [class.today-column]="isToday(day)" [class.future-cell]="isFuture(day)"
+                        [class.future-known]="hasFutureInfo(day)"
                         [class.flash]="day.flash" [title]="cellTooltip(day)" (click)="cellClick(row, day)">
 
-                        <!-- Nothing has happened yet and nothing can be overridden. -->
-                        <ng-container *ngIf="isFuture(day)">
+                        <!-- An approved Leave or an assigned Holiday is already known for a
+                             day that has not arrived. It gets the same chip a past one would,
+                             and a tooltip naming it — but no punch times (there are none yet)
+                             and no click: cellClick() refuses a future date. -->
+                        <ng-container *ngIf="hasFutureInfo(day)">
+                          <span class="status-chip" [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
+                        </ng-container>
+
+                        <!-- A future day with nothing known about it. Unchanged. -->
+                        <ng-container *ngIf="isFuture(day) && !hasFutureInfo(day)">
                           <span class="cell-empty">&mdash;</span>
                         </ng-container>
 

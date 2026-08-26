@@ -335,11 +335,23 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     return map[day.status] || '';
   }
 
-  // Lexicographic compare on "YYYY-MM-DD" — no Date arithmetic, and the same comparison
-  // services/attendance-calendar.js uses server-side, so the two can never disagree about
-  // which days are still to come.
+  // The server's own answer when it sent one — it resolved "today" in the SCHOOL's wall
+  // clock, which a browser in another timezone would get wrong. The lexicographic compare
+  // is the fallback for cells the socket layer has touched; it is the same comparison
+  // services/attendance-calendar.js makes, so the two can never disagree.
   isFuture(day: AttendanceDay): boolean {
-    return day.dateKey > this.today;
+    return day.isFuture !== undefined ? day.isFuture : day.dateKey > this.today;
+  }
+
+  /**
+   * A future day that an approved Leave or an assigned Holiday already covers.
+   *
+   * These are the only future cells that show anything. The information was entered by the
+   * admin and is known now — dimming it to a dash until the date arrived was hiding their
+   * own data back at them. Display only: cellClick() still refuses a future date.
+   */
+  hasFutureInfo(day: AttendanceDay): boolean {
+    return this.isFuture(day) && (day.status === 'Leave' || day.status === 'Holiday');
   }
 
   isToday(day: { dateKey: string }): boolean {
@@ -370,10 +382,21 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   // the cell itself always read identically.
   cellTooltip(day: AttendanceDay): string {
     if (!day.status) return '';
+    // A future Leave/Holiday cell explains itself by NAME — "Holiday: Diwali" says more than
+    // a date and a status word for a day nobody has attended yet. There are no punch times
+    // to report on a day that has not happened, so the time branch below cannot apply.
+    if (this.hasFutureInfo(day)) return this.infoLabel(day);
     if (!day.firstIn) return `${day.dateKey} — ${day.status}`;
     const firstIn = toAmPm(this.timeLabel(day.firstIn));
     const lastOut = toAmPm(this.timeLabel(day.lastOut));
     return `${day.dateKey} — ${day.status} (${firstIn} – ${lastOut})`;
+  }
+
+  // "Holiday: Diwali" / "Leave: Casual Leave". Falls back to the bare status when the name
+  // did not resolve — a leave type deleted after the request was approved, say.
+  private infoLabel(day: AttendanceDay): string {
+    const name = day.status === 'Holiday' ? day.holidayName : day.leaveTypeName;
+    return name ? `${day.status}: ${name}` : `${day.status}`;
   }
 
   // punchTime is stored as school wall clock expressed as UTC, so the UTC parts ARE the

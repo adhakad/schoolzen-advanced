@@ -90,6 +90,12 @@
 .shift-color-4 { background: #3d9be9; }
 .shift-color-5 { background: #6c4ab6; }
 
+/* A shift that has since been deactivated. The assignment is still real and still shows its
+   name and timing on hover — it just has no legend entry, so it takes a neutral grey rather
+   than borrowing an active shift's colour and reading as that shift. Also the safety net
+   that stops an unresolved chip rendering white-on-white and looking like an empty cell. */
+.shift-color-retired { background: #b0aec2; }
+
 .shift-legend {
   margin-top: 1.5vh;
   padding-left: 4px;

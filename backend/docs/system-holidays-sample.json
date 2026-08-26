@@ -1,0 +1,11 @@
+[
+  {
+    "state": "NATIONAL",
+    "year": 2026,
+    "holidays": [
+      { "name": "Republic Day", "date": "2026-01-26" },
+      { "name": "Independence Day", "date": "2026-08-15" },
+      { "name": "Gandhi Jayanti", "date": "2026-10-02" }
+    ]
+  }
+]

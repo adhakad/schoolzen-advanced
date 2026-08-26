@@ -8,7 +8,7 @@ const TeacherModel = require('../models/teacher');
 const DesignationModel = require('../models/designation');
 const TeacherUserModel = require('../models/users/teacher-user');
 const { getModel, getPerson, personCode } = require('../services/person-lookup');
-const { getHolidayMapForMonth } = require('../services/holiday-lookup');
+const { getHolidayMapForMonth, getHolidayKeysForPersons } = require('../services/holiday-lookup');
 const { balanceKeyOf, getApprovedDaysByPerson, getAssignmentMap } = require('../services/leave-balance');
 const { nowWallClock } = require('../helpers/attendance-time');
 const { toUtcMidnight, toDateKey, parseDateKey, eachDateInRange } = require('../helpers/date-only');
@@ -51,12 +51,13 @@ const chunk = (items, size) => {
 //
 // Three things come out of the range:
 //   1. weekly offs (Sunday) — nobody should burn balance on a day they were not expected.
-//   2. declared holidays — via services/holiday-lookup.js, still a Phase 9 stub returning
-//      an empty map. Calling it now costs one no-op await and means holiday-skipping starts
-//      working the day Phase 9 lands, with no edit to this file.
-//   3. days already recorded as 'Holiday' in DailyAttendance — until Phase 9 a manual
-//      override is the only way such a row exists, and it is the school telling us the day
-//      was shut. attendance-status.js:186 puts Holiday above Leave for the same reason.
+//   2. declared holidays — via services/holiday-lookup.js, scoped to THIS person: a holiday
+//      reaches somebody only through the HolidayTemplate they are assigned, so the office
+//      staff may owe a working day on a date the classrooms are shut.
+//   3. days already recorded as 'Holiday' in DailyAttendance — either a manual override or a
+//      day the reconciler already resolved as a holiday, and both are the school telling us
+//      the day was shut. attendance-status.js:186 puts Holiday above Leave for the same
+//      reason.
 //
 // One holiday-map read per month the range spans, and one DailyAttendance scan for the
 // whole range — never a query per day.
@@ -83,7 +84,7 @@ const expandLeaveDates = async (adminId, personType, personId, fromKey, toKey) =
 
     const [holidayMaps, holidayRows] = await Promise.all([
         Promise.all([...months.values()].map(
-            (parsed) => getHolidayMapForMonth(adminId, parsed.year, parsed.month),
+            (parsed) => getHolidayMapForMonth(adminId, personType, personId, parsed.year, parsed.month),
         )),
         // Scoped to THIS person: a Holiday row is per-person in DailyAttendance, and a
         // school-wide read would be a much wider scan for no extra signal.
@@ -152,10 +153,18 @@ const expandLeaveDatesForPage = async (adminId, requests) => {
 
     const dateList = [...allDateKeys].map((dateKey) => toUtcMidnight(dateKey));
 
-    const [holidayMaps, holidayRows] = await Promise.all([
-        Promise.all([...months.values()].map(
-            (parsed) => getHolidayMapForMonth(adminId, parsed.year, parsed.month),
-        )),
+    const [holidayKeysByPersonKey, holidayRows] = await Promise.all([
+        // One call for every person and every month on the page — see the header of
+        // services/holiday-lookup.js. Calling the per-person getHolidayMapForMonth per row
+        // would make this list endpoint, the one admins sit on all day, an N+1.
+        getHolidayKeysForPersons(
+            adminId,
+            unexpanded.map((request) => ({
+                personType: request.personType,
+                personId: String(request.personId),
+            })),
+            [...months.values()],
+        ),
         // School-wide, unlike expandLeaveDates's per-person read: one scan for every person
         // on the page is cheaper than one per row, and the rows carry who they belong to.
         dateList.length > 0
@@ -168,13 +177,11 @@ const expandLeaveDatesForPage = async (adminId, requests) => {
             : [],
     ]);
 
-    // A declared holiday shuts the school for everybody; a Holiday row in DailyAttendance is
-    // one person's day. They cannot share a key or one person's override would silently
-    // shorten everybody else's leave.
-    const schoolHolidayKeys = new Set();
-    for (const holidayMap of holidayMaps) {
-        for (const dateKey of holidayMap.keys()) schoolHolidayKeys.add(dateKey);
-    }
+    // Two sources, both per-person, kept apart because they mean different things: the first
+    // is what this person's HolidayTemplate DECLARES, the second is what their attendance
+    // register already RECORDS. A day can be either without being both — a template can
+    // declare a holiday the reconciler has not reached yet, and a manual override can record
+    // one no template contains.
     const personHolidayKeys = new Set();
     for (const row of holidayRows) {
         personHolidayKeys.add(`${row.personType}|${row.personId}|${toDateKey(row.date)}`);
@@ -183,8 +190,9 @@ const expandLeaveDatesForPage = async (adminId, requests) => {
     for (const request of unexpanded) {
         const requestId = String(request._id);
         const dateKeys = workingKeysByRequestId.get(requestId) || [];
+        const declared = holidayKeysByPersonKey.get(`${request.personType}|${request.personId}`);
         dayCountByRequestId.set(requestId, dateKeys.filter((dateKey) => (
-            !schoolHolidayKeys.has(dateKey)
+            !(declared && declared.has(dateKey))
             && !personHolidayKeys.has(`${request.personType}|${request.personId}|${dateKey}`)
         )).length);
     }

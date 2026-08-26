@@ -47,6 +47,7 @@ const routes: Routes = [
   { path: 'admin/leave-type', loadChildren: () => import('src/app/pages/admin/leave-type/leave-type.module').then((module) => module.LeaveTypeModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/leave-request', loadChildren: () => import('src/app/pages/admin/leave-request/leave-request.module').then((module) => module.LeaveRequestModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/leave-limit', loadChildren: () => import('src/app/pages/admin/leave-limit/leave-limit.module').then((module) => module.LeaveLimitModule), canActivate: [AdminAuthGuard] },
+  { path: 'admin/holiday', loadChildren: () => import('src/app/pages/admin/holiday/holiday.module').then((module) => module.HolidayModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class', loadChildren: () => import('src/app/pages/admin/class/class.module').then((module) => module.ClassModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/subject', loadChildren: () => import('src/app/pages/admin/subject/subject.module').then((module) => module.SubjectModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class-subject', loadChildren: () => import('src/app/pages/admin/class-subject/class-subject.module').then((module) => module.ClassSubjectModule), canActivate: [AdminAuthGuard] },

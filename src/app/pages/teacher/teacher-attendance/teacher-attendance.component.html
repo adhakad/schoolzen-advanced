@@ -120,9 +120,18 @@
                       </td>
                       <td *ngFor="let day of row.days" class="day-column" [class.weekend-column]="day.weekday==0"
                         [class.today-column]="isToday(day)" [class.future-cell]="isFuture(day)"
+                        [class.future-known]="hasFutureInfo(day)"
                         [class.flash]="day.flash" [title]="cellTooltip(day)">
 
-                        <ng-container *ngIf="isFuture(day)">
+                        <!-- Leave/Holiday already known for a day that has not arrived — same
+                             chip a past one would get, with a tooltip naming it. See the admin
+                             grid for the fuller note. -->
+                        <ng-container *ngIf="hasFutureInfo(day)">
+                          <span class="status-chip"
+                            [class]="'status-chip ' + statusClass(day)">{{statusShort(day)}}</span>
+                        </ng-container>
+
+                        <ng-container *ngIf="isFuture(day) && !hasFutureInfo(day)">
                           <span class="cell-empty">&mdash;</span>
                         </ng-container>
 

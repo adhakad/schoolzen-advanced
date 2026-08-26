@@ -22,6 +22,9 @@ module.exports = app => {
     app.use('/v1/leave-type', require('./modules/routes/leave-type'));
     app.use('/v1/leave-request', require('./modules/routes/leave-request'));
     app.use('/v1/leave-assignment', require('./modules/routes/leave-assignment'));
+    app.use('/v1/holiday', require('./modules/routes/holiday'));
+    app.use('/v1/holiday-template', require('./modules/routes/holiday-template'));
+    app.use('/v1/holiday-assignment', require('./modules/routes/holiday-assignment'));
     app.use('/v1/device', require('./modules/routes/devices/device'));
     app.use('/v1/exam-result', require('./modules/routes/exam-result'));
     app.use('/v1/exam-result-structure', require('./modules/routes/exam-result-structure'));

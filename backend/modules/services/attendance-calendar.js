@@ -3,7 +3,8 @@ const DailyAttendanceModel = require('../models/daily-attendance');
 const RosterModel = require('../models/roster');
 const ClassShiftModel = require('../models/class-shift');
 const ShiftModel = require('../models/shift');
-const { getHolidayMapForMonth } = require('./holiday-lookup');
+const LeaveTypeModel = require('../models/leave-type');
+const { getHolidayMapForMonth, getHolidayMapForPeopleMonth } = require('./holiday-lookup');
 const { getLeaveMapForMonth, getLeaveMapForSchoolMonth } = require('./leave-lookup');
 const { getActivePeople, getPerson, personCode } = require('./person-lookup');
 const { toUtcMidnight, toDateKey } = require('../helpers/date-only');
@@ -21,8 +22,14 @@ const { nowWallClock } = require('../helpers/attendance-time');
 //
 // Two statuses returned here are read-time only and are NOT in DailyAttendance's enum:
 //   'Off'     — the person was not expected that day
-//   ''        — a future date, nothing to say about it yet
+//   ''        — a future date with nothing known about it yet
 // Persisting either would mean writing ~60M placeholder rows a month at target scale.
+//
+// A future date is NOT automatically ''. An approved Leave or an assigned Holiday is already
+// known before the day arrives, so those cells carry their real status and the name that
+// explains it (holidayName / leaveTypeName). Only a future day with neither is blank. The
+// `isFuture` flag rides along so the client can render those cells read-only without
+// re-deriving "has this happened" against the browser's own clock.
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -31,6 +38,16 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // this codebase already assumes: pages/admin/roster marks exactly `dow === 0` as the
 // weekend column.
 const STUDENT_WEEKLY_OFF = [0];
+
+/**
+ * leaveTypeId -> name, for the hover text on a Leave cell. LeaveRequest stores only the id,
+ * and a school has a handful of types, so this is one small query per month read rather than
+ * a populate per row.
+ */
+const getLeaveTypeNames = async (adminId) => {
+    const leaveTypes = await LeaveTypeModel.find({ adminId }, { name: 1 }).lean();
+    return new Map(leaveTypes.map((leaveType) => [leaveType._id.toString(), leaveType.name]));
+};
 
 const daysInMonth = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate();
 
@@ -65,9 +82,10 @@ const buildMonthDays = (year, month) => {
  * @param {String} args.todayKey
  * @param {Function} args.isExpected (dateKey, weekday) -> Boolean; was this person supposed
  *                   to be here? False means 'Off' rather than 'Absent'.
+ * @param {Map}    [args.leaveTypeNameById] leaveTypeId -> name, for the cell's hover text.
  * @returns {{ days: Array, summary: Object }}
  */
-const buildDayEntries = ({ monthDays, rowByDateKey, holidayMap, leaveMap, todayKey, isExpected }) => {
+const buildDayEntries = ({ monthDays, rowByDateKey, holidayMap, leaveMap, todayKey, isExpected, leaveTypeNameById }) => {
     const days = [];
     const summary = emptySummary();
 
@@ -87,24 +105,52 @@ const buildDayEntries = ({ monthDays, rowByDateKey, holidayMap, leaveMap, todayK
             expectedStart: row ? row.expectedStart : null,
             isOverridden: row ? !!row.isOverridden : false,
             source: row ? row.source : null,
+            // Lexicographic compare is safe on "YYYY-MM-DD" and needs no Date arithmetic.
+            // Sent so the client does not have to re-derive "has this day happened" against
+            // its own clock — a browser in another timezone would disagree with the school's.
+            isFuture: dateKey > todayKey,
+            // Hover text for a cell that carries a Holiday/Leave chip. Empty otherwise.
+            holidayName: '',
+            leaveTypeName: '',
         };
+
+        const holiday = holidayMap.get(dateKey);
+        const leave = leaveMap.get(dateKey);
 
         if (row) {
             // A real row always wins — it already carries the reconciler's Holiday/Leave
             // resolution and any manual override, so re-deriving here could disagree with
             // what payroll will read.
             entry.status = row.status;
-        } else if (dateKey > todayKey) {
-            // Lexicographic compare is safe on "YYYY-MM-DD" and needs no Date arithmetic.
-            entry.status = '';
-        } else if (holidayMap.get(dateKey)) {
+        } else if (holiday) {
+            // DELIBERATELY ABOVE THE FUTURE CHECK. An approved leave or an assigned holiday
+            // is already KNOWN for a date that has not arrived — dimming it to '' hid
+            // information the admin had entered themselves, which is what this ordering
+            // fixes. Holiday before Leave matches the precedence attendance-status.js
+            // documents, so a future cell and its eventual reconciled row agree.
             entry.status = 'Holiday';
-        } else if (leaveMap.get(dateKey)) {
+        } else if (leave) {
             entry.status = 'Leave';
+        } else if (entry.isFuture) {
+            // Nothing known about this day yet. Stays a plain dimmed cell.
+            entry.status = '';
         } else {
             entry.status = isExpected(dateKey, weekday) ? 'Absent' : 'Off';
         }
 
+        // Names for the cell's hover text, set whenever one was resolved — the frontend
+        // decides where to show them. Only ever read for cells that carry a chip.
+        if (holiday) entry.holidayName = `${holiday.name || ''}`;
+        if (leave) {
+            entry.leaveTypeName = leaveTypeNameById
+                ? (leaveTypeNameById.get(String(leave.leaveTypeId)) || '')
+                : '';
+        }
+
+        // Future Leave/Holiday days ARE counted here, because the summary strip is a
+        // roll-up of exactly the cells on screen — showing six LV chips above a strip
+        // reading "LV 1" would be its own bug. Future days with nothing known stay
+        // uncounted, so the strip still means "days accounted for", not "days elapsed".
         if (entry.status && summary[entry.status] !== undefined) summary[entry.status] += 1;
         days.push(entry);
     }
@@ -162,16 +208,20 @@ const getPersonMonth = async ({ adminId, personType, personId, year, month }) =>
     const monthStart = new Date(Date.UTC(year, month - 1, 1));
     const monthEnd = new Date(Date.UTC(year, month - 1, daysInMonth(year, month)));
 
-    const [person, rows, holidayMap, leaveMap, rosterDays] = await Promise.all([
+    const [person, rows, holidayMap, leaveMap, rosterDays, leaveTypeNameById] = await Promise.all([
         getPerson(personType, personId),
         // Equality on adminId+personType+personId, range on date — exactly the shape of
         // DailyAttendance's leading unique index, so this is one index walk.
         DailyAttendanceModel
             .find({ adminId, personType, personId, date: { $gte: monthStart, $lte: monthEnd } })
             .lean(),
-        getHolidayMapForMonth(adminId, year, month),
+        // Per-person, not school-wide: a holiday only reaches somebody through the
+        // HolidayTemplate they are assigned. Unassigned means an empty map and the Absent
+        // branch below stands — see the header of services/holiday-lookup.js.
+        getHolidayMapForMonth(adminId, personType, personId, year, month),
         getLeaveMapForMonth(adminId, personType, personId, year, month),
         getRosterDays(adminId, personType, personId, year, month),
+        getLeaveTypeNames(adminId),
     ]);
 
     // Only students need the class mapping, and only their own class — one indexed lookup.
@@ -197,6 +247,7 @@ const getPersonMonth = async ({ adminId, personType, personId, year, month }) =>
         leaveMap,
         todayKey,
         isExpected: buildExpectationFn({ personType, rosterDays, classHasShift }),
+        leaveTypeNameById,
     });
 
     return {
@@ -251,7 +302,7 @@ const shiftSummaryOf = (shift) => ({
  * A whole school's month for one person type — the calendar grid.
  *
  * A fixed number of round-trips regardless of headcount: 1 people scan, 1 DailyAttendance
- * range read, 1 holiday map, and 1 expectation read (Roster for staff/teacher, ClassShift
+ * range read, 1 batched holiday map, and 1 expectation read (Roster for staff/teacher, ClassShift
  * for students). Never one query per person.
  *
  * `class` is REQUIRED for students, enforced by the controller: a whole school's roll times
@@ -280,7 +331,7 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
 
     const personIds = people.map((person) => person._id.toString());
 
-    const [rows, holidayMap, leaveByPersonId, rosterList, classShiftRows] = await Promise.all([
+    const [rows, holidayByPersonId, leaveByPersonId, rosterList, classShiftRows, leaveTypeNameById] = await Promise.all([
         DailyAttendanceModel
             .find({
                 adminId,
@@ -289,7 +340,11 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
                 date: { $gte: monthStart, $lte: monthEnd },
             })
             .lean(),
-        getHolidayMapForMonth(adminId, year, month),
+        // Holidays are per-person now, so this is the batched form for the same reason the
+        // leave one below exists. `people` is passed in rather than re-read: their documents
+        // already carry `.class`, so resolving a student's class-level template costs no
+        // extra query at all.
+        getHolidayMapForPeopleMonth(adminId, personType, people, year, month),
         // ONE query for the whole school-month. The per-person getLeaveMapForMonth would be
         // one query per row here, which is why leave-lookup.js carries this batched form.
         getLeaveMapForSchoolMonth(adminId, personType, year, month),
@@ -303,11 +358,13 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
         personType === 'student'
             ? ClassShiftModel.find({ adminId }, { class: 1, shiftId: 1, _id: 0 }).lean()
             : [],
+        getLeaveTypeNames(adminId),
     ]);
 
-    // Reused for anyone with no approved leave this month, so the common case allocates
-    // nothing per row.
+    // Reused for anyone with no approved leave — and no holiday template — this month, so
+    // the common case allocates nothing per row.
     const emptyLeaveMap = new Map();
+    const emptyHolidayMap = new Map();
 
     const rosterDaysByPersonId = new Map();
     for (const roster of rosterList) {
@@ -361,7 +418,7 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
         const { days, summary } = buildDayEntries({
             monthDays,
             rowByDateKey: rowsByPersonId.get(personId) || new Map(),
-            holidayMap,
+            holidayMap: holidayByPersonId.get(personId) || emptyHolidayMap,
             leaveMap: leaveByPersonId.get(personId) || emptyLeaveMap,
             todayKey,
             isExpected: buildExpectationFn({
@@ -369,6 +426,7 @@ const getSchoolMonthGrid = async ({ adminId, personType, year, month, class: cla
                 rosterDays: rosterDaysByPersonId.get(personId),
                 classHasShift: classesWithShift.has(String(person.class)),
             }),
+            leaveTypeNameById,
         });
 
         for (const status of Object.keys(summary)) gridSummary[status] += summary[status];

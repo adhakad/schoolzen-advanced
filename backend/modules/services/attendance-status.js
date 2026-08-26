@@ -183,15 +183,27 @@ const computeStatus = ({ personType, firstIn, lastOut, punchCount, windows }) =>
 };
 
 // Single ordered resolver so override precedence lives in exactly one place.
-// Order: manual (isOverridden) > Holiday > Leave > computed.
+// Order: manual (isOverridden) > a real arrival > Holiday > Leave > computed.
+//
 // Manual sits on top because "a manual override must never be clobbered by a later
-// reconcile" is absolute — if Holiday outranked it, an admin could never record the
-// teacher who came in for exam duty on a declared holiday. Holiday outranks Leave so
-// nobody burns leave balance on a day the school was shut.
-// Punch facts (firstIn/lastOut/punchCount) survive on Holiday and Leave rows.
+// reconcile" is absolute. It is enforced in attendance-reconcile.js, which skips overridden
+// people before they ever reach this function, rather than here.
+//
+// A REAL ARRIVAL BEATS A DECLARED HOLIDAY. `computed` is non-null only because the person
+// actually punched inside their arrival window, and somebody who came in despite a declared
+// holiday keeps the status they earned — suppressing it to 'Holiday' would erase attendance
+// that payroll has to credit and that an admin needs to see. The holidayId is still stamped
+// so the row can explain why that day was unusual. (This is why reconcile never WRITES a
+// 'Holiday' row: a holiday on a day nobody punched has no row at all, and
+// attendance-calendar.js derives it at read time — see models/daily-attendance.js.)
+//
+// Holiday is still checked before Leave, so a person on approved leave during a school
+// holiday does not burn leave balance on a day the school was shut.
+//
+// Punch facts (firstIn/lastOut/punchCount) survive on every row.
 const resolveStatus = ({ holiday, leave, computed }) => {
     if (!computed) return null;
-    if (holiday) return { ...computed, status: 'Holiday', holidayId: holiday._id.toString() };
+    if (holiday) return { ...computed, holidayId: holiday._id.toString() };
     if (leave) return { ...computed, status: 'Leave', leaveRequestId: leave._id.toString() };
     return computed;
 };

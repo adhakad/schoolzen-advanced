@@ -4,7 +4,7 @@ const PunchLogModel = require('../models/punch-log');
 const DailyAttendanceModel = require('../models/daily-attendance');
 const { getExpectedShiftsForDate } = require('./roster-lookup');
 const { getStudentShiftMap } = require('./class-shift-lookup');
-const { getHolidayForDate } = require('./holiday-lookup');
+const { getHolidayMapForDate } = require('./holiday-lookup');
 const { getApprovedLeavesForDate } = require('./leave-lookup');
 const { buildShiftWindows, computeStatus, resolveStatus } = require('./attendance-status');
 const { toUtcMidnight } = require('../helpers/date-only');
@@ -27,7 +27,7 @@ const logger = require('../helpers/logger');
 // independent of how many times people punched:
 //   1 puncher aggregation (one row per PERSON, not per punch)
 // + 2 roster/shift + 1 classShift + 1 classShift-shift + 1 student-class
-// + 1 holiday + 1 leave + 1 override scan
+// + 4 holiday (2 assignment scans + template + holiday reads) + 1 leave + 1 override scan
 // + 1 WINDOWED punch aggregation (both windows in a single $facet)
 // + ceil(personCount / 1000) bulkWrites.
 // Nothing here is per-punch or per-person round-tripped.
@@ -183,12 +183,16 @@ const reconcileSchoolDate = async ({ adminId, dateKey }) => {
 
     // ---- Everything the calculation needs, fetched ONCE and in parallel -----
     // None of these is ever re-read inside a loop below.
-    const [rosterShifts, studentShifts, holiday, leaveByPerson, overriddenRows] = await Promise.all([
+    const [rosterShifts, studentShifts, holidayByPerson, leaveByPerson, overriddenRows] = await Promise.all([
         // `${personType}|${personId}` -> Shift, from the monthly-snapshot Roster.
         getExpectedShiftsForDate(adminId, date),
         // personId -> Shift, via the punching students' classes.
         getStudentShiftMap(adminId, studentIds),
-        getHolidayForDate(adminId, date),
+        // `${personType}|${personId}` -> Holiday. Per-person, NOT school-wide: a holiday
+        // reaches somebody only through the HolidayTemplate they are assigned, so the office
+        // can be open on a day the classrooms are shut. studentIds is passed so the students
+        // who punched can be resolved through their class in the same call.
+        getHolidayMapForDate(adminId, date, studentIds),
         getApprovedLeavesForDate(adminId, date),
         // Manual overrides are read UP FRONT and excluded below rather than filtered in the
         // write. An upsert whose filter carried `isOverridden: { $ne: true }` would match
@@ -309,9 +313,11 @@ const reconcileSchoolDate = async ({ adminId, dateKey }) => {
             continue;
         }
 
-        // Holiday and approved Leave outrank the computed status but keep the punch facts.
+        // Approved Leave outranks the computed status; a declared Holiday does NOT — anyone
+        // reaching this line punched, and a person who came in despite the holiday keeps the
+        // status they earned, with holidayId stamped for provenance. See resolveStatus.
         const resolved = resolveStatus({
-            holiday,
+            holiday: holidayByPerson.get(personKey) || null,
             leave: leaveByPerson.get(personKey) || null,
             computed,
         });

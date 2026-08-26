@@ -33,7 +33,11 @@ export class RosterComponent implements OnInit {
 
   monthDays: MonthDay[]  = [];
   personInfo: any[]      = [];
+  // Active shifts only — what the assign dropdown offers and what the legend lists.
   shiftInfo: any[]       = [];
+  // EVERY shift, deactivated ones included, keyed by id. A rostered cell must always be
+  // able to name the shift it points at — see getShiftList().
+  shiftById: Record<string, any> = {};
 
   // Flat map: "personId|YYYY-MM-DD" -> shiftId — O(1) cell lookup
   rosterMap: Record<string, string> = {};
@@ -132,9 +136,17 @@ export class RosterComponent implements OnInit {
     this.monthDays = days;
   }
 
+  // RESOLVING a shift and OFFERING one are different questions, and conflating them was a
+  // bug: a cell rostered weeks ago may point at a shift since deactivated, and filtering it
+  // out of the lookup made that cell render as a '?' chip with an "Unknown shift" tooltip —
+  // an assignment that is perfectly real, shown as if it were broken. Every shift goes into
+  // the lookup; only the ASSIGNABLE list is filtered to active ones.
   getShiftList(): void {
     this.shiftService.getShiftList(this.adminId).subscribe((res: any) => {
-      if (res) this.shiftInfo = res.filter((s: any) => s.status === 'active');
+      if (!res) return;
+      this.shiftById = {};
+      for (const shift of res) this.shiftById[shift._id] = shift;
+      this.shiftInfo = res.filter((s: any) => s.status === 'active');
     });
   }
 
@@ -242,7 +254,7 @@ export class RosterComponent implements OnInit {
   }
 
   getShift(shiftId: string): any {
-    return this.shiftInfo.find((s: any) => s._id === shiftId);
+    return this.shiftById[shiftId] || null;
   }
 
   shiftShortName(shiftId: string): string {
@@ -258,9 +270,13 @@ export class RosterComponent implements OnInit {
     return s ? `${s.name} (${toAmPm(s.startTime)} - ${toAmPm(s.endTime)})` : 'Unknown shift';
   }
 
-  shiftColorIndex(shiftId: string): number {
+  // Colour comes from the shift's position in the ACTIVE list, so a cell and the legend
+  // below the grid always agree. A deactivated shift has no legend entry to agree with, so
+  // it gets a neutral grey of its own rather than silently borrowing the first shift's
+  // purple and reading as that shift.
+  shiftChipClass(shiftId: string): string {
     const i = this.shiftInfo.findIndex((s: any) => s._id === shiftId);
-    return i >= 0 ? i % 6 : 0;
+    return i >= 0 ? `shift-chip shift-color-${i % 6}` : 'shift-chip shift-color-retired';
   }
 
   // ---- Single-cell modal ----

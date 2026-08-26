@@ -1,0 +1,79 @@
+/* leave-request.component.css is the attendance-side shared stylesheet — leave-limit and the
+   teacher leave page already import it the same way — so the table, chip, filter-row and
+   assignment-grid styles are defined once and used by every screen in this family rather
+   than copied per page. It imports the dashboard base itself. */
+@import '../leave-request/leave-request.component.css';
+
+/* =========================================================================
+   TAB STRIP.
+   Holidays | Templates | Assign. Built from the same pill the roster page uses
+   for its weekday and class chips rather than mat-tab, which is exported by
+   MaterialUiModule but used nowhere in this app — a first and only usage would
+   read as a different product.
+   ========================================================================= */
+.tab-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+}
+
+.tab-button {
+  min-width: 92px;
+  color: #382066;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 12px;
+  letter-spacing: .3px;
+  border: 1px solid #d5d0e1af;
+  border-radius: 6px;
+}
+
+.tab-button.active {
+  background: #8C52FF;
+  color: #FFF;
+  border-color: #8C52FF;
+}
+
+.mobile-option .tab-strip {
+  justify-content: flex-start;
+}
+
+/* The search box sits in the filter-row toolbar alongside mat-form-fields, which carry
+   their own subscript space. Without this it floats a few pixels low against them. */
+.search-field {
+  width: 220px;
+  margin-bottom: 1.25rem;
+}
+
+/* Two icon actions in one cell need a gap, or edit and delete touch. */
+.action-cell mat-icon {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.action-cell mat-icon:last-child {
+  margin-right: 0;
+}
+
+/* The confirmation gate on the assignment edit modal. Boxed and tinted because it is not a
+   preference — nothing below it works until it is ticked, and that has to be obvious before
+   the user reaches for the disabled dropdown. */
+.confirm-gate {
+  margin: 1.5vh 0;
+  padding: 10px 12px;
+  background: #f6f4fc;
+  border: 1px solid #e0dbee;
+  border-radius: 6px;
+}
+
+.confirm-gate mat-checkbox {
+  font-size: 13px;
+}
+
+/* The date range reads as one field, so the two inputs inside it should not look like two
+   separate controls that happen to be adjacent. */
+mat-date-range-input {
+  font-size: 14px;
+}

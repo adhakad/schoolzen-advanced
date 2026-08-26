@@ -258,8 +258,17 @@ export class TeacherAttendanceComponent implements OnInit, OnDestroy {
   }
 
   // Lexicographic compare on "YYYY-MM-DD" — no Date arithmetic, matching the server.
+  // The server's own answer when it sent one — it resolved "today" in the SCHOOL's wall
+  // clock, which a browser in another timezone would get wrong. Same fallback and same
+  // reasoning as the admin grid.
   isFuture(day: AttendanceDay): boolean {
-    return day.dateKey > this.today;
+    return day.isFuture !== undefined ? day.isFuture : day.dateKey > this.today;
+  }
+
+  // A future day an approved Leave or an assigned Holiday already covers — the only future
+  // cells that show anything. Display only; this grid has no click handler at all.
+  hasFutureInfo(day: AttendanceDay): boolean {
+    return this.isFuture(day) && (day.status === 'Leave' || day.status === 'Holiday');
   }
 
   isToday(day: { dateKey: string }): boolean {
@@ -275,8 +284,17 @@ export class TeacherAttendanceComponent implements OnInit, OnDestroy {
 
   cellTooltip(day: AttendanceDay): string {
     if (!day.status) return '';
+    // A future Leave/Holiday cell explains itself by NAME — see the admin grid for why.
+    if (this.hasFutureInfo(day)) return this.infoLabel(day);
     if (!day.firstIn) return `${day.dateKey} — ${day.status}`;
     return `${day.dateKey} — ${day.status} (${toAmPm(this.timeLabel(day.firstIn))})`;
+  }
+
+  // "Holiday: Diwali" / "Leave: Casual Leave", falling back to the bare status when the name
+  // did not resolve.
+  private infoLabel(day: AttendanceDay): string {
+    const name = day.status === 'Holiday' ? day.holidayName : day.leaveTypeName;
+    return name ? `${day.status}: ${name}` : `${day.status}`;
   }
 
   // punchTime is school wall clock expressed as UTC, so the UTC parts ARE the wall clock.

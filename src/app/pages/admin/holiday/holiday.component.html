@@ -1,0 +1,569 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <!-- Three tabs, one job done in order: declare the days, bundle them into a
+                 year, hand that year to people. Plain buttons with an .active class — no
+                 tab component is used anywhere else in this app. -->
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-3">
+                    <button mat-button class="menu-button">
+                      <span>Holiday</span>
+                    </button>
+                  </div>
+                  <div class="col-9">
+                    <div class="tab-strip">
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'holidays'"
+                        (click)="switchTab('holidays')">Holidays</button>
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'templates'"
+                        (click)="switchTab('templates')">Templates</button>
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'assign'"
+                        (click)="switchTab('assign')">Assign</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Holiday</span>
+                    </button>
+                  </div>
+                  <div class="col-12 mt-3">
+                    <div class="tab-strip">
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'holidays'"
+                        (click)="switchTab('holidays')">Holidays</button>
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'templates'"
+                        (click)="switchTab('templates')">Templates</button>
+                      <button type="button" mat-button class="tab-button" [class.active]="activeTab === 'assign'"
+                        (click)="switchTab('assign')">Assign</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+
+              <!-- ==================================================================
+                   TAB 1 — HOLIDAYS
+                   ================================================================== -->
+              <ng-container *ngIf="activeTab === 'holidays'">
+                <h3 class="page-purpose">The Days Your School Is Closed</h3>
+                <p class="page-note">
+                  Add each holiday once, with its first and last day &mdash; a festival break can span several days.
+                  Nobody gets a holiday until it is put in a template and that template is assigned on the
+                  <strong>Assign</strong> tab.
+                </p>
+
+                <!-- Filter and the page's one action share a single toolbar directly above
+                     the table, so nothing floats in between. -->
+                <div class="filter-row">
+                  <input type="text" class="form-control search-field" placeholder="Search..." id="searchText"
+                    name="searchText" [(ngModel)]="filters.searchText" (keyup)="getHoliday({page : 1, limit : 0})">
+
+                  <button class="submit-button toolbar-button" mat-raised-button
+                    (click)="addHolidayModel()"><mat-icon>add</mat-icon>Add Holiday</button>
+                </div>
+
+                <div class="table-wrapper">
+                  <table class="table table-hover align-middle bg-white">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th>No.</th>
+                        <th>Name</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Days</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody *ngIf="holidayInfo && holidayInfo.length>0">
+                      <tr *ngFor="let holiday of holidayInfo,let i=index">
+                        <td>
+                          <p class="mb-0">{{number*10+i+1-10}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{holiday.name | titlecase}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{holiday.startDate | date:'dd MMM yyyy':'UTC'}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{holiday.endDate | date:'dd MMM yyyy':'UTC'}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{holiday.daysCount}}</p>
+                        </td>
+                        <td class="mb-0 action-cell">
+                          <mat-icon (click)="updateHolidayModel(holiday)">edit</mat-icon>
+                          <mat-icon (click)="deleteHolidayModel(holiday._id)">delete</mat-icon>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-container *ngIf="!loader && (!holidayInfo || holidayInfo.length==0)">
+                  <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+                </ng-container>
+
+                <div class="pagination">
+                  <app-pagination [paginationValues]="paginationValues" (onChange)="getHoliday($event)">
+                  </app-pagination>
+                </div>
+              </ng-container>
+
+              <!-- ==================================================================
+                   TAB 2 — TEMPLATES
+                   ================================================================== -->
+              <ng-container *ngIf="activeTab === 'templates'">
+                <h3 class="page-purpose">Group Your Holidays into a Year</h3>
+                <p class="page-note">
+                  A template is one school year's worth of holidays under a name. People are assigned a template, not
+                  individual holidays &mdash; so adding a day to the year later is one edit here, not a re-assign for
+                  everybody.
+                </p>
+
+                <div class="filter-row">
+                  <input type="text" class="form-control search-field" placeholder="Search..." id="templateSearchText"
+                    name="templateSearchText" [(ngModel)]="templateFilters.searchText"
+                    (keyup)="getHolidayTemplate({page : 1, limit : 0})">
+
+                  <button class="submit-button toolbar-button" mat-raised-button
+                    (click)="addTemplateModel()"><mat-icon>add</mat-icon>Add Template</button>
+
+                  <!-- The secondary action, styled down so the primary one above stays the
+                       obvious button on this screen. -->
+                  <button mat-button class="settings-link" (click)="openGenerateModel()">
+                    <mat-icon>auto_awesome</mat-icon>Generate from Public Holidays
+                  </button>
+                </div>
+
+                <div class="table-wrapper">
+                  <table class="table table-hover align-middle bg-white">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th>No.</th>
+                        <th>Template Name</th>
+                        <th>Holidays</th>
+                        <th>Assigned To</th>
+                        <th>Created On</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody *ngIf="templateInfo && templateInfo.length>0">
+                      <tr *ngFor="let template of templateInfo,let i=index">
+                        <td>
+                          <p class="mb-0">{{templateNumber*10+i+1-10}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{template.name | titlecase}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{template.holidayCount}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0" *ngIf="template.assignedCount > 0">{{template.assignedCount}}</p>
+                          <p class="mb-0 not-set" *ngIf="!template.assignedCount">Nobody yet</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{template.createdAt | date:'dd MMM yyyy'}}</p>
+                        </td>
+                        <td class="mb-0 action-cell">
+                          <mat-icon (click)="updateTemplateModel(template)">edit</mat-icon>
+                          <mat-icon (click)="deleteTemplateModel(template._id)">delete</mat-icon>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-container *ngIf="!loader && (!templateInfo || templateInfo.length==0)">
+                  <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+                </ng-container>
+
+                <div class="pagination">
+                  <app-pagination [paginationValues]="templatePaginationValues"
+                    (onChange)="getHolidayTemplate($event)">
+                  </app-pagination>
+                </div>
+              </ng-container>
+
+              <!-- ==================================================================
+                   TAB 3 — ASSIGN
+                   ================================================================== -->
+              <ng-container *ngIf="activeTab === 'assign'">
+                <h3 class="page-purpose">Give People a Holiday Calendar</h3>
+                <p class="page-note">
+                  Someone with no template gets no holidays &mdash; a day they do not come in still counts as absent.
+                  Staff and teachers are assigned one at a time; students are assigned <strong>by class</strong>, so one
+                  row covers everyone in it.
+                </p>
+
+                <!-- Scope, template and the one action in a single toolbar. A dropdown, not
+                     radio buttons, matching the Leave pages. -->
+                <div class="filter-row">
+                  <mat-form-field appearance="outline" class="filter-field">
+                    <mat-label>People</mat-label>
+                    <mat-select matInput [(ngModel)]="assignPersonType" [ngModelOptions]="{standalone: true}"
+                      (selectionChange)="switchAssignPersonType()">
+                      <mat-option value="staff">Staff</mat-option>
+                      <mat-option value="teacher">Teachers</mat-option>
+                      <mat-option value="student">Students (by class)</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="filter-field">
+                    <mat-label>Holiday Template</mat-label>
+                    <mat-select matInput [(ngModel)]="assignTemplateId" [ngModelOptions]="{standalone: true}">
+                      <mat-option *ngFor="let template of assignTemplates" [value]="template._id">
+                        {{template.name | titlecase}}
+                        <span class="type-days">{{template.holidayCount}} holidays</span>
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+
+                  <p class="selection-note">
+                    <strong>{{selectedCount}}</strong> {{assignPersonType === 'student' ? 'class(es)' : 'people'}}
+                    selected
+                  </p>
+
+                  <button class="submit-button toolbar-button" mat-raised-button
+                    [disabled]="selectedCount === 0 || !assignTemplateId || isClick"
+                    (click)="assignSelected()"><mat-icon>event_available</mat-icon>Assign</button>
+                </div>
+
+                <p class="page-note" *ngIf="assignTemplates.length === 0 && !gridLoading">
+                  No holiday template has been created yet &mdash; make one on the <strong>Templates</strong> tab first.
+                </p>
+
+                <div class="table-wrapper" *ngIf="assignRows.length > 0">
+                  <table class="table table-hover align-middle bg-white assignment-grid">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th class="select-column">
+                          <mat-checkbox [checked]="allSelected" (change)="toggleAll()"></mat-checkbox>
+                        </th>
+                        <th class="name-column">{{assignPersonType === 'student' ? 'Class' : 'Name'}}</th>
+                        <th class="department-column">
+                          {{assignPersonType === 'student' ? 'Students' : (assignPersonType === 'staff' ? 'Department' :
+                          '')}}
+                        </th>
+                        <th class="type-column">Assigned Template</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of assignRows">
+                        <td class="select-column">
+                          <mat-checkbox [checked]="isRowSelected(row.personId)"
+                            (change)="toggleRow(row.personId)"></mat-checkbox>
+                        </td>
+                        <td class="name-column">
+                          <p class="mb-0">{{row.name | titlecase}}</p>
+                          <p class="mb-0 person-code" *ngIf="row.code">{{row.code}}</p>
+                        </td>
+                        <td class="department-column">{{row.department ? row.department : '—'}}</td>
+                        <td class="type-column">
+                          <p class="mb-0 limit-days" *ngIf="row.templateName">{{row.templateName | titlecase}}</p>
+                          <p class="mb-0 not-set" *ngIf="!row.templateName">Not assigned</p>
+                        </td>
+                        <td class="mb-0 action-cell">
+                          <button mat-button class="row-action" (click)="editAssignmentModel(row)">
+                            <mat-icon>edit</mat-icon>Edit
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-container *ngIf="!gridLoading && assignRows.length === 0">
+                  <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+                </ng-container>
+              </ng-container>
+
+              <!-- ==================================================================
+                   MODALS — all in the app's standard modal, the same one Shift, Leave
+                   Type and Leave Limits use.
+                   ================================================================== -->
+
+              <!-- HOLIDAY: create / update / delete -->
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">{{updateMode ? 'UPDATE' : deleteMode ? 'DELETE' : 'ADD'}} HOLIDAY</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="holidayForm" (ngSubmit)="holidayAddUpdate()" *ngIf="!deleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Name</mat-label>
+                          <input matInput type="text" formControlName="name">
+                          <mat-hint *ngIf="holidayForm.get('name')?.valid">For example Diwali, Independence Day, Summer
+                            Break</mat-hint>
+                          <mat-hint *ngIf="!holidayForm.get('name')?.valid && holidayForm.get('name')?.touched"
+                            class="form-text text-danger">Name is required</mat-hint>
+                        </mat-form-field>
+
+                        <!-- One range picker rather than two separate ones: it opens on the
+                             current month and shades every day between the two ends as they
+                             are picked, so a multi-day break is visible before it is saved.
+                             A single-day holiday is the same date twice. -->
+                        <mat-form-field appearance="outline">
+                          <mat-label>Holiday dates</mat-label>
+                          <mat-date-range-input [rangePicker]="holidayRangePicker">
+                            <input matStartDate readonly formControlName="startDate" placeholder="First day">
+                            <input matEndDate readonly formControlName="endDate" placeholder="Last day">
+                          </mat-date-range-input>
+                          <mat-datepicker-toggle matSuffix [for]="holidayRangePicker"></mat-datepicker-toggle>
+                          <mat-date-range-picker #holidayRangePicker [startAt]="today"></mat-date-range-picker>
+                          <mat-hint *ngIf="plannedDays === 0">Pick the first and last day. For a one-day holiday, pick
+                            the same day twice</mat-hint>
+                        </mat-form-field>
+
+                        <p class="settings-group-note" *ngIf="plannedDays > 0">
+                          That is <strong>{{plannedDays}} day(s)</strong> off, first and last day included.
+                        </p>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button [disabled]="!holidayForm.valid || isClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+
+                    <div *ngIf="deleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">Delete this holiday?</h4>
+                        <p class="confirm-note">It is removed from every template that contains it, so anyone on those
+                          templates will be expected in on that day from now on. Attendance already recorded for it is
+                          not changed.</p>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
+                          (click)="holidayDelete(deleteById)">Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TEMPLATE: create / update / delete -->
+              <div class="modal fade show" [class.show]="showTemplateModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">
+                        {{templateUpdateMode ? 'UPDATE' : templateDeleteMode ? 'DELETE' : 'ADD'}} TEMPLATE
+                      </h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="templateForm" (ngSubmit)="templateAddUpdate()" *ngIf="!templateDeleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Template Name</mat-label>
+                          <input matInput type="text" formControlName="name">
+                          <mat-hint *ngIf="templateForm.get('name')?.valid">For example School Holidays 2026</mat-hint>
+                          <mat-hint *ngIf="!templateForm.get('name')?.valid && templateForm.get('name')?.touched"
+                            class="form-text text-danger">Name is required</mat-hint>
+                        </mat-form-field>
+
+                        <p class="settings-group-title">Holidays in this template</p>
+                        <div class="type-check" *ngFor="let holiday of allHolidays">
+                          <mat-checkbox [checked]="isHolidayChecked(holiday._id)" (change)="toggleHoliday(holiday._id)">
+                            {{holiday.name | titlecase}}
+                            <span class="type-days">
+                              {{holiday.startDate | date:'dd MMM':'UTC'}}
+                              <ng-container *ngIf="holiday.daysCount > 1">
+                                &ndash; {{holiday.endDate | date:'dd MMM':'UTC'}} &middot; {{holiday.daysCount}} days
+                              </ng-container>
+                            </span>
+                          </mat-checkbox>
+                        </div>
+                        <p class="confirm-note" *ngIf="allHolidays.length === 0">
+                          No holiday has been added yet &mdash; add one on the <strong>Holidays</strong> tab first.
+                        </p>
+                        <p class="settings-group-note">An empty template is fine. Name the year now and tick the
+                          holidays as you add them.</p>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button [disabled]="!templateForm.valid || isClick"
+                          class="submit-button">Submit</button>
+                      </div>
+                    </form>
+
+                    <div *ngIf="templateDeleteMode">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">Delete this template?</h4>
+                        <p class="confirm-note">The holidays inside it are kept &mdash; only the grouping goes. A
+                          template that people are still assigned to cannot be deleted until they are moved to another
+                          one.</p>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="delete-button" mat-raised-button type="button" [disabled]="isClick"
+                          (click)="templateDelete(templateDeleteById)">Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- GENERATE FROM PUBLIC HOLIDAYS -->
+              <div class="modal fade show" [class.show]="showGenerateModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">GENERATE FROM PUBLIC HOLIDAYS</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <form [formGroup]="generateForm" (ngSubmit)="generateFromPublic()">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Year</mat-label>
+                          <input matInput type="number" formControlName="year" (change)="onGenerateYearChange()">
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>State</mat-label>
+                          <mat-select matInput formControlName="state">
+                            <mat-option *ngFor="let option of publicStates" [value]="option.state">
+                              {{option.state}}
+                              <span class="type-days">{{option.holidayCount}} holidays</span>
+                            </mat-option>
+                          </mat-select>
+                          <mat-hint *ngIf="publicStatesLoading">Loading&hellip;</mat-hint>
+                          <mat-hint *ngIf="!publicStatesLoading && publicStates.length === 0"
+                            class="form-text text-danger">
+                            No public holiday list has been set up for this year yet
+                          </mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Template Name</mat-label>
+                          <input matInput type="text" formControlName="templateName">
+                          <mat-hint>Your own name for it &mdash; for example School Holidays 2026</mat-hint>
+                        </mat-form-field>
+
+                        <p class="settings-group-note">
+                          This copies that state's public holidays into your own list. Every one of them becomes a
+                          normal holiday you can rename, move or delete, and you can add your own to the same template.
+                          Nothing is linked afterwards &mdash; changing the public list later will not change yours.
+                        </p>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="submit" mat-raised-button
+                          [disabled]="!generateForm.valid || isClick || publicStates.length === 0"
+                          class="submit-button">Generate</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- EDIT ONE ASSIGNMENT, behind a confirmation -->
+              <div class="modal fade show" [class.show]="showEditModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">CHANGE HOLIDAY TEMPLATE</h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+                    <div class="modal-body" *ngIf="editRow">
+                      <div *ngIf="errorCheck">
+                        <p class="error-message">{{errorMsg}}</p>
+                      </div>
+
+                      <h4 class="confirm-title">{{editRow.name | titlecase}}</h4>
+                      <p class="confirm-note">
+                        Currently on
+                        <strong *ngIf="editRow.templateName">{{editRow.templateName | titlecase}}</strong>
+                        <strong *ngIf="!editRow.templateName">no template</strong>.
+                        <ng-container *ngIf="assignPersonType === 'student'"> This covers every student in the
+                          class.</ng-container>
+                      </p>
+
+                      <!-- The gate. Changing a live assignment decides whether these people
+                           are marked Absent or Holiday, so the controls below stay dead
+                           until this is ticked. -->
+                      <div class="confirm-gate">
+                        <mat-checkbox [(ngModel)]="confirmChecked" [ngModelOptions]="{standalone: true}">
+                          I confirm I want to change this assignment
+                        </mat-checkbox>
+                      </div>
+
+                      <mat-form-field appearance="outline">
+                        <mat-label>Holiday Template</mat-label>
+                        <mat-select matInput [(ngModel)]="editTemplateId" [ngModelOptions]="{standalone: true}"
+                          [disabled]="!confirmChecked">
+                          <mat-option *ngFor="let template of assignTemplates" [value]="template._id">
+                            {{template.name | titlecase}}
+                            <span class="type-days">{{template.holidayCount}} holidays</span>
+                          </mat-option>
+                        </mat-select>
+                      </mat-form-field>
+
+                      <p class="settings-group-note">
+                        The change takes effect straight away &mdash; the list updates here, and the attendance
+                        register picks it up on its next run.
+                      </p>
+                    </div>
+                    <div class="modal-footer">
+                      <button mat-button class="row-action reject-action" type="button"
+                        *ngIf="editRow && editRow.assignmentId" [disabled]="!confirmChecked || isClick"
+                        (click)="unassignRow(editRow)">
+                        <mat-icon>link_off</mat-icon>Remove template
+                      </button>
+                      <button class="submit-button" mat-raised-button type="button"
+                        [disabled]="!confirmChecked || !editTemplateId || isClick"
+                        (click)="saveEditedAssignment()">Save</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

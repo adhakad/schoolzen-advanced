@@ -1,7 +1,10 @@
 // Mirrors what services/attendance-calendar.js returns, not the DailyAttendance schema —
 // the calendar derives two statuses that are never stored:
 //   'Off' — the person wasn't expected that day (no rostered shift; Sunday otherwise)
-//   ''    — a future date, nothing to say yet
+//   ''    — a future date with nothing known about it yet
+//
+// A future date is NOT automatically ''. An approved Leave or an assigned Holiday is known
+// before the day arrives and comes back with its real status — see `isFuture` below.
 export type AttendanceStatus =
   | 'Present' | 'Late' | 'HalfDay' | 'Absent' | 'Leave' | 'Holiday' | 'Off' | '';
 
@@ -17,6 +20,14 @@ export interface AttendanceDay {
   expectedStart: string | null;
   isOverridden: boolean;
   source: string | null;
+
+  // Resolved against the SCHOOL's clock, not the browser's — a viewer in another timezone
+  // would otherwise disagree with the server about which days are still to come.
+  isFuture: boolean;
+  // Set only on cells carrying a Holiday/Leave chip; '' everywhere else. These are what the
+  // hover text on a future cell reads: "Holiday: Diwali", "Leave: Casual Leave".
+  holidayName: string;
+  leaveTypeName: string;
 
   // --- Client-side only, never sent by the backend ---
   // A raw punch arrived over the socket and the reconcile worker has not classified it yet.
