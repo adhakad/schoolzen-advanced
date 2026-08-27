@@ -12,7 +12,9 @@ const Joi = require('joi');
 const recordPaymentSchema = Joi.object({
     adminId: Joi.string().trim().required(),
     payrollId: Joi.string().trim().required(),
-    staffId: Joi.string().trim().required(),
+    // personType/personId are DELIBERATELY ABSENT. The referenced Payroll is the authority on
+    // whose salary this is and the controller copies them off it — accepting them here would
+    // invite a mismatch that files a payment against the wrong person's history.
     // min(1): a zero-rupee payment records nothing and would still count as a row against
     // the balance.
     amountPaid: Joi.number().min(1).required(),

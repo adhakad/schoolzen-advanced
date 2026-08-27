@@ -6,7 +6,10 @@ import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { PayrollService } from 'src/app/services/payroll.service';
 import { SalaryGroupService } from 'src/app/services/salary-group.service';
 import { SalaryPaymentService } from 'src/app/services/salary-payment.service';
+import { SalarySlipService } from 'src/app/services/salary-slip.service';
 import { SalaryStructureService } from 'src/app/services/salary-structure.service';
+import { SchoolService } from 'src/app/services/school.service';
+import { PrintPdfService } from 'src/app/services/print-pdf/print-pdf.service';
 
 // ONE PAGE, FOUR VIEWS, ONE SIDEBAR ENTRY.
 //
@@ -18,6 +21,11 @@ import { SalaryStructureService } from 'src/app/services/salary-structure.servic
 // They are VIEWS OF THIS COMPONENT, not routes. Fees links out to separate pages; here all
 // four share the Month/Year selection and the staff list, and routing away and back would
 // lose both.
+//
+// STAFF AND TEACHERS ARE BOTH PAYABLE. One personType selector is shared by the Assign,
+// Generate and Payment History tabs rather than one per tab: assigning a scale and then
+// generating against it is one job done in sequence, and having to pick Teachers twice to
+// complete it is the kind of friction that gets a teacher paid off the staff list by accident.
 //
 // THE ORDER OF THE WORK IS SALARY GROUPS -> ASSIGN SALARY -> GENERATE -> RECORD PAYMENT, and
 // every screen fails loudly when the one before it has not been done: generating without an
@@ -48,7 +56,10 @@ export class PayrollComponent implements OnInit {
   // Double-submit guard, reset in BOTH callbacks of every mutating call.
   isClick: boolean = false;
 
-  // ---- Shared period selection -------------------------------------------
+  // ---- Shared scope selection --------------------------------------------
+  // Who is being paid. Shared by Assign Salary, Generate and Payment History — see the class
+  // header for why it is one selector rather than one per tab.
+  personTypeFilter: string = 'staff';
   // Generate and Payment History read the same month. Keeping one pair of fields means
   // switching tabs after generating March does not silently drop the reader back to today.
   filterMonth: number = new Date().getMonth() + 1;
@@ -85,7 +96,7 @@ export class PayrollComponent implements OnInit {
   // and four always-visible optional fields would suggest otherwise.
   overrideEnabled: boolean = false;
   overrideComponentsEnabled: boolean = false;
-  selectedStaffIds: string[] = [];
+  selectedPersonIds: string[] = [];
   bulkGroupId: string = '';
   bulkEffectiveFrom: any = '';
 
@@ -96,7 +107,7 @@ export class PayrollComponent implements OnInit {
   payrollPaginationValues: Subject<any> = new Subject();
   payrollLoader: Boolean = true;
   payrollStatusFilter: string = 'all';
-  selectedPayrollStaffIds: string[] = [];
+  selectedPayrollPersonIds: string[] = [];
   // The row currently being viewed, locked or unlocked.
   actionPayroll: any = null;
   payrollDetail: any = null;
@@ -115,6 +126,17 @@ export class PayrollComponent implements OnInit {
   paymentStatusFilter: string = 'all';
   paymentRow: any = null;
 
+  // ---- Salary slip --------------------------------------------------------
+  // A SEPARATE modal from the one modalMode drives. The slip is a printable document, not a
+  // form: it uses the fee receipt's wider print-model-dialog and its body is the thing that
+  // gets sent to the printer, so sharing the compact form modal would fight both layouts.
+  showSlipModal: boolean = false;
+  slipPayload: any = null;
+  slipLoading: boolean = false;
+  // Read once on init and reused by every slip — the school's own header block, exactly as
+  // the fee receipt reads it. Nothing about a slip asks the admin to re-enter it.
+  schoolInfo: any = null;
+
   constructor(
     private fb: FormBuilder,
     private toastr: ToastrService,
@@ -123,6 +145,9 @@ export class PayrollComponent implements OnInit {
     private salaryStructureService: SalaryStructureService,
     private payrollService: PayrollService,
     private salaryPaymentService: SalaryPaymentService,
+    private salarySlipService: SalarySlipService,
+    private schoolService: SchoolService,
+    private printPdfService: PrintPdfService,
   ) {
     this.groupForm = this.fb.group({
       name: ['', Validators.required],
@@ -161,6 +186,7 @@ export class PayrollComponent implements OnInit {
     this.adminName = admin?.name || '';
     this.buildYearOptions();
     this.getActiveGroups();
+    this.getSchool();
     let load: any = this.getPayroll({ page: 1 });
     if (load) {
       setTimeout(() => {
@@ -208,7 +234,18 @@ export class PayrollComponent implements OnInit {
   // The period is shared, so changing it invalidates both period-scoped lists. Refetching
   // only the visible one would leave the other showing March under an April heading.
   switchPeriod(): void {
-    this.selectedPayrollStaffIds = [];
+    this.selectedPayrollPersonIds = [];
+    if (this.activeTab === 'generate') this.getPayroll({ page: 1 });
+    if (this.activeTab === 'payments') this.getPaymentHistory({ page: 1 });
+  }
+
+  // Changing the person type invalidates EVERY selection as well as the lists. A staff id left
+  // ticked while the teacher list is on screen would be submitted against the teacher
+  // collection and come back silently skipped as "not found".
+  switchPersonType(): void {
+    this.selectedPersonIds = [];
+    this.selectedPayrollPersonIds = [];
+    if (this.activeTab === 'assignSalary') this.getAssignSalary({ page: 1 });
     if (this.activeTab === 'generate') this.getPayroll({ page: 1 });
     if (this.activeTab === 'payments') this.getPaymentHistory({ page: 1 });
   }
@@ -221,6 +258,12 @@ export class PayrollComponent implements OnInit {
     if (mode === 'perDay') return 'Per Day';
     if (mode === 'perMonth') return 'Per Month';
     return '';
+  }
+
+  // Staff / Teachers for the selector and the empty states. Plain language, never the raw
+  // enum, the same rule the calculation mode follows.
+  personTypeLabel(personType: String): string {
+    return personType === 'teacher' ? 'Teachers' : 'Staff';
   }
 
   paymentModeLabel(mode: String): string {
@@ -419,7 +462,7 @@ export class PayrollComponent implements OnInit {
   getAssignSalary($event: any) {
     return new Promise((resolve) => {
       let params: any = {
-        filters: {},
+        filters: { personType: this.personTypeFilter },
         page: $event.page,
         limit: $event.limit ? $event.limit : this.assignLimit,
         adminId: this.adminId,
@@ -430,41 +473,41 @@ export class PayrollComponent implements OnInit {
         if (res) {
           this.assignList = res.assignList;
           this.assignNumber = params.page;
-          this.assignPaginationValues.next({ type: 'page-init', page: params.page, totalTableRecords: res.countStaff });
+          this.assignPaginationValues.next({ type: 'page-init', page: params.page, totalTableRecords: res.countPeople });
           return resolve(true);
         }
       });
     });
   }
 
-  isStaffSelected(staffId: any): boolean {
-    return this.selectedStaffIds.indexOf(String(staffId)) > -1;
+  isPersonSelected(personId: any): boolean {
+    return this.selectedPersonIds.indexOf(String(personId)) > -1;
   }
 
-  toggleStaff(staffId: any): void {
-    const key = String(staffId);
-    const index = this.selectedStaffIds.indexOf(key);
-    if (index > -1) this.selectedStaffIds.splice(index, 1);
-    else this.selectedStaffIds.push(key);
+  togglePerson(personId: any): void {
+    const key = String(personId);
+    const index = this.selectedPersonIds.indexOf(key);
+    if (index > -1) this.selectedPersonIds.splice(index, 1);
+    else this.selectedPersonIds.push(key);
   }
 
   // "All" means all on THIS page, which is what the header checkbox sits above. A checkbox
   // that silently selected staff on pages the admin cannot see would make the count in the
   // toolbar unverifiable.
-  get allStaffSelected(): boolean {
+  get allPeopleSelected(): boolean {
     return this.assignList.length > 0
-      && this.assignList.every((row) => this.isStaffSelected(row.staffId));
+      && this.assignList.every((row) => this.isPersonSelected(row.personId));
   }
 
-  toggleAllStaff(): void {
-    if (this.allStaffSelected) {
+  toggleAllPeople(): void {
+    if (this.allPeopleSelected) {
       for (const row of this.assignList) {
-        const index = this.selectedStaffIds.indexOf(String(row.staffId));
-        if (index > -1) this.selectedStaffIds.splice(index, 1);
+        const index = this.selectedPersonIds.indexOf(String(row.personId));
+        if (index > -1) this.selectedPersonIds.splice(index, 1);
       }
     } else {
       for (const row of this.assignList) {
-        if (!this.isStaffSelected(row.staffId)) this.selectedStaffIds.push(String(row.staffId));
+        if (!this.isPersonSelected(row.personId)) this.selectedPersonIds.push(String(row.personId));
       }
     }
   }
@@ -484,7 +527,9 @@ export class PayrollComponent implements OnInit {
     // Pre-fill from whatever the person is on now, so re-assigning is an edit rather than a
     // blank form the admin has to reconstruct.
     if (row.salaryGroupId) {
-      this.salaryStructureService.getSalaryStructureByStaff(this.adminId, row.staffId).subscribe(
+      this.salaryStructureService.getSalaryStructureByPerson(
+        this.adminId, row.personType, row.personId,
+      ).subscribe(
         (res: any) => {
           if (!res) return;
           this.assignForm.patchValue({
@@ -558,7 +603,8 @@ export class PayrollComponent implements OnInit {
 
     const payload: any = {
       adminId: this.adminId,
-      staffId: this.assignRow.staffId,
+      personType: this.assignRow.personType,
+      personId: this.assignRow.personId,
       salaryGroupId: this.assignForm.value.salaryGroupId,
       effectiveFrom: this.assignForm.value.effectiveFrom,
       overrideBasic: this.overrideEnabled ? this.overrideValue(this.assignForm.value.overrideBasic) : null,
@@ -593,13 +639,14 @@ export class PayrollComponent implements OnInit {
 
     this.salaryStructureService.bulkAssignSalary({
       adminId: this.adminId,
+      personType: this.personTypeFilter,
       salaryGroupId: this.bulkGroupId,
       effectiveFrom: this.bulkEffectiveFrom,
-      staffIds: this.selectedStaffIds,
+      personIds: this.selectedPersonIds,
     }).subscribe(
       (res: any) => {
         this.isClick = false;
-        this.selectedStaffIds = [];
+        this.selectedPersonIds = [];
         this.assignSuccessDone(typeof res === 'string' ? res : 'Salary group assigned successfully.');
       },
       (err: any) => { this.isClick = false; this.showError(err); }
@@ -623,6 +670,7 @@ export class PayrollComponent implements OnInit {
     return new Promise((resolve) => {
       let params: any = {
         filters: {
+          personType: this.personTypeFilter,
           month: this.filterMonth,
           year: this.filterYear,
           status: this.payrollStatusFilter,
@@ -637,38 +685,38 @@ export class PayrollComponent implements OnInit {
         if (res) {
           this.payrollList = res.payrollList;
           this.payrollNumber = params.page;
-          this.payrollPaginationValues.next({ type: 'page-init', page: params.page, totalTableRecords: res.countStaff });
+          this.payrollPaginationValues.next({ type: 'page-init', page: params.page, totalTableRecords: res.countPeople });
           return resolve(true);
         }
       });
     });
   }
 
-  isPayrollStaffSelected(staffId: any): boolean {
-    return this.selectedPayrollStaffIds.indexOf(String(staffId)) > -1;
+  isPayrollPersonSelected(personId: any): boolean {
+    return this.selectedPayrollPersonIds.indexOf(String(personId)) > -1;
   }
 
-  togglePayrollStaff(staffId: any): void {
-    const key = String(staffId);
-    const index = this.selectedPayrollStaffIds.indexOf(key);
-    if (index > -1) this.selectedPayrollStaffIds.splice(index, 1);
-    else this.selectedPayrollStaffIds.push(key);
+  togglePayrollPerson(personId: any): void {
+    const key = String(personId);
+    const index = this.selectedPayrollPersonIds.indexOf(key);
+    if (index > -1) this.selectedPayrollPersonIds.splice(index, 1);
+    else this.selectedPayrollPersonIds.push(key);
   }
 
-  get allPayrollStaffSelected(): boolean {
+  get allPayrollPeopleSelected(): boolean {
     return this.payrollList.length > 0
-      && this.payrollList.every((row) => this.isPayrollStaffSelected(row.staffId));
+      && this.payrollList.every((row) => this.isPayrollPersonSelected(row.personId));
   }
 
-  toggleAllPayrollStaff(): void {
-    if (this.allPayrollStaffSelected) {
+  toggleAllPayrollPeople(): void {
+    if (this.allPayrollPeopleSelected) {
       for (const row of this.payrollList) {
-        const index = this.selectedPayrollStaffIds.indexOf(String(row.staffId));
-        if (index > -1) this.selectedPayrollStaffIds.splice(index, 1);
+        const index = this.selectedPayrollPersonIds.indexOf(String(row.personId));
+        if (index > -1) this.selectedPayrollPersonIds.splice(index, 1);
       }
     } else {
       for (const row of this.payrollList) {
-        if (!this.isPayrollStaffSelected(row.staffId)) this.selectedPayrollStaffIds.push(String(row.staffId));
+        if (!this.isPayrollPersonSelected(row.personId)) this.selectedPayrollPersonIds.push(String(row.personId));
       }
     }
   }
@@ -686,7 +734,8 @@ export class PayrollComponent implements OnInit {
 
     this.payrollService.generatePayroll({
       adminId: this.adminId,
-      staffId: row.staffId,
+      personType: row.personType,
+      personId: row.personId,
       month: this.filterMonth,
       year: this.filterYear,
     }).subscribe(
@@ -706,19 +755,20 @@ export class PayrollComponent implements OnInit {
   }
 
   bulkGeneratePayroll(): void {
-    if (this.selectedPayrollStaffIds.length === 0) return;
+    if (this.selectedPayrollPersonIds.length === 0) return;
     if (this.isClick) return;
     this.isClick = true;
 
     this.payrollService.bulkGeneratePayroll({
       adminId: this.adminId,
+      personType: this.personTypeFilter,
       month: this.filterMonth,
       year: this.filterYear,
-      staffIds: this.selectedPayrollStaffIds,
+      personIds: this.selectedPayrollPersonIds,
     }).subscribe(
       (res: any) => {
         this.isClick = false;
-        this.selectedPayrollStaffIds = [];
+        this.selectedPayrollPersonIds = [];
         this.getPayroll({ page: this.payrollNumber || 1 });
         const skipped = (res && res.skipped) ? res.skipped : [];
         setTimeout(() => {
@@ -807,6 +857,7 @@ export class PayrollComponent implements OnInit {
     return new Promise((resolve) => {
       let params: any = {
         filters: {
+          personType: this.personTypeFilter,
           month: this.filterMonth,
           year: this.filterYear,
           paymentMode: this.paymentModeFilter === 'all' ? '' : this.paymentModeFilter,
@@ -864,10 +915,11 @@ export class PayrollComponent implements OnInit {
     if (this.isClick) return;
     this.isClick = true;
 
+    // personType/personId are deliberately NOT sent - the backend copies them off the
+    // referenced Payroll, which is the authority on whose salary this is.
     this.salaryPaymentService.recordPayment({
       adminId: this.adminId,
       payrollId: this.paymentRow.payrollId,
-      staffId: this.paymentRow.staffId,
       amountPaid: Number(this.paymentForm.value.amountPaid),
       paymentDate: this.paymentForm.value.paymentDate,
       paymentMode: this.paymentForm.value.paymentMode,
@@ -885,6 +937,148 @@ export class PayrollComponent implements OnInit {
       },
       (err: any) => { this.isClick = false; this.showError(err); }
     );
+  }
+
+  // =========================================================================
+  // SALARY SLIP
+  //
+  // The printable monthly statement. Issuable only once the payroll is LOCKED and money has
+  // actually moved against it — a slip documents a payment, not a calculation.
+  //
+  // The print path is the fee receipt's, unchanged: build an HTML string with inline styles,
+  // hand it to PrintPdfService.printContent(), let the browser produce the PDF. No new print
+  // mechanism and no second PDF library.
+  // =========================================================================
+
+  getSchool(): void {
+    this.schoolService.getSchool(this.adminId).subscribe(
+      (res: any) => { if (res) this.schoolInfo = res; },
+      () => { this.schoolInfo = null; }
+    );
+  }
+
+  // A locked row with at least one payment. An unpaid locked payroll gets no slip — there is
+  // nothing to acknowledge yet — which is why this is not simply "is it locked".
+  canGenerateSlip(row: any): boolean {
+    return row.paymentStatus === 'Fully Paid' || row.paymentStatus === 'Partially Paid';
+  }
+
+  // One call whether a slip exists or not: the backend issues one if there is none and
+  // refreshes it if there is, keeping the original slip number either way.
+  generateSlipModel(row: any): void {
+    if (this.isClick) return;
+    this.isClick = true;
+    this.slipPayload = null;
+    this.slipLoading = true;
+    this.showSlipModal = true;
+
+    this.salarySlipService.generateSalarySlip({
+      adminId: this.adminId,
+      payrollId: row.payrollId,
+      generatedBy: this.adminName || this.adminId,
+    }).subscribe(
+      (res: any) => {
+        this.isClick = false;
+        this.slipLoading = false;
+        this.slipPayload = res;
+      },
+      (err: any) => {
+        this.isClick = false;
+        this.slipLoading = false;
+        this.showSlipModal = false;
+        this.toastr.error(this.readError(err));
+      }
+    );
+  }
+
+  closeSlipModal(): void {
+    this.showSlipModal = false;
+    this.slipPayload = null;
+    this.slipLoading = false;
+  }
+
+  // Mirrors printStudentData() in pages/admin/admin-student-fees-statement exactly — same
+  // service, same call, same close-after-print.
+  printSalarySlip(): void {
+    const printContent = this.getSlipPrintContent();
+    this.printPdfService.printContent(printContent);
+    this.closeSlipModal();
+  }
+
+  // The fee receipt's getPrintContent(), adapted to the slip's element.
+  //
+  // The styles are inlined into the print document rather than read from the component's
+  // stylesheet because the print window is a NEW document with none of Angular's scoped CSS —
+  // the receipt hit the same wall and solved it the same way. Font sizes and the watermark
+  // block are copied from it verbatim so the two documents look like siblings.
+  private getSlipPrintContent(): string {
+    const schoolLogo = this.schoolInfo ? this.schoolInfo.schoolLogo : '';
+    let printHtml = '<html>';
+    printHtml += '<head>';
+    printHtml += '<style>';
+    printHtml += '@page { size: A3; margin: 10mm; }';
+    printHtml += 'body {width: 100%; height: 100%; margin: 0; padding: 0; }';
+    printHtml += 'div {margin: 0; padding: 0;}';
+    printHtml += '.custom-container {font-family: Arial, sans-serif;overflow: auto; width: 100%; height: auto; box-sizing: border-box;}';
+    printHtml += '.table-container {width: 100%;height: auto; background-color: #fff;border: 2px solid #454545; box-sizing: border-box;}';
+    printHtml += '.logo { height: 80px;margin-top:15px;margin-left:10px;}';
+    printHtml += '.school-name {display: flex; align-items: center; justify-content: center; text-align: center; }';
+    printHtml += '.school-name h3 { color: #0a0a0a !important; font-size: 26px !important;font-weight: bolder;margin-top:-125px !important; margin-bottom: 0 !important; }';
+    printHtml += '.address{margin-top: -42px;}';
+    printHtml += '.address p{font-size:18px;margin-top: -15px !important;}';
+    printHtml += '.title-lable {text-align: center;margin-top: -10px;margin-bottom: 0;}';
+    printHtml += '.title-lable p {color: #0a0a0a !important;font-size: 22px;font-weight: bold;letter-spacing: .5px;}';
+    printHtml += '.info-table {width:100%;color: #0a0a0a !important;border: none;font-size: 18px;margin-top: -8px;margin-bottom: 6px;padding-top:8px;display: inline-table;}';
+    printHtml += '.table-container .info-table th, .table-container .info-table td{color: #0a0a0a !important;text-align:left;padding-left:15px;}';
+    printHtml += '.custom-table {width: 100%;color: #0a0a0a !important;border-collapse:collapse;margin-bottom: -8px;display: inline-table;border-radius:5px;}';
+    printHtml += '.custom-table th{height: 32px;text-align: center;border:1px solid #454545;line-height:15px;font-size: 18px;}';
+    printHtml += '.custom-table tr{height: 32px;}';
+    printHtml += '.custom-table td {text-align: center;border:1px solid #454545;font-size: 18px;}';
+    printHtml += '.text-bold { font-weight: bold;}';
+    printHtml += '.text-left { text-align: left;padding-left: 15px;}';
+    printHtml += '.text-right { text-align: right;padding-right: 15px;}';
+    // The digital footprint. Smaller and greyer than the body on purpose — it is provenance,
+    // not content, and must not compete with the figures above it.
+    printHtml += '.slip-footprint {text-align: center;font-size: 13px !important;color: #454545 !important;margin-top: 6px;padding-bottom: 10px;}';
+    printHtml += 'p {color: #0a0a0a !important;font-size:18px;}';
+    printHtml += 'h4 {color: #0a0a0a !important;}';
+    printHtml += '.watermark-container {position: fixed;top: 0;left: 0;width: 100%;height: 100%;z-index: 1000;pointer-events: none;}';
+    printHtml += '.watermark-logo {position: absolute;top: 25%;left: 50%;text-align: center;transform: translate(-50%, -50%) rotate(360deg);opacity: 0.19;width: 35%;height: auto;max-width: 500px;}';
+    printHtml += '@media print {';
+    printHtml += '  .watermark-container { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }';
+    printHtml += '}';
+    printHtml += '</style>';
+    printHtml += '</head>';
+    printHtml += '<body>';
+    printHtml += '<div class="watermark-container">';
+    if (schoolLogo) {
+      printHtml += `<img src="${schoolLogo}" class="watermark-logo" alt="School Logo Watermark">`;
+    }
+    printHtml += '</div>';
+    const slipElement = document.getElementById('salary-slip');
+    if (slipElement) {
+      printHtml += slipElement.outerHTML;
+    }
+    printHtml += '</body></html>';
+    return printHtml;
+  }
+
+  // ₹-prefixed, no decimals — the exact formatCurrency the fee receipt uses, so the two
+  // documents render money identically.
+  formatCurrency(value: any): string {
+    const amount = parseInt(value);
+    if (!isNaN(amount)) {
+      return '₹ ' + amount.toLocaleString(undefined);
+    }
+    return '₹ 0';
+  }
+
+  // Sunday-safe plain rendering of the attendance summary line the slip carries. One line, not
+  // a table — the full breakdown lives in the View modal on the Generate tab.
+  attendanceSummaryLine(payroll: any): string {
+    if (!payroll) return '';
+    return `Present ${payroll.presentDays} · Leave ${payroll.leaveDays} · Absent ${payroll.absentDays}`
+      + ` · Working Days ${payroll.totalWorkingDays}`;
   }
 
   // =========================================================================

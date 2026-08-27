@@ -1,7 +1,10 @@
 'use strict';
 const mongoose = require('mongoose');
 
-// ONE STAFF MEMBER'S PAY FOR ONE MONTH — generated, reviewed, then locked.
+// ONE PERSON'S PAY FOR ONE MONTH — generated, reviewed, then locked.
+//
+// STAFF AND TEACHERS BOTH, keyed by the same personType + personId pair
+// models/salary-structure.js explains. Students are not payable and are absent from the enum.
 //
 // EVERYTHING IS SNAPSHOTTED. salaryGroupId, calculationMode, basic, hra, allowances and
 // deductions are all copies taken at generation time, not pointers resolved at read time.
@@ -30,8 +33,15 @@ const PayrollModel = mongoose.model('payroll', {
         required: true,
         trim: true,
     },
-    staffId: {
-        // plain String FK -> Staff._id
+    personType: {
+        type: String,
+        required: true,
+        enum: ['staff', 'teacher'],
+        default: 'staff',
+        trim: true,
+    },
+    personId: {
+        // plain String FK -> Staff._id or Teacher._id
         type: String,
         required: true,
         trim: true,
@@ -190,10 +200,12 @@ const PayrollModel = mongoose.model('payroll', {
     },
 });
 
-// ONE payroll per staff member per month. unique makes a double-generate (two clicks, a
-// single generate racing a bulk one) physically incapable of producing two rows that a
-// payment could then be recorded against the wrong one of.
-PayrollModel.schema.index({ adminId: 1, staffId: 1, year: 1, month: 1 }, { unique: true });
+// ONE payroll per person per month. unique makes a double-generate (two clicks, a single
+// generate racing a bulk one) physically incapable of producing two rows that a payment could
+// then be recorded against the wrong one of.
+PayrollModel.schema.index(
+    { adminId: 1, personType: 1, personId: 1, year: 1, month: 1 }, { unique: true },
+);
 // The Generate tab's list: one school's month, optionally filtered by status.
 PayrollModel.schema.index({ adminId: 1, year: 1, month: 1, status: 1 });
 

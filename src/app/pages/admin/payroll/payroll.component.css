@@ -4,6 +4,13 @@
    rather than copied per page. It imports the dashboard base itself. */
 @import '../leave-request/leave-request.component.css';
 
+/* The salary slip is a sibling document to the fee receipt, so it reuses the receipt's own
+   stylesheet rather than restating it: .custom-container, .table-container, .info-table,
+   .custom-table, .text-bold, plus .custom-modal / .print-model-body for the print dialog.
+   admin-student-fees-statement.component.css imports it the same way for the same reason.
+   Verified not to collide with the leave-request classes imported above. */
+@import '../admin-student-fees/admin-student-fees.component.css';
+
 /* =========================================================================
    TAB STRIP.
    Generate Payroll | Payment History, plus whichever setup view the settings

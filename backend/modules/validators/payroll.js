@@ -17,16 +17,19 @@ const YEAR = Joi.number().integer().min(2000).max(2100).required();
 
 const generatePayrollSchema = Joi.object({
     adminId: Joi.string().trim().required(),
-    staffId: Joi.string().trim().required(),
+    personType: Joi.string().trim().valid('staff', 'teacher').required(),
+    personId: Joi.string().trim().required(),
     month: MONTH,
     year: YEAR,
 });
 
+// ONE personType per bulk call — see the handler header in controllers/payroll.js.
 const bulkGeneratePayrollSchema = Joi.object({
     adminId: Joi.string().trim().required(),
+    personType: Joi.string().trim().valid('staff', 'teacher').required(),
     month: MONTH,
     year: YEAR,
-    staffIds: Joi.array().items(Joi.string().trim().required()).min(1).required(),
+    personIds: Joi.array().items(Joi.string().trim().required()).min(1).required(),
 });
 
 const lockPayrollSchema = Joi.object({

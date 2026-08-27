@@ -29,7 +29,8 @@ module.exports = app => {
     app.use('/v1/salary-structure', require('./modules/routes/salary-structure'));
     app.use('/v1/payroll', require('./modules/routes/payroll'));
     app.use('/v1/salary-payment', require('./modules/routes/salary-payment'));
-    app.use('/v1/staff-bank-details', require('./modules/routes/staff-bank-details'));
+    app.use('/v1/salary-slip', require('./modules/routes/salary-slip'));
+    app.use('/v1/person-bank-details', require('./modules/routes/person-bank-details'));
     app.use('/v1/device', require('./modules/routes/devices/device'));
     app.use('/v1/exam-result', require('./modules/routes/exam-result'));
     app.use('/v1/exam-result-structure', require('./modules/routes/exam-result-structure'));

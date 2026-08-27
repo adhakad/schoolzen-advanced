@@ -25,13 +25,23 @@ const { getLeaveMapForSchoolMonth } = require('./leave-lookup');
 // vs unpaid is a payroll question rather than an attendance one. That comes from
 // leave-lookup.js (which leave request covered the day) joined to LeaveType.isPaid.
 //
-// BATCHED BY (school, month), never per person: a fixed number of round-trips whether the
-// caller asks about one staff member or eighty. That is what makes BulkGeneratePayroll cheap
-// enough to run for a whole school in one click.
+// BATCHED BY (school, personType, month), never per person: a fixed number of round-trips
+// whether the caller asks about one person or eighty. That is what makes BulkGeneratePayroll
+// cheap enough to run for a whole school in one click.
+//
+// STAFF AND TEACHERS ARE THE SAME CODE PATH. getSchoolMonthGrid already resolves both from
+// Roster (CLAUDE.md: staff and teacher attendance is computed from AttendanceRule *and*
+// Roster; only students come from ClassShift), so supporting teachers here is a personType
+// passed through rather than a second implementation. Students are not payable and this is
+// never called with 'student'.
 
 // A person is only ever half present or half absent — no other fraction arises. Kept as a
 // named constant so the two places it is applied cannot drift apart.
 const HALF_DAY_WEIGHT = 0.5;
+
+// Who can be paid. Students are deliberately absent — a school does not run payroll for its
+// pupils, and letting 'student' through here would silently produce a payslip for one.
+const PAYABLE_TYPES = ['staff', 'teacher'];
 
 // Floating point turns 0.5 + 0.5 + 0.5 into 1.5000000000000002 often enough to show up in a
 // day count. Every count here is a multiple of 0.5, so one rounding at the end is exact.
@@ -108,33 +118,35 @@ const countRow = (row, leaveMap, isPaidByLeaveTypeId) => {
 };
 
 /**
- * Day counts for several staff members over one month.
+ * Day counts for several people of ONE type over one month.
  *
- * Three queries in total regardless of how many staff are asked for: the calendar grid, the
+ * Three queries in total regardless of how many people are asked for: the calendar grid, the
  * approved leave for the school, and the leave types for the school.
  *
  * @param {Object} args
  * @param {String} args.adminId
- * @param {String[]} args.staffIds
+ * @param {String} args.personType 'staff' | 'teacher'
+ * @param {String[]} args.personIds
  * @param {Number} args.year
  * @param {Number} args.month 1-12 (August = 8), matching helpers/date-only.js
- * @returns {Promise<Map<String, Object>>} staffId -> counts. A staff member with no calendar
- *   row at all is absent from the map; callers treat that as "nothing to pay for".
+ * @returns {Promise<Map<String, Object>>} personId -> counts. Somebody with no calendar row
+ *   at all is absent from the map; callers treat that as "nothing to pay for".
  */
-const getPayrollAttendanceForStaff = async ({ adminId, staffIds, year, month }) => {
-    const byStaffId = new Map();
-    if (!adminId || !Array.isArray(staffIds) || staffIds.length === 0 || !year || !month) {
-        return byStaffId;
+const getPayrollAttendanceForPeople = async ({ adminId, personType, personIds, year, month }) => {
+    const byPersonId = new Map();
+    if (!adminId || !PAYABLE_TYPES.includes(personType)) return byPersonId;
+    if (!Array.isArray(personIds) || personIds.length === 0 || !year || !month) {
+        return byPersonId;
     }
 
-    const wanted = new Set(staffIds.map(String));
+    const wanted = new Set(personIds.map(String));
 
     const [grid, leaveByPersonId, leaveTypes] = await Promise.all([
         // The whole school-month in one batched read. Narrowing it to `wanted` server-side
         // would need a second read shape in attendance-calendar.js, and the grid is already a
         // fixed number of queries — so the selection is applied in memory below.
-        getSchoolMonthGrid({ adminId, personType: 'staff', year, month }),
-        getLeaveMapForSchoolMonth(adminId, 'staff', year, month),
+        getSchoolMonthGrid({ adminId, personType, year, month }),
+        getLeaveMapForSchoolMonth(adminId, personType, year, month),
         LeaveTypeModel.find({ adminId }, { isPaid: 1 }).lean(),
     ]);
 
@@ -146,30 +158,30 @@ const getPayrollAttendanceForStaff = async ({ adminId, staffIds, year, month }) 
     const emptyLeaveMap = new Map();
 
     for (const row of grid.rows || []) {
-        const staffId = String(row.person && row.person._id);
-        if (!wanted.has(staffId)) continue;
-        byStaffId.set(
-            staffId,
-            countRow(row, leaveByPersonId.get(staffId) || emptyLeaveMap, isPaidByLeaveTypeId),
+        const personId = String(row.person && row.person._id);
+        if (!wanted.has(personId)) continue;
+        byPersonId.set(
+            personId,
+            countRow(row, leaveByPersonId.get(personId) || emptyLeaveMap, isPaidByLeaveTypeId),
         );
     }
 
-    return byStaffId;
+    return byPersonId;
 };
 
 /**
- * One staff member and one month. Delegates to the batched form so there is exactly one
+ * One person and one month. Delegates to the batched form so there is exactly one
  * implementation of the counting rules.
  *
  * @returns {Promise<Object>} the counts, or a zeroed set when the person has no calendar row
  *   (inactive, or newly added with no attendance yet). Zeroed rather than null so the caller
  *   can report "0 working days" as the specific problem it is.
  */
-const getPayrollAttendanceForOne = async ({ adminId, staffId, year, month }) => {
-    const byStaffId = await getPayrollAttendanceForStaff({
-        adminId, staffIds: [staffId], year, month,
+const getPayrollAttendanceForOne = async ({ adminId, personType, personId, year, month }) => {
+    const byPersonId = await getPayrollAttendanceForPeople({
+        adminId, personType, personIds: [personId], year, month,
     });
-    return byStaffId.get(String(staffId)) || emptyCounts();
+    return byPersonId.get(String(personId)) || emptyCounts();
 };
 
-module.exports = { getPayrollAttendanceForStaff, getPayrollAttendanceForOne, emptyCounts };
+module.exports = { getPayrollAttendanceForPeople, getPayrollAttendanceForOne, emptyCounts, PAYABLE_TYPES };

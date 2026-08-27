@@ -1,14 +1,15 @@
 import { SalaryComponent } from './salary-group.model';
 
-// Mirrors backend/modules/models/payroll.js, plus the three fields the list and detail
-// endpoints join on: staffName, amountPaid and paymentStatus.
+// Mirrors backend/modules/models/payroll.js, plus the fields the list and detail endpoints
+// join on: name, code, amountPaid and paymentStatus.
 //
 // paymentStatus is DERIVED on the backend by summing salary-payment rows against netSalary —
 // it is not a stored field, so it arrives on the response and never goes back in a request.
 export interface Payroll {
   _id?: String;
   adminId?: String;
-  staffId: String;
+  personType: String;
+  personId: String;
   month: number;
   year: number;
   salaryGroupId: String;
@@ -39,15 +40,15 @@ export interface Payroll {
   unlockedBy?: String | null;
 
   // Joined by the backend, not stored.
-  staffName?: String;
-  empCode?: String;
+  name?: String;
+  code?: String;
   amountPaid?: number;
   paymentStatus?: String;
 }
 
-// What POST /bulk-generate returns. A staff member who could not be generated is reported
-// here rather than aborting the batch, so the toast can name what was skipped and why.
+// What POST /bulk-generate returns. Somebody who could not be generated is reported here
+// rather than aborting the batch, so the toast can name what was skipped and why.
 export interface BulkGenerateResult {
   generated: number;
-  skipped: { staffId: String, name: String, reason: String }[];
+  skipped: { personId: String, name: String, reason: String }[];
 }

@@ -8,7 +8,9 @@ import { SalaryComponent } from './salary-group.model';
 export interface SalaryStructure {
   _id?: String;
   adminId?: String;
-  staffId: String;
+  // 'staff' | 'teacher'. Students are never payable.
+  personType: String;
+  personId: String;
   salaryGroupId: String;
   effectiveFrom: Date | String;
   overrideBasic?: Number | null;
@@ -18,13 +20,15 @@ export interface SalaryStructure {
   createdAt?: Date;
 }
 
-// One row of the Assign Salary table — a STAFF member with their assignment attached, not a
-// SalaryStructure row. Unassigned staff appear here with salaryGroupId null, which is exactly
+// One row of the Assign Salary table — a PERSON with their assignment attached, not a
+// SalaryStructure row. Unassigned people appear here with salaryGroupId null, which is exactly
 // who the page exists to find.
 export interface AssignSalaryRow {
-  staffId: String;
+  personType: String;
+  personId: String;
   name: String;
-  empCode: String;
+  // empCode for staff, teacherUserId for a teacher — resolved by person-lookup on the backend.
+  code: String;
   structureId: String | null;
   salaryGroupId: String | null;
   salaryGroupName: String;

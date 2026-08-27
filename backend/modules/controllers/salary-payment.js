@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const SalaryPaymentModel = require('../models/salary-payment');
 const PayrollModel = require('../models/payroll');
-const StaffModel = require('../models/staff');
+const { getModel, personCode } = require('../services/person-lookup');
 const logger = require('../helpers/logger');
 
 // RECORDING THAT MONEY MOVED — separate from working out what was owed.
@@ -35,7 +35,7 @@ const paymentStatusOf = (netSalary, paid) => {
 let RecordPayment = async (req, res, next) => {
     try {
         const {
-            adminId, payrollId, staffId, amountPaid, paymentDate,
+            adminId, payrollId, amountPaid, paymentDate,
             paymentMode, referenceNumber, paidBy, remarks,
         } = req.body;
 
@@ -46,12 +46,12 @@ let RecordPayment = async (req, res, next) => {
         if (payroll.status !== 'LOCKED') {
             return res.status(400).json('Payment can only be recorded against a locked payroll!');
         }
-        // The payroll is the authority on whose salary this is. A mismatched staffId in the
-        // body is a client bug, and writing it would put the payment on the history of a
-        // person who was never paid.
-        if (String(payroll.staffId) !== String(staffId)) {
-            return res.status(400).json('This payment does not belong to the selected staff member!');
-        }
+        // THE PAYROLL IS THE AUTHORITY ON WHOSE SALARY THIS IS. personType and personId are
+        // copied off it rather than trusted from the body — a mismatched id in the request
+        // would otherwise put the payment on the history of somebody who was never paid, and
+        // there is no reason for the client to be the source of truth for it.
+        const personType = payroll.personType;
+        const personId = String(payroll.personId);
 
         const session = await mongoose.startSession();
         try {
@@ -76,7 +76,8 @@ let RecordPayment = async (req, res, next) => {
             await SalaryPaymentModel.create([{
                 adminId: adminId,
                 payrollId: String(payrollId),
-                staffId: String(staffId),
+                personType: personType,
+                personId: personId,
                 amountPaid: money(amountPaid),
                 paymentDate: paymentDate,
                 paymentMode: paymentMode,
@@ -97,7 +98,8 @@ let RecordPayment = async (req, res, next) => {
         }
 
         logger.info('salary-payment.recorded', {
-            adminId: adminId, payrollId: payrollId, staffId: staffId,
+            adminId: adminId, payrollId: payrollId,
+            personType: personType, personId: personId,
             amountPaid: money(amountPaid), paymentMode: paymentMode,
         });
         return res.status(200).json('Payment recorded successfully.');
@@ -142,9 +144,10 @@ let GetPaymentHistory = async (req, res, next) => {
 
         // Only LOCKED payrolls are payable, so a DRAFT has no place on this tab at all.
         const payrollFilter = { adminId: adminId, status: 'LOCKED' };
+        if (filters.personType) payrollFilter.personType = filters.personType;
         if (filters.month) payrollFilter.month = parseInt(filters.month);
         if (filters.year) payrollFilter.year = parseInt(filters.year);
-        if (filters.staffId) payrollFilter.staffId = filters.staffId;
+        if (filters.personId) payrollFilter.personId = filters.personId;
 
         const limit = (req.body.limit) ? parseInt(req.body.limit) : 10;
         const page = req.body.page || 1;
@@ -158,19 +161,36 @@ let GetPaymentHistory = async (req, res, next) => {
         ]);
 
         const payrollIds = payrollRows.map((row) => row._id.toString());
-        const staffIds = [...new Set(payrollRows.map((row) => String(row.staffId)))];
 
-        const [payments, staffList] = await Promise.all([
+        // Names come from two different collections, so they are fetched per type — one query
+        // each at most, never one per row. A page of pure staff costs exactly one.
+        const idsByType = new Map();
+        for (const row of payrollRows) {
+            const key = row.personType;
+            if (!idsByType.has(key)) idsByType.set(key, new Set());
+            idsByType.get(key).add(String(row.personId));
+        }
+
+        const [payments, ...peopleByTypeResults] = await Promise.all([
             payrollIds.length > 0
                 ? SalaryPaymentModel.find({ adminId: adminId, payrollId: { $in: payrollIds } })
                     .sort({ paymentDate: -1 }).lean()
                 : [],
-            staffIds.length > 0
-                ? StaffModel.find({ _id: { $in: staffIds } }, { name: 1, empCode: 1 }).lean()
-                : [],
+            ...[...idsByType.entries()].map(async ([type, ids]) => {
+                const model = getModel(type);
+                if (!model) return { type, people: [] };
+                const people = await model.find({ _id: { $in: [...ids] } }).lean();
+                return { type, people };
+            }),
         ]);
 
-        const staffById = new Map(staffList.map((staff) => [staff._id.toString(), staff]));
+        // Keyed by "personType|personId" so a staff id and a teacher id can never collide.
+        const personByKey = new Map();
+        for (const entry of peopleByTypeResults) {
+            for (const person of entry.people) {
+                personByKey.set(`${entry.type}|${person._id.toString()}`, person);
+            }
+        }
         const paymentsByPayrollId = new Map();
         for (const payment of payments) {
             const key = String(payment.payrollId);
@@ -179,7 +199,7 @@ let GetPaymentHistory = async (req, res, next) => {
         }
 
         let historyList = payrollRows.map((row) => {
-            const staff = staffById.get(String(row.staffId));
+            const person = personByKey.get(`${row.personType}|${row.personId}`);
             const rowPayments = paymentsByPayrollId.get(row._id.toString()) || [];
             const paid = rowPayments.reduce((total, payment) => total + (payment.amountPaid || 0), 0);
             // The most recent payment supplies the Mode / Date / Paid By columns; the rest are
@@ -187,9 +207,10 @@ let GetPaymentHistory = async (req, res, next) => {
             const latest = rowPayments.length > 0 ? rowPayments[0] : null;
             return {
                 payrollId: row._id,
-                staffId: row.staffId,
-                staffName: staff ? staff.name : '',
-                empCode: staff ? (staff.empCode || '') : '',
+                personType: row.personType,
+                personId: row.personId,
+                name: person ? person.name : '',
+                code: person ? personCode(row.personType, person) : '',
                 month: row.month,
                 year: row.year,
                 netSalary: row.netSalary,

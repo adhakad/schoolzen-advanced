@@ -1,9 +1,15 @@
 'use strict';
 const mongoose = require('mongoose');
 
-// WHICH SALARY GROUP ONE STAFF MEMBER IS ON, plus the exceptions.
+// WHICH SALARY GROUP ONE PERSON IS ON, plus the exceptions.
 //
-// The common case is a bare pointer: staffId -> salaryGroupId, no overrides, and the group
+// STAFF AND TEACHERS BOTH. They live in separate collections (models/staff.js and
+// models/teacher.js) and always will — models/teacher.js is one of the two files CLAUDE.md
+// forbids touching — so the link is the same personType + personId pair DailyAttendance,
+// LeaveRequest, Roster and HolidayAssignment all already use. Students are absent from the
+// enum on purpose: a school does not pay its pupils.
+//
+// The common case is a bare pointer: personId -> salaryGroupId, no overrides, and the group
 // supplies every number. The override fields exist for the senior teacher on the same
 // designation as everyone else but a higher basic — adjusting one person without cloning a
 // whole group for them.
@@ -13,7 +19,7 @@ const mongoose = require('mongoose');
 // `=== null || === undefined`, never truthiness. Getting that wrong would silently pay
 // somebody the group's HRA against the school's explicit instruction.
 //
-// THIS IS CURRENT ASSIGNMENT, NOT A HISTORY TABLE. One row per staff member, enforced by the
+// THIS IS CURRENT ASSIGNMENT, NOT A HISTORY TABLE. One row per person, enforced by the
 // unique index below; re-assigning overwrites in place and effectiveFrom records when the
 // current arrangement started. A full effective-dated history (several rows per person, the
 // right one picked by payroll month) is a bigger design and is not what this phase's UI
@@ -24,8 +30,15 @@ const SalaryStructureModel = mongoose.model('salary-structure', {
         required: true,
         trim: true,
     },
-    staffId: {
-        // plain String FK -> Staff._id, per repo convention (no Mongoose ref/ObjectId)
+    personType: {
+        type: String,
+        required: true,
+        enum: ['staff', 'teacher'],
+        default: 'staff',
+        trim: true,
+    },
+    personId: {
+        // plain String FK -> Staff._id or Teacher._id, per repo convention (no ref/ObjectId)
         type: String,
         required: true,
         trim: true,
@@ -77,10 +90,9 @@ const SalaryStructureModel = mongoose.model('salary-structure', {
     },
 });
 
-// One current assignment per staff member. unique makes a double-assign (two clicks, two
-// tabs, a bulk assign racing a single one) physically incapable of leaving two rows that
-// payroll would then have to choose between.
-SalaryStructureModel.schema.index({ adminId: 1, staffId: 1 }, { unique: true });
+// One current assignment per person. personType is part of the key because a staff _id and a
+// teacher _id are drawn from different collections and could theoretically collide.
+SalaryStructureModel.schema.index({ adminId: 1, personType: 1, personId: 1 }, { unique: true });
 // controllers/salary-group.js's delete guard: "is anybody on this group?"
 SalaryStructureModel.schema.index({ adminId: 1, salaryGroupId: 1 });
 

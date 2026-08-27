@@ -7,7 +7,10 @@ export interface SalaryPayment {
   _id?: String;
   adminId?: String;
   payrollId: String;
-  staffId: String;
+  // personType/personId are set by the BACKEND from the referenced Payroll, never sent by the
+  // client — the payroll is the authority on whose salary this is.
+  personType?: String;
+  personId?: String;
   amountPaid: number;
   paymentDate: Date | String;
   paymentMode: String;
@@ -22,9 +25,10 @@ export interface SalaryPayment {
 // tab exists to act on.
 export interface PaymentHistoryRow {
   payrollId: String;
-  staffId: String;
-  staffName: String;
-  empCode: String;
+  personType: String;
+  personId: String;
+  name: String;
+  code: String;
   month: number;
   year: number;
   netSalary: number;

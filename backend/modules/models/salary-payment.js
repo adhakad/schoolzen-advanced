@@ -39,7 +39,15 @@ const SalaryPaymentModel = mongoose.model('salary-payment', {
         required: true,
         trim: true,
     },
-    staffId: {
+    personType: {
+        // Denormalised from the Payroll alongside personId, for the same reason.
+        type: String,
+        required: true,
+        enum: ['staff', 'teacher'],
+        default: 'staff',
+        trim: true,
+    },
+    personId: {
         // Denormalised from the Payroll so the history list can filter and label by person
         // without joining every row back through payroll first.
         type: String,
@@ -115,6 +123,6 @@ SalaryPaymentModel.schema.index({ adminId: 1, payrollId: 1 });
 // The history list, newest first.
 SalaryPaymentModel.schema.index({ adminId: 1, paymentDate: -1 });
 // Filtering the history by person.
-SalaryPaymentModel.schema.index({ adminId: 1, staffId: 1, paymentDate: -1 });
+SalaryPaymentModel.schema.index({ adminId: 1, personType: 1, personId: 1, paymentDate: -1 });
 
 module.exports = SalaryPaymentModel;

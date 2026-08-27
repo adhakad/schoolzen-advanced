@@ -10,15 +10,16 @@ export class SalaryStructureService {
   url = `${environment.API_URL}/v1/salary-structure`;
   constructor(private http: HttpClient) { }
 
-  // The Assign Salary table. Returns STAFF rows with their assignment attached — including
-  // the unassigned ones, who are the reason the page exists.
+  // The Assign Salary table. Returns PERSON rows (staff or teachers, per filters.personType)
+  // with their assignment attached — including the unassigned ones, who are the reason the
+  // page exists.
   assignSalaryPaginationList(data: any) {
     return this.http.post(`${this.url}/assign-salary-pagination`, data);
   }
-  // Keyed by staffId, not the structure id: the form knows who it is editing, not whether
-  // that person has a row yet. Resolves to null for an unassigned staff member.
-  getSalaryStructureByStaff(adminId: any, staffId: any) {
-    return this.http.get<SalaryStructure>(`${this.url}/staff/${adminId}/${staffId}`);
+  // Keyed by the person, not the structure id: the form knows who it is editing, not whether
+  // that person has a row yet. Resolves to null for an unassigned person.
+  getSalaryStructureByPerson(adminId: any, personType: any, personId: any) {
+    return this.http.get<SalaryStructure>(`${this.url}/person/${adminId}/${personType}/${personId}`);
   }
   assignSalary(data: SalaryStructure) {
     return this.http.post(this.url, data);

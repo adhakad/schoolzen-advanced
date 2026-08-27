@@ -34,7 +34,18 @@
                   </div>
                   <div class="col-3" style="text-align: right;">
                     <div class="row">
-                      <div class="col-5">
+                      <!-- Who is being paid. One selector for the whole page, not one per tab
+                           - see the class header in payroll.component.ts. -->
+                      <div class="col-4">
+                        <mat-form-field class="custom-select">
+                          <mat-select [(ngModel)]="personTypeFilter" (selectionChange)="switchPersonType()"
+                            matInput>
+                            <mat-option value="staff">Staff</mat-option>
+                            <mat-option value="teacher">Teachers</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                      <div class="col-3">
                         <mat-form-field class="custom-select">
                           <mat-select [(ngModel)]="filterMonth" (selectionChange)="switchPeriod()" matInput>
                             <mat-option *ngFor="let month of monthOptions" [value]="month.value">{{month.label}}
@@ -42,14 +53,14 @@
                           </mat-select>
                         </mat-form-field>
                       </div>
-                      <div class="col-4">
+                      <div class="col-3">
                         <mat-form-field class="custom-select">
                           <mat-select [(ngModel)]="filterYear" (selectionChange)="switchPeriod()" matInput>
                             <mat-option *ngFor="let year of yearOptions" [value]="year">{{year}}</mat-option>
                           </mat-select>
                         </mat-form-field>
                       </div>
-                      <div class="col-3">
+                      <div class="col-2">
                         <button class="btn setting-button" [matMenuTriggerFor]="settings">
                           <mat-icon style="margin-top: 5px;cursor: pointer;">settings</mat-icon>
                         </button>
@@ -84,6 +95,14 @@
                       <button type="button" mat-button class="tab-button setup-tab"
                         *ngIf="activeTab === 'assignSalary'">Assign Salary</button>
                     </div>
+                  </div>
+                  <div class="col-12">
+                    <mat-form-field class="custom-select">
+                      <mat-select [(ngModel)]="personTypeFilter" (selectionChange)="switchPersonType()" matInput>
+                        <mat-option value="staff">Staff</mat-option>
+                        <mat-option value="teacher">Teachers</mat-option>
+                      </mat-select>
+                    </mat-form-field>
                   </div>
                   <div class="col-6">
                     <mat-form-field class="custom-select">
@@ -203,18 +222,19 @@
                    ASSIGN SALARY
                    ================================================================== -->
               <ng-container *ngIf="activeTab === 'assignSalary'">
-                <h3 class="page-purpose">Put Staff on a Pay Scale</h3>
+                <h3 class="page-purpose">Put {{personTypeLabel(personTypeFilter)}} on a Pay Scale</h3>
                 <p class="page-note">
-                  A staff member with no scale cannot have payroll generated. Tick several people to put them all on the
-                  same scale at once, or assign one at a time to give somebody different numbers.
+                  Somebody with no scale cannot have payroll generated. Tick several people to put them all on the same
+                  scale at once, or assign one at a time to give somebody different numbers. Use the selector in the top
+                  bar to switch between staff and teachers.
                 </p>
 
                 <div class="filter-row">
                   <p class="selection-note">
-                    <strong>{{selectedStaffIds.length}}</strong> staff selected
+                    <strong>{{selectedPersonIds.length}}</strong> selected
                   </p>
                   <button class="submit-button toolbar-button" mat-raised-button
-                    [disabled]="selectedStaffIds.length === 0 || isClick" (click)="bulkAssignModel()">
+                    [disabled]="selectedPersonIds.length === 0 || isClick" (click)="bulkAssignModel()">
                     <mat-icon>assignment_ind</mat-icon>Assign to Selected
                   </button>
                 </div>
@@ -228,9 +248,9 @@
                     <thead class="bg-light">
                       <tr class="text-muted">
                         <th class="select-column">
-                          <mat-checkbox [checked]="allStaffSelected" (change)="toggleAllStaff()"></mat-checkbox>
+                          <mat-checkbox [checked]="allPeopleSelected" (change)="toggleAllPeople()"></mat-checkbox>
                         </th>
-                        <th class="name-column">Staff Name</th>
+                        <th class="name-column">Name</th>
                         <th class="type-column">Assigned Group</th>
                         <th>Effective From</th>
                         <th>Action</th>
@@ -239,12 +259,12 @@
                     <tbody *ngIf="assignList && assignList.length > 0">
                       <tr *ngFor="let row of assignList">
                         <td class="select-column">
-                          <mat-checkbox [checked]="isStaffSelected(row.staffId)"
-                            (change)="toggleStaff(row.staffId)"></mat-checkbox>
+                          <mat-checkbox [checked]="isPersonSelected(row.personId)"
+                            (change)="togglePerson(row.personId)"></mat-checkbox>
                         </td>
                         <td class="name-column">
                           <p class="mb-0">{{row.name | titlecase}}</p>
-                          <p class="mb-0 person-code" *ngIf="row.empCode">{{row.empCode}}</p>
+                          <p class="mb-0 person-code" *ngIf="row.code">{{row.code}}</p>
                         </td>
                         <td class="type-column">
                           <p class="mb-0 limit-days" *ngIf="row.salaryGroupName">
@@ -282,7 +302,9 @@
                    GENERATE PAYROLL
                    ================================================================== -->
               <ng-container *ngIf="activeTab === 'generate'">
-                <h3 class="page-purpose">Payroll for {{monthLabel(filterMonth)}} {{filterYear}}</h3>
+                <h3 class="page-purpose">
+                  {{personTypeLabel(personTypeFilter)}} Payroll for {{monthLabel(filterMonth)}} {{filterYear}}
+                </h3>
                 <p class="page-note">
                   Days present, absent and on leave are read from the attendance register for this month &mdash; check
                   them there first if a number looks wrong. Generating produces a <strong>Draft</strong> you can
@@ -302,12 +324,12 @@
                   </mat-form-field>
 
                   <p class="selection-note">
-                    <strong>{{selectedPayrollStaffIds.length}}</strong> staff selected
+                    <strong>{{selectedPayrollPersonIds.length}}</strong> selected
                   </p>
 
                   <button class="submit-button toolbar-button" mat-raised-button
-                    [disabled]="selectedPayrollStaffIds.length === 0 || isClick" (click)="bulkGeneratePayroll()">
-                    <span *ngIf="isClick && selectedPayrollStaffIds.length > 0" class="submitting-content">
+                    [disabled]="selectedPayrollPersonIds.length === 0 || isClick" (click)="bulkGeneratePayroll()">
+                    <span *ngIf="isClick && selectedPayrollPersonIds.length > 0" class="submitting-content">
                       <mat-spinner diameter="20" class="button-loader"></mat-spinner>
                     </span>
                     <mat-icon>receipt_long</mat-icon>Generate for Selected
@@ -319,10 +341,10 @@
                     <thead class="bg-light">
                       <tr class="text-muted">
                         <th class="select-column">
-                          <mat-checkbox [checked]="allPayrollStaffSelected"
-                            (change)="toggleAllPayrollStaff()"></mat-checkbox>
+                          <mat-checkbox [checked]="allPayrollPeopleSelected"
+                            (change)="toggleAllPayrollPeople()"></mat-checkbox>
                         </th>
-                        <th class="name-column">Staff Name</th>
+                        <th class="name-column">Name</th>
                         <th>Month/Year</th>
                         <th>Gross</th>
                         <th>Deductions</th>
@@ -334,16 +356,17 @@
                     <tbody *ngIf="payrollList && payrollList.length > 0">
                       <tr *ngFor="let row of payrollList">
                         <td class="select-column">
-                          <mat-checkbox [checked]="isPayrollStaffSelected(row.staffId)"
-                            (change)="togglePayrollStaff(row.staffId)"></mat-checkbox>
+                          <mat-checkbox [checked]="isPayrollPersonSelected(row.personId)"
+                            (change)="togglePayrollPerson(row.personId)"></mat-checkbox>
                         </td>
                         <td class="name-column">
-                          <p class="mb-0">{{row.staffName | titlecase}}</p>
+                          <p class="mb-0">{{row.name | titlecase}}</p>
                           <p class="mb-0 person-code" *ngIf="row.salaryGroupName">{{row.salaryGroupName | titlecase}}
                           </p>
                           <!-- The one thing that stops this row generating, said on the row
                                rather than discovered as an error after pressing Generate. -->
                           <p class="mb-0 not-set" *ngIf="!row.isAssigned">No salary group assigned</p>
+                          <p class="mb-0 person-code" *ngIf="row.code">{{row.code}}</p>
                         </td>
                         <td>
                           <p class="mb-0">{{monthLabel(row.month)}} {{row.year}}</p>
@@ -366,7 +389,7 @@
                                and Fee Paid. -->
                           <button *ngIf="canGenerate(row)" class="submit-button row-generate" mat-raised-button
                             [disabled]="!row.isAssigned || isClick" (click)="generatePayroll(row)">
-                            <span *ngIf="isClick && actionPayroll?.staffId === row.staffId" class="submitting-content">
+                            <span *ngIf="isClick && actionPayroll?.personId === row.personId" class="submitting-content">
                               <mat-spinner diameter="20" class="button-loader"></mat-spinner>
                             </span>
                             {{row.status ? 'Regenerate' : 'Generate'}}
@@ -397,7 +420,9 @@
                    PAYMENT HISTORY
                    ================================================================== -->
               <ng-container *ngIf="activeTab === 'payments'">
-                <h3 class="page-purpose">Salary Payments for {{monthLabel(filterMonth)}} {{filterYear}}</h3>
+                <h3 class="page-purpose">
+                  {{personTypeLabel(personTypeFilter)}} Salary Payments for {{monthLabel(filterMonth)}} {{filterYear}}
+                </h3>
                 <p class="page-note">
                   Only <strong>locked</strong> payroll appears here &mdash; the amount has to be final before a payment
                   can be recorded against it. A salary paid in instalments takes several entries; the row settles once
@@ -433,7 +458,7 @@
                   <table class="table table-hover align-middle bg-white">
                     <thead class="bg-light">
                       <tr class="text-muted">
-                        <th>Staff Name</th>
+                        <th>Name</th>
                         <th>Month/Year</th>
                         <th>Net Salary</th>
                         <th>Amount Paid</th>
@@ -447,8 +472,8 @@
                     <tbody *ngIf="historyList && historyList.length > 0">
                       <tr *ngFor="let row of historyList">
                         <td>
-                          <p class="mb-0">{{row.staffName | titlecase}}</p>
-                          <p class="mb-0 person-code" *ngIf="row.empCode">{{row.empCode}}</p>
+                          <p class="mb-0">{{row.name | titlecase}}</p>
+                          <p class="mb-0 person-code" *ngIf="row.code">{{row.code}}</p>
                         </td>
                         <td>
                           <p class="mb-0">{{monthLabel(row.month)}} {{row.year}}</p>
@@ -480,7 +505,11 @@
                             (click)="recordPaymentModel(row)">
                             <mat-icon>payments</mat-icon>Record Payment
                           </button>
-                          <span class="row-locked" *ngIf="!canRecordPayment(row)">&ndash;</span>
+                          <!-- Only once money has actually moved. A locked-but-unpaid row has
+                               nothing to acknowledge yet, so it gets no slip action. -->
+                          <mat-icon matRipple *ngIf="canGenerateSlip(row)" title="Salary slip"
+                            (click)="generateSlipModel(row)">receipt_long</mat-icon>
+                          <span class="row-locked" *ngIf="!canRecordPayment(row) && !canGenerateSlip(row)">&ndash;</span>
                         </td>
                       </tr>
                     </tbody>
@@ -789,7 +818,7 @@
                         <div *ngIf="errorCheck">
                           <p class="error-message">{{errorMsg}}</p>
                         </div>
-                        <h4 class="confirm-title">Put {{selectedStaffIds.length}} staff on one scale</h4>
+                        <h4 class="confirm-title">Put {{selectedPersonIds.length}} staff on one scale</h4>
                         <p class="confirm-note">
                           Anyone in this selection with a personal override will lose it &mdash; they all end up on
                           exactly the group's numbers.
@@ -834,7 +863,7 @@
 
                         <ng-container *ngIf="payrollDetail">
                           <h4 class="confirm-title">
-                            {{payrollDetail.staffName | titlecase}} &middot; {{monthLabel(payrollDetail.month)}}
+                            {{payrollDetail.name | titlecase}} &middot; {{monthLabel(payrollDetail.month)}}
                             {{payrollDetail.year}}
                           </h4>
                           <p class="confirm-note">
@@ -922,7 +951,7 @@
                         <div *ngIf="errorCheck">
                           <p class="error-message">{{errorMsg}}</p>
                         </div>
-                        <h4 class="confirm-title">Lock {{actionPayroll?.staffName | titlecase}}'s payroll?</h4>
+                        <h4 class="confirm-title">Lock {{actionPayroll?.name | titlecase}}'s payroll?</h4>
                         <p class="confirm-note">
                           Net salary of <strong>{{actionPayroll?.netSalary}}</strong> for
                           {{monthLabel(filterMonth)}} {{filterYear}} becomes final. It can no longer be regenerated, and
@@ -945,7 +974,7 @@
                         <div *ngIf="errorCheck">
                           <p class="error-message">{{errorMsg}}</p>
                         </div>
-                        <h4 class="confirm-title">Unlock {{actionPayroll?.staffName | titlecase}}'s payroll?</h4>
+                        <h4 class="confirm-title">Unlock {{actionPayroll?.name | titlecase}}'s payroll?</h4>
                         <p class="confirm-note">
                           It returns to <strong>Draft</strong> and can be regenerated, which may change the net salary.
                           Who unlocked it and when is recorded.
@@ -978,7 +1007,7 @@
                         <div *ngIf="errorCheck">
                           <p class="error-message">{{errorMsg}}</p>
                         </div>
-                        <h4 class="confirm-title">{{paymentRow?.staffName | titlecase}}</h4>
+                        <h4 class="confirm-title">{{paymentRow?.name | titlecase}}</h4>
                         <p class="confirm-note">
                           Net salary <strong>{{paymentRow?.netSalary}}</strong>, of which
                           <strong>{{paymentRow?.amountPaid}}</strong> has been paid.
@@ -1032,6 +1061,244 @@
                       </div>
                     </form>
 
+                  </div>
+                </div>
+              </div>
+
+              <!-- ==================================================================
+                   SALARY SLIP — the printable document.
+                   Its own modal, using the fee receipt's wider print-model-dialog:
+                   the body IS what gets printed, so it cannot share the compact
+                   form modal above. Markup, classes and print trigger are the fee
+                   receipt's, so the two read as sibling documents.
+                   ================================================================== -->
+              <div class="modal fade show custom-modal" [class.show]="showSlipModal">
+                <div class="modal-dialog print-model-dialog modal-dialog-scrollable">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">SALARY SLIP</h5>
+                      <mat-icon matRipple (click)="closeSlipModal()">close</mat-icon>
+                    </div>
+                    <div class="modal-body print-model-body">
+                      <p class="confirm-note" *ngIf="slipLoading">Preparing the slip&hellip;</p>
+
+                      <ng-container *ngIf="slipPayload">
+                        <div id="salary-slip">
+                          <div class="col-lg-10 offset-lg-1 custom-container">
+                            <div class="table-container">
+
+                              <!-- HEADER — identical block to the fee receipt, read from the
+                                   same School profile fields. -->
+                              <div class="row mt-5">
+                                <div class="col-2">
+                                  <img class="logo" src="{{slipPayload.school?.schoolLogo}}" alt="school logo">
+                                </div>
+                                <div class="col-10" style="text-align: center;">
+                                  <div class="school-name">
+                                    <h3 class="text-bold">{{slipPayload.school?.schoolName | uppercase}}</h3>
+                                  </div>
+                                  <div class="address" style="text-align: center;">
+                                    <p>Recognized by {{slipPayload.school?.board | uppercase}}, Affliation No. -
+                                      {{slipPayload.school?.affiliationNumber}}
+                                    </p>
+                                    <p><span>Contact - {{slipPayload.school?.phoneOne}} &nbsp; Email -
+                                        {{slipPayload.school?.email}}</span></p>
+                                    <p><span>{{slipPayload.school?.street | titlecase}},
+                                        {{slipPayload.school?.city | titlecase}},
+                                        Distt.- {{slipPayload.school?.district | titlecase}},
+                                        {{slipPayload.school?.state | titlecase}} -
+                                        {{slipPayload.school?.pinCode}}</span></p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- TITLE + SLIP META -->
+                              <div class="row">
+                                <div class="col-12 title-lable">
+                                  <p>SALARY SLIP &mdash; {{monthLabel(slipPayload.payroll.month)}}
+                                    {{slipPayload.payroll.year}}</p>
+                                </div>
+                                <div class="col-12"
+                                  style="text-align: right; margin-right: 25px;margin-bottom: 5px;">
+                                  <p style="font-size: 18px;">Date:
+                                    {{slipPayload.slip.generatedAt | date:'dd/MM/yyyy'}}</p>
+                                </div>
+                              </div>
+
+                              <!-- PERSON INFO — mirrors the receipt's student-info table. -->
+                              <table class="info-table" style="border-top: 1px solid #454545;">
+                                <tr>
+                                  <td class="text-bold">SLIP NO.</td>
+                                  <td colspan="2">:&nbsp;&nbsp;{{slipPayload.slip.slipNumber}}</td>
+                                  <td class="text-bold">
+                                    {{slipPayload.person.personType === 'teacher' ? 'TEACHER ID' : 'EMPLOYEE ID'}}
+                                  </td>
+                                  <td colspan="2">:&nbsp;&nbsp;{{slipPayload.person.code || '-'}}</td>
+                                </tr>
+                                <tr>
+                                  <td class="text-bold">NAME</td>
+                                  <td colspan="2">:&nbsp;&nbsp;{{slipPayload.person.name | uppercase}}</td>
+                                  <td class="text-bold">DESIGNATION</td>
+                                  <!-- models/teacher.js carries no designation and CLAUDE.md
+                                       forbids adding one, so a teacher shows their education
+                                       instead of a fabricated job title. -->
+                                  <td colspan="2">:&nbsp;&nbsp;{{(slipPayload.person.designation ||
+                                    slipPayload.person.education || '-') | uppercase}}</td>
+                                </tr>
+                                <tr>
+                                  <td class="text-bold">DEPARTMENT</td>
+                                  <td colspan="2">:&nbsp;&nbsp;{{(slipPayload.person.department ||
+                                    (slipPayload.person.personType === 'teacher' ? 'Teaching' : '-')) | uppercase}}
+                                  </td>
+                                  <td class="text-bold">PAYMENT DATE</td>
+                                  <td colspan="2">:&nbsp;&nbsp;{{slipPayload.payment.paymentDate
+                                    ? (slipPayload.payment.paymentDate | date:'dd/MM/yyyy') : '-'}}</td>
+                                </tr>
+                                <tr>
+                                  <td class="text-bold">PAYMENT MODE</td>
+                                  <td colspan="2">:&nbsp;&nbsp;{{paymentModeLabel(slipPayload.payment.paymentMode)
+                                    || '-'}}</td>
+                                  <td class="text-bold">REFERENCE NO.</td>
+                                  <td colspan="2">:&nbsp;&nbsp;{{slipPayload.payment.referenceNumber || '-'}}</td>
+                                </tr>
+                              </table>
+
+                              <!-- EARNINGS & DEDUCTIONS — the receipt's fee-items table shape,
+                                   two money columns instead of one. -->
+                              <table class="custom-table">
+                                <tr class="text-center">
+                                  <th class="border" style="border-left: none;text-align: left;padding-left: 15px;">
+                                    EARNINGS</th>
+                                  <th class="border">AMOUNT</th>
+                                  <th class="border" style="text-align: left;padding-left: 15px;">DEDUCTIONS</th>
+                                  <th class="border" style="border-right: none;">AMOUNT</th>
+                                </tr>
+                                <tr class="text-center">
+                                  <td class="border text-left" style="border-left: none;">BASIC</td>
+                                  <td class="border">{{formatCurrency(slipPayload.payroll.basic)}}</td>
+                                  <td class="border text-left">
+                                    {{slipPayload.payroll.deductions.length > 0
+                                    ? (slipPayload.payroll.deductions[0].name | uppercase) : '-'}}
+                                  </td>
+                                  <td class="border" style="border-right: none;">
+                                    {{slipPayload.payroll.deductions.length > 0
+                                    ? formatCurrency(slipPayload.payroll.deductions[0].amount) : '-'}}
+                                  </td>
+                                </tr>
+                                <tr class="text-center">
+                                  <td class="border text-left" style="border-left: none;">HRA</td>
+                                  <td class="border">{{formatCurrency(slipPayload.payroll.hra)}}</td>
+                                  <td class="border text-left">
+                                    {{slipPayload.payroll.deductions.length > 1
+                                    ? (slipPayload.payroll.deductions[1].name | uppercase) : ''}}
+                                  </td>
+                                  <td class="border" style="border-right: none;">
+                                    {{slipPayload.payroll.deductions.length > 1
+                                    ? formatCurrency(slipPayload.payroll.deductions[1].amount) : ''}}
+                                  </td>
+                                </tr>
+                                <!-- Allowances from index 0, deductions from index 2 — the
+                                     first two deductions are already paired against Basic and
+                                     HRA above, so this continues the column rather than
+                                     repeating it. -->
+                                <tr class="text-center" *ngFor="let allowance of slipPayload.payroll.allowances;
+                                  let i = index">
+                                  <td class="border text-left" style="border-left: none;">
+                                    {{allowance.name | uppercase}}</td>
+                                  <td class="border">{{formatCurrency(allowance.amount)}}</td>
+                                  <td class="border text-left">
+                                    {{slipPayload.payroll.deductions[i + 2]
+                                    ? (slipPayload.payroll.deductions[i + 2].name | uppercase) : ''}}
+                                  </td>
+                                  <td class="border" style="border-right: none;">
+                                    {{slipPayload.payroll.deductions[i + 2]
+                                    ? formatCurrency(slipPayload.payroll.deductions[i + 2].amount) : ''}}
+                                  </td>
+                                </tr>
+                                <!-- perMonth only: perDay gross already reflects attendance,
+                                     so there is no separate attendance deduction to show. -->
+                                <tr class="text-center" *ngIf="slipPayload.payroll.attendanceDeduction > 0">
+                                  <td class="border text-left" style="border-left: none;"></td>
+                                  <td class="border"></td>
+                                  <td class="border text-left">ATTENDANCE DEDUCTION</td>
+                                  <td class="border" style="border-right: none;">
+                                    {{formatCurrency(slipPayload.payroll.attendanceDeduction)}}</td>
+                                </tr>
+                                <tr class="text-center">
+                                  <td class="border text-bold text-left" style="border-left: none;">GROSS SALARY</td>
+                                  <td class="border text-bold">
+                                    {{formatCurrency(slipPayload.payroll.grossSalary)}}</td>
+                                  <td class="border text-bold text-left">TOTAL DEDUCTIONS</td>
+                                  <td class="border text-bold" style="border-right: none;">
+                                    {{formatCurrency(slipPayload.payroll.totalDeductions)}}</td>
+                                </tr>
+                              </table>
+
+                              <!-- ATTENDANCE SUMMARY — one line, per the spec, not a table. -->
+                              <p style="text-align: center;font-size: 16px;margin-top: 10px !important;">
+                                {{attendanceSummaryLine(slipPayload.payroll)}}
+                              </p>
+
+                              <!-- TOTALS — the receipt's TOTAL/PAID/DUE rows. -->
+                              <table class="custom-table">
+                                <tr class="text-center" style="height: 18px;">
+                                  <td style="border: none;padding-top: 5px;"></td>
+                                  <td class="text-bold"
+                                    style="text-align: right;border: none;padding-top: 8px;font-size: 18px;">
+                                    NET SALARY :</td>
+                                  <td class="text-bold" style="border: none;padding-top: 8px;font-size: 20px;">
+                                    {{formatCurrency(slipPayload.payroll.netSalary)}}</td>
+                                </tr>
+                                <tr class="text-center" style="height: 18px;">
+                                  <td style="border: none;"></td>
+                                  <td class="text-bold" style="text-align: right;border: none;font-size: 18px;">
+                                    AMOUNT PAID :</td>
+                                  <td class="text-bold" style="border: none;font-size: 20px;">
+                                    {{formatCurrency(slipPayload.payment.amountPaid)}}</td>
+                                </tr>
+                                <tr class="text-center" style="height: 18px;" *ngIf="slipPayload.payment.remainingAmount > 0">
+                                  <td style="border: none;"></td>
+                                  <td class="text-bold" style="text-align: right;border: none;font-size: 18px;">
+                                    BALANCE DUE :</td>
+                                  <td class="text-bold" style="border: none;font-size: 20px;">
+                                    {{formatCurrency(slipPayload.payment.remainingAmount)}}</td>
+                                </tr>
+                              </table>
+
+                              <!-- SIGNATORY + amount in words, via the same numberToWords pipe
+                                   the fee receipt uses. The School profile has no signatory
+                                   field, so the line is left blank for a wet signature rather
+                                   than inventing one. -->
+                              <ng-container>
+                                <p style="display: inline-block;margin-left: 20px;margin-bottom: 0 !important;">
+                                  <span class="text-bold" style="font-size: 18px;">Authorized Signatory</span>
+                                </p>
+                                <p style="text-align: center;margin-top: 10px !important;font-size: 16px;">
+                                  NET PAID <span class="text-bold" style="font-size: 19px;">
+                                    {{formatCurrency(slipPayload.payment.amountPaid)}}
+                                    /- (Rupees {{slipPayload.payment.amountPaid | numberToWords}} Only)</span>
+                                </p>
+                              </ng-container>
+
+                              <!-- DIGITAL FOOTPRINT — distinct from the signature line above.
+                                   The same three facts are stored on the SalarySlip record, so
+                                   this is queryable as well as printed. -->
+                              <p class="slip-footprint">
+                                This slip was generated electronically on
+                                {{slipPayload.slip.generatedAt | date:'dd MMM yyyy, h:mm a'}} by
+                                {{slipPayload.slip.generatedBy}} &middot; Slip No.
+                                {{slipPayload.slip.slipNumber}}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </ng-container>
+                    </div>
+                    <div class="modal-footer">
+                      <button class="submit-button" style="background-color: #8C52FF;color:#fff" mat-raised-button
+                        [disabled]="!slipPayload" (click)="printSalarySlip()">
+                        Print</button>
+                    </div>
                   </div>
                 </div>
               </div>

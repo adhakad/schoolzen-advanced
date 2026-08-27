@@ -22,9 +22,13 @@ const overrideFields = {
     overrideDeductions: componentList.allow(null).default(null),
 };
 
+// personType is required, not defaulted: a defaulted 'staff' would silently file a teacher
+// against the wrong collection, and the unique index would then let a second row exist for
+// the same human being.
 const assignSalarySchema = Joi.object({
     adminId: Joi.string().trim().required(),
-    staffId: Joi.string().trim().required(),
+    personType: Joi.string().trim().valid('staff', 'teacher').required(),
+    personId: Joi.string().trim().required(),
     salaryGroupId: Joi.string().trim().required(),
     effectiveFrom: Joi.date().required(),
     ...overrideFields,
@@ -35,9 +39,10 @@ const assignSalarySchema = Joi.object({
 // to all twelve of them belongs in the group itself, not repeated as an override on each.
 const bulkAssignSalarySchema = Joi.object({
     adminId: Joi.string().trim().required(),
+    personType: Joi.string().trim().valid('staff', 'teacher').required(),
     salaryGroupId: Joi.string().trim().required(),
     effectiveFrom: Joi.date().required(),
-    staffIds: Joi.array().items(Joi.string().trim().required()).min(1).required(),
+    personIds: Joi.array().items(Joi.string().trim().required()).min(1).required(),
 });
 
 module.exports = { assignSalarySchema, bulkAssignSalarySchema };

@@ -13,9 +13,9 @@ const {
 
 router.post('/assign-salary-pagination', GetAssignSalaryPagination);
 router.post('/bulk-assign', validate(bulkAssignSalarySchema), BulkAssignSalary);
-// Keyed by staffId, not by the structure id: the Assign form knows who it is editing, not
+// Keyed by the person, not by the structure id: the Assign form knows who it is editing, not
 // whether that person has a row yet.
-router.get('/staff/:adminId/:staffId', GetSingleSalaryStructure);
+router.get('/person/:adminId/:personType/:personId', GetSingleSalaryStructure);
 router.post('/', validate(assignSalarySchema), AssignSalary);
 router.delete('/:id', DeleteSalaryStructure);
 

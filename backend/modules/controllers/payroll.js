@@ -3,10 +3,11 @@ const PayrollModel = require('../models/payroll');
 const SalaryStructureModel = require('../models/salary-structure');
 const SalaryGroupModel = require('../models/salary-group');
 const SalaryPaymentModel = require('../models/salary-payment');
-const StaffModel = require('../models/staff');
+const { getModel, activeFilter, personCode } = require('../services/person-lookup');
 const {
-    getPayrollAttendanceForStaff,
+    getPayrollAttendanceForPeople,
     getPayrollAttendanceForOne,
+    PAYABLE_TYPES,
 } = require('../services/payroll-attendance');
 const logger = require('../helpers/logger');
 
@@ -22,6 +23,12 @@ const logger = require('../helpers/logger');
 //
 // DRAFT -> LOCKED is one way. Regenerating a LOCKED record is refused; unlocking is a separate
 // confirmed action that is itself refused once a payment exists against the record.
+//
+// STAFF AND TEACHERS ARE ONE CODE PATH, keyed by personType + personId. The two collections
+// disagree about how "active" is spelled and what a display code is; services/person-lookup.js
+// owns both quirks and is reused here rather than re-derived.
+
+const isPayable = (personType) => PAYABLE_TYPES.includes(personType);
 
 // ---------------------------------------------------------------------------
 // SHARED CALCULATION HELPERS
@@ -115,9 +122,10 @@ const calculatePay = (effective, calculationMode, counts) => {
 
 // The complete $set for one payroll record. Kept in one place so the single and bulk paths
 // write identical shapes.
-const buildPayrollFields = ({ adminId, staffId, month, year, group, effective, counts, pay }) => ({
+const buildPayrollFields = ({ adminId, personType, personId, month, year, group, effective, counts, pay }) => ({
     adminId: adminId,
-    staffId: staffId,
+    personType: personType,
+    personId: personId,
     month: month,
     year: year,
     salaryGroupId: group._id.toString(),
@@ -171,21 +179,31 @@ const paymentStatusOf = (netSalary, paid) => {
     return 'Partially Paid';
 };
 
+
 // ---------------------------------------------------------------------------
 // POST /generate
 // ---------------------------------------------------------------------------
 let GeneratePayroll = async (req, res, next) => {
     try {
-        const { adminId, staffId, month, year } = req.body;
+        const { adminId, personType, personId, month, year } = req.body;
 
-        const [staff, existing, structure] = await Promise.all([
-            StaffModel.findOne({ _id: staffId, adminId: adminId }, { _id: 1, name: 1 }).lean(),
-            PayrollModel.findOne({ adminId: adminId, staffId: staffId, year: year, month: month }).lean(),
-            SalaryStructureModel.findOne({ adminId: adminId, staffId: staffId }).lean(),
+        const model = getModel(personType);
+        if (!isPayable(personType) || !model) {
+            return res.status(400).json('A valid person type is required!');
+        }
+
+        const [person, existing, structure] = await Promise.all([
+            model.findOne({ _id: personId, adminId: adminId }, { _id: 1, name: 1 }).lean(),
+            PayrollModel.findOne({
+                adminId: adminId, personType: personType, personId: personId, year: year, month: month,
+            }).lean(),
+            SalaryStructureModel.findOne({
+                adminId: adminId, personType: personType, personId: personId,
+            }).lean(),
         ]);
 
-        if (!staff) {
-            return res.status(404).json('Staff member not found!');
+        if (!person) {
+            return res.status(404).json('This person was not found!');
         }
         // THE LOCK GUARD. Never a silent overwrite — a locked payroll is a decision somebody
         // made, and quietly replacing it would also invalidate any payment recorded against it.
@@ -193,7 +211,7 @@ let GeneratePayroll = async (req, res, next) => {
             return res.status(400).json('This payroll is locked. Unlock it before regenerating!');
         }
         if (!structure) {
-            return res.status(400).json('No salary group is assigned to this staff member!');
+            return res.status(400).json('No salary group is assigned to this person!');
         }
 
         const group = await SalaryGroupModel.findOne({ _id: structure.salaryGroupId, adminId: adminId }).lean();
@@ -201,22 +219,24 @@ let GeneratePayroll = async (req, res, next) => {
             return res.status(400).json('The assigned salary group no longer exists!');
         }
 
-        const counts = await getPayrollAttendanceForOne({ adminId, staffId, year, month });
+        const counts = await getPayrollAttendanceForOne({ adminId, personType, personId, year, month });
         const effective = resolveEffectiveSalary(group, structure);
         const pay = calculatePay(effective, group.calculationMode, counts);
         if (pay.error) {
             return res.status(400).json(pay.error);
         }
 
-        const fields = buildPayrollFields({ adminId, staffId, month, year, group, effective, counts, pay });
+        const fields = buildPayrollFields({
+            adminId, personType, personId, month, year, group, effective, counts, pay,
+        });
         const payroll = await PayrollModel.findOneAndUpdate(
-            { adminId: adminId, staffId: staffId, year: year, month: month },
+            { adminId: adminId, personType: personType, personId: personId, year: year, month: month },
             { $set: fields, $setOnInsert: { createdAt: new Date() } },
             { upsert: true, new: true },
         );
 
         logger.info('payroll.generated', {
-            adminId: adminId, staffId: staffId, year: year, month: month,
+            adminId: adminId, personType: personType, personId: personId, year: year, month: month,
             netSalary: payroll.netSalary, mode: group.calculationMode,
         });
 
@@ -230,33 +250,48 @@ let GeneratePayroll = async (req, res, next) => {
 // ---------------------------------------------------------------------------
 // POST /bulk-generate
 //
-// ONE attendance read for the whole selection, not one per staff member — that is what makes
+// ONE attendance read for the whole selection, not one per person — that is what makes
 // generating a 60-person school affordable.
 //
-// A staff member who cannot be generated (locked, unassigned, no working days) is SKIPPED and
+// A person who cannot be generated (locked, unassigned, no working days) is SKIPPED and
 // reported, never allowed to abort the batch. An admin who selected twelve people and got a
 // single error message would have no way to tell which one caused it.
+//
+// ONE personType per call. A mixed staff-and-teacher selection would need two calendar grids
+// and would make the skipped-report ambiguous about which collection a missing id came from;
+// the UI picks a type before it offers the checkboxes, so this costs nothing.
 // ---------------------------------------------------------------------------
 let BulkGeneratePayroll = async (req, res, next) => {
     try {
-        const { adminId, month, year, staffIds } = req.body;
-        const uniqueStaffIds = [...new Set(staffIds.map(String))];
+        const { adminId, personType, month, year, personIds } = req.body;
 
-        const [staffList, existingList, structures, countsByStaffId] = await Promise.all([
-            StaffModel.find({ _id: { $in: uniqueStaffIds }, adminId: adminId }, { _id: 1, name: 1 }).lean(),
+        const model = getModel(personType);
+        if (!isPayable(personType) || !model) {
+            return res.status(400).json('A valid person type is required!');
+        }
+
+        const uniquePersonIds = [...new Set(personIds.map(String))];
+
+        const [people, existingList, structures, countsByPersonId] = await Promise.all([
+            model.find({ _id: { $in: uniquePersonIds }, adminId: adminId }, { _id: 1, name: 1 }).lean(),
             PayrollModel.find(
-                { adminId: adminId, staffId: { $in: uniqueStaffIds }, year: year, month: month },
-                { staffId: 1, status: 1 },
+                {
+                    adminId: adminId, personType: personType,
+                    personId: { $in: uniquePersonIds }, year: year, month: month,
+                },
+                { personId: 1, status: 1 },
             ).lean(),
-            SalaryStructureModel.find({ adminId: adminId, staffId: { $in: uniqueStaffIds } }).lean(),
-            getPayrollAttendanceForStaff({ adminId, staffIds: uniqueStaffIds, year, month }),
+            SalaryStructureModel.find({
+                adminId: adminId, personType: personType, personId: { $in: uniquePersonIds },
+            }).lean(),
+            getPayrollAttendanceForPeople({ adminId, personType, personIds: uniquePersonIds, year, month }),
         ]);
 
-        const staffById = new Map(staffList.map((staff) => [staff._id.toString(), staff]));
-        const lockedStaffIds = new Set(
-            existingList.filter((row) => row.status === 'LOCKED').map((row) => String(row.staffId)),
+        const personById = new Map(people.map((person) => [person._id.toString(), person]));
+        const lockedPersonIds = new Set(
+            existingList.filter((row) => row.status === 'LOCKED').map((row) => String(row.personId)),
         );
-        const structureByStaffId = new Map(structures.map((s) => [String(s.staffId), s]));
+        const structureByPersonId = new Map(structures.map((s) => [String(s.personId), s]));
 
         // Only the groups this selection references.
         const groupIds = [...new Set(structures.map((s) => String(s.salaryGroupId)))];
@@ -268,46 +303,51 @@ let BulkGeneratePayroll = async (req, res, next) => {
         const writeOps = [];
         const skipped = [];
 
-        for (const staffId of uniqueStaffIds) {
-            const staff = staffById.get(staffId);
-            const name = staff ? staff.name : staffId;
-            if (!staff) {
-                skipped.push({ staffId, name, reason: 'Staff member not found' });
+        for (const personId of uniquePersonIds) {
+            const person = personById.get(personId);
+            const name = person ? person.name : personId;
+            if (!person) {
+                skipped.push({ personId, name, reason: 'Person not found' });
                 continue;
             }
-            if (lockedStaffIds.has(staffId)) {
-                skipped.push({ staffId, name, reason: 'Payroll already locked' });
+            if (lockedPersonIds.has(personId)) {
+                skipped.push({ personId, name, reason: 'Payroll already locked' });
                 continue;
             }
-            const structure = structureByStaffId.get(staffId);
+            const structure = structureByPersonId.get(personId);
             if (!structure) {
-                skipped.push({ staffId, name, reason: 'No salary group assigned' });
+                skipped.push({ personId, name, reason: 'No salary group assigned' });
                 continue;
             }
             const group = groupById.get(String(structure.salaryGroupId));
             if (!group) {
-                skipped.push({ staffId, name, reason: 'Assigned salary group no longer exists' });
+                skipped.push({ personId, name, reason: 'Assigned salary group no longer exists' });
                 continue;
             }
 
-            // A staff member with no calendar row at all comes back absent from the map; the
-            // zeroed counts then fail the working-days guard below with the right message.
-            const counts = countsByStaffId.get(staffId) || {
+            // Somebody with no calendar row at all comes back absent from the map; the zeroed
+            // counts then fail the working-days guard below with the right message.
+            const counts = countsByPersonId.get(personId) || {
                 presentDays: 0, absentDays: 0, halfDays: 0, leaveDays: 0,
                 unpaidLeaveDays: 0, holidayDays: 0, totalWorkingDays: 0,
             };
             const effective = resolveEffectiveSalary(group, structure);
             const pay = calculatePay(effective, group.calculationMode, counts);
             if (pay.error) {
-                skipped.push({ staffId, name, reason: pay.error });
+                skipped.push({ personId, name, reason: pay.error });
                 continue;
             }
 
             writeOps.push({
                 updateOne: {
-                    filter: { adminId: adminId, staffId: staffId, year: year, month: month },
+                    filter: {
+                        adminId: adminId, personType: personType, personId: personId,
+                        year: year, month: month,
+                    },
                     update: {
-                        $set: buildPayrollFields({ adminId, staffId, month, year, group, effective, counts, pay }),
+                        $set: buildPayrollFields({
+                            adminId, personType, personId, month, year, group, effective, counts, pay,
+                        }),
                         $setOnInsert: { createdAt: new Date() },
                     },
                     upsert: true,
@@ -320,8 +360,8 @@ let BulkGeneratePayroll = async (req, res, next) => {
         }
 
         logger.info('payroll.bulkGenerated', {
-            adminId: adminId, year: year, month: month,
-            requested: uniqueStaffIds.length, generated: writeOps.length, skipped: skipped.length,
+            adminId: adminId, personType: personType, year: year, month: month,
+            requested: uniquePersonIds.length, generated: writeOps.length, skipped: skipped.length,
         });
 
         return res.status(200).json({ generated: writeOps.length, skipped: skipped });
@@ -334,62 +374,70 @@ let BulkGeneratePayroll = async (req, res, next) => {
 // ---------------------------------------------------------------------------
 // POST /payroll-pagination
 //
-// THE GENERATE TAB IS A STAFF LIST, NOT A PAYROLL LIST.
+// THE GENERATE TAB IS A PEOPLE LIST, NOT A PAYROLL LIST.
 //
 // Paging Payroll rows would render an empty table for any month nothing has been generated
 // for — which is every month, before the admin does the one thing the tab exists for. Worse,
-// there would be no row to press Generate on. So this pages ACTIVE STAFF and attaches each
-// person payroll for the chosen month, exactly as the Fees page lists students and attaches
-// what they have paid.
+// there would be no row to press Generate on. So this pages ACTIVE PEOPLE of the chosen type
+// and attaches each one's payroll for the chosen month, exactly as the Fees page lists
+// students and attaches what they have paid.
 //
-// Four queries per page regardless of page size: the staff page, their payroll rows, the
+// Four queries per page regardless of page size: the person page, their payroll rows, the
 // payments against those, and the salary assignments. Never one lookup per row.
 // ---------------------------------------------------------------------------
 let GetPayrollPagination = async (req, res, next) => {
     try {
         const adminId = req.body.adminId;
         const filters = req.body.filters || {};
+        const personType = filters.personType || 'staff';
         const month = parseInt(filters.month);
         const year = parseInt(filters.year);
+
+        const model = getModel(personType);
+        if (!isPayable(personType) || !model) {
+            return res.status(400).json('A valid person type is required!');
+        }
         if (!month || !year) {
             return res.status(400).json('A month and year are required!');
         }
 
-        // Only active staff — an inactive one is not being paid this month.
-        const staffFilter = { adminId: adminId, status: 'active' };
+        // Only active people — somebody inactive is not being paid this month.
+        const personFilter = { adminId: adminId, ...activeFilter(personType) };
         if (filters.searchText) {
-            staffFilter.name = new RegExp(`${filters.searchText.toString().trim()}`, 'i');
+            personFilter.name = new RegExp(`${filters.searchText.toString().trim()}`, 'i');
         }
 
         const limit = (req.body.limit) ? parseInt(req.body.limit) : 10;
         const page = req.body.page || 1;
 
-        const [staffList, countStaff] = await Promise.all([
-            StaffModel.find(staffFilter, { name: 1, empCode: 1 }).sort({ name: 1 })
+        const [people, countPeople] = await Promise.all([
+            model.find(personFilter).sort({ name: 1 })
                 .limit(limit * 1)
                 .skip((page - 1) * limit)
                 .lean(),
-            StaffModel.count(staffFilter),
+            model.count(personFilter),
         ]);
 
-        const staffIds = staffList.map((staff) => staff._id.toString());
+        const personIds = people.map((person) => person._id.toString());
         const [payrollRows, structures] = await Promise.all([
-            staffIds.length > 0
+            personIds.length > 0
                 ? PayrollModel.find({
-                    adminId: adminId, staffId: { $in: staffIds }, year: year, month: month,
+                    adminId: adminId, personType: personType,
+                    personId: { $in: personIds }, year: year, month: month,
                 }).lean()
                 : [],
-            staffIds.length > 0
+            personIds.length > 0
                 ? SalaryStructureModel.find(
-                    { adminId: adminId, staffId: { $in: staffIds } }, { staffId: 1, salaryGroupId: 1 },
+                    { adminId: adminId, personType: personType, personId: { $in: personIds } },
+                    { personId: 1, salaryGroupId: 1 },
                 ).lean()
                 : [],
         ]);
 
-        const payrollByStaffId = new Map(payrollRows.map((row) => [String(row.staffId), row]));
-        const groupIdByStaffId = new Map(structures.map((s) => [String(s.staffId), String(s.salaryGroupId)]));
+        const payrollByPersonId = new Map(payrollRows.map((row) => [String(row.personId), row]));
+        const groupIdByPersonId = new Map(structures.map((s) => [String(s.personId), String(s.salaryGroupId)]));
 
-        const groupIds = [...new Set(groupIdByStaffId.values())];
+        const groupIds = [...new Set(groupIdByPersonId.values())];
         const [paidById, groups] = await Promise.all([
             getPaidByPayrollId(adminId, payrollRows.map((row) => row._id.toString())),
             groupIds.length > 0
@@ -398,15 +446,16 @@ let GetPayrollPagination = async (req, res, next) => {
         ]);
         const groupNameById = new Map(groups.map((group) => [group._id.toString(), group.name]));
 
-        let payrollList = staffList.map((staff) => {
-            const staffId = staff._id.toString();
-            const payroll = payrollByStaffId.get(staffId) || null;
+        let payrollList = people.map((person) => {
+            const personId = person._id.toString();
+            const payroll = payrollByPersonId.get(personId) || null;
             const paid = payroll ? (paidById.get(payroll._id.toString()) || 0) : 0;
-            const groupId = groupIdByStaffId.get(staffId);
+            const groupId = groupIdByPersonId.get(personId);
             return {
-                staffId: staff._id,
-                staffName: staff.name,
-                empCode: staff.empCode || '',
+                personType: personType,
+                personId: person._id,
+                name: person.name,
+                code: personCode(personType, person),
                 // '' rather than a placeholder — the frontend renders "Not assigned" so the
                 // wording lives with the rest of the UI copy.
                 salaryGroupName: groupId ? (groupNameById.get(groupId) || '') : '',
@@ -426,7 +475,7 @@ let GetPayrollPagination = async (req, res, next) => {
         });
 
         // Derived, so it cannot be part of the query — a status-filtered page can come back
-        // shorter than the limit. That is the honest cost of a staff-first list, and it is
+        // shorter than the limit. That is the honest cost of a people-first list, and it is
         // preferable to hiding the ungenerated rows the tab exists to act on.
         if (filters.status && filters.status !== 'all') {
             payrollList = filters.status === 'notGenerated'
@@ -434,30 +483,32 @@ let GetPayrollPagination = async (req, res, next) => {
                 : payrollList.filter((row) => row.status === filters.status);
         }
 
-        return res.json({ payrollList: payrollList, countStaff: countStaff });
+        return res.json({ payrollList: payrollList, countPeople: countPeople });
     } catch (error) {
         logger.error('payroll.GetPayrollPagination', error);
         return res.status(500).json('Internal Server Error!');
     }
 }
 
-// The itemised breakdown behind the View action, with the staff name and payment state the
-// modal shows alongside it.
+// The itemised breakdown behind the View action, with the person's name and payment state the
+// modal shows alongside it. Also the source the salary slip reads — see
+// controllers/salary-slip.js.
 let GetSinglePayroll = async (req, res, next) => {
     try {
         const payroll = await PayrollModel.findOne({ _id: req.params.id }).lean();
         if (!payroll) return res.status(404).json('Payroll not found!');
 
-        const [staff, payments] = await Promise.all([
-            StaffModel.findOne({ _id: payroll.staffId }, { name: 1, empCode: 1 }).lean(),
+        const model = getModel(payroll.personType);
+        const [person, payments] = await Promise.all([
+            model ? model.findOne({ _id: payroll.personId }).lean() : null,
             SalaryPaymentModel.find({ payrollId: payroll._id.toString() }).sort({ paymentDate: -1 }).lean(),
         ]);
         const paid = payments.reduce((total, payment) => total + (payment.amountPaid || 0), 0);
 
         return res.status(200).json({
             ...payroll,
-            staffName: staff ? staff.name : '',
-            empCode: staff ? (staff.empCode || '') : '',
+            name: person ? person.name : '',
+            code: person ? personCode(payroll.personType, person) : '',
             amountPaid: money(paid),
             paymentStatus: paymentStatusOf(payroll.netSalary, paid),
             payments: payments,
@@ -532,7 +583,8 @@ let UnlockPayroll = async (req, res, next) => {
         // decision, and the log is the only place that fact survives a re-lock.
         logger.info('payroll.unlocked', {
             adminId: adminId, payrollId: id, unlockedBy: unlockedBy || adminId,
-            staffId: payroll.staffId, year: payroll.year, month: payroll.month,
+            personType: payroll.personType, personId: payroll.personId,
+            year: payroll.year, month: payroll.month,
         });
         return res.status(200).json('Payroll unlocked successfully.');
     } catch (error) {
