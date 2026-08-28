@@ -23,4 +23,26 @@ export class SalaryPaymentService {
   recordPayment(data: SalaryPayment) {
     return this.http.post(this.url, data);
   }
+
+  // ---- The employee side, behind the teacher token ----------------------
+  // Nothing identifying is sent on any of these. The backend resolves the teacher from
+  // the verified JWT and refuses a payment that is not theirs, so this service has no way
+  // to act on somebody else even if it tried — the same division leave-request.service.ts
+  // makes between its admin and teacher entry points.
+
+  // { pending: [...], history: [...] } — pending is what still needs an answer, and only
+  // requests that have not lapsed appear in it.
+  getMyPayments() {
+    return this.http.get(`${this.url}/my-payments`);
+  }
+  // One way, and refused once the 24-hour window has closed. Confirming is what makes the
+  // payment count toward the payroll as paid.
+  confirmPayment(id: String) {
+    return this.http.put(`${this.url}/${id}/confirm`, {});
+  }
+  // data: { disputeReason }. Flags the payment for the school to look at; it does not
+  // reverse or delete anything.
+  disputePayment(id: String, data: any) {
+    return this.http.put(`${this.url}/${id}/dispute`, data);
+  }
 }

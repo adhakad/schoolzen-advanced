@@ -4,57 +4,9 @@
    rather than copied per page. It imports the dashboard base itself. */
 @import '../leave-request/leave-request.component.css';
 
-/* The salary slip is a sibling document to the fee receipt, so it reuses the receipt's own
-   stylesheet rather than restating it: .custom-container, .table-container, .info-table,
-   .custom-table, .text-bold, plus .custom-modal / .print-model-body for the print dialog.
-   admin-student-fees-statement.component.css imports it the same way for the same reason.
-   Verified not to collide with the leave-request classes imported above. */
-@import '../admin-student-fees/admin-student-fees.component.css';
-
-/* =========================================================================
-   TAB STRIP.
-   Generate Payroll | Payment History, plus whichever setup view the settings
-   menu opened. Same pill the holiday and roster pages use, not mat-tab —
-   which is exported by MaterialUiModule but used nowhere in this app, so a
-   first and only usage would read as a different product.
-   ========================================================================= */
-.tab-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
-
-.tab-button {
-  min-width: 92px;
-  color: #382066;
-  font-family: 'Poppins', sans-serif !important;
-  font-size: 12px;
-  letter-spacing: .3px;
-  border: 1px solid #d5d0e1af;
-  border-radius: 6px;
-}
-
-.tab-button.active {
-  background: #8C52FF;
-  color: #FFF;
-  border-color: #8C52FF;
-}
-
-/* A setup view reached through the gear appears in the strip only while it is open, so the
-   two everyday tabs stay the fixed part of the bar. Outlined rather than filled: it is where
-   you are, but it is not one of the two tabs you switch between. */
-.setup-tab {
-  border-style: dashed;
-  border-color: #8C52FF;
-  color: #8C52FF;
-}
-
-.mobile-option .tab-strip {
-  justify-content: flex-start;
-}
+/* The tab-strip rules that used to live here are gone with the tabs. Payment History, Salary
+   Groups and Assign Salary are routes now, reached from the settings menu — see the class
+   header in payroll.component.ts. */
 
 /* =========================================================================
    STATUS CHIPS.
@@ -108,64 +60,6 @@
 }
 
 /* =========================================================================
-   DYNAMIC ALLOWANCE / DEDUCTION ROWS.
-   Added inline with + and x rather than a modal per row — a scale with four
-   allowances would otherwise be four round trips through a nested dialog.
-   ========================================================================= */
-.component-block {
-  margin: 1.5vh 0;
-  padding: 10px 12px;
-  background: #faf9fd;
-  border: 1px solid #e0dbee;
-  border-radius: 6px;
-}
-
-.component-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.component-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: #382066;
-}
-
-.component-empty {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #7a7590;
-}
-
-.component-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-/* The name is the part that varies; the amount is always short. Fixed proportions rather than
-   two equal halves, so "Professional Tax" is readable without wrapping. */
-.component-name {
-  flex: 2 1 0;
-}
-
-.component-amount {
-  flex: 1 1 0;
-}
-
-.component-add mat-icon,
-.component-remove mat-icon {
-  color: #8C52FF;
-}
-
-.component-remove {
-  margin-top: 6px;
-}
-
-/* =========================================================================
    THE BREAKDOWN MODAL.
    Three blocks — days, gross, deductions — then the net. Grouped rather than
    listed flat because the question being answered is "where did this number
@@ -213,4 +107,18 @@
   padding-top: 0;
   font-size: 15px;
   color: #382066;
+}
+
+/* A record generated before its month ended. Amber rather than red: it is not an error, and
+   the number is not provisional — only the attendance behind part of it is. */
+.estimate-note {
+  margin: 1.5vh 0 0;
+  padding: 8px 12px;
+  background: #fff8ec;
+  border: 1px solid #f0dcb4;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #8a5f10;
 }

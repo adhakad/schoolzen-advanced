@@ -30,6 +30,13 @@ const { nowWallClock } = require('../helpers/attendance-time');
 // explains it (holidayName / leaveTypeName). Only a future day with neither is blank. The
 // `isFuture` flag rides along so the client can render those cells read-only without
 // re-deriving "has this happened" against the browser's own clock.
+//
+// `expected` rides along too, on EVERY day rather than only the ones that resolved to
+// Absent/Off. It answers "was this person supposed to be here", which is the one thing a
+// blank future cell does not otherwise say — a future Sunday and a future rostered Tuesday
+// are both '' and payroll has to tell them apart to know how long the month is. Adding it to
+// the entry rather than folding it into `status` keeps the grid, its summary strip and
+// reconcile reading exactly what they read before. See services/payroll-attendance.js.
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -92,6 +99,9 @@ const buildDayEntries = ({ monthDays, rowByDateKey, holidayMap, leaveMap, todayK
     for (const monthDay of monthDays) {
         const { dateKey, day, weekday } = monthDay;
         const row = rowByDateKey.get(dateKey) || null;
+        // Resolved once per day and carried on the entry, not only consulted in the Absent/Off
+        // branch below — see the file header.
+        const expected = isExpected(dateKey, weekday);
 
         const entry = {
             dateKey,
@@ -109,6 +119,10 @@ const buildDayEntries = ({ monthDays, rowByDateKey, holidayMap, leaveMap, todayK
             // Sent so the client does not have to re-derive "has this day happened" against
             // its own clock — a browser in another timezone would disagree with the school's.
             isFuture: dateKey > todayKey,
+            // Was this person supposed to be in at all? False on an unrostered day, which is
+            // where a weekly off lives for staff. Independent of `status`, so it is answered
+            // for future days too.
+            expected: expected,
             // Hover text for a cell that carries a Holiday/Leave chip. Empty otherwise.
             holidayName: '',
             leaveTypeName: '',
@@ -135,7 +149,7 @@ const buildDayEntries = ({ monthDays, rowByDateKey, holidayMap, leaveMap, todayK
             // Nothing known about this day yet. Stays a plain dimmed cell.
             entry.status = '';
         } else {
-            entry.status = isExpected(dateKey, weekday) ? 'Absent' : 'Off';
+            entry.status = expected ? 'Absent' : 'Off';
         }
 
         // Names for the cell's hover text, set whenever one was resolved — the frontend

@@ -21,6 +21,11 @@ export interface Payroll {
   leaveDays: number;
   unpaidLeaveDays: number;
   holidayDays: number;
+  // Rostered days still to come this month, carrying neither a holiday nor an approved
+  // leave. They are inside totalWorkingDays — a salary is for the month, not for the part
+  // of it that has elapsed — but they are what makes a mid-month record an ESTIMATE.
+  pendingDays?: number;
+  futureLeaveDays?: number;
   totalWorkingDays: number;
 
   basic: number;
@@ -51,4 +56,7 @@ export interface Payroll {
 export interface BulkGenerateResult {
   generated: number;
   skipped: { personId: String, name: String, reason: String }[];
+  // Present when some of the batch covers a month still running. One line for the whole
+  // selection, not one per person.
+  warning?: String;
 }

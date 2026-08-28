@@ -25,6 +25,21 @@ const { getLeaveMapForSchoolMonth } = require('./leave-lookup');
 // vs unpaid is a payroll question rather than an attendance one. That comes from
 // leave-lookup.js (which leave request covered the day) joined to LeaveType.isPaid.
 //
+// THE MONTH IS COUNTED WHOLE, INCLUDING THE PART THAT HAS NOT HAPPENED YET.
+//
+// totalWorkingDays used to be a sum of the days the calendar had already CLASSIFIED, which
+// meant generating on the 10th produced a divisor of ten. perMonth pay divides gross by that
+// number, so a mid-month draft over-deducted every absence roughly threefold. A salary is
+// owed for a month, not for the part of it that has elapsed, so the divisor is now the whole
+// month: every day this person is rostered on, whether or not it has arrived.
+//
+// A future day already carrying an approved Leave or an assigned Holiday needs nothing
+// special here — attendance-calendar.js resolves those cells to their real status before the
+// date arrives, so they land in the Leave/Holiday buckets like any past day and the paid /
+// unpaid split below applies to them unchanged. Only a future day with NEITHER is unknown,
+// and those are counted separately as pendingDays: part of the month, but not yet evidence
+// of anything. HOLIDAYS ARE NOT WORKING DAYS and are excluded from the divisor entirely.
+//
 // BATCHED BY (school, personType, month), never per person: a fixed number of round-trips
 // whether the caller asks about one person or eighty. That is what makes BulkGeneratePayroll
 // cheap enough to run for a whole school in one click.
@@ -54,6 +69,8 @@ const emptyCounts = () => ({
     leaveDays: 0,
     unpaidLeaveDays: 0,
     holidayDays: 0,
+    pendingDays: 0,
+    futureLeaveDays: 0,
     totalWorkingDays: 0,
 });
 
@@ -75,10 +92,23 @@ const countRow = (row, leaveMap, isPaidByLeaveTypeId) => {
     const holiday = summary.Holiday || 0;
 
     // Paid vs unpaid needs the leave TYPE behind each day, which the summary does not carry —
-    // so the Leave days are walked individually. Everything else is a summary read.
+    // so the Leave days are walked individually. Everything else is a summary read. The same
+    // walk answers the two questions about the part of the month still to come.
     let leaveDays = 0;
     let unpaidLeaveDays = 0;
+    // Rostered, not yet arrived, and nothing known about it. Part of the month for pay
+    // purposes; evidence of neither presence nor absence.
+    let pendingDays = 0;
+    // Already covered by an approved leave before the day arrived. Counted in leaveDays like
+    // any other leave day — this is only the subset the mid-month warning names separately.
+    let futureLeaveDays = 0;
     for (const day of row.days || []) {
+        if (day.isFuture) {
+            if (day.status === 'Leave') futureLeaveDays += 1;
+            // `expected` is what separates a future rostered Tuesday from a future Sunday;
+            // both carry status '' and only one of them is a working day.
+            else if (!day.status && day.expected) pendingDays += 1;
+        }
         if (day.status !== 'Leave') continue;
         const request = leaveMap.get(day.dateKey);
         // NO MATCHING APPROVED REQUEST MEANS PAID.
@@ -106,14 +136,19 @@ const countRow = (row, leaveMap, isPaidByLeaveTypeId) => {
         leaveDays,
         unpaidLeaveDays,
         holidayDays: holiday,
-        // Days in the month MINUS the days this person was not expected at all. 'Off' is how
-        // attendance-calendar.js expresses an unrostered day, which is where a weekly off
-        // actually lives for staff — so a Mon-Sat staffer and a Mon-Fri one correctly get
-        // different divisors, rather than a fixed "minus Sundays" that suits neither.
+        pendingDays,
+        futureLeaveDays,
+        // THE WHOLE MONTH this person was expected in, MINUS the days they were not expected
+        // at all and MINUS the declared holidays. 'Off' is how attendance-calendar.js
+        // expresses an unrostered day, which is where a weekly off actually lives for staff —
+        // so a Mon-Sat staffer and a Mon-Fri one correctly get different divisors, rather than
+        // a fixed "minus Sundays" that suits neither.
         //
-        // A future day with nothing known carries status '' and lands in no bucket, so
-        // generating mid-month naturally counts only the days that have happened.
-        totalWorkingDays: roundDays(present + late + halfDay + absent + leave + holiday),
+        // pendingDays carries the part of the month that has not happened, so a draft
+        // generated on the 10th divides by the same number the month-end regeneration will.
+        // Holidays are excluded: they are paid, but nobody works them, and dividing a month's
+        // pay across days the school was shut understates what a day of absence costs.
+        totalWorkingDays: roundDays(present + late + halfDay + absent + leave + pendingDays),
     };
 };
 

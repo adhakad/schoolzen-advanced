@@ -25,4 +25,14 @@ const recordPaymentSchema = Joi.object({
     remarks: Joi.string().trim().allow('', null),
 });
 
-module.exports = { recordPaymentSchema };
+// The dispute body. A reason is REQUIRED and not allowed to be blank: a dispute with no
+// explanation gives the admin who has to resolve it nothing to act on, and the whole point of
+// capturing it on the payment row is that somebody can read it later.
+//
+// The payment id comes from the URL and the disputing teacher from the verified token, so
+// there is nothing else here worth accepting — validate.js strips anything the client adds.
+const disputePaymentSchema = Joi.object({
+    disputeReason: Joi.string().trim().min(3).max(500).required(),
+});
+
+module.exports = { recordPaymentSchema, disputePaymentSchema };

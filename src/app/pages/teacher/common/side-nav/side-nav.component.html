@@ -28,6 +28,18 @@
         <span>Leave</span>
       </button>
     </li>
+    <!-- Also ungated, and for the same reason as Leave above: seeing your own salary and
+         confirming you were paid is not a permission a school grants. There is no
+         salaryPermission on models/teacher.js and CLAUDE.md forbids adding one, so gating
+         this would mean inventing a field to hide a teacher's own pay from them. The page
+         can only ever show this teacher's own payments — the backend takes their identity
+         from the token and refuses anything else. -->
+    <li class="nav-item">
+      <button mat-button class="menu-button" routerLink="/teacher/salary" routerLinkActive="active-link">
+        <mat-icon>payments</mat-icon>
+        <span>Salary</span>
+      </button>
+    </li>
     <li class="nav-item">
       <button *ngIf="admissionPermission" mat-button class="menu-button" routerLink="/teacher/admission" routerLinkActive="active-link">
         <mat-icon>dialpad</mat-icon>

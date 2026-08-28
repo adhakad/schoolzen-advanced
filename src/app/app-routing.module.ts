@@ -48,9 +48,17 @@ const routes: Routes = [
   { path: 'admin/leave-request', loadChildren: () => import('src/app/pages/admin/leave-request/leave-request.module').then((module) => module.LeaveRequestModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/leave-limit', loadChildren: () => import('src/app/pages/admin/leave-limit/leave-limit.module').then((module) => module.LeaveLimitModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/holiday', loadChildren: () => import('src/app/pages/admin/holiday/holiday.module').then((module) => module.HolidayModule), canActivate: [AdminAuthGuard] },
-  // ONE route for the whole payroll module. Salary Groups and Assign Salary are views inside
-  // this page reached from its settings menu, not routes of their own — they share the page's
-  // month/year selection, which routing away and back would lose.
+  // FOUR ROUTES, ONE SECTION. Payment History, Salary Groups and Assign Salary each load
+  // only when somebody opens them, so arriving at Payroll downloads the payroll table and
+  // nothing else. The section still reads as one place: the Payroll page carries the current
+  // month/year/person-type to these as query params, and each of them links back.
+  //
+  // The sub-paths are declared BEFORE the parent. The router does backtrack out of a lazy
+  // module whose children do not match — the Fees routes above rely on it — but longest-path
+  // first is correct either way and costs nothing to write.
+  { path: 'admin/payroll/payment-history', loadChildren: () => import('src/app/pages/admin/payroll-payment-history/payroll-payment-history.module').then((module) => module.PayrollPaymentHistoryModule), canActivate: [AdminAuthGuard] },
+  { path: 'admin/payroll/salary-group', loadChildren: () => import('src/app/pages/admin/salary-group/salary-group.module').then((module) => module.SalaryGroupModule), canActivate: [AdminAuthGuard] },
+  { path: 'admin/payroll/salary-structure', loadChildren: () => import('src/app/pages/admin/salary-structure/salary-structure.module').then((module) => module.SalaryStructureModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/payroll', loadChildren: () => import('src/app/pages/admin/payroll/payroll.module').then((module) => module.PayrollModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/class', loadChildren: () => import('src/app/pages/admin/class/class.module').then((module) => module.ClassModule), canActivate: [AdminAuthGuard] },
   { path: 'admin/subject', loadChildren: () => import('src/app/pages/admin/subject/subject.module').then((module) => module.SubjectModule), canActivate: [AdminAuthGuard] },
@@ -72,6 +80,10 @@ const routes: Routes = [
 
   { path: 'teacher/attendance', loadChildren: () => import('src/app/pages/teacher/teacher-attendance/teacher-attendance.module').then((module) => module.TeacherAttendanceModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/leave', loadChildren: () => import('src/app/pages/teacher/teacher-leave/teacher-leave.module').then((module) => module.TeacherLeaveModule), canActivate: [TeacherAuthGuard] },
+  // A teacher's own salary payments, and the confirmation the school is waiting on. The
+  // backend takes their identity from the token, so this page can only ever show and act on
+  // their own — see controllers/salary-payment.js.
+  { path: 'teacher/salary', loadChildren: () => import('src/app/pages/teacher/teacher-salary/teacher-salary.module').then((module) => module.TeacherSalaryModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/admission', loadChildren: () => import('src/app/pages/teacher/teacher-admission/teacher-admission.module').then((module) => module.TeacherAdmissionModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/admit-card', loadChildren: () => import('src/app/pages/teacher/teacher-admit-card/teacher-admit-card.module').then((module) => module.TeacherAdmitCardModule), canActivate: [TeacherAuthGuard] },
   { path: 'teacher/marksheet', loadChildren: () => import('src/app/pages/teacher/teacher-student-marksheet/teacher-student-marksheet.module').then((module) => module.TeacherStudentMarksheetModule), canActivate: [TeacherAuthGuard] },

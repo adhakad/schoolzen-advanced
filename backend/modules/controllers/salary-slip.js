@@ -6,6 +6,7 @@ const SchoolModel = require('../models/school');
 const DepartmentModel = require('../models/department');
 const DesignationModel = require('../models/designation');
 const { getModel, personCode } = require('../services/person-lookup');
+const { SETTLED_MATCH, isSettled } = require('../services/salary-payment-status');
 const logger = require('../helpers/logger');
 
 // THE SALARY SLIP.
@@ -87,7 +88,12 @@ const buildSlipPayload = async (slip, payroll) => {
         designationName = designation ? designation.title : '';
     }
 
-    const amountPaid = payments.reduce((total, payment) => total + (payment.amountPaid || 0), 0);
+    // SETTLED only. A slip is a record of money that arrived, and a payment the employee has
+    // not acknowledged has not arrived as far as this system is concerned — printing it would
+    // hand them a document asserting the very thing they have not yet agreed to.
+    const amountPaid = payments
+        .filter(isSettled)
+        .reduce((total, payment) => total + (payment.amountPaid || 0), 0);
     // The most recent payment supplies the Payment Date / Mode / Reference row on the slip.
     // The full list rides along so a slip covering instalments can show them all.
     const latestPayment = payments.length > 0 ? payments[0] : null;
@@ -168,10 +174,10 @@ let GenerateSalarySlip = async (req, res, next) => {
             return res.status(400).json('A salary slip can only be generated for a locked payroll!');
         }
         const payments = await SalaryPaymentModel
-            .find({ payrollId: String(payroll._id) }, { _id: 1 })
+            .find({ payrollId: String(payroll._id), ...SETTLED_MATCH }, { _id: 1 })
             .lean();
         if (payments.length === 0) {
-            return res.status(400).json('Record a payment before generating a salary slip!');
+            return res.status(400).json('No confirmed payment exists against this payroll yet. A salary slip can only be issued once a payment has been confirmed!');
         }
         const salaryPaymentIds = payments.map((payment) => payment._id.toString());
 

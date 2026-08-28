@@ -1,0 +1,290 @@
+<app-header-navbar></app-header-navbar>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-navbar></app-side-navbar>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="desktop-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-5">
+                    <button mat-button class="menu-button">
+                      <span>Salary Groups</span>
+                    </button>
+                    <a mat-button class="back-button" routerLink="/admin/payroll">
+                      <mat-icon>arrow_back</mat-icon>
+                      <span>Back to Payroll</span>
+                    </a>
+                  </div>
+                  <div class="col-7" style="text-align: right;">
+                    <div class="row">
+                      <div class="col-12"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mobile-option">
+              <div class="col-12">
+                <div class="row">
+                  <div class="col-12">
+                    <button mat-button class="menu-button">
+                      <span>Salary Groups</span>
+                    </button>
+                    <a mat-button class="back-button" routerLink="/admin/payroll">
+                      <mat-icon>arrow_back</mat-icon>
+                      <span>Back to Payroll</span>
+                    </a>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+
+
+                <h3 class="page-purpose">Reusable Pay Scales</h3>
+                <p class="page-note">
+                  Set up each pay scale once, then put staff on it from <strong>Assign Salary</strong>. Editing a scale
+                  changes what the <em>next</em> payroll produces &mdash; payroll already generated keeps its own copy
+                  of the numbers.
+                </p>
+
+                <div class="filter-row">
+                  <button class="submit-button toolbar-button" mat-raised-button (click)="addSalaryGroupModel()">
+                    <mat-icon>add</mat-icon>Add Salary Group
+                  </button>
+                </div>
+
+                <div class="table-wrapper">
+                  <table class="table table-hover align-middle bg-white">
+                    <thead class="bg-light">
+                      <tr class="text-muted">
+                        <th>No.</th>
+                        <th>Name</th>
+                        <th>Mode</th>
+                        <th>Basic</th>
+                        <th>HRA</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody *ngIf="groupList && groupList.length > 0">
+                      <tr *ngFor="let group of groupList, let i = index">
+                        <td>
+                          <p class="mb-0">{{groupNumber * groupLimit + i + 1 - groupLimit}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{group.name | titlecase}}</p>
+                          <p class="mb-0 person-code" *ngIf="group.allowances?.length || group.deductions?.length">
+                            {{group.allowances?.length || 0}} allowance(s) &middot; {{group.deductions?.length || 0}}
+                            deduction(s)
+                          </p>
+                        </td>
+                        <!-- Plain language, never the stored enum. -->
+                        <td>
+                          <p class="mb-0">{{modeLabel(group.calculationMode)}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{group.basic}}</p>
+                        </td>
+                        <td>
+                          <p class="mb-0">{{group.hra}}</p>
+                        </td>
+                        <td>
+                          <span class="status-chip"
+                            [ngClass]="group.status === 'active' ? 'status-approved' : 'status-cancelled'">
+                            {{group.status | titlecase}}
+                          </span>
+                        </td>
+                        <td class="mb-0 action-cell">
+                          <mat-icon matRipple (click)="updateSalaryGroupModel(group)">edit</mat-icon>
+                          <mat-icon matRipple (click)="deleteSalaryGroupModel(group)">delete</mat-icon>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <ng-container *ngIf="!groupLoader && (!groupList || groupList.length === 0)">
+                  <h2 style="text-align: center;margin-top: 150px;">No Record Found</h2>
+                </ng-container>
+
+                <div class="pagination">
+                  <app-pagination [paginationValues]="groupPaginationValues" (onChange)="getSalaryGroup($event)">
+                  </app-pagination>
+                </div>
+
+              <!-- ==================================================================
+                   MODALS — one element, switched by modalMode, matching the Fees, Shift
+                   and Leave convention.
+                   ================================================================== -->
+              <div class="modal fade show" [class.show]="showModal">
+                <div class="modal-dialog modal-dialog-top" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">
+                        {{modalMode === 'group' ? (updateMode ? 'EDIT SALARY GROUP' : 'ADD SALARY GROUP') :
+                        modalMode === 'deleteGroup' ? 'DELETE SALARY GROUP' : ''}}
+                      </h5>
+                      <mat-icon matRipple (click)="closeModal()">close</mat-icon>
+                    </div>
+
+                    <!-- ---------- SALARY GROUP ADD / EDIT ---------- -->
+                    <form [formGroup]="groupForm" (ngSubmit)="salaryGroupAddUpdate()" *ngIf="modalMode === 'group'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Name</mat-label>
+                          <input matInput type="text" formControlName="name" placeholder="Primary Teacher Grade A">
+                          <mat-hint *ngIf="!groupForm.get('name')?.valid && groupForm.get('name')?.touched"
+                            class="form-text text-danger">Give this scale a name</mat-hint>
+                        </mat-form-field>
+
+                        <!-- A dropdown, never a radio group — the one place a select is used
+                             for a two-way choice in this module. -->
+                        <mat-form-field appearance="outline">
+                          <mat-label>How is this paid?</mat-label>
+                          <mat-select matInput formControlName="calculationMode">
+                            <mat-option value="perMonth">Per Month</mat-option>
+                            <mat-option value="perDay">Per Day</mat-option>
+                          </mat-select>
+                          <mat-hint>
+                            {{groupForm.value.calculationMode === 'perDay'
+                            ? 'The amounts below are a daily rate — pay is the rate times the days worked.'
+                            : 'The amounts below are a full month — absences are deducted from it.'}}
+                          </mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Basic</mat-label>
+                          <input matInput type="number" formControlName="basic">
+                          <mat-hint *ngIf="!groupForm.get('basic')?.valid && groupForm.get('basic')?.touched"
+                            class="form-text text-danger">Enter a basic amount</mat-hint>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>HRA</mat-label>
+                          <input matInput type="number" formControlName="hra">
+                        </mat-form-field>
+
+                        <!-- Rows added inline with + and ×, not a modal per row. -->
+                        <div class="component-block" formArrayName="allowances">
+                          <div class="component-head">
+                            <span class="component-title">Allowances</span>
+                            <button type="button" mat-icon-button class="component-add" (click)="addAllowanceRow()">
+                              <mat-icon>add</mat-icon>
+                            </button>
+                          </div>
+                          <p class="component-empty" *ngIf="allowanceRows.length === 0">None &mdash; add one if this
+                            scale includes transport, medical or similar.</p>
+                          <div class="component-row" *ngFor="let row of allowanceRows.controls; let i = index"
+                            [formGroupName]="i">
+                            <mat-form-field appearance="outline" class="component-name">
+                              <mat-label>Name</mat-label>
+                              <input matInput type="text" formControlName="name" placeholder="Transport">
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" class="component-amount">
+                              <mat-label>Amount</mat-label>
+                              <input matInput type="number" formControlName="amount">
+                            </mat-form-field>
+                            <button type="button" mat-icon-button class="component-remove"
+                              (click)="removeAllowanceRow(i)">
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="component-block" formArrayName="deductions">
+                          <div class="component-head">
+                            <span class="component-title">Deductions</span>
+                            <button type="button" mat-icon-button class="component-add" (click)="addDeductionRow()">
+                              <mat-icon>add</mat-icon>
+                            </button>
+                          </div>
+                          <p class="component-empty" *ngIf="deductionRows.length === 0">None &mdash; add one for PF,
+                            professional tax and the like.</p>
+                          <div class="component-row" *ngFor="let row of deductionRows.controls; let i = index"
+                            [formGroupName]="i">
+                            <mat-form-field appearance="outline" class="component-name">
+                              <mat-label>Name</mat-label>
+                              <input matInput type="text" formControlName="name" placeholder="PF">
+                            </mat-form-field>
+                            <mat-form-field appearance="outline" class="component-amount">
+                              <mat-label>Amount</mat-label>
+                              <input matInput type="number" formControlName="amount">
+                            </mat-form-field>
+                            <button type="button" mat-icon-button class="component-remove"
+                              (click)="removeDeductionRow(i)">
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+
+                        <mat-form-field appearance="outline">
+                          <mat-label>Status</mat-label>
+                          <mat-select matInput formControlName="status">
+                            <mat-option value="active">Active</mat-option>
+                            <mat-option value="inactive">Inactive</mat-option>
+                          </mat-select>
+                          <mat-hint>An inactive scale keeps its history but is not offered when assigning.</mat-hint>
+                        </mat-form-field>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button type="submit" [disabled]="isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          {{updateMode ? 'Update' : 'Save'}}
+                        </button>
+                      </div>
+                    </form>
+
+
+                    <!-- ---------- DELETE SALARY GROUP ---------- -->
+                    <ng-container *ngIf="modalMode === 'deleteGroup'">
+                      <div class="modal-body">
+                        <div *ngIf="errorCheck">
+                          <p class="error-message">{{errorMsg}}</p>
+                        </div>
+                        <h4 class="confirm-title">Delete {{deleteGroup?.name | titlecase}}?</h4>
+                        <p class="confirm-note">
+                          Only a scale nobody is on and nothing has been generated from can be deleted. To retire one
+                          that is in use, set it to <strong>Inactive</strong> instead.
+                        </p>
+                      </div>
+                      <div class="modal-footer">
+                        <button class="submit-button" mat-raised-button (click)="salaryGroupDelete()"
+                          [disabled]="isClick">
+                          <span *ngIf="isClick" class="submitting-content">
+                            <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                          </span>
+                          Delete
+                        </button>
+                      </div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

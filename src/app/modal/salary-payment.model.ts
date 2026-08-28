@@ -17,6 +17,17 @@ export interface SalaryPayment {
   referenceNumber?: String;
   paidBy: String;
   remarks?: String;
+
+  // ---- Set by the backend, never sent by the client ---------------------
+  // A payment counts toward the payroll as paid only while this reads Confirmed. A row
+  // written before confirmation existed carries no value at all, which is read as
+  // Confirmed — it was settled money at the time.
+  confirmationStatus?: 'PendingConfirmation' | 'Confirmed' | 'Disputed' | 'Expired';
+  confirmationRequestedAt?: Date;
+  confirmationExpiresAt?: Date | null;
+  confirmedAt?: Date | null;
+  confirmedByDeviceInfo?: String | null;
+  disputeReason?: String | null;
   createdAt?: Date;
 }
 
@@ -32,7 +43,11 @@ export interface PaymentHistoryRow {
   month: number;
   year: number;
   netSalary: number;
+  // CONFIRMED money only. Recorded-but-unacknowledged money is in pendingAmount, and is
+  // in neither this nor remainingAmount — which is why a row can show a payment against
+  // it and still read Unpaid.
   amountPaid: number;
+  pendingAmount: number;
   remainingAmount: number;
   paymentStatus: String;
   paymentMode: String;

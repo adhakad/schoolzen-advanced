@@ -9,6 +9,7 @@ const {
     getPayrollAttendanceForOne,
     PAYABLE_TYPES,
 } = require('../services/payroll-attendance');
+const { SETTLED_MATCH, isSettled, paymentStatusOf } = require('../services/salary-payment-status');
 const logger = require('../helpers/logger');
 
 // PAYROLL GENERATION.
@@ -29,6 +30,26 @@ const logger = require('../helpers/logger');
 // owns both quirks and is reused here rather than re-derived.
 
 const isPayable = (personType) => PAYABLE_TYPES.includes(personType);
+
+// ---------------------------------------------------------------------------
+// MID-MONTH GENERATION IS AN ESTIMATE, AND SAYS SO.
+//
+// The month is costed whole (services/payroll-attendance.js), so the numbers are not wrong —
+// but the days still to come have not happened, and an admin looking at a payslip dated the
+// 10th deserves to be told which part of it is a projection rather than a record.
+//
+// Returned rather than thrown: generation proceeds, as a DRAFT, exactly as before.
+// ---------------------------------------------------------------------------
+const buildProgressWarning = (counts) => {
+    const pending = counts.pendingDays || 0;
+    const futureLeave = counts.futureLeaveDays || 0;
+    const remaining = pending + futureLeave;
+    if (remaining <= 0) return '';
+    return `This month is still in progress — ${remaining} day(s) remain `
+        + `(${futureLeave} of which are already covered by approved leave). `
+        + "Salary is calculated on the full month's working days, but attendance for the "
+        + `remaining ${pending} day(s) is not yet final.`;
+};
 
 // ---------------------------------------------------------------------------
 // SHARED CALCULATION HELPERS
@@ -136,6 +157,8 @@ const buildPayrollFields = ({ adminId, personType, personId, month, year, group,
     leaveDays: counts.leaveDays,
     unpaidLeaveDays: counts.unpaidLeaveDays,
     holidayDays: counts.holidayDays,
+    pendingDays: counts.pendingDays || 0,
+    futureLeaveDays: counts.futureLeaveDays || 0,
     totalWorkingDays: counts.totalWorkingDays,
     basic: money(effective.basic),
     hra: money(effective.hra),
@@ -164,19 +187,14 @@ const getPaidByPayrollId = async (adminId, payrollIds) => {
     const paidById = new Map();
     if (payrollIds.length === 0) return paidById;
     const grouped = await SalaryPaymentModel.aggregate([
-        { $match: { adminId: adminId, payrollId: { $in: payrollIds } } },
+        // SETTLED_MATCH, not every row: a payment the employee has not acknowledged is not a
+        // payment yet. See services/salary-payment-status.js — this is what stops a one-sided
+        // "I paid" from reading as settled on the Generate list.
+        { $match: { adminId: adminId, payrollId: { $in: payrollIds }, ...SETTLED_MATCH } },
         { $group: { _id: '$payrollId', paid: { $sum: '$amountPaid' } } },
     ]);
     for (const entry of grouped) paidById.set(String(entry._id), entry.paid);
     return paidById;
-};
-
-const paymentStatusOf = (netSalary, paid) => {
-    if (!paid || paid <= 0) return 'Unpaid';
-    // >= rather than ===: a rounding remainder of a paisa must not leave a fully settled
-    // payroll reading as Partially Paid forever.
-    if (paid >= netSalary) return 'Fully Paid';
-    return 'Partially Paid';
 };
 
 
@@ -238,9 +256,15 @@ let GeneratePayroll = async (req, res, next) => {
         logger.info('payroll.generated', {
             adminId: adminId, personType: personType, personId: personId, year: year, month: month,
             netSalary: payroll.netSalary, mode: group.calculationMode,
+            pendingDays: counts.pendingDays || 0,
         });
 
-        return res.status(200).json({ successMsg: 'Payroll generated successfully.', payroll: payroll });
+        return res.status(200).json({
+            successMsg: 'Payroll generated successfully.',
+            // '' for a completed month. The frontend toasts it only when it is non-empty.
+            warning: buildProgressWarning(counts),
+            payroll: payroll,
+        });
     } catch (error) {
         logger.error('payroll.GeneratePayroll', error);
         return res.status(500).json('Internal Server Error!');
@@ -302,6 +326,9 @@ let BulkGeneratePayroll = async (req, res, next) => {
 
         const writeOps = [];
         const skipped = [];
+        // Counted, not listed. Sixty people generated mid-month is ONE fact about the month,
+        // and naming each of them would bury the skipped list that actually needs acting on.
+        let inProgressCount = 0;
 
         for (const personId of uniquePersonIds) {
             const person = personById.get(personId);
@@ -329,7 +356,8 @@ let BulkGeneratePayroll = async (req, res, next) => {
             // counts then fail the working-days guard below with the right message.
             const counts = countsByPersonId.get(personId) || {
                 presentDays: 0, absentDays: 0, halfDays: 0, leaveDays: 0,
-                unpaidLeaveDays: 0, holidayDays: 0, totalWorkingDays: 0,
+                unpaidLeaveDays: 0, holidayDays: 0, pendingDays: 0, futureLeaveDays: 0,
+                totalWorkingDays: 0,
             };
             const effective = resolveEffectiveSalary(group, structure);
             const pay = calculatePay(effective, group.calculationMode, counts);
@@ -337,6 +365,8 @@ let BulkGeneratePayroll = async (req, res, next) => {
                 skipped.push({ personId, name, reason: pay.error });
                 continue;
             }
+
+            if ((counts.pendingDays || 0) + (counts.futureLeaveDays || 0) > 0) inProgressCount += 1;
 
             writeOps.push({
                 updateOne: {
@@ -364,7 +394,15 @@ let BulkGeneratePayroll = async (req, res, next) => {
             requested: uniquePersonIds.length, generated: writeOps.length, skipped: skipped.length,
         });
 
-        return res.status(200).json({ generated: writeOps.length, skipped: skipped });
+        const warning = inProgressCount > 0
+            ? `${inProgressCount} of the ${writeOps.length} record(s) cover a month that is still `
+                + "in progress. Salary is calculated on the full month's working days, but the "
+                + 'remaining days are not yet final — regenerate once the month has ended.'
+            : '';
+
+        return res.status(200).json({
+            generated: writeOps.length, skipped: skipped, warning: warning,
+        });
     } catch (error) {
         logger.error('payroll.BulkGeneratePayroll', error);
         return res.status(500).json('Internal Server Error!');
@@ -503,7 +541,11 @@ let GetSinglePayroll = async (req, res, next) => {
             model ? model.findOne({ _id: payroll.personId }).lean() : null,
             SalaryPaymentModel.find({ payrollId: payroll._id.toString() }).sort({ paymentDate: -1 }).lean(),
         ]);
-        const paid = payments.reduce((total, payment) => total + (payment.amountPaid || 0), 0);
+        // Settled only, exactly as the list's aggregation counts it — the breakdown modal and
+        // the row behind it must never disagree about how much has been paid.
+        const paid = payments
+            .filter(isSettled)
+            .reduce((total, payment) => total + (payment.amountPaid || 0), 0);
 
         return res.status(200).json({
             ...payroll,

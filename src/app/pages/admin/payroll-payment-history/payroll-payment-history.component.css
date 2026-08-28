@@ -1,0 +1,370 @@
+/* The attendance-side shared stylesheet — table, chips, filter-row, confirm styles — imported
+   the same way holiday, leave-limit and the payroll page import it. It pulls in the dashboard
+   base itself. */
+@import '../leave-request/leave-request.component.css';
+
+/* The payslip modal sits lower than a form modal for the same reason the fee receipt's does:
+   it is a document being previewed, not a dialog being filled in. That is the ONLY rule this
+   page wanted from the fee receipt's stylesheet, and importing the whole thing to get it
+   pulled in a second copy of the dashboard base (leave-request above already imports it) for
+   thirteen kilobytes of classes the payslip does not use. The payslip's own look is defined
+   further down and shares nothing with the receipt's. */
+.custom-modal .modal-dialog {
+  margin-top: 200px;
+}
+
+/* The way back to the page that opened this one. A sub-page of a section should never be a
+   dead end, and the sidebar only knows about the section, not this screen. Quiet and
+   text-like: it is an escape hatch, not one of this page's actions. */
+.back-button {
+  margin-left: 6px;
+  color: #7a7590;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 12px;
+  letter-spacing: .2px;
+  vertical-align: middle;
+}
+
+.back-button mat-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+
+/* ---- Payment status, as derived from CONFIRMED money only ---------------- */
+.status-unpaid {
+  background: #fdeced;
+  color: #a52834;
+}
+
+.status-partiallypaid {
+  background: #fff4e0;
+  color: #9a6a10;
+}
+
+.status-fullypaid {
+  background: #e9f7ee;
+  color: #1f7a44;
+}
+
+.net-salary {
+  font-weight: 600;
+  color: #252525;
+}
+
+/* =========================================================================
+   CONFIRMATION BADGES — the employee's half of the record.
+   One per instalment, so a salary paid in two parts can show one half settled
+   and the other still open. Awaiting is amber rather than red: nothing has
+   gone wrong, somebody simply has not answered yet.
+   ========================================================================= */
+.confirm-chip {
+  display: inline-block;
+  margin: 0 4px 4px 0;
+  cursor: default;
+}
+
+.confirm-pending {
+  background: #fff4e0;
+  color: #9a6a10;
+}
+
+.confirm-confirmed {
+  background: #e9f7ee;
+  color: #1f7a44;
+}
+
+.confirm-disputed {
+  background: #fdeced;
+  color: #a52834;
+}
+
+/* Grey, not red. A lapsed request is a stale row to re-record, not a dispute. */
+.confirm-expired {
+  background: #f3f2f7;
+  color: #7a7590;
+}
+
+/* Money handed over but not acknowledged. It belongs to neither the paid nor the still-due
+   line, and omitting it entirely would make the row's arithmetic look broken. */
+.pending-amount {
+  color: #9a6a10;
+}
+
+/* =========================================================================
+   THE PAYSLIP.
+   These are the preview's copy of the print stylesheet in
+   getSlipPrintContent(). The two exist separately because the print window is
+   a fresh document with none of Angular's scoped CSS in it — keep them in
+   step, and change both or neither.
+   ========================================================================= */
+#salary-slip {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  color: #1a1a1a;
+}
+
+#salary-slip p {
+  margin: 0;
+}
+
+#salary-slip table {
+  border-collapse: collapse;
+}
+
+.ps-sheet {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #c9ccd6;
+  background: #fff;
+}
+
+/* The one place colour is structural rather than decorative. */
+.ps-head {
+  background: #1F3864;
+  color: #ffffff;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ps-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ps-logo {
+  height: 46px;
+  width: auto;
+}
+
+.ps-school {
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: .3px;
+  margin: 0 0 2px 0;
+  color: #ffffff;
+}
+
+.ps-school-line {
+  font-size: 9.5px;
+  line-height: 1.45;
+  margin: 0;
+  color: #dce3f2;
+}
+
+.ps-head-right {
+  text-align: right;
+}
+
+.ps-title {
+  font-size: 17px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin: 0;
+  color: #ffffff;
+}
+
+.ps-period {
+  font-size: 10.5px;
+  margin: 2px 0 0 0;
+  color: #dce3f2;
+}
+
+.ps-meta {
+  background: #eef0f5;
+  border-bottom: 1px solid #c9ccd6;
+  padding: 5px 14px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: #3c4257;
+}
+
+.ps-meta strong {
+  color: #1F3864;
+}
+
+.ps-emp {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 10px 14px 4px 14px;
+}
+
+.ps-emp-item {
+  width: 50%;
+  box-sizing: border-box;
+  padding: 0 8px 7px 0;
+}
+
+.ps-label {
+  display: block;
+  font-size: 8.5px;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: #77809a;
+  margin-bottom: 1px;
+}
+
+.ps-value {
+  display: block;
+  font-size: 11.5px;
+  font-weight: bold;
+  color: #1a1a1a;
+}
+
+/* The numbers the pay was worked out from, so a deduction can be checked rather than trusted. */
+.ps-att {
+  display: flex;
+  background: #f4f5f8;
+  border-top: 1px solid #dfe2ea;
+  border-bottom: 1px solid #dfe2ea;
+  padding: 7px 14px;
+}
+
+.ps-att-cell {
+  flex: 1;
+  text-align: center;
+}
+
+.ps-att-num {
+  display: block;
+  font-size: 15px;
+  font-weight: bold;
+  color: #1F3864;
+  line-height: 1.2;
+}
+
+.ps-att-lab {
+  display: block;
+  font-size: 8.5px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: #77809a;
+}
+
+.ps-cols {
+  display: flex;
+}
+
+.ps-col {
+  width: 50%;
+  box-sizing: border-box;
+}
+
+.ps-col + .ps-col {
+  border-left: 1px solid #dfe2ea;
+}
+
+.ps-col table {
+  width: 100%;
+}
+
+.ps-col th {
+  background: #f4f5f8;
+  text-align: left;
+  font-size: 9px;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: #3c4257;
+  padding: 6px 14px;
+  border-bottom: 1px solid #dfe2ea;
+}
+
+.ps-col th.ps-amt,
+.ps-col td.ps-amt {
+  text-align: right;
+}
+
+.ps-col td {
+  font-size: 11px;
+  padding: 4px 14px;
+}
+
+.ps-sub td {
+  font-weight: bold;
+  border-top: 1px solid #dfe2ea;
+  background: #fafbfd;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+/* The one figure most readers open a payslip for. */
+.ps-net {
+  background: #1F3864;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+}
+
+.ps-net-lab {
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.ps-net-amt {
+  font-size: 19px;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.ps-words {
+  font-style: italic;
+  font-size: 10px;
+  color: #3c4257;
+  padding: 6px 14px 0 14px;
+}
+
+.ps-pay {
+  display: flex;
+  padding: 8px 14px 10px 14px;
+  border-bottom: 1px solid #dfe2ea;
+}
+
+.ps-pay-item {
+  flex: 1;
+}
+
+.ps-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 16px 14px 8px 14px;
+}
+
+.ps-sign {
+  width: 45%;
+}
+
+/* Blank above the rule, for a wet signature. The School profile carries no signatory name and
+   inventing a field for this one document would be a schema change nothing else asked for. */
+.ps-sign-line {
+  border-top: 1px solid #6b7280;
+  margin-top: 26px;
+  padding-top: 3px;
+  font-size: 9.5px;
+  color: #3c4257;
+}
+
+.ps-print {
+  width: 50%;
+  text-align: right;
+  font-size: 8.5px;
+  line-height: 1.5;
+  color: #77809a;
+}
+
+.ps-note {
+  text-align: center;
+  font-size: 8.5px;
+  color: #9aa1b1;
+  padding: 0 14px 10px 14px;
+}

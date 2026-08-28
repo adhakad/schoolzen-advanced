@@ -144,10 +144,11 @@
         <span>Holiday</span>
       </button>
     </li>
-    <!-- One entry for four screens. Generating payroll and recording a payment are the two
-         everyday jobs and are tabs on this page; naming the pay scales and putting staff on
-         them are setup done a few times a year, so they sit behind the page's settings icon —
-         the same split Fees makes with "Create Fee Structure" and "Fee Reminder". -->
+    <!-- One entry for four screens, and still one entry now that the other three are routes
+         of their own: Generate Payroll is where the section starts, and Payment History,
+         Salary Groups and Assign Salary are reached from its settings icon. The same split
+         Fees makes with "Create Fee Structure" and "Fee Reminder" — a sidebar listing every
+         screen in a section is a sidebar nobody can scan. -->
     <li class="nav-item">
       <button mat-button class="menu-button" [routerLink]="['/admin/payroll']" routerLinkActive="active-link">
         <mat-icon>payments</mat-icon>

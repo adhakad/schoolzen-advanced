@@ -6,12 +6,22 @@ const {
   scheduleDailyAttendanceSync,
   scheduleReconcileSweep,
 } = require('./modules/services/cron-attendance-service');
+const {
+  expireStaleSalaryConfirmations,
+} = require('./modules/services/cron-salary-confirmation-service');
 
 cron.schedule('1 0 * * *', () => {
   checkAndUpdateAcademicSession();
 });
 cron.schedule('0 0 * * *', () => {
   checkAndUpdateExpiredPlans();
+});
+
+// Salary payments a teacher never confirmed. Hourly rather than daily: the window is 24
+// hours, so a daily pass would leave a lapsed request looking live for most of a day. One
+// indexed updateMany across every school — see the service header.
+cron.schedule('0 * * * *', () => {
+  expireStaleSalaryConfirmations();
 });
 
 // --- Attendance pipeline (Phase 6) ----------------------------------------------------

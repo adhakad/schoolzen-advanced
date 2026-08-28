@@ -1,0 +1,131 @@
+/* The shell classes (.main-card, .table-wrapper, .big-container, the purple table header),
+   exactly as every other teacher page pulls them in. */
+@import'../../admin/dashboard/dashboard.component.css';
+
+/* .status-chip, .page-purpose, .page-note, .person-code and the confirm/submit button styles,
+   imported rather than restated so a chip means the same thing here as on the admin side. */
+@import'../../admin/leave-request/leave-request.component.css';
+
+.section-title {
+  margin: 2.5vh 0 1vh;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #382066;
+}
+
+/* =========================================================================
+   THE PENDING CARD.
+   Cards, not table rows: each one carries a deadline and two decisions, and
+   a table row with buttons in it reads as a list of records rather than as
+   something asking to be answered.
+   ========================================================================= */
+.pending-card {
+  margin-bottom: 1.5vh;
+  padding: 12px 14px;
+  background: #fffdf7;
+  border: 1px solid #f0dcb4;
+  border-radius: 8px;
+}
+
+.pending-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pending-amount {
+  font-family: 'Poppins', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #252525;
+}
+
+.pending-period {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #7a7590;
+}
+
+.pending-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  color: #6c6784;
+}
+
+.pending-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #7a7590;
+}
+
+/* The deadline is the reason this card is at the top of the page, so it is the one line in
+   it that is coloured. */
+.pending-expiry {
+  margin: 8px 0 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #9a6a10;
+}
+
+.pending-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Deliberately quieter than Confirm. Disputing is the rarer answer and the heavier one; it
+   should not be the button a thumb lands on first. */
+.dispute-button {
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 12px;
+  color: #a52834;
+}
+
+.dispute-box {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid #f0dcb4;
+}
+
+.dispute-box mat-form-field {
+  width: 100%;
+}
+
+.nothing-pending {
+  margin-bottom: 2vh;
+}
+
+.net-salary {
+  font-weight: 600;
+  color: #252525;
+}
+
+/* ---- Confirmation chips, the same five colours the admin side uses ------- */
+.confirm-pending {
+  background: #fff4e0;
+  color: #9a6a10;
+}
+
+.confirm-confirmed {
+  background: #e9f7ee;
+  color: #1f7a44;
+}
+
+.confirm-disputed {
+  background: #fdeced;
+  color: #a52834;
+}
+
+.confirm-expired {
+  background: #f3f2f7;
+  color: #7a7590;
+}

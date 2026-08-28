@@ -1,0 +1,80 @@
+@import '../leave-request/leave-request.component.css';
+
+/* The way back to the page that opened this one. A sub-page of a section should never be
+   a dead end, and the sidebar only knows about the section, not this screen. Quiet and
+   text-like: it is an escape hatch, not one of this page's actions. */
+.back-button {
+  margin-left: 6px;
+  color: #7a7590;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 12px;
+  letter-spacing: .2px;
+  vertical-align: middle;
+}
+
+.back-button mat-icon {
+  font-size: 16px;
+  height: 16px;
+  width: 16px;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+
+/* =========================================================================
+   DYNAMIC ALLOWANCE / DEDUCTION ROWS.
+   Added inline with + and x rather than a modal per row — a scale with four
+   allowances would otherwise be four round trips through a nested dialog.
+   ========================================================================= */
+.component-block {
+  margin: 1.5vh 0;
+  padding: 10px 12px;
+  background: #faf9fd;
+  border: 1px solid #e0dbee;
+  border-radius: 6px;
+}
+
+.component-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.component-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #382066;
+}
+
+.component-empty {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #7a7590;
+}
+
+.component-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* The name is the part that varies; the amount is always short. Fixed proportions rather than
+   two equal halves, so "Professional Tax" is readable without wrapping. */
+.component-name {
+  flex: 2 1 0;
+}
+
+.component-amount {
+  flex: 1 1 0;
+}
+
+.component-add mat-icon,
+.component-remove mat-icon {
+  color: #8C52FF;
+}
+
+.component-remove {
+  margin-top: 6px;
+}
+

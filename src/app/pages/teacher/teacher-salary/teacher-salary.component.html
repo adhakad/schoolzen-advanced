@@ -1,0 +1,170 @@
+<app-header-nav></app-header-nav>
+<div class="container-fluid dashboard-container">
+  <div class="row">
+    <div class="col-12 col-lg-2">
+      <app-side-nav></app-side-nav>
+    </div>
+    <div class="col-12 col-lg-10">
+      <div class="row">
+        <div class="col-12 main-container">
+          <div class="row big-option-container">
+            <div class="col-12">
+              <div class="row">
+                <div class="col-12">
+                  <button mat-button class="menu-button">
+                    <span>Salary</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="main-container">
+          <div class="col-12 col-lg-12 big-container">
+            <div class="main-card">
+
+              <h3 class="page-purpose">Salary Payments</h3>
+              <p class="page-note">
+                When the school records a salary payment to you, it is not counted as paid until you confirm you
+                received it. You have <strong>24 hours</strong> to answer. If nothing arrived, or the amount is wrong,
+                raise a dispute instead &mdash; the school is asked to look at it and nothing is settled in the
+                meantime.
+              </p>
+
+              <div *ngIf="errorCheck">
+                <p class="error-message">{{errorMsg}}</p>
+              </div>
+
+              <!-- ==================================================================
+                   AWAITING YOUR ANSWER.
+                   A to-do with a deadline, so it sits above the receipt book and looks
+                   nothing like it. Only requests that have not lapsed appear here —
+                   the backend decides that, not this page's clock.
+                   ================================================================== -->
+              <ng-container *ngIf="pendingList.length > 0">
+                <h4 class="section-title">Waiting for you</h4>
+
+                <div class="pending-card" *ngFor="let row of pendingList">
+                  <div class="pending-head">
+                    <div>
+                      <span class="pending-amount">{{row.amountPaid}}</span>
+                      <span class="pending-period" *ngIf="row.month">for {{monthLabel(row.month)}} {{row.year}}</span>
+                    </div>
+                    <span class="status-chip confirm-pending">Awaiting your confirmation</span>
+                  </div>
+
+                  <div class="pending-meta">
+                    <span>Paid on {{row.paymentDate | date:'dd MMM yyyy'}}</span>
+                    <span>By {{paymentModeLabel(row.paymentMode)}}</span>
+                    <span *ngIf="row.referenceNumber">Ref. {{row.referenceNumber}}</span>
+                    <span *ngIf="row.paidBy">Recorded by {{row.paidBy | titlecase}}</span>
+                  </div>
+                  <p class="pending-note" *ngIf="row.netSalary">
+                    Net salary for that month was {{row.netSalary}}.
+                  </p>
+
+                  <!-- Hours, not a ticking clock. The window is a day long and the page is
+                       open for a minute at a time. -->
+                  <p class="pending-expiry">{{expiryNote(row)}}</p>
+
+                  <div class="pending-actions" *ngIf="disputeFor?._id !== row._id">
+                    <button mat-raised-button class="submit-button" [disabled]="isClick"
+                      (click)="confirmPayment(row)">
+                      <span *ngIf="isClick" class="submitting-content">
+                        <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                      </span>
+                      Confirm Receipt
+                    </button>
+                    <button mat-button class="dispute-button" [disabled]="isClick" (click)="disputeModel(row)">
+                      Dispute
+                    </button>
+                  </div>
+
+                  <!-- Opened in place. A modal for one text field, on a page that is
+                       otherwise a list, is more ceremony than the action deserves. -->
+                  <div class="dispute-box" *ngIf="disputeFor?._id === row._id">
+                    <mat-form-field appearance="outline">
+                      <mat-label>What is wrong?</mat-label>
+                      <input matInput type="text" [(ngModel)]="disputeReason" [ngModelOptions]="{standalone: true}"
+                        placeholder="e.g. nothing was received, or the amount is short">
+                    </mat-form-field>
+                    <div class="pending-actions">
+                      <button mat-raised-button class="submit-button" [disabled]="isClick" (click)="submitDispute()">
+                        <span *ngIf="isClick" class="submitting-content">
+                          <mat-spinner diameter="20" class="button-loader"></mat-spinner>
+                        </span>
+                        Raise Dispute
+                      </button>
+                      <button mat-button class="dispute-button" (click)="closeDispute()">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+
+              <ng-container *ngIf="!loader && pendingList.length === 0">
+                <p class="page-note nothing-pending">Nothing is waiting for your confirmation right now.</p>
+              </ng-container>
+
+              <!-- ==================================================================
+                   THE RECEIPT BOOK — read-only, everything already settled one way or
+                   another.
+                   ================================================================== -->
+              <h4 class="section-title">Payment history</h4>
+
+              <div class="table-wrapper">
+                <table class="table table-hover align-middle bg-white">
+                  <thead class="bg-light">
+                    <tr class="text-muted">
+                      <th>Month</th>
+                      <th>Amount</th>
+                      <th>Paid On</th>
+                      <th>Mode</th>
+                      <th>Reference</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngIf="historyList && historyList.length > 0">
+                    <tr *ngFor="let row of historyList">
+                      <td>
+                        <p class="mb-0">{{row.month ? (monthLabel(row.month) + ' ' + row.year) : '—'}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0 net-salary">{{row.amountPaid}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{row.paymentDate | date:'dd MMM yyyy'}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{paymentModeLabel(row.paymentMode) || '—'}}</p>
+                      </td>
+                      <td>
+                        <p class="mb-0">{{row.referenceNumber || '—'}}</p>
+                      </td>
+                      <td>
+                        <span class="status-chip" [ngClass]="confirmationClass(row.confirmationStatus)"
+                          [title]="row.disputeReason || ''">
+                          {{confirmationLabel(row.confirmationStatus)}}</span>
+                        <!-- An expired request is not a dispute and not a refusal: nobody
+                             answered in time, and the school has to record it again. -->
+                        <p class="mb-0 person-code" *ngIf="row.confirmationStatus === 'Expired'">
+                          Not confirmed in time &mdash; ask the school to record it again</p>
+                        <p class="mb-0 person-code" *ngIf="row.confirmationStatus === 'Disputed' && row.disputeReason">
+                          {{row.disputeReason}}</p>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <ng-container *ngIf="!loader && (!historyList || historyList.length === 0)">
+                <h2 style="text-align: center;margin-top: 80px;">No Record Found</h2>
+              </ng-container>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

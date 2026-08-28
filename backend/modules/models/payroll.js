@@ -102,15 +102,38 @@ const PayrollModel = mongoose.model('payroll', {
     },
     holidayDays: {
         // Declared holidays this person's HolidayTemplate covers. Always paid, in both
-        // modes — they are working days the school chose to close.
+        // modes — they are days the school chose to close. NOT counted in totalWorkingDays
+        // below: nobody works a holiday.
         type: Number,
         required: true,
     },
+    pendingDays: {
+        // Days still to come this month that this person is rostered on and that carry
+        // neither a holiday nor an approved leave. They are inside totalWorkingDays — the
+        // salary is for the month, not for the part of it that has elapsed — but they are
+        // evidence of nothing yet, which is what makes a mid-month record an ESTIMATE.
+        // Zero once the month has ended and the record is regenerated.
+        type: Number,
+        default: 0,
+    },
+    futureLeaveDays: {
+        // The subset of leaveDays + unpaidLeaveDays that falls on dates still to come. An
+        // approved leave is known before the day arrives, so it is already counted as leave
+        // rather than left pending; this is kept only so the mid-month warning can say how
+        // much of the remainder is in fact already settled.
+        type: Number,
+        default: 0,
+    },
     totalWorkingDays: {
-        // Days in the month MINUS the days this person was not expected at all ('Off' in
-        // attendance-calendar.js terms — an unrostered day, which is how a weekly off is
-        // expressed here). Not a fixed "minus Sundays": a Mon-Sat staffer and a Mon-Fri one
-        // legitimately get different divisors, and the roster is what knows which is which.
+        // THE WHOLE MONTH this person was expected in, minus the days they were not expected
+        // at all ('Off' in attendance-calendar.js terms — an unrostered day, which is how a
+        // weekly off is expressed here) and minus declared holidays. Not a fixed "minus
+        // Sundays": a Mon-Sat staffer and a Mon-Fri one legitimately get different divisors,
+        // and the roster is what knows which is which.
+        //
+        // Counted for the full month even when generated mid-month (pendingDays above), so a
+        // draft and the month-end regeneration divide by the SAME number and the only thing
+        // that changes between them is how the days resolved.
         type: Number,
         required: true,
     },
