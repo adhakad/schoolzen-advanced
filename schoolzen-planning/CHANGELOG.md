@@ -141,3 +141,45 @@
   sections created stay flat, single, directly-assignable rows.
 - This closes out the Section/Stream/Designation global-filter rollout
   across the entire Payroll and Attendance modules.
+
+## v1 (new module) — 2026-08-31 (same day)
+- NEW MODULE: Leave (3 pages) — Requests, Leave Create (renamed from
+  "Leave Type"), Leave Assign (renamed from "Leave Limit"). Both Staff
+  and Student can request leave. Full Department+Designation /
+  Class+Section filter treatment applied consistently with Payroll and
+  Attendance. Approve/Reject/Cancel/Delete are four distinct actions,
+  never merged. "Apply Leave" / "Create" / "Set Leave Limit" buttons
+  all sit inside their toolbar row, never in a separate header row.
+- NEW MODULE: Approval Requests — a separate, top-level, cross-module
+  unified inbox (not nested under Leave), deliberately minimal
+  (Search + Type + Status only). Approving/rejecting here is identical
+  to doing so on the request's home module page.
+
+## v1 (new module) — 2026-08-31 (same day)
+- NEW MODULE: Holiday (3 pages) — split from the legacy 3-tab single
+  component into 3 SEPARATE pages (Holidays, Templates, Assign),
+  matching the app-wide sidebar-sub-item convention (Payroll, Leave).
+  Full Department+Designation / Class+Section filter treatment on
+  Assign. Live-assignment edits gated behind an explicit confirm
+  checkbox before the change controls activate. Cascade-delete rule
+  applied to both Holidays-in-templates and Templates-with-assignees.
+
+## v1 (fix) — 2026-08-31 (same day)
+- FIXED inconsistency: .sw-select-pill width varied across files
+  (120px-150px depending on which page it was built on). Standardized
+  to 128px everywhere and locked it as a fixed dimension in the core
+  design system doc so it can't drift again.
+
+## v1 (fix) — 2026-08-31 (same day)
+- FIXED real bug: Leave Assign, Leave Requests, and Holiday Assign used
+  display:none/flex to hide Department+Designation when switching
+  person-type to Student, instead of the established disabled-not-
+  hidden pattern (classList toggle). This caused Designation to
+  disappear permanently after switching Student->Staff, since the
+  Staff branch never restored its display. Fixed all three files to
+  match the correct pattern (same as Attendance/Overview and Roster):
+  Department/Designation/Class always visible, toggled via
+  classList.add/remove('disabled') only; display:none/flex reserved
+  exclusively for Section/Stream's existence-based show/hide. Locked
+  this distinction explicitly in the core design system doc so it
+  can't be reintroduced.

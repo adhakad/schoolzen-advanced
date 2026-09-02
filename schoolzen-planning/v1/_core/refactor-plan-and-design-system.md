@@ -561,6 +561,11 @@ Holiday, Attendance, Roster, etc. — follows):
   one group when space is tight), then a labeled list: uppercase muted
   column headers followed by rows. No separate legend row — the status
   chip/dot colors are self-evident from their label text on each row.
+- **Every filter dropdown pill (`.sw-select-pill`) is exactly `128px`
+  wide** — this is a fixed dimension, not a per-page judgment call.
+  Do not vary it per module or per page; a 120px or 150px pill on one
+  screen next to 128px on another is a visible inconsistency (this
+  was caught and corrected once already — don't reintroduce it).
 - Rows (not a traditional bordered `<table>`): each row has a
   gradient-colored rounded-square avatar (initials, a different gradient
   hue per row for visual variety — not everyone the same color), a
@@ -727,6 +732,18 @@ across modules, not redesigned per module.**
   in its usual toolbar position with the established disabled styling
   (muted background, muted text, `cursor: not-allowed`) — it never
   disappears or moves, so the toolbar's shape stays predictable.
+  **Implementation note (bug caught and fixed once already — don't
+  reintroduce it):** Department, Designation, and Class are ALWAYS
+  mutual-dependency filters — toggle them with `classList.add/remove
+  ('disabled')` plus the matching `select.disabled`, and NEVER touch
+  their `display` style. Only Section and Stream are existence-based
+  (per the separate rule above) and are the ONLY filters allowed to use
+  `style.display = 'none'/'flex'` to actually hide/show. Mixing the two
+  mechanisms — e.g. hiding Department or Designation via `display:none`
+  when switching person-type — breaks this rule and has caused a real
+  bug (a pill that never reappeared after being hidden once). If a pill
+  is mutual-dependency, it is always visible; if it's existence-based,
+  it may not exist in the DOM's visible flow at all for this school.
 - **Related filters sit adjacent to each other in the toolbar, never
   separated by an unrelated filter** — Department and Designation are
   always next-door neighbors; Class and Stream are always next-door
