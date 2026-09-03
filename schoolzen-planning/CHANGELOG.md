@@ -183,3 +183,19 @@
   exclusively for Section/Stream's existence-based show/hide. Locked
   this distinction explicitly in the core design system doc so it
   can't be reintroduced.
+
+## v1 (new module) — 2026-08-31 (same day)
+- NEW MODULE: Staff (3 pages) — Manage Staff (Add/Edit/Delete on one page,
+  plus Assign Card / Bulk Assign Cards / Resync-to-Device as distinct
+  actions), Departments, Designations. Department+Designation filter
+  pair on Manage Staff; Department filter added to Designations (not in
+  the legacy component) since these two pages are the actual source
+  data behind every other module's Department/Designation filters.
+  Cascade-delete rule applies throughout; Manage Staff's delete goes
+  through the soft-delete-with-grace-period flow since staff records
+  carry already-happened attendance/payroll/leave history.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Renamed Staff module's "Directory" page to "Manage Staff" (common
+  ERP naming convention) - file renamed to manage-staff.md/.html,
+  sidebar labels and titles updated across all 3 Staff module pages.
