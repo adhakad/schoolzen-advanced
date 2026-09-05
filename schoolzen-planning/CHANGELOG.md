@@ -199,3 +199,152 @@
 - Renamed Staff module's "Directory" page to "Manage Staff" (common
   ERP naming convention) - file renamed to manage-staff.md/.html,
   sidebar labels and titles updated across all 3 Staff module pages.
+
+## v1 (new module) — 2026-08-31 (same day)
+- NEW MODULE: Student (2 pages designed - Manage Students, Admission;
+  Classes & Sections is pre-existing, not (re)designed here). Manage
+  Students follows the Manage Staff pattern (Add/Edit/Delete on one
+  page) with circular avatars distinguishing student rows from staff's
+  rounded-square avatars, photo upload in the form, and Admission No.
+  shown read-only (flows from Admission, not typed here). Admission is
+  a separate intake workflow with a document-checklist upload group
+  and two distinct footer actions (Save as Draft vs Confirm Admission
+  — the latter generates the Admission Number and the live student
+  record that Manage Students then lists).
+
+## v1 (rebuild) — 2026-08-31 (same day)
+- REBUILT Student/Admission and Student/Manage Students to match the
+  full field set from the actual legacy components (previous versions
+  were simplified placeholders). Admission Info/Student Info/Parents
+  Info three-group structure in both create/edit forms. Admission
+  page: Class/Stream/Admission No./Roll No. are editable (still an
+  application); added a read-only View modal and a letterhead-styled
+  printable Admission Letter modal. Manage Students page: those same
+  fields become READ-ONLY (already-admitted student), added Date of
+  Admission/First Enrolled Class instead; Class+Stream gates Search/
+  Excel Import-Export/Create (disabled + empty-state hint until
+  chosen); Delete uses the cascade type-to-confirm pattern naming real
+  dependent data (login, fees, admit cards, results); Assign Card/Bulk
+  Assign Cards match Staff's pattern but keyed by Admission Number.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Reverted Student/Admission and Student/Manage Students modal layouts
+  from the dense two-column grid back to the original clean m-row
+  (paired-field) stacked layout used across every other module - all
+  the added fields, filters, buttons, View/Letter modals, gating, and
+  cascade-delete logic from the fuller reference are kept, just laid
+  out consistently with the rest of the app instead of a one-off dense
+  grid.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Fixed inconsistencies in Student module: modal-box width standardized
+  to 460px (was 500px, off from Staff/Payroll's established 440-460px);
+  added missing Status chip CSS to Manage Students; added missing
+  Section filter (Manage Students had only Class+Stream, no Section at
+  all) with correct two-stage existence-check + parent-dependency logic
+  (disabled until parent chosen, hidden entirely if the school never
+  configured sections for that class/stream); added Class + Status
+  filters to Admission's toolbar (was Search-only).
+
+## v1 (rebuild) — 2026-08-31 (same day)
+- Rebuilt Student/Manage Students and Student/Admission: both now show
+  ALL records by default (Class/Stream/Section and Class/Status are
+  optional narrowing filters, not a mandatory gate) - only Excel
+  Import/Export stays scope-gated since a bulk file operation needs a
+  defined scope. Added checkbox multi-select with bulk action bars
+  (Manage Students: Assign Card to Selected / Delete Selected;
+  Admission: Print Letters) alongside the existing one-row-at-a-time
+  actions. Redesigned both View modals as professional profile-style
+  layouts (photo/avatar header, labeled two-column sections). Fully
+  redesigned the Admission Letter as a genuine formal certificate
+  document: double-border frame, serif letterhead, dotted-underline
+  field values, highlighted fee-paid band, proper signature lines.
+
+## v1 (new module) — 2026-08-31 (same day)
+- NEW MODULE: Academic Setup (3 pages) — Classes & Sections, Subjects,
+  Subject Groups. Separate from Student (which is for actual student
+  records) - this is the config/master-data source behind every
+  Class/Section/Stream filter used across the whole app. Classes &
+  Sections uses fixed-width count pills (not inline tags) for
+  Streams/Sections so 2 vs 10 streams render identically, with a
+  click-to-reveal popover; the stream toggle in its Add/Edit modal
+  restructures the whole sections area (flat sections vs per-stream
+  independent section lists). Subjects is a flat Core/Elective master
+  list. Subject Groups bundles subjects into named combinations
+  (Class+Stream dependency-gated filters), pulling its checklist live
+  from the Subjects master list.
+
+## v1 (new page) — 2026-08-31 (same day)
+- NEW: Settings / Admission Form Fields — a single source of truth
+  controlling which fields exist across the entire Student module
+  (Admission form, Manage Students form, table columns on both, and
+  Excel Import/Export columns). Locked "Always Required" group (Name/
+  Class/DOB/Gender) can't be hidden; every other field gets an
+  independent Show/Hide switch + Required checkbox. Includes "Add
+  Custom Field" for school-specific fields. Cross-referenced from
+  both Student/Admission.md and Student/Manage Students.md.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Extended Settings/Admission Form Fields: each field now shows its
+  validation rule inline (e.g. "Aadhar: exactly 12 digits") in the
+  settings list itself, and this same rule drives BOTH the form's
+  inline error messages AND Excel import's row-level rejection reasons
+  - never separately configured per surface. Added an "Add Custom
+  Field" modal (Field Label, Field Type, and an inline validation-rule
+  input for Text/Number types) so school-specific fields get the same
+  validation treatment as built-in ones.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Extended field validation to support MULTIPLE stacked rules per
+  field (e.g. Aadhar: 12 digits AND numeric-only AND unique; Parents
+  Contact: 10 digits AND starts with 6/7/8/9 AND not all identical) -
+  Add Custom Field's validation area now supports "+ Add another rule"
+  to stack several checks. Added best-practice rules beyond simple
+  format checks: uniqueness (Aadhar, Admission No. school-wide, Roll
+  No. within class+section), date sanity (DOB can't be future/
+  implausible for the class), and non-negative numeric (Family Annual
+  Income). DOB/Admission No./Roll No. are always-on locked rules, same
+  treatment as the "Always Required" field group. Form shows the first
+  failing rule at a time; Excel import reports which specific rule a
+  row failed.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Fixed: validation rules section now shows for EVERY field type (Date,
+  Dropdown, Phone Number), not only Text/Number - each type gets a
+  type-appropriate placeholder and hint. Added a settings/edit icon to
+  every existing configurable field row, opening the same Add/Edit
+  Field modal pre-filled with that field's current label, type, rules,
+  and Required state, plus a "Remove Field" option (edit mode only) -
+  built-in fields are now just as editable as newly-added custom ones.
+
+## v1 (fix) — 2026-08-31 (same day)
+- FIXED a real implementability gap: validation rules were free-text
+  ("must be unique" typed as a sentence) which a system genuinely
+  cannot parse or enforce. Replaced with a STRUCTURED rule builder: a
+  dropdown of known rule types (Exact/Min/Max length, Numeric/Letters
+  only, Starts/Not-starts-with, Min/Max value, Must be unique, Cannot
+  be future date, Digits not all identical) - rules needing a
+  parameter show a value box, self-contained ones don't. This is what
+  makes stacked rules (e.g. Aadhar: length 12 + numeric-only + unique)
+  actually enforceable by the system, not just descriptive text.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Fixed: locked fields (Date of Birth, Admission Number, Roll Number)
+  were missing the settings/edit icon entirely - a school had no way
+  to adjust their validation rules even though the fields themselves
+  must stay shown+required. Added the edit icon to these rows; opening
+  it now disables only the Label and Required controls (and hides
+  Remove Field) while leaving Validation Rules fully editable -
+  "locked" means the field can't be hidden/made-optional/removed, not
+  that its format checks are frozen.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Split the combined "Name, Class, Date of Birth, Gender" row into 4
+  separate rows, each with its own settings icon. Each carries ONE
+  non-removable default rule (Name: must be text; Class: must match
+  Academic Setup; DOB: cannot be future date; Gender: Male/Female/
+  Other) rendered as a fixed row with no delete button in the Edit
+  Field modal, but "+ Add another rule" is still available below it -
+  a school can layer extra checks (e.g. Name: max 50 characters) on
+  top of the fixed default. Removed the now-duplicate DOB row that
+  previously also appeared under Student Info.
