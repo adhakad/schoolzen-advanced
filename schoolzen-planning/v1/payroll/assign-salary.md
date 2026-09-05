@@ -1,6 +1,6 @@
 # Payroll — Assign Salary page (finalized design)
 
-Status: **Approved** — v1
+Status: **FINAL** — v1
 Depends on: `../_core/refactor-plan-and-design-system.md`
 Reference: `assign-salary.html` (same folder)
 

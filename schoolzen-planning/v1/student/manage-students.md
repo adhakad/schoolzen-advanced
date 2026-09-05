@@ -1,6 +1,6 @@
 # Student — Manage Students page (finalized design)
 
-Status: **Approved** — v1
+Status: **FINAL** — v1
 Depends on: `../_core/refactor-plan-and-design-system.md`
 Reference: `manage-students.html` (same folder)
 

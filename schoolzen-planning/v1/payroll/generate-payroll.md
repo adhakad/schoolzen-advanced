@@ -1,6 +1,6 @@
 # Payroll — Generate payroll page (finalized design)
 
-Status: **Approved** — v1 — this page is also the REFERENCE
+Status: **FINAL** — v1 — this page is also the REFERENCE
 implementation the shared component library (in `_core/`) was extracted
 from. If in doubt about how a shared component should look, this page is
 the source of truth.

@@ -1,6 +1,6 @@
 # Fees — Fee Reminder page (finalized design)
 
-Status: **Approved** — v1
+Status: **FINAL** — v1
 Depends on: `../_core/refactor-plan-and-design-system.md`
 Reference: `fee-reminder.html` (same folder)
 

@@ -507,3 +507,130 @@
   Year Dues ledger (per-session Total/Paid/Remaining/Status) and the
   Year Payments modal (per-installment digital footprint + receipt
   regenerate for any past session). No open items remain on this page.
+
+## v1 (new module) — 2026-09-05
+- NEW MODULE: Examination (5 pages) — Marksheet Structure, Marksheet
+  Structure Setup, Generate Marksheet, Admit Card Structure, Generate
+  Admit Card. Sidebar groups the module into two labeled sub-sections
+  (Marksheet / Admit Card). Naming follows Payroll's "Generate X"
+  convention. Marksheet Structure uses a 3-state landing page (empty
+  hint / existing structure table / template-picker grid) then a
+  single-scroll Setup page (subject checkboxes by marks-type group,
+  per-term max-marks tabs, co-scholastic grade options, supplementary
+  fail-limit) driven entirely by the chosen template. Generate
+  Marksheet's per-term status chips and grouped marks-entry modal are
+  fully driven by that structure - no hardcoded subject list. Admit
+  Card Structure is deliberately simpler (name/dates + a fields-to-
+  show checklist, same pattern as Admission Form Fields). Both
+  Generate pages produce printable documents using the exact
+  letterhead/signature-line language already established for the
+  Admission Letter and Fee Receipt, so every printable document in the
+  app shares one visual identity.
+
+## v1 (major upgrade) — 2026-09-05
+- Upgraded the entire Examination module to the full Payroll/
+  Attendance polish level:
+  - All 5 pages now carry the profile dropdown (school identity, My
+    Profile, Settings, Logout), previously missing entirely.
+  - Generate Marksheet and Generate Admit Card rebuilt from plain
+    HTML tables into the flex-row pattern (avatar+name, fixed-width
+    chips, icon-button actions) used by Generate Payroll - added
+    checkbox multi-select feeding a "Print Selected (N)" action
+    instead of a blanket "Bulk Print" with no visible scope.
+  - Added ls-strip summary cards above the main card on all 4 list/
+    config pages (student counts, term entry progress, exams
+    configured) - previously only the two Generate pages had any
+    context strip, and even those were plain "Bulk Print" buttons
+    with no summary at all.
+  - Add/Edit Result modal footer now shows a live "N of M fields
+    filled" progress note next to the action buttons.
+
+## v1 (exact-match fix) — 2026-09-05
+- Corrected precise deviations from the Generate Payroll reference in
+  Generate Marksheet and Generate Admit Card: avatar was 36px/11px-
+  radius (now exact 38px/12px-radius), ls-badge/ls-dot/pulse-keyframe
+  was missing entirely from the summary strip (now present with
+  "Session active", matching Payroll's exact badge), the bulk print
+  button used a muted .sw-secondary-btn instead of the reference's
+  primary gradient .sw-gen-btn (now matches, including its disabled-
+  state grey), search box min-width was 140px instead of 160px, and
+  an extra unreferenced margin-left:auto on admit-card's button is
+  removed. sw-select-pill, sw-thead, sw-row, sw-icon, and sw-footer
+  were already exact matches - verified byte-for-byte against the
+  reference CSS.
+
+## v1 (new module) — 2026-09-05
+- NEW MODULE: Certificates (2 pages) — TC Structure, Generate TC.
+  Separate from Examination (exam-linked documents) and Student
+  (record-keeping) - holds student-exit administrative documents,
+  with room for future certificates (Bonafide, Character) to join
+  later. TC Structure is deliberately school-wide, not per-class
+  (unlike Marksheet/Admit Card Structure) since a TC's content never
+  varies by class - locked "Always Included" fields plus a toggleable
+  "Optional Fields" group, and an auto-incrementing serial number.
+  Generate TC shows all students by default (Class/Status are
+  optional filters, matching Manage Students), uses the exact Payroll
+  flex-row table pattern, and its Issue TC modal only captures
+  leaving-specific facts (reason, conduct, dues cleared) - Attendance
+  % is pulled read-only from the real Attendance record rather than
+  re-typed. The printable TC reuses the app's established letterhead
+  language with three signature lines (Class Teacher/Accountant/
+  Principal).
+
+## v1 (new page + full README update) — 2026-09-05
+- NEW: Student / Class Promotion — year-end bulk Promote/Detain
+  decision per student, with a bulk "Promote to" target-class
+  selector (per-student override still available), Exam Result chip
+  (Pass/Fail/Not Set, read from Generate Marksheet when available),
+  and a Confirm Promotion modal that states plainly it CREATES next-
+  session placements without touching current records, names the
+  exact Promoting/Detaining/Not-decided counts, and labels its submit
+  button with the exact count being acted on.
+- README fully updated: module map now includes Examination (5
+  pages) and Certificates (2 pages), Student now lists Class
+  Promotion, build order updated to include both new modules, and two
+  new locked global rules documented (shared printable-document
+  letterhead language; list pages default to showing everything
+  unless a page explicitly documents a scope requirement).
+
+## v1 (fix) — 2026-09-05
+- Class Promotion's Confirm modal now explicitly lists the full
+  cascade that promotion triggers, not just the class-field change:
+  new enrollment created for next session; unpaid fee balance carries
+  forward as an arrear (the actual mechanism behind Fee Statement's
+  Previous Year Dues ledger); Roll Number cleared (reassigned fresh in
+  the new class, not carried over); Leave balances reset per the new
+  session's own limits; a Stream+Subject Group gate for students
+  moving into 11th/12th; and a Fee Structure existence check for the
+  target class+session. The two gap-warnings (stream/subject-group
+  missing, fee structure missing) use the amber "needs attention, not
+  blocking" tone - a school can still confirm and fix them after, but
+  the gap is surfaced rather than silently created.
+
+## v1 — DESIGN PACKAGE MARKED FINAL — 2026-09-05
+- All 12 modules (Academic Setup, Student, Staff, Attendance, Leave,
+  Holiday, Payroll, Fees, Examination, Certificates, Approvals,
+  Settings) and their 34 pages are now locked and marked FINAL in
+  every .md file's status line.
+- NEW: `_core/claude-code-implementation-strategy.md` — the handoff
+  guide for actually building this against the legacy MEAN codebase.
+  Recommends MODULE-WISE build order (not phase-wise: backend-then-
+  frontend-then-test-everything risks nothing being verifiable until
+  the very end, across 12 modules that's too much to untangle at
+  once). States the exact dependency-based build order (Academic
+  Setup first since nearly everything filters against it, Settings
+  last since it modifies an already-stable Student module, Approvals
+  only after Leave exists since it's a computed view over it).
+  Defines the isolation rules for not breaking the live legacy app:
+  new collections/routes only (never modify legacy schema/routes
+  in-place until an explicit, separately-reviewed migration step),
+  feature-flagged /v2/ routes running alongside legacy ones until each
+  module is verified, one module per Claude Code session/branch (never
+  "build everything" in one pass), and the shared component library
+  built once early and treated as a versioned dependency every module
+  consumes rather than reimplementing. Includes a per-module 8-step
+  checklist (read .md → build schema/API → build frontend against
+  the .html reference pixel-for-pixel → feature-flag → verify → 
+  regression-check dependencies → cut over → move to next module).
+- README updated: banner marks the whole package FINAL and points to
+  the new implementation strategy doc before any code is written.

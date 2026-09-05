@@ -1,6 +1,6 @@
 # Payroll — Salary Groups page (finalized design)
 
-Status: **Approved** — v1
+Status: **FINAL** — v1
 Depends on: `../_core/refactor-plan-and-design-system.md`
 Reference: `salary-groups.html` (same folder)
 

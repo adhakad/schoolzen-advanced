@@ -1,6 +1,6 @@
 # Academic Setup — Classes & Sections page (finalized design)
 
-Status: **Approved** — v1
+Status: **FINAL** — v1
 Depends on: `../_core/refactor-plan-and-design-system.md`
 Reference: `classes-sections.html` (same folder)
 

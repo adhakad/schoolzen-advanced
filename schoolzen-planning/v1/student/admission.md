@@ -1,6 +1,6 @@
 # Student — Admission page (finalized design)
 
-Status: **Approved** — v1
+Status: **FINAL** — v1
 Depends on: `../_core/refactor-plan-and-design-system.md`
 Reference: `admission.html` (same folder)
 

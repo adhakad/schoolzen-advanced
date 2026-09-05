@@ -1,6 +1,6 @@
 # Attendance — Overview page (finalized design)
 
-Status: **Approved** — v1
+Status: **FINAL** — v1
 Depends on: `../_core/refactor-plan-and-design-system.md` (shared shell,
 toolbar, card, chip, icon-action components — this doc only covers what's
 specific to this page)
