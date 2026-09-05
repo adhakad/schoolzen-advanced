@@ -348,3 +348,162 @@
   a school can layer extra checks (e.g. Name: max 50 characters) on
   top of the fixed default. Removed the now-duplicate DOB row that
   previously also appeared under Student Info.
+
+## v1 (new module) — 2026-08-31 (same day)
+- NEW MODULE: Fees (4 pages) — Fee Structure, Fees (Collection), Fee
+  Statement, Fee Reminder. Class+Stream existence+dependency filter
+  pair throughout. Fee Structure's checklist-driven Particulars editor
+  (tick to reveal an amount field, live-computed total) mirrors Salary
+  Groups' allowance/deduction pattern; its delete is a cascade type-
+  to-confirm since it destroys real financial history for every
+  student generated from it. Fees page shows "Collect" or a fixed
+  "Fee Paid" chip, never both; payment submission leads into a
+  professional printable receipt (same letterhead treatment as the
+  Admission Letter) with amount-in-words and a signature line. Fee
+  Statement is a standalone profile-style page (summary strip +
+  particulars + payment history with per-receipt reprint). Fee
+  Reminder is a two-step flow — save a filter rule, then always
+  review/select the actual matching students (checkbox, pre-checked)
+  before sending — never a blind bulk WhatsApp send.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Fees module fixes: removed Bulk Collect (wasn't a real requirement).
+  Added arrears/carry-forward tracking throughout — Due Fee now
+  includes any unpaid previous-year balance with an inline note (e.g.
+  "incl. ₹6,500 from 7th"), a fixed-width Status chip ("Fully Paid" /
+  "Has Arrears") on both Fees and Fee Statement, a "Collected By"
+  column (Fees table and Fee Statement's Payment History, renamed from
+  the legacy "Recipient"), and a Due Breakdown block in the Fee
+  Payment modal separating current-year vs prior-year amounts before
+  collection. Fee Structure's toolbar gained the standard Class+Stream
+  filter pair. Fee Statement gained a "Previous Year Dues" table
+  (Class/Session/Amount) making exactly which past years are owed
+  explicit. Fee Receipt now shows a Previous Year Due line item when
+  applicable, in the same amber tone as the arrears chip.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Added the summary-strip pattern (pulsing "Live" badge + count pairs,
+  same shape/CSS as Attendance Overview's status strip) to the top of
+  Fees Collection: Total Collected, Fully Paid, Has Arrears (amber),
+  Total Due (red) — same color language as their matching status chip
+  and Due Fee column.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Fees summary strip: switched to the colored fixed-size short-code
+  chip pattern (FP/AR/DU) referenced from Attendance's own status-chip
+  design (P/L/HD/A/LV/H), replacing the plain colored-number style.
+  Added a "Current Class" tag at the end of the strip, updating live
+  with the Class filter ("Class: 8th" / "All Classes") - the strip
+  previously had no visible tie to which class its numbers described.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Removed the "Live" badge from Fees' summary strip - that pulsing
+  indicator means "a punch is happening right now" on Attendance; fee
+  collection has no real-time equivalent, so it didn't belong here.
+  Total Due is now plain bold red text, not a chip - it's an amount,
+  not a categorical state like Fully Paid/Has Arrears, so it shouldn't
+  get the same chip treatment. Added Class and Stream columns directly
+  to the Fees table (previously only visible via the toolbar filter,
+  not in the row itself) - relevant when viewing "All classes" at once.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Rebuilt the Fees summary strip to match the Attendance reference's
+  exact `summary-strip`/`summary-item`/`status-chip` structure (small
+  2-letter colored chip + label + count: FP/AR/UN) instead of the
+  previously invented layout. Removed the "Current Class" tag entirely
+  - it wasn't part of the reference and duplicated what the toolbar's
+  Class filter already shows. Renamed the table's own wide labeled
+  status chip (used in the Status column - "Fully Paid"/"Has Arrears")
+  to `.row-status-chip` to avoid a CSS class collision with the new
+  small strip chips, which both used base class `.status-chip`.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Design consistency fix across the whole Fees module, matching the
+  Payroll reference's principle exactly: plain amount TEXT stays
+  neutral-colored (dark/grey, like the reference's Gross/Deductions/
+  Net columns) - color is reserved ONLY for status chips (Fully Paid/
+  Has Arrears/Unpaid) and warning-action icons (delete/unlock), never
+  for raw numbers. Fixed Paid Fee/Due Fee columns, Fee Statement's
+  summary strip values, and the Fee Receipt's Total/Paid/Due lines,
+  all of which were incorrectly colored green/red as plain text.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Fixed structural placement: the summary-strip was incorrectly nested
+  INSIDE sw-card-main (alongside the title/toolbar/table). Per the
+  Payroll/Attendance reference, the strip is its own separate white
+  card sitting OUTSIDE sw-card-main, directly inside sw-main above it.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Unified the two mismatched chip designs into one: merged the small
+  2-letter code chip (used in the summary strip) and the wide labeled
+  pill (used in the table's Status column) into a single
+  `.fee-status-chip` class - full-word label, colored pill, used
+  identically in both places (Fully Paid green, Has Arrears amber,
+  Unpaid red). No more visual inconsistency between the two locations
+  on the same page.
+
+## v1 (fix) — 2026-08-31 (same day)
+- Corrected the summary strip design: the Payroll reference's own
+  ls-strip never uses chips/pills at all - it's plain bold numbers
+  with a text label ("28 locked", "14 pending drafts"). Removed the
+  chips I'd incorrectly added to Fees' strip; chips now appear ONLY
+  in the table's Status column (.fee-status-chip), matching exactly
+  how the reference separates the two: plain counts in the strip,
+  colored pills only in the table.
+
+## v1 (major addition) — 2026-09-05
+- NEW: Full MongoDB/Mongoose database design for the whole app,
+  designed for scale (~2,000 schools, ~2M students) and correctness:
+  - `_core/database-architecture.md` — 10 cross-cutting principles
+    (multi-tenancy via schoolId-first indexes, session scoping,
+    embed-vs-reference rules, indexing strategy, AttendanceRecord's
+    one-doc-per-person-per-day design with archival, transactional
+    cascade delete, schema+config-driven validation, structured error
+    handling, lean/aggregation read-path performance, and Approvals as
+    a computed view rather than a duplicated collection).
+  - `_schema/*.schema.js` — actual Mongoose models for every module:
+    core (School/AcademicSession), academic-setup (Class with embedded
+    streams/sections, Subject, SubjectGroup), settings (FieldConfig
+    with structured validationRules), student (Student split from
+    session-scoped StudentEnrollment), staff (Staff/Department/
+    Designation with denormalized name snapshots), attendance (Shift,
+    shift assignments, and the high-volume AttendanceRecord with its
+    critical unique dedup index), leave (LeaveType/LeaveLimit/
+    LeaveRequest), holiday, payroll (SalaryGroup/StaffSalaryAssignment/
+    PayrollRun/PayrollPayment), fees (FeeStructure/StudentFeeRecord
+    with arrears array/FeePayment/FeeReminderFilter+Log), and
+    activity-log (R6 audit trail). Every file's header comment states
+    its index list and the UI page it exists to support.
+
+## v1 (reverted) — 2026-09-05
+- Removed the database schema work (_schema/*.js, database-architecture.md)
+  added earlier this session — premature at this stage. Focus stays on
+  UI/UX design; schema design will come later once all module pages
+  are finalized.
+
+## v1 (fix) — 2026-09-05
+- Fee Statement's "Previous Year Dues" table upgraded from a single
+  lump-sum row to a proper year-by-year ledger: Session, Class, Total
+  Fee, Paid, Remaining Due, Status - per past session, not just
+  whichever year still owes money. Now shows every session the student
+  was enrolled in (including fully-cleared ones, marked Fully Paid),
+  and correctly supports more than one prior year carrying a balance
+  at once, not just "the previous year."
+
+## v1 (fix) — 2026-09-05
+- Fee Statement: added a real digital footprint for past sessions.
+  Previous Year Dues table gained a "Payments" action (receipt icon)
+  per row, opening a Year Payments modal that shows that specific
+  session's full installment history (Receipt No., Amount, Payment
+  Date, Collected By) - previously past years only showed a lump
+  total/paid/due with no way to see WHEN or in HOW MANY installments
+  the money actually came in. Every payment row (current year and
+  past) now has an explicit "Regenerate / reprint this receipt"
+  tooltip on its printer icon, confirming a lost historical receipt
+  can be reissued identically to a fresh one.
+
+## v1 (FINAL) — 2026-09-05
+- Fee Statement page finalized and locked, including the Previous
+  Year Dues ledger (per-session Total/Paid/Remaining/Status) and the
+  Year Payments modal (per-installment digital footprint + receipt
+  regenerate for any past session). No open items remain on this page.

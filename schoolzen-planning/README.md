@@ -1,58 +1,52 @@
-# Schoolzen — Planning & Design Docs
+# Schoolzen — UI/UX Planning Package
 
-This folder holds versioned planning/prompt files for the major refactor
-(unified Staff+Teacher, RBAC, sessions, security) and the approved UI
-design — one file per module/page, kept separate from application code
-so prompt history stays traceable across iterations.
+Complete, approved design reference for Schoolzen ERP's rebuilt UI —
+Angular 14 + Express/MongoDB, MEAN stack. Every page here is a
+pixel-accurate HTML/CSS reference (Tabler Icons, no framework) with a
+matching `.md` file explaining every design decision. Give both to
+Claude Code as-is when implementing.
 
-## Structure
+## How to use this package
 
-```
-schoolzen-planning/
-├── README.md                     <- this file
-├── CHANGELOG.md                  <- one entry per version/update, what changed and why
-├── v1/
-│   ├── _core/                    <- shared across every module — read this FIRST
-│   │   ├── refactor-plan-and-design-system.md
-│   │   │     (R1-R7 phased refactor plan, the locked design system spec,
-│   │   │      the reusable shared-component list, quality bar)
-│   │   └── schoolzen-design-system-reference.html
-│   │         (pixel-accurate HTML of the approved base design — give this
-│   │          to Claude Code alongside any module's own doc below)
-│   ├── attendance/
-│   │   └── overview.md           <- Attendance module, Overview page
-│   ├── payroll/
-│   │   └── generate-payroll.md   <- Payroll module, Generate payroll page
-│   └── (leave/, holiday/, roster/, devices/, settings/ — added as each
-│        module is designed)
-└── v2/                            <- (create when the CORE plan/design changes materially)
-```
+1. Start with `v1/_core/refactor-plan-and-design-system.md` — every
+   global rule (filters, modals, delete/cascade, tables, chips) is
+   locked there. Every module below follows it.
+2. Open a module folder. Each page has:
+   - `<page>.html` — exact approved render, drop into a browser to see it
+   - `<page>.md` — what it does and why, for implementation
+3. Build in this order (matches dependency): Academic Setup → Student
+   → Staff → Attendance → Leave → Holiday → Payroll → Fees →
+   Approvals → Settings.
 
-## How to use this with Claude Code
+## Module map
 
-For any module page, give Claude Code:
-1. `v1/_core/refactor-plan-and-design-system.md` (or just the relevant
-   phase section — the design system section applies to every page)
-2. `v1/_core/schoolzen-design-system-reference.html`
-3. The specific module's own file, e.g. `v1/attendance/overview.md`
+| Module | Pages | Purpose |
+|---|---|---|
+| **Academic Setup** | Classes & Sections, Subjects, Subject Groups | School's academic structure — source data for every Class/Section/Stream/Subject filter app-wide |
+| **Student** | Manage Students, Admission | Student records — intake (Admission) and ongoing management |
+| **Staff** | Manage Staff, Departments, Designations | Staff records and org structure |
+| **Attendance** | Overview, Manage Shifts, Roster | Biometric attendance, shift definitions, shift assignment |
+| **Leave** | Requests, Leave Create, Leave Assign | Leave application/approval, leave-type config, per-person limits |
+| **Holiday** | Holidays, Templates, Assign | Holiday calendar, reusable templates, per-person/class assignment |
+| **Payroll** | Generate Payroll, Salary Payouts, Salary Groups, Assign Salary | Monthly payroll run, payment history, pay-band config, per-staff assignment |
+| **Fees** | Fees, Fee Structure, Fee Statement, Fee Reminder | Fee collection (incl. arrears), annual fee config, per-student history, WhatsApp reminders |
+| **Approvals** | Requests | Cross-module unified approval inbox |
+| **Settings** | Admission Form Fields | Dynamic field/validation config for Student forms — single source of truth for form, table, and Excel columns |
 
-The module file only documents what's DIFFERENT for that page — it
-assumes the shared shell/toolbar/table/chip/icon-action components from
-`_core` are already in place and doesn't repeat their spec.
+## Locked global rules (see `_core` for full detail)
 
-## Versioning rule
+- Filter order: Search → scope filters → status filters → period picker (last)
+- Department/Designation/Class: disable via `classList`, never hide
+- Stream/Section: exist only if configured, hide via `display:none`
+- All modals: sticky header/footer, scrollable middle
+- Cascade delete: always allowed, type-to-confirm when dependents exist
+- Status chips: fixed-width, full-word label, colored pill — one
+  design used everywhere a status is shown (list-page "quick stat"
+  strips stay plain bold text, chips belong only where an actual
+  per-row/per-field status is being shown)
 
-- **Per-module files** (`attendance/overview.md`, `payroll/generate-
-  payroll.md`, etc.) can be updated in place within the same version as
-  a module's design is refined — each file's own content is what Claude
-  Code should build against at any given time.
-- **The `_core` folder** is different: because every module depends on
-  it, don't edit it in place once a module has been built against it.
-  If the shared design system or component contracts change materially,
-  create a new `v2/_core/` and copy forward any module files that still
-  apply, updating them only if the core change actually affects them.
-- Log every version bump or material per-module update in CHANGELOG.md.
+## Files
 
-## Current version: v1
-
-See CHANGELOG.md for what's been finalized so far.
+- `v1/_core/` — design system reference (read first)
+- `v1/<module>/` — one folder per module, as mapped above
+- `CHANGELOG.md` — full history of every revision made during design review

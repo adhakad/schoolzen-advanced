@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fees - Statement - approved reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
+  .doc-note { max-width: 1000px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
+  .doc-note b { display: block; margin-bottom: 4px; }
+  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1000px; margin: 0 auto; }
+  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
+  .sw-brand { display: flex; align-items: center; gap: 10px; }
+  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+  .sw-right { display: flex; align-items: center; gap: 12px; }
+  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
+  .sw-session i { font-size: 14px; color: #7b6ef6; }
+  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
+  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+  .sw-spacer { height: 24px; }
+  .sw-body { display: flex; gap: 16px; align-items: stretch; }
+  .sb-wrap { background: #fff; border-radius: 18px; padding: 16px 10px; width: 210px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; display: flex; flex-direction: column; }
+  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; color: #4a4a68; cursor: pointer; margin-bottom: 3px; font-weight: 500; }
+  .sb-item-left { display: flex; align-items: center; gap: 9px; }
+  .sb-item i { font-size: 17px; }
+  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.35); }
+  .sw-main { flex: 1; min-width: 0; }
+  .sw-backlink { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #7b6ef6; font-weight: 600; cursor: pointer; margin-bottom: 12px; }
+  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
+
+  .view-header { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #f0eeff; }
+  .view-photo { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 18px; flex-shrink: 0; }
+  .view-header-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+  .view-header-meta { font-size: 12px; color: #9494ac; margin-top: 2px; }
+
+  .summary-strip { display: flex; gap: 24px; background: #f9f8ff; border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; }
+  .summary-item { flex: 1; }
+  .summary-item label { display: block; font-size: 10px; color: #9494ac; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 3px; font-weight: 600; }
+  .summary-item .val { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .summary-item.due .val { color: #1a1a2e; }
+  .summary-item.paid .val { color: #1a1a2e; }
+  .arrear-note { font-size: 10px; color: #b8790a; font-weight: 500; margin-top: 3px; }
+  .ledger-hint { font-size: 11px; color: #9494ac; margin: 6px 0 0; }
+  .status-chip { display: inline-flex; align-items: center; justify-content: center; width: 96px; font-size: 10.5px; font-weight: 700; padding: 5px 0; border-radius: 999px; }
+  .status-chip.arrears { background: #fff2d6; color: #b8790a; }
+  .status-chip.paid { background: #d9f7ea; color: #0c8a52; }
+
+  .breakdown-title { font-size: 11px; font-weight: 700; color: #7b6ef6; text-transform: uppercase; letter-spacing: .4px; margin: 18px 0 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 0 8px 8px; text-align: left; }
+  td { padding: 11px 8px; border-top: 1px solid #f2f1fa; }
+  .particular-tag { font-size: 10.5px; background: #f0eeff; color: #7b6ef6; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+  .receipt-no { font-family: monospace; font-size: 11.5px; color: #4a4a68; }
+  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; cursor: pointer; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #fff; border-radius: 16px; width: 520px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
+  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
+  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
+  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="doc-note">
+  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
+  Fees &rarr; Fee Statement page (reached via the "Statement" launch
+  icon on Fees). Full per-student fee picture: a profile-style header
+  (matching Manage Students'/Admission's View modal convention),
+  summary strip, particulars breakdown, and a payment-history table
+  with a receipt-reprint icon per row.
+</div>
+
+<div class="sw">
+  <div class="sw-header">
+    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
+    <div class="sw-right">
+      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
+      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+    </div>
+  </div>
+  <div class="sw-spacer"></div>
+  <div class="sw-body">
+    <div class="sb-wrap">
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-home"></i>Dashboard</div></div>
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-school"></i>Student</div></div>
+      <div class="sb-item parent-active"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i>Fees</div></div>
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-users"></i>Staff</div></div>
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-calendar"></i>Attendance</div></div>
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-settings"></i>Settings</div></div>
+    </div>
+
+    <div class="sw-main">
+      <div class="sw-backlink"><i class="ti ti-arrow-left"></i> Back to Fees</div>
+      <div class="sw-card-main">
+        <div class="view-header">
+          <div class="view-photo">RK</div>
+          <div>
+            <div class="view-header-name">Rohan Kapoor</div>
+            <div class="view-header-meta">Admission No. 2024142 &middot; Class 8th &middot; Roll No. 12 &middot; Father: Suresh Kapoor</div>
+          </div>
+        </div>
+
+        <div class="summary-strip">
+          <div class="summary-item"><label>Fee Concession</label><div class="val">&#8377; 0</div></div>
+          <div class="summary-item paid"><label>Paid Fee</label><div class="val">&#8377; 22,000</div></div>
+          <div class="summary-item due"><label>Due Fee</label><div class="val">&#8377; 26,500</div><div class="arrear-note">incl. &#8377; 6,500 from 7th</div></div>
+          <div class="summary-item"><label>Total Fee</label><div class="val">&#8377; 42,000</div></div>
+          <div class="summary-item"><label>Status</label><div class="val"><span class="status-chip arrears">Has Arrears</span></div></div>
+        </div>
+
+        <div class="breakdown-title">Previous Year Dues</div>
+        <table>
+          <thead><tr><th>Session</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Remaining Due</th><th>Status</th><th>Payments</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>2025-26</td>
+              <td>7th</td>
+              <td>&#8377; 38,000</td>
+              <td>&#8377; 31,500</td>
+              <td style="color:#b8790a;font-weight:600;">&#8377; 6,500</td>
+              <td><span class="status-chip arrears">Has Arrears</span></td>
+              <td><div class="icon-btn" onclick="openYearPayments('2025-26', '7th')"><i class="ti ti-receipt"></i></div></td>
+            </tr>
+            <tr>
+              <td>2024-25</td>
+              <td>6th</td>
+              <td>&#8377; 34,000</td>
+              <td>&#8377; 34,000</td>
+              <td>&#8377; 0</td>
+              <td><span class="status-chip paid">Fully Paid</span></td>
+              <td><div class="icon-btn" onclick="openYearPayments('2024-25', '6th')"><i class="ti ti-receipt"></i></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="ledger-hint">Every past session this student was enrolled in, so a fully-cleared year stays visible as a record — not just the years still owing something. Click a session's receipt icon to see exactly when and in how many installments it was paid.</p>
+
+        <div class="breakdown-title">Particulars — Current Year (8th)</div>
+        <table>
+          <thead><tr><th>Particular</th><th>Amount</th></tr></thead>
+          <tbody>
+            <tr><td><span class="particular-tag">Tuition Fee</span></td><td>&#8377; 30,000</td></tr>
+            <tr><td><span class="particular-tag">Transport Fee</span></td><td>&#8377; 12,000</td></tr>
+          </tbody>
+        </table>
+
+        <div class="breakdown-title">Payment History — Current Year (8th)</div>
+        <table>
+          <thead><tr><th>Receipt No.</th><th>Amount</th><th>Payment Date</th><th>Collected By</th><th>Receipt</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="receipt-no">RCPT-2026-0512</span></td>
+              <td>&#8377; 22,000</td>
+              <td>05 Sep 2026</td>
+              <td>Abhishek</td>
+              <td><div class="icon-btn" title="Regenerate / reprint this receipt"><i class="ti ti-printer"></i></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- YEAR PAYMENTS - installment-level digital footprint for any past
+       session, opened from the Previous Year Dues table's receipt icon.
+       Same table shape as the current year's Payment History above, so
+       a parent/admin can see exactly when and in how many installments
+       that year was paid, with the same reprint/regenerate action. -->
+  <div class="modal-overlay" id="yearPaymentsModal">
+    <div class="modal-box">
+      <div class="modal-head"><span class="modal-title" id="yearPaymentsTitle">Payments — 2025-26 (7th)</span><div class="modal-close" onclick="document.getElementById('yearPaymentsModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <table>
+          <thead><tr><th>Receipt No.</th><th>Amount</th><th>Payment Date</th><th>Collected By</th><th>Receipt</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="receipt-no">RCPT-2025-0311</span></td>
+              <td>&#8377; 15,000</td>
+              <td>18 Jun 2025</td>
+              <td>Abhishek</td>
+              <td><div class="icon-btn" title="Regenerate / reprint this receipt"><i class="ti ti-printer"></i></div></td>
+            </tr>
+            <tr>
+              <td><span class="receipt-no">RCPT-2025-0489</span></td>
+              <td>&#8377; 10,000</td>
+              <td>02 Oct 2025</td>
+              <td>Abhishek</td>
+              <td><div class="icon-btn" title="Regenerate / reprint this receipt"><i class="ti ti-printer"></i></div></td>
+            </tr>
+            <tr>
+              <td><span class="receipt-no">RCPT-2026-0044</span></td>
+              <td>&#8377; 6,500</td>
+              <td>14 Jan 2026</td>
+              <td>Abhishek</td>
+              <td><div class="icon-btn" title="Regenerate / reprint this receipt"><i class="ti ti-printer"></i></div></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="ledger-hint" style="margin-top:12px;">3 installments totaling &#8377; 31,500 of &#8377; 38,000 — &#8377; 6,500 remains due for this session.</p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('yearPaymentsModal').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openYearPayments(session, cls) {
+  document.getElementById('yearPaymentsTitle').textContent = `Payments — ${session} (${cls})`;
+  document.getElementById('yearPaymentsModal').classList.add('open');
+}
+</script>
+</body>
+</html>
