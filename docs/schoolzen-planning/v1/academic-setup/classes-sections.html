@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Academic Setup - Classes & Sections - approved reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
+  .doc-note { max-width: 1000px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
+  .doc-note b { display: block; margin-bottom: 4px; }
+  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1000px; margin: 0 auto; }
+  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
+  .sw-brand { display: flex; align-items: center; gap: 10px; }
+  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+  .sw-right { display: flex; align-items: center; gap: 12px; }
+  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
+  .sw-session i { font-size: 14px; color: #7b6ef6; }
+  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
+  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
+  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
+  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+  .sw-spacer { height: 24px; }
+  .sw-body { display: flex; gap: 16px; align-items: stretch; }
+  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
+  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
+  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
+  .sb-item.single:hover { background: #f6f5ff; }
+  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
+  .sb-item.parent-active .chev { color: #fff; }
+  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
+  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
+  .sb-group.open .sb-sub-wrap { max-height: 400px; }
+  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
+  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
+  .sb-sub-item:hover { background: #f9f8ff; }
+  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
+  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
+  .sw-main { flex: 1; min-width: 0; }
+  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
+  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
+  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .sw-search { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 9px 14px; flex: 1; min-width: 160px; }
+  .sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
+  .sw-search i { color: #a6a6c9; font-size: 15px; }
+  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 0 8px 8px; text-align: left; }
+  td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; }
+  .cls-name { font-weight: 600; color: #1a1a2e; font-size: 13.5px; }
+  .count-pill { display: inline-flex; align-items: center; gap: 5px; background: #fff2d6; color: #b8790a; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; position: relative; width: fit-content; }
+  .count-pill.sec { background: #f0eeff; color: #7b6ef6; }
+  .count-pop { display: none; position: absolute; top: 28px; left: 0; background: #1a1a2e; color: #fff; border-radius: 8px; padding: 8px 12px; font-size: 11px; white-space: nowrap; z-index: 10; font-weight: 500; }
+  .count-pop.open { display: block; }
+  .not-set { color: #b0b0c9; font-style: italic; font-size: 11.5px; }
+  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; margin-right: 4px; cursor: pointer; }
+  .icon-btn.warn { background: #fde8ef; color: #b8265a; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #fff; border-radius: 16px; width: 460px; max-height: 86vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
+  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
+  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
+  .m-field { margin-bottom: 12px; }
+  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
+  .m-field input, .m-field select { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
+  .m-hint { font-size: 10.5px; color: #9494ac; margin-top: 3px; }
+  .toggle-row { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; }
+  .toggle-switch { width: 38px; height: 22px; border-radius: 999px; background: #e5e3f5; position: relative; cursor: pointer; flex-shrink: 0; }
+  .toggle-switch.on { background: #d9f7ea; }
+  .toggle-switch::after { content: ''; width: 18px; height: 18px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: 0.2s; }
+  .toggle-switch.on::after { left: auto; right: 2px; }
+  .toggle-label { font-size: 13px; color: #3d3d5c; font-weight: 500; }
+  .sec-block { background: #f9f8ff; border-radius: 12px; padding: 12px; margin-top: 14px; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .sec-title { font-size: 11.5px; font-weight: 700; color: #4a4a68; }
+  .sec-add { width: 22px; height: 22px; border-radius: 6px; background: #7b6ef6; color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .sec-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .sec-row input { flex: 1; border: 1px solid #e5e3f5; border-radius: 8px; padding: 6px 10px; font-size: 12px; outline: none; }
+  .sec-remove { width: 22px; height: 22px; border-radius: 6px; background: #fde8ef; color: #b8265a; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .stream-block { border: 1px solid #ece9fb; border-radius: 10px; padding: 10px; margin-top: 10px; }
+  .stream-block-title { font-size: 11px; font-weight: 700; color: #b8790a; margin-bottom: 8px; }
+  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="doc-note">
+  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
+  Academic Setup &rarr; Classes &amp; Sections page. This is the source
+  data behind every Class/Section/Stream filter used across the whole
+  app (Attendance, Leave, Holiday, Manage Students, Admission).
+  Streams/Sections shown as a FIXED-WIDTH count pill ("2 streams",
+  "4 streams") with a click-to-reveal popover listing them - never
+  inline tags, which would grow the column unpredictably (2 streams
+  vs 10 must render identically). The add/edit modal's stream toggle
+  restructures the whole sections area: off = flat section list
+  directly on the class; on = a stream list, each stream with its own
+  independent section list underneath.
+</div>
+
+<div class="sw">
+  <div class="sw-header">
+    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
+    <div class="sw-right">
+      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
+      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
+      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+    </div>
+  </div>
+  <div class="sw-spacer"></div>
+  <div class="sw-body">
+    <div class="sb-wrap">
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
+      <div class="sb-group" data-group="student">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="staff">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
+        </div>
+      </div>
+      <div class="sb-group open" data-group="academic">
+        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Classes & Sections</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="attendance">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="leave">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="holiday">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="payroll">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="fees">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="examination">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="certificates">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
+        </div>
+      </div>
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
+      <div class="sb-group" data-group="settings">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
+        </div>
+      </div>
+    </div>
+    <div class="sw-main">
+      <div class="sw-card-main">
+        <div class="sw-title">Classes &amp; Sections</div>
+
+        <div class="sw-toolbar">
+          <div class="sw-search"><i class="ti ti-search"></i><input placeholder="Search classes"/></div>
+          <button class="sw-add-btn" onclick="document.getElementById('classModal').classList.add('open')"><i class="ti ti-plus" style="font-size:13px;"></i> Add Class</button>
+        </div>
+
+        <table>
+          <thead><tr><th>Class</th><th>Streams</th><th>Sections</th><th>Students</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="cls-name">6th</span></td>
+              <td><span class="not-set">N/A</span></td>
+              <td><span class="count-pill sec" onclick="togglePop(this)">2 sections<span class="count-pop">A, B</span></span></td>
+              <td>72</td>
+              <td><div class="icon-btn" onclick="document.getElementById('classModal').classList.add('open')"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+            </tr>
+            <tr>
+              <td><span class="cls-name">7th</span></td>
+              <td><span class="not-set">N/A</span></td>
+              <td><span class="not-set">No sections</span></td>
+              <td>45</td>
+              <td><div class="icon-btn"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+            </tr>
+            <tr>
+              <td><span class="cls-name">11th</span></td>
+              <td><span class="count-pill" onclick="togglePop(this)">2 streams<span class="count-pop">Science, Commerce</span></span></td>
+              <td><span class="not-set">Set per stream</span></td>
+              <td>98</td>
+              <td><div class="icon-btn"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+            </tr>
+            <tr>
+              <td><span class="cls-name">12th</span></td>
+              <td><span class="count-pill" onclick="togglePop(this)">4 streams<span class="count-pop">Science, Commerce, Arts, Vocational</span></span></td>
+              <td><span class="not-set">Set per stream</span></td>
+              <td>102</td>
+              <td><div class="icon-btn"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="classModal">
+    <div class="modal-box">
+      <div class="modal-head"><span class="modal-title">Add Class</span><div class="modal-close" onclick="document.getElementById('classModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="m-field"><label>Class Name</label><select><option>6th</option><option>7th</option><option>11th</option></select></div>
+
+        <div class="toggle-row"><div class="toggle-switch" id="streamToggle" onclick="toggleStream(this)"></div><span class="toggle-label">This class has streams (11th/12th)</span></div>
+        <p class="m-hint">Turn on for 11th/12th &mdash; sections are then set per stream, not directly on the class.</p>
+
+        <div id="directSections" class="sec-block">
+          <div class="sec-head"><span class="sec-title">Sections</span><button class="sec-add">+</button></div>
+          <div class="sec-row"><input value="A"><button class="sec-remove">&times;</button></div>
+          <div class="sec-row"><input value="B"><button class="sec-remove">&times;</button></div>
+        </div>
+
+        <div id="streamSections" style="display:none;">
+          <div class="sec-block">
+            <div class="sec-head"><span class="sec-title">Streams</span><button class="sec-add">+</button></div>
+            <div class="sec-row"><input value="Science"><button class="sec-remove">&times;</button></div>
+            <div class="sec-row"><input value="Commerce"><button class="sec-remove">&times;</button></div>
+          </div>
+          <div class="stream-block">
+            <div class="stream-block-title">Science &mdash; Sections</div>
+            <div class="sec-row"><input value="A"><button class="sec-remove">&times;</button></div>
+            <div class="sec-row"><input value="B"><button class="sec-remove">&times;</button></div>
+          </div>
+          <div class="stream-block">
+            <div class="stream-block-title">Commerce &mdash; Sections</div>
+            <p class="m-hint" style="margin:0;">None &mdash; add one if this stream needs sections.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('classModal').classList.remove('open')">Cancel</button>
+        <button class="btn-submit">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleGroup(el) {
+  const group = el.closest('.sb-group');
+  const wasOpen = group.classList.contains('open');
+  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
+  if (!wasOpen) group.classList.add('open');
+}
+
+function toggleStream(el) {
+  el.classList.toggle('on');
+  const on = el.classList.contains('on');
+  document.getElementById('directSections').style.display = on ? 'none' : 'block';
+  document.getElementById('streamSections').style.display = on ? 'block' : 'none';
+}
+function togglePop(el) {
+  el.querySelector('.count-pop').classList.toggle('open');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Examination - Marksheet Structure - approved reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
+  .doc-note { max-width: 1050px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
+  .doc-note b { display: block; margin-bottom: 4px; }
+  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1050px; margin: 0 auto; }
+  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
+  .sw-brand { display: flex; align-items: center; gap: 10px; }
+  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+  .sw-right { display: flex; align-items: center; gap: 12px; }
+  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
+  .sw-session i { font-size: 14px; color: #7b6ef6; }
+  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
+  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
+  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
+  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+  .sw-profile-drop { display: none; position: absolute; top: 60px; right: 20px; width: 260px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(20,20,60,0.14); padding: 14px; z-index: 10; }
+  .sw-profile-drop.open { display: block; }
+  .sw-drop-school { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #f0eeff; margin-bottom: 10px; }
+  .sw-school-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg,#2f8fd8,#1f6fad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
+  .sw-school-name { font-weight: 700; font-size: 13px; color: #1a1a2e; }
+  .sw-school-meta { font-size: 10.5px; color: #9494ac; margin-top: 1px; }
+  .sw-drop-item { display: flex; align-items: center; gap: 9px; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; color: #6b6b85; cursor: pointer; }
+  .sw-drop-item:hover { background: #f6f5ff; }
+  .sw-drop-item i { font-size: 15px; color: #9494ac; }
+  .sw-spacer { height: 24px; }
+  .sw-body { display: flex; gap: 16px; align-items: stretch; }
+  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
+  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
+  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
+  .sb-item.single:hover { background: #f6f5ff; }
+  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
+  .sb-item.parent-active .chev { color: #fff; }
+  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
+  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
+  .sb-group.open .sb-sub-wrap { max-height: 400px; }
+  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
+  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
+  .sb-sub-item:hover { background: #f9f8ff; }
+  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
+  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
+  .sw-main { flex: 1; min-width: 0; }
+  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
+  .ls-strip { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(20,20,60,0.04); flex-wrap: wrap; }
+  .ls-count { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: #6b6b85; }
+  .ls-count b { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .ls-sep { width: 1px; height: 16px; background: #ececf7; }
+  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
+  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sw-select-pill { display: flex; align-items: center; gap: 6px; background: #f6f5ff; border-radius: 12px; padding: 9px 12px; width: 128px; flex-shrink: 0; }
+  .sw-select-pill select { border: none; background: transparent; font-size: 12px; color: #6b6b85; outline: none; flex: 1; appearance: none; font-weight: 500; }
+  .sw-select-pill.disabled { background: #f2f2f6; opacity: 0.5; }
+  .sw-select-pill.disabled select { cursor: not-allowed; color: #b0b0c9; }
+  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; margin-left: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 0 8px 8px; text-align: left; }
+  td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; }
+  .cls-tag { font-size: 10.5px; color: #7b6ef6; background: #f0eeff; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+  .not-set { color: #b0b0c9; font-style: italic; font-size: 11.5px; }
+  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; margin-right: 4px; cursor: pointer; }
+  .icon-btn.warn { background: #fde8ef; color: #b8265a; }
+
+  .empty-hint { background: #fff8ea; border-radius: 10px; padding: 12px 16px; font-size: 12.5px; color: #8a6d1f; text-align: center; margin: 20px 0; }
+
+  .template-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 8px; }
+  .template-card { border: 1.5px solid #e5e3f5; border-radius: 12px; padding: 12px; cursor: pointer; text-align: center; }
+  .template-card:hover { border-color: #7b6ef6; }
+  .template-card img { width: 100%; border-radius: 8px; margin-bottom: 8px; background: #f6f5ff; height: 140px; object-fit: cover; }
+  .template-card .t-name { font-size: 11.5px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+  .template-select-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 9px; padding: 7px 16px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #fff; border-radius: 16px; width: 460px; max-height: 86vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
+  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
+  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
+  .warn-box { background: #fde8ef; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #8a1f42; line-height: 1.6; margin-bottom: 14px; }
+  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-danger { background: #b8265a; color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="doc-note">
+  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
+  Examination &rarr; Marksheet Structure page. One structure per
+  Class(+Stream) — existence+dependency filter pair as everywhere
+  else. Starting a NEW structure shows a template-picker grid instead
+  of a blank form (matches the legacy component's carousel), since a
+  marksheet's whole visual layout comes from the chosen template; the
+  configuration (subjects/terms/marks) is entered on the
+  Subject &amp; Marks Setup page (marksheet-structure-setup.html) once
+  a template is picked.
+</div>
+
+<div class="sw">
+  <div class="sw-header">
+    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
+    <div class="sw-right">
+      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
+      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
+      <div class="sw-profile" onclick="document.getElementById('profileDrop').classList.toggle('open')"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+    </div>
+  </div>
+  <div class="sw-profile-drop" id="profileDrop">
+    <div class="sw-drop-school">
+      <div class="sw-school-logo">GV</div>
+      <div><div class="sw-school-name">Green Valley Public School</div><div class="sw-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div>
+    </div>
+    <div class="sw-drop-item"><i class="ti ti-user"></i>My Profile</div>
+    <div class="sw-drop-item"><i class="ti ti-settings"></i>School Settings</div>
+    <div class="sw-drop-item"><i class="ti ti-logout"></i>Logout</div>
+  </div>
+  <div class="sw-spacer"></div>
+  <div class="sw-body">
+    <div class="sb-wrap">
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
+      <div class="sb-group" data-group="student">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="staff">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="academic">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="attendance">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="leave">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="holiday">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="payroll">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="fees">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
+        </div>
+      </div>
+      <div class="sb-group open" data-group="examination">
+        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="certificates">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
+        </div>
+      </div>
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
+      <div class="sb-group" data-group="settings">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
+        </div>
+      </div>
+    </div>
+    <div class="sw-main">
+      <div class="ls-strip">
+        <span class="ls-count"><b>10</b> classes total</span>
+        <div class="ls-sep"></div>
+        <span class="ls-count"><b>6</b> structures set</span>
+        <span class="ls-count"><b>4</b> not set yet</span>
+      </div>
+
+      <div class="sw-card-main">
+        <div class="sw-title">Marksheet Structure</div>
+
+        <div class="sw-toolbar">
+          <div class="sw-select-pill" id="classPill"><select id="cls" onchange="onClassChange()"><option value="">-- Select Class --</option><option value="8">8th</option><option value="11">11th</option></select></div>
+          <div class="sw-select-pill disabled" id="streamPill" style="display:none;"><select id="stream" disabled onchange="onStreamChange()"><option value="">-- Select --</option><option>Science</option><option>Commerce</option></select></div>
+        </div>
+
+        <!-- State 1: no class chosen yet -->
+        <div class="empty-hint" id="chooseHint">Choose a Class (and Stream, for 11th/12th) to see or set its marksheet structure.</div>
+
+        <!-- State 2: class chosen, structure already exists -->
+        <div id="existingStructure" style="display:none;">
+          <table>
+            <thead><tr><th>S.No.</th><th>Template Name</th><th>Class</th><th>Stream</th><th>Created By</th><th>Edit</th><th>Remove</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>CBSE Term Format</td>
+                <td><span class="cls-tag">8th</span></td>
+                <td><span class="not-set">N/A</span></td>
+                <td>Abhishek</td>
+                <td><div class="icon-btn"><i class="ti ti-external-link"></i></div></td>
+                <td><div class="icon-btn warn" onclick="document.getElementById('deleteModal').classList.add('open')"><i class="ti ti-trash"></i></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- State 3: class chosen, no structure yet - show template picker -->
+        <div id="templatePicker" style="display:none;">
+          <p style="font-size:12.5px;color:#6b6b85;margin:0 0 4px;">No marksheet structure set for this class yet. Pick a template to start.</p>
+          <div class="template-grid">
+            <div class="template-card">
+              <img src="https://placehold.co/240x160/f6f5ff/7b6ef6?text=Template+1" alt="">
+              <div class="t-name">Template 1 — Two Term</div>
+              <button class="template-select-btn" onclick="location.href='marksheet-structure-setup.html'">Select</button>
+            </div>
+            <div class="template-card">
+              <img src="https://placehold.co/240x160/f6f5ff/7b6ef6?text=Template+2" alt="">
+              <div class="t-name">Template 2 — Yearly</div>
+              <button class="template-select-btn" onclick="location.href='marksheet-structure-setup.html'">Select</button>
+            </div>
+            <div class="template-card">
+              <img src="https://placehold.co/240x160/f6f5ff/7b6ef6?text=Template+3" alt="">
+              <div class="t-name">Template 3 — CBSE Co-Scholastic</div>
+              <button class="template-select-btn" onclick="location.href='marksheet-structure-setup.html'">Select</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE - cascade type-to-confirm -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal-box" style="width:420px;">
+      <div class="modal-head"><span class="modal-title">Delete Marksheet Structure</span><div class="modal-close" onclick="document.getElementById('deleteModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="warn-box">Deleting this structure also deletes every 8th-class student's exam result entered against it. This cannot be undone.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('deleteModal').classList.remove('open')">Cancel</button>
+        <button class="btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleGroup(el) {
+  const group = el.closest('.sb-group');
+  const wasOpen = group.classList.contains('open');
+  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
+  if (!wasOpen) group.classList.add('open');
+}
+
+function onClassChange() {
+  const val = document.getElementById('cls').value;
+  const streamPill = document.getElementById('streamPill');
+  const streamSel = document.getElementById('stream');
+  streamPill.style.display = 'none'; streamSel.disabled = true;
+
+  if (val === '11' || val === '12') {
+    streamPill.style.display = 'flex';
+    streamSel.disabled = false;
+    resetState();
+    return;
+  }
+  updateState(!!val);
+}
+function onStreamChange() {
+  updateState(!!document.getElementById('stream').value);
+}
+function resetState() {
+  document.getElementById('chooseHint').style.display = 'block';
+  document.getElementById('existingStructure').style.display = 'none';
+  document.getElementById('templatePicker').style.display = 'none';
+}
+function updateState(ready) {
+  document.getElementById('chooseHint').style.display = ready ? 'none' : 'block';
+  // Demo: 8th already has a structure, everything else doesn't yet.
+  const val = document.getElementById('cls').value;
+  if (ready && val === '8') {
+    document.getElementById('existingStructure').style.display = 'block';
+    document.getElementById('templatePicker').style.display = 'none';
+  } else if (ready) {
+    document.getElementById('existingStructure').style.display = 'none';
+    document.getElementById('templatePicker').style.display = 'block';
+  } else {
+    document.getElementById('existingStructure').style.display = 'none';
+    document.getElementById('templatePicker').style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>

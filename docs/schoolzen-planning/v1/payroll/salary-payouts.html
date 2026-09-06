@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Payroll - Salary Payouts - approved reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
+  .doc-note { max-width: 1140px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
+  .doc-note b { display: block; margin-bottom: 4px; }
+
+  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1140px; margin: 0 auto; }
+  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
+  .sw-brand { display: flex; align-items: center; gap: 10px; }
+  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+  .sw-right { display: flex; align-items: center; gap: 12px; }
+  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
+  .sw-session i { font-size: 14px; color: #7b6ef6; }
+  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
+  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
+  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
+  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+  .sw-spacer { height: 24px; }
+  .sw-body { display: flex; gap: 16px; align-items: stretch; }
+  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
+  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
+  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
+  .sb-item.single:hover { background: #f6f5ff; }
+  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
+  .sb-item.parent-active .chev { color: #fff; }
+  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
+  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
+  .sb-group.open .sb-sub-wrap { max-height: 400px; }
+  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
+  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
+  .sb-sub-item:hover { background: #f9f8ff; }
+  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
+  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
+  .sw-main { flex: 1; min-width: 0; }
+  .sw-backlink { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #7b6ef6; font-weight: 600; cursor: pointer; margin-bottom: 12px; }
+  .sw-backlink i { font-size: 15px; }
+
+  .ls-strip { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(20,20,60,0.04); flex-wrap: wrap; }
+  .ls-sep { width: 1px; height: 16px; background: #ececf7; }
+  .ls-count { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: #6b6b85; }
+  .ls-count b { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .ls-count.hero b { color: #7b6ef6; }
+
+  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
+  .title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; position: relative; }
+  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; }
+  .info-icon { width: 18px; height: 18px; border-radius: 50%; background: #f0eeff; color: #9691c4; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+  .info-pop { display: none; position: absolute; top: 26px; left: 0; width: 340px; background: #1a1a2e; color: #e5e3f5; border-radius: 10px; padding: 12px 14px; font-size: 11.5px; line-height: 1.6; z-index: 20; }
+  .info-pop.open { display: block; }
+  .info-pop b { color: #fff; }
+  .info-pop .pop-line { margin-bottom: 8px; }
+  .info-pop .pop-line:last-child { margin-bottom: 0; }
+
+  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sw-search { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 9px 14px; flex: 1; min-width: 160px; }
+  .sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
+  .sw-search i { color: #a6a6c9; font-size: 15px; }
+  .sw-select-pill { display: flex; align-items: center; gap: 6px; background: #f6f5ff; border-radius: 12px; padding: 9px 12px; width: 128px; flex-shrink: 0; }
+  .sw-select-pill select { border: none; background: transparent; font-size: 12.5px; color: #6b6b85; outline: none; flex: 1; appearance: none; font-weight: 500; }
+  .sw-select-pill i { font-size: 12px; color: #b0b0c9; }
+  .sw-select-pill.disabled { background: #f2f2f6; opacity: 0.5; }
+  .sw-select-pill.disabled select { cursor: not-allowed; color: #b0b0c9; }
+  .month-nav { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 7px 12px; flex-shrink: 0; margin-left: auto; }
+  .month-nav i { cursor: pointer; color: #7b6ef6; font-size: 14px; }
+  .month-nav span { font-size: 12.5px; font-weight: 600; color: #3d3d5c; min-width: 90px; text-align: center; }
+
+  .grid-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+  .table-inner { min-width: 1000px; }
+  .ph-table { border-collapse: collapse; font-size: 12px; width: 100%; }
+  .ph-table th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .3px; padding: 0 8px 8px; text-align: left; white-space: nowrap; }
+  .ph-table td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: top; }
+  .ph-row-name { font-weight: 600; font-size: 13px; color: #1a1a2e; }
+  .ph-row-code { font-size: 10.5px; color: #9494ac; }
+  .ph-net { font-weight: 700; font-size: 13.5px; color: #1a1a2e; }
+  .ph-paid { font-size: 13px; color: #1a1a2e; font-weight: 600; }
+  .ph-due { font-size: 10.5px; color: #9494ac; }
+  .ph-pending { font-size: 10.5px; color: #b8790a; }
+  .status-chip { display: inline-flex; align-items: center; justify-content: center; width: 92px; font-size: 10.5px; font-weight: 700; padding: 5px 0; border-radius: 999px; }
+  .status-chip.unpaid { background: #fde8ef; color: #b8265a; }
+  .status-chip.partial { background: #fff2d6; color: #b8790a; }
+  .status-chip.full { background: #d9f7ea; color: #0c8a52; }
+  .confirm-chip { display: inline-flex; align-items: center; font-size: 9.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+  .confirm-chip.confirmed { background: #d9f7ea; color: #0c8a52; }
+  .confirm-chip.pending { background: #fff2d6; color: #b8790a; }
+  .dash { color: #d4d2ec; }
+  .ph-icon { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; }
+  .ph-icon.primary { background: #7b6ef6; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="doc-note">
+  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
+  Payroll &rarr; Salary Payouts page (renamed from "Payment History" - see
+  the .md doc for why). Depends on the shared design system in
+  <code>../_core/</code>. Filter order in the toolbar is now the standard
+  for every page: Search &rarr; scope filters &rarr; status/mode filters
+  &rarr; the combined Month+Year period picker, always LAST.
+</div>
+
+<div class="sw">
+  <div class="sw-header">
+    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
+    <div class="sw-right">
+      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
+      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
+      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+    </div>
+  </div>
+  <div class="sw-spacer"></div>
+  <div class="sw-body">
+    <div class="sb-wrap">
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
+      <div class="sb-group" data-group="student">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="staff">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="academic">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="attendance">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="leave">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="holiday">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
+        </div>
+      </div>
+      <div class="sb-group open" data-group="payroll">
+        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
+          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Salary Payouts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="fees">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="examination">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="certificates">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
+        </div>
+      </div>
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
+      <div class="sb-group" data-group="settings">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
+        </div>
+      </div>
+    </div>
+    <div class="sw-main">
+      <div class="sw-backlink"><i class="ti ti-arrow-left"></i> Back to Payroll</div>
+
+      <div class="ls-strip">
+        <span class="ls-count hero"><b>&#8377;58.6L</b> disbursed this month</span>
+        <div class="ls-sep"></div>
+        <span class="ls-count"><b>28</b> fully paid</span>
+        <span class="ls-count"><b>6</b> partially paid</span>
+        <span class="ls-count"><b>8</b> unpaid</span>
+        <span class="ls-count"><b>3</b> awaiting confirmation</span>
+      </div>
+
+      <div class="sw-card-main">
+        <div class="title-row">
+          <span class="sw-title">Salary Payouts</span>
+          <div class="info-icon" onclick="document.getElementById('infoPop').classList.toggle('open')">i</div>
+          <div class="info-pop" id="infoPop">
+            <div class="pop-line">Only <b>locked</b> payroll appears here &mdash; the amount has to be final before a payment can be recorded against it.</div>
+            <div class="pop-line">A payment counts as <b>paid</b> only once the employee <b>confirms receipt</b>, within 24 hours of being recorded. Until then the row stays Unpaid and no salary slip can be issued.</div>
+          </div>
+        </div>
+
+        <div class="sw-toolbar">
+          <div class="sw-search"><i class="ti ti-search"></i><input placeholder="Search by name or ID"/></div>
+          <div class="sw-select-pill"><select><option>Staff</option></select></div>
+          <div class="sw-select-pill" id="deptPill"><select id="dept" onchange="onDeptChange()"><option value="">All depts</option><option value="teaching">Teaching</option><option value="admin">Admin</option></select><i class="ti ti-chevron-down"></i></div>
+          <div class="sw-select-pill disabled" id="desigPill"><select id="desig" disabled><option>All designations</option></select><i class="ti ti-chevron-down"></i></div>
+          <div class="sw-select-pill"><select><option>Any mode</option></select><i class="ti ti-chevron-down"></i></div>
+          <div class="sw-select-pill"><select><option>Any status</option></select><i class="ti ti-chevron-down"></i></div>
+          <div class="month-nav"><i class="ti ti-chevron-left"></i><span>August 2026</span><i class="ti ti-chevron-right"></i></div>
+        </div>
+
+        <div class="grid-scroll">
+          <div class="table-inner">
+            <table class="ph-table">
+              <thead>
+                <tr>
+                  <th>Name</th><th>Net Salary</th><th>Amount Paid</th><th>Status</th><th>Confirmation</th><th>Mode</th><th>Date</th><th>Paid By</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div class="ph-row-name">Priya Sharma</div><div class="ph-row-code">STF-0142</div></td>
+                  <td><span class="ph-net">&#8377;23,000</span></td>
+                  <td><span class="ph-paid">&#8377;23,000</span></td>
+                  <td><span class="status-chip full">Fully Paid</span></td>
+                  <td><span class="confirm-chip confirmed">Confirmed</span></td>
+                  <td>Bank Transfer<br><span class="ph-row-code">UTR8823145</span></td>
+                  <td>02 Aug 2026</td>
+                  <td>Abhishek</td>
+                  <td><div class="ph-icon" title="View slip"><i class="ti ti-receipt"></i></div></td>
+                </tr>
+                <tr>
+                  <td><div class="ph-row-name">Rahul Verma</div><div class="ph-row-code">STF-0087</div></td>
+                  <td><span class="ph-net">&#8377;21,800</span></td>
+                  <td><span class="ph-paid">&#8377;12,000</span><div class="ph-due">&#8377;9,800 still due</div></td>
+                  <td><span class="status-chip partial">Partially Paid</span></td>
+                  <td><span class="confirm-chip confirmed">Confirmed</span></td>
+                  <td>Cash</td>
+                  <td>01 Aug 2026</td>
+                  <td>Abhishek</td>
+                  <td><div class="ph-icon primary" title="Record Payment"><i class="ti ti-cash"></i></div></td>
+                </tr>
+                <tr>
+                  <td><div class="ph-row-name">Amit Joshi</div><div class="ph-row-code">STF-0203</div></td>
+                  <td><span class="ph-net">&#8377;13,800</span></td>
+                  <td><span class="ph-paid">&#8377;0</span><div class="ph-pending">&#8377;13,800 awaiting confirmation</div></td>
+                  <td><span class="status-chip unpaid">Unpaid</span></td>
+                  <td><span class="confirm-chip pending">Pending</span></td>
+                  <td>UPI</td>
+                  <td>03 Aug 2026</td>
+                  <td>Abhishek</td>
+                  <td><span class="dash">&ndash;</span></td>
+                </tr>
+                <tr>
+                  <td><div class="ph-row-name">Neha Kulkarni</div><div class="ph-row-code">STF-0056</div></td>
+                  <td><span class="ph-net">&#8377;19,500</span></td>
+                  <td><span class="ph-paid">&#8377;0</span></td>
+                  <td><span class="status-chip unpaid">Unpaid</span></td>
+                  <td><span class="dash">&ndash;</span></td>
+                  <td>&mdash;</td>
+                  <td>&mdash;</td>
+                  <td>&mdash;</td>
+                  <td><div class="ph-icon primary" title="Record Payment"><i class="ti ti-cash"></i></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleGroup(el) {
+  const group = el.closest('.sb-group');
+  const wasOpen = group.classList.contains('open');
+  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
+  if (!wasOpen) group.classList.add('open');
+}
+
+function onDeptChange() {
+  const val = document.getElementById('dept').value;
+  const desigPill = document.getElementById('desigPill');
+  const desigSel = document.getElementById('desig');
+  if (val) { desigPill.classList.remove('disabled'); desigSel.disabled = false; }
+  else { desigPill.classList.add('disabled'); desigSel.disabled = true; }
+}
+</script>
+</body>
+</html>
