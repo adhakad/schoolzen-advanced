@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Student - Admission - approved reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
+  .doc-note { max-width: 1150px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
+  .doc-note b { display: block; margin-bottom: 4px; }
+  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1150px; margin: 0 auto; }
+  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
+  .sw-brand { display: flex; align-items: center; gap: 10px; }
+  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+  .sw-right { display: flex; align-items: center; gap: 12px; }
+  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
+  .sw-session i { font-size: 14px; color: #7b6ef6; }
+  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
+  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
+  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
+  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+  .sw-spacer { height: 24px; }
+  .sw-body { display: flex; gap: 16px; align-items: stretch; }
+  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
+  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
+  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
+  .sb-item.single:hover { background: #f6f5ff; }
+  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
+  .sb-item.parent-active .chev { color: #fff; }
+  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
+  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
+  .sb-group.open .sb-sub-wrap { max-height: 400px; }
+  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
+  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
+  .sb-sub-item:hover { background: #f9f8ff; }
+  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
+  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
+  .sw-main { flex: 1; min-width: 0; }
+  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
+  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
+  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .sw-search { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 9px 14px; flex: 1; min-width: 160px; }
+  .sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
+  .sw-search i { color: #a6a6c9; font-size: 15px; }
+  .sw-select-pill { display: flex; align-items: center; gap: 6px; background: #f6f5ff; border-radius: 12px; padding: 9px 12px; width: 128px; flex-shrink: 0; }
+  .sw-select-pill select { border: none; background: transparent; font-size: 12px; color: #6b6b85; outline: none; flex: 1; appearance: none; font-weight: 500; }
+  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(123,110,246,0.4); display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
+
+  .sel-bar { display: flex; align-items: center; gap: 10px; background: #f9f8ff; border-radius: 10px; padding: 8px 14px; margin-bottom: 14px; font-size: 12.5px; color: #6b6b85; flex-wrap: wrap; }
+  .sel-bar b { color: #7b6ef6; }
+  .sel-actions { margin-left: auto; display: flex; gap: 8px; }
+  .sel-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 9px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .sel-btn:disabled { background: #e2e2ee; color: #b0b0c9; cursor: not-allowed; }
+
+  .grid-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+  .table-inner { min-width: 1180px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .3px; padding: 0 8px 8px; text-align: left; white-space: nowrap; }
+  th.chk { width: 30px; }
+  td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; white-space: nowrap; }
+  td.chk input { width: 15px; height: 15px; accent-color: #7b6ef6; cursor: pointer; }
+  .st-avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 11px; overflow: hidden; }
+  .st-name { font-weight: 600; color: #1a1a2e; font-size: 13px; }
+  .adm-no { font-family: monospace; font-size: 11.5px; color: #4a4a68; }
+  .status-chip { display: inline-flex; align-items: center; justify-content: center; width: 84px; font-size: 10.5px; font-weight: 700; padding: 5px 0; border-radius: 999px; }
+  .status-chip.pending { background: #fff2d6; color: #b8790a; }
+  .status-chip.admitted { background: #d9f7ea; color: #0c8a52; }
+  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; margin-right: 4px; cursor: pointer; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #fff; border-radius: 16px; width: 460px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-box.narrow { width: 420px; }
+  .modal-box.wide { width: 560px; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
+  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
+  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
+  .m-row { display: flex; gap: 10px; }
+  .m-field { margin-bottom: 12px; flex: 1; }
+  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
+  .m-field input, .m-field select { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
+  .m-field input:disabled, .m-field select:disabled { background: #f6f5ff; color: #9494ac; }
+  .group-title { font-size: 12px; font-weight: 700; color: #1a1a2e; margin: 18px 0 3px; padding-top: 14px; border-top: 1px solid #f0eeff; }
+  .group-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+  .photo-upload { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .photo-circle { width: 56px; height: 56px; border-radius: 50%; background: #f6f5ff; display: flex; align-items: center; justify-content: center; color: #b0b0c9; font-size: 22px; flex-shrink: 0; }
+  .photo-btn { background: #f6f5ff; color: #7b6ef6; border: none; border-radius: 9px; padding: 7px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+
+  /* Professional View modal - same profile-style as Manage Students */
+  .view-header { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #f0eeff; }
+  .view-photo { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; flex-shrink: 0; }
+  .view-header-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+  .view-header-meta { font-size: 12px; color: #9494ac; margin-top: 2px; }
+  .view-section-title { font-size: 11px; font-weight: 700; color: #7b6ef6; text-transform: uppercase; letter-spacing: .4px; margin: 18px 0 10px; }
+  .view-section-title:first-of-type { margin-top: 0; }
+  .view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; }
+  .view-item label { display: block; font-size: 10px; color: #b0b0c9; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 3px; font-weight: 600; }
+  .view-item div { font-size: 13px; color: #1a1a2e; font-weight: 500; }
+
+  /* PROFESSIONAL admission letter - formal document styling with border frame,
+     watermark-style seal placeholder, serif headings for a certificate feel */
+  .letter-frame { border: 3px double #c9c3f0; border-radius: 4px; padding: 32px; background: #fffefc; position: relative; }
+  .letter-header { display: flex; align-items: center; gap: 16px; padding-bottom: 16px; border-bottom: 2px solid #1a1a2e; margin-bottom: 18px; }
+  .letter-logo { width: 56px; height: 56px; border-radius: 8px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; flex-shrink: 0; }
+  .letter-school-name { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 19px; color: #1a1a2e; text-align: center; letter-spacing: .3px; }
+  .letter-meta { font-size: 10.5px; color: #6b6b85; text-align: center; line-height: 1.6; margin-top: 3px; }
+  .letter-title-band { text-align: center; margin: 4px 0 18px; }
+  .letter-title-band .t1 { font-family: Georgia, serif; font-size: 15px; font-weight: 700; color: #1a1a2e; letter-spacing: 1px; }
+  .letter-title-band .t2 { font-size: 10.5px; color: #9494ac; margin-top: 2px; }
+  .letter-section-label { font-size: 10px; font-weight: 700; color: #7b6ef6; text-transform: uppercase; letter-spacing: .5px; margin: 16px 0 8px; }
+  .letter-section-label:first-of-type { margin-top: 0; }
+  .letter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 12px; }
+  .letter-grid .full { grid-column: 1 / -1; }
+  .letter-field-label { color: #9494ac; font-size: 10px; text-transform: uppercase; letter-spacing: .2px; }
+  .letter-field-value { color: #1a1a2e; font-weight: 600; border-bottom: 1px dotted #d9d6f5; padding-bottom: 2px; }
+  .letter-fee-band { display: flex; justify-content: space-between; align-items: center; background: #f0eeff; border-radius: 8px; padding: 10px 16px; margin: 18px 0; }
+  .letter-fee-band .amt { font-size: 15px; font-weight: 700; color: #5b4fd6; }
+  .letter-fee-band .paid-badge { background: #d9f7ea; color: #0c8a52; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+  .letter-sign-row { display: flex; justify-content: space-between; margin-top: 40px; }
+  .letter-sign-block { text-align: center; width: 45%; }
+  .letter-sign-line { border-top: 1px solid #9494ac; margin-bottom: 6px; }
+  .letter-sign-block span { font-size: 10.5px; color: #6b6b85; }
+
+  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="doc-note">
+  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
+  Student &rarr; Admission page. Shows ALL admissions by default;
+  Class/Status are optional narrowing filters. Checkbox multi-select
+  added with a bulk "Print Letters" action (batch-printing admission
+  letters for a selection is the one bulk action that makes sense
+  here). View modal matches Manage Students' professional profile-
+  style layout. Admission Letter redesigned as a genuine formal
+  document: double border frame, serif letterhead type, dotted-
+  underline field values, and a highlighted fee-paid band.
+</div>
+
+<div class="sw">
+  <div class="sw-header">
+    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
+    <div class="sw-right">
+      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
+      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
+      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+    </div>
+  </div>
+  <div class="sw-spacer"></div>
+  <div class="sw-body">
+    <div class="sb-wrap">
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
+      <div class="sb-group open" data-group="student">
+        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
+          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Admission</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="staff">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="academic">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="attendance">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="leave">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="holiday">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="payroll">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="fees">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="examination">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="certificates">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
+        </div>
+      </div>
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
+      <div class="sb-group" data-group="settings">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
+        </div>
+      </div>
+    </div>
+    <div class="sw-main">
+      <div class="sw-card-main">
+        <div class="sw-title">Admission</div>
+
+        <div class="sw-toolbar">
+          <div class="sw-search"><i class="ti ti-search"></i><input placeholder="Search by name or admission no."/></div>
+          <div class="sw-select-pill"><select><option>All classes</option><option>6th</option><option>8th</option><option>11th</option><option>12th</option></select></div>
+          <div class="sw-select-pill"><select><option>Any status</option><option>Pending Documents</option><option>Admitted</option></select></div>
+          <button class="sw-add-btn" onclick="document.getElementById('admissionModal').classList.add('open')"><i class="ti ti-plus" style="font-size:13px;"></i> Create</button>
+        </div>
+
+        <div class="sel-bar">
+          <span><b id="selCount">0</b> selected</span>
+          <div class="sel-actions">
+            <button class="sel-btn" id="printSelBtn" disabled onclick="document.getElementById('letterModal').classList.add('open')"><i class="ti ti-printer" style="font-size:13px;"></i> Print Letters</button>
+          </div>
+        </div>
+
+        <div class="grid-scroll">
+          <div class="table-inner">
+            <table>
+              <thead><tr><th class="chk"><input type="checkbox" onclick="toggleAll(this)"></th><th>Photo</th><th>Admission No.</th><th>Student</th><th>Father Name</th><th>Class</th><th>Stream</th><th>Roll No.</th><th>Session</th><th>Status</th><th>View</th><th>Letter</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="chk"><input type="checkbox" class="rowcb" onclick="updateSel()"></td>
+                  <td><div class="st-avatar" style="background:linear-gradient(135deg,#7b6ef6,#5b4fd6);">RK</div></td>
+                  <td><span class="adm-no">2024142</span></td>
+                  <td><span class="st-name">Rohan Kapoor</span></td>
+                  <td>Suresh Kapoor</td>
+                  <td>8th</td>
+                  <td>N/A</td>
+                  <td>12</td>
+                  <td>2026-27</td>
+                  <td><span class="status-chip admitted">Admitted</span></td>
+                  <td><div class="icon-btn" onclick="document.getElementById('viewModal').classList.add('open')"><i class="ti ti-eye"></i></div></td>
+                  <td><div class="icon-btn" onclick="document.getElementById('letterModal').classList.add('open')"><i class="ti ti-printer"></i></div></td>
+                </tr>
+                <tr>
+                  <td class="chk"><input type="checkbox" class="rowcb" onclick="updateSel()"></td>
+                  <td><div class="st-avatar" style="background:linear-gradient(135deg,#ff9a76,#ff7676);">MN</div></td>
+                  <td><span class="not-set">Not yet issued</span></td>
+                  <td><span class="st-name">Meera Nair</span></td>
+                  <td>Ajay Nair</td>
+                  <td>6th</td>
+                  <td>N/A</td>
+                  <td>&mdash;</td>
+                  <td>2026-27</td>
+                  <td><span class="status-chip pending">Pending Docs</span></td>
+                  <td><div class="icon-btn"><i class="ti ti-eye"></i></div></td>
+                  <td><div class="icon-btn"><i class="ti ti-printer"></i></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW ADMISSION -->
+  <div class="modal-overlay" id="admissionModal">
+    <div class="modal-box">
+      <div class="modal-head"><span class="modal-title">New Admission</span><div class="modal-close" onclick="document.getElementById('admissionModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="group-title">Admission Info</div>
+        <div class="m-row">
+          <div class="m-field"><label>Session</label><input type="text" value="2026-27" disabled></div>
+          <div class="m-field"><label>Medium</label><select><option>English</option><option>Hindi</option></select></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Class Applied for</label><select onchange="onClassChange()" id="admClass"><option value="">-- Select --</option><option value="6">6th</option><option value="11">11th</option><option value="12">12th</option></select></div>
+          <div class="m-field"><label>Stream</label><select disabled id="admStream"><option>N/A</option></select></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Admission No.</label><input type="text" placeholder="2026143"></div>
+          <div class="m-field"><label>Roll Number</label><input type="text" placeholder="12"></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Admission Fee (&#8377;)</label><input type="text" value="5,000" disabled></div>
+          <div class="m-field"><label>Fees Concession (&#8377;)</label><input type="text" placeholder="0"></div>
+        </div>
+
+        <div class="group-title">Student Info</div>
+        <div class="photo-upload"><div class="photo-circle"><i class="ti ti-user"></i></div><button class="photo-btn">Upload Photo (up to 100KB)</button></div>
+        <div class="m-field"><label>Name</label><input type="text" placeholder="Rohan Kapoor"></div>
+        <div class="m-row">
+          <div class="m-field"><label>Date of Birth</label><input type="text" placeholder="dd/mm/yyyy"></div>
+          <div class="m-field"><label>Gender</label><select><option>Male</option><option>Female</option><option>Other</option></select></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Aadhar Number (optional)</label><input type="text" placeholder="12-digit number"></div>
+          <div class="m-field"><label>Samagra ID (optional)</label><input type="text" placeholder="9-digit number"></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Category</label><select><option>General</option><option>OBC</option><option>SC</option><option>ST</option></select></div>
+          <div class="m-field"><label>Religion</label><select><option>Hindu</option><option>Muslim</option><option>Christian</option><option>Other</option></select></div>
+        </div>
+        <div class="m-field"><label>Nationality</label><select><option>Indian</option><option>Other</option></select></div>
+        <div class="m-field"><label>Address</label><input type="text" placeholder="Street, City, State"></div>
+        <div class="m-row">
+          <div class="m-field"><label>UDISE Number (optional)</label><input type="text" placeholder="11-digit number"></div>
+          <div class="m-field"><label>Last School (optional)</label><input type="text" placeholder="Previous school name"></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Bank A/C Number (optional)</label><input type="text" placeholder="Account number"></div>
+          <div class="m-field"><label>Bank IFSC Code (optional)</label><input type="text" placeholder="11-character code"></div>
+        </div>
+
+        <div class="group-title">Parents Info</div>
+        <div class="m-row">
+          <div class="m-field"><label>Father Name</label><input type="text" placeholder="Suresh Kapoor"></div>
+          <div class="m-field"><label>Mother Name</label><input type="text" placeholder="Sunita Kapoor"></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Father Qualification</label><select><option>Graduate</option><option>Postgraduate</option><option>12th Pass</option></select></div>
+          <div class="m-field"><label>Mother Qualification</label><select><option>Graduate</option><option>Postgraduate</option><option>12th Pass</option></select></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Father Occupation</label><select><option>Business</option><option>Service</option><option>Farmer</option></select></div>
+          <div class="m-field"><label>Mother Occupation</label><select><option>Homemaker</option><option>Service</option><option>Business</option></select></div>
+        </div>
+        <div class="m-row">
+          <div class="m-field"><label>Family Annual Income (&#8377;)</label><input type="text" placeholder="600000"></div>
+          <div class="m-field"><label>Parents Contact (optional)</label><input type="text" placeholder="+91 98765 43210"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('admissionModal').classList.remove('open')">Cancel</button>
+        <button class="btn-submit">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFESSIONAL VIEW MODAL -->
+  <div class="modal-overlay" id="viewModal">
+    <div class="modal-box">
+      <div class="modal-head"><span class="modal-title">Admission Profile</span><div class="modal-close" onclick="document.getElementById('viewModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="view-header">
+          <div class="view-photo">RK</div>
+          <div>
+            <div class="view-header-name">Rohan Kapoor</div>
+            <div class="view-header-meta">Admission No. 2024142 &middot; Class 8th &middot; Roll No. 12</div>
+          </div>
+        </div>
+
+        <div class="view-section-title">Admission Info</div>
+        <div class="view-grid">
+          <div class="view-item"><label>Session</label><div>2026-27</div></div>
+          <div class="view-item"><label>Medium</label><div>English</div></div>
+          <div class="view-item"><label>Stream</label><div>N/A</div></div>
+          <div class="view-item"><label>Admission Fee</label><div>&#8377; 5,000</div></div>
+          <div class="view-item"><label>Fees Concession</label><div>&#8377; 0</div></div>
+          <div class="view-item"><label>Admission By</label><div>Abhishek</div></div>
+        </div>
+
+        <div class="view-section-title">Student Info</div>
+        <div class="view-grid">
+          <div class="view-item"><label>Date of Birth</label><div>12 Mar 2013</div></div>
+          <div class="view-item"><label>Gender</label><div>Male</div></div>
+          <div class="view-item"><label>Category</label><div>General</div></div>
+          <div class="view-item"><label>Religion</label><div>Hindu</div></div>
+          <div class="view-item"><label>Nationality</label><div>Indian</div></div>
+          <div class="view-item"><label>Aadhar Number</label><div>XXXX-XXXX-4821</div></div>
+        </div>
+        <div class="view-item" style="margin-top:12px;"><label>Address</label><div>221B, MG Road, Indore, Madhya Pradesh</div></div>
+
+        <div class="view-section-title">Parents Info</div>
+        <div class="view-grid">
+          <div class="view-item"><label>Father</label><div>Suresh Kapoor &middot; Business</div></div>
+          <div class="view-item"><label>Mother</label><div>Sunita Kapoor &middot; Homemaker</div></div>
+          <div class="view-item"><label>Family Annual Income</label><div>&#8377; 6,00,000</div></div>
+          <div class="view-item"><label>Contact</label><div>+91 98765 43210</div></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('viewModal').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFESSIONAL ADMISSION LETTER -->
+  <div class="modal-overlay" id="letterModal">
+    <div class="modal-box wide">
+      <div class="modal-head"><span class="modal-title">Admission Letter</span><div class="modal-close" onclick="document.getElementById('letterModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="letter-frame">
+          <div class="letter-header">
+            <div class="letter-logo"><i class="ti ti-school"></i></div>
+            <div style="flex:1;">
+              <div class="letter-school-name">GREEN VALLEY PUBLIC SCHOOL</div>
+              <div class="letter-meta">Recognized by CBSE &middot; Affiliation No. 1234567<br>MG Road, Indore, Madhya Pradesh - 452001 &middot; +91 731 2345678 &middot; info@greenvalley.edu</div>
+            </div>
+          </div>
+
+          <div class="letter-title-band">
+            <div class="t1">CERTIFICATE OF ADMISSION</div>
+            <div class="t2">Academic Session 2026-27</div>
+          </div>
+
+          <div class="letter-section-label">Admission Details</div>
+          <div class="letter-grid">
+            <div><div class="letter-field-label">Admission No.</div><div class="letter-field-value">2024142</div></div>
+            <div><div class="letter-field-label">Roll Number</div><div class="letter-field-value">12</div></div>
+            <div><div class="letter-field-label">Class</div><div class="letter-field-value">8th</div></div>
+            <div><div class="letter-field-label">Stream</div><div class="letter-field-value">N/A</div></div>
+          </div>
+
+          <div class="letter-section-label">Student Details</div>
+          <div class="letter-grid">
+            <div class="full"><div class="letter-field-label">Student Name</div><div class="letter-field-value">Rohan Kapoor</div></div>
+            <div><div class="letter-field-label">Date of Birth</div><div class="letter-field-value">12/03/2013</div></div>
+            <div><div class="letter-field-label">Gender</div><div class="letter-field-value">Male</div></div>
+            <div class="full"><div class="letter-field-label">Address</div><div class="letter-field-value">221B, MG Road, Indore, Madhya Pradesh</div></div>
+          </div>
+
+          <div class="letter-section-label">Parent / Guardian</div>
+          <div class="letter-grid">
+            <div><div class="letter-field-label">Father's Name</div><div class="letter-field-value">Suresh Kapoor</div></div>
+            <div><div class="letter-field-label">Mother's Name</div><div class="letter-field-value">Sunita Kapoor</div></div>
+          </div>
+
+          <div class="letter-fee-band">
+            <span>Admission Fee Paid</span>
+            <span class="amt">&#8377; 5,000</span>
+            <span class="paid-badge">PAID</span>
+          </div>
+
+          <div class="letter-sign-row">
+            <div class="letter-sign-block"><div class="letter-sign-line"></div><span>Applicant's Signature</span></div>
+            <div class="letter-sign-block"><div class="letter-sign-line"></div><span>Authorized Signatory</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-submit"><i class="ti ti-printer" style="margin-right:6px;"></i>Print</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleGroup(el) {
+  const group = el.closest('.sb-group');
+  const wasOpen = group.classList.contains('open');
+  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
+  if (!wasOpen) group.classList.add('open');
+}
+
+function onClassChange() {
+  const val = document.getElementById('admClass').value;
+  const streamSel = document.getElementById('admStream');
+  if (val === '11' || val === '12') {
+    streamSel.disabled = false;
+    streamSel.innerHTML = '<option value="">-- Select --</option><option>Science</option><option>Commerce</option><option>Arts</option>';
+  } else {
+    streamSel.disabled = true;
+    streamSel.innerHTML = '<option>N/A</option>';
+  }
+}
+function toggleAll(master) {
+  document.querySelectorAll('.rowcb').forEach(cb => cb.checked = master.checked);
+  updateSel();
+}
+function updateSel() {
+  const n = document.querySelectorAll('.rowcb:checked').length;
+  document.getElementById('selCount').textContent = n;
+  document.getElementById('printSelBtn').disabled = n === 0;
+}
+</script>
+</body>
+</html>

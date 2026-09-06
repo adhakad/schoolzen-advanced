@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Certificates - Generate Transfer Certificate - approved reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
+  .doc-note { max-width: 1100px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
+  .doc-note b { display: block; margin-bottom: 4px; }
+  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1100px; margin: 0 auto; }
+  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
+  .sw-brand { display: flex; align-items: center; gap: 10px; }
+  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+  .sw-right { display: flex; align-items: center; gap: 12px; }
+  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
+  .sw-session i { font-size: 14px; color: #7b6ef6; }
+  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
+  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
+  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
+  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+  .sw-profile-drop { display: none; position: absolute; top: 60px; right: 20px; width: 260px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(20,20,60,0.14); padding: 14px; z-index: 10; }
+  .sw-profile-drop.open { display: block; }
+  .sw-drop-school { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #f0eeff; margin-bottom: 10px; }
+  .sw-school-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg,#2f8fd8,#1f6fad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
+  .sw-school-name { font-weight: 700; font-size: 13px; color: #1a1a2e; }
+  .sw-school-meta { font-size: 10.5px; color: #9494ac; margin-top: 1px; }
+  .sw-drop-item { display: flex; align-items: center; gap: 9px; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; color: #6b6b85; cursor: pointer; }
+  .sw-drop-item:hover { background: #f6f5ff; }
+  .sw-drop-item i { font-size: 15px; color: #9494ac; }
+  .sw-spacer { height: 24px; }
+  .sw-body { display: flex; gap: 16px; align-items: stretch; }
+  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
+  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
+  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
+  .sb-item.single:hover { background: #f6f5ff; }
+  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
+  .sb-item.parent-active .chev { color: #fff; }
+  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
+  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
+  .sb-group.open .sb-sub-wrap { max-height: 400px; }
+  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
+  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
+  .sb-sub-item:hover { background: #f9f8ff; }
+  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
+  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
+  .sw-main { flex: 1; min-width: 0; }
+
+  .ls-strip { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(20,20,60,0.04); flex-wrap: wrap; }
+  .ls-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #e8f9f0; color: #0c8a52; }
+  .ls-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+  .ls-sep { width: 1px; height: 16px; background: #ececf7; }
+  .ls-count { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: #6b6b85; }
+  .ls-count b { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+
+  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
+  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
+  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sw-search { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 9px 14px; flex: 1; min-width: 160px; }
+  .sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
+  .sw-search i { color: #a6a6c9; font-size: 15px; }
+  .sw-select-pill { display: flex; align-items: center; gap: 6px; background: #f6f5ff; border-radius: 12px; padding: 9px 12px; width: 128px; flex-shrink: 0; }
+  .sw-select-pill select { border: none; background: transparent; font-size: 12.5px; color: #6b6b85; outline: none; flex: 1; appearance: none; font-weight: 500; }
+  .sw-select-pill i { font-size: 12px; color: #b0b0c9; flex-shrink: 0; }
+  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+
+  .sw-table-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+  .sw-table-inner { min-width: 900px; }
+  .sw-thead { display: flex; align-items: center; padding: 0 8px 8px; }
+  .sw-th { font-size: 10.5px; font-weight: 700; color: #b0b0c9; text-transform: uppercase; letter-spacing: .4px; flex-shrink: 0; }
+  .sw-th.roll { width: 70px; }
+  .sw-th.student { width: 200px; }
+  .sw-th.cls { width: 90px; }
+  .sw-th.date { width: 130px; }
+  .sw-th.status { width: 110px; }
+  .sw-th.action { width: 140px; text-align: right; }
+
+  .sw-row { display: flex; align-items: center; padding: 12px 8px; border-radius: 14px; margin-bottom: 2px; border-top: 1px solid #f2f1fa; }
+  .sw-row:hover { background: #faf9ff; }
+  .sw-r-roll { width: 70px; font-size: 13px; color: #4a4a68; font-weight: 600; flex-shrink: 0; }
+  .sw-r-avatar { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; margin-right: 12px; flex-shrink: 0; }
+  .sw-r-info { width: 200px; min-width: 0; display: flex; align-items: center; }
+  .sw-r-name { font-weight: 600; font-size: 13.5px; color: #1a1a2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sw-r-sub { font-size: 11px; color: #9494ac; }
+  .sw-r-cls { width: 90px; flex-shrink: 0; }
+  .cls-tag { font-size: 10.5px; color: #7b6ef6; background: #f0eeff; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+  .sw-r-date { width: 130px; font-size: 12.5px; color: #6b6b85; flex-shrink: 0; }
+  .sw-r-status { width: 110px; flex-shrink: 0; }
+  .sw-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 90px; font-size: 11px; font-weight: 700; padding: 5px 0; border-radius: 999px; }
+  .sw-chip.issued { background: #d9f7ea; color: #0c8a52; }
+  .sw-chip.notissued { background: #f0eeff; color: #9494ac; }
+  .sw-r-action { width: 140px; display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-shrink: 0; }
+  .sw-icon { width: 30px; height: 30px; border-radius: 9px; background: #f6f5ff; display: flex; align-items: center; justify-content: center; color: #7b6ef6; cursor: pointer; font-size: 14px; flex-shrink: 0; }
+  .sw-issue-pill { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 9px; padding: 7px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+  .sw-footer { padding: 13px 8px 0; font-size: 12.5px; color: #9494ac; display: flex; justify-content: space-between; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #fff; border-radius: 16px; width: 460px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-box.wide { width: 560px; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
+  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
+  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
+  .m-row { display: flex; gap: 10px; }
+  .m-field { margin-bottom: 12px; flex: 1; }
+  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
+  .m-field input, .m-field select, .m-field textarea { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; font-family: inherit; }
+  .m-field input:disabled { background: #f6f5ff; color: #9494ac; }
+  .m-check { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #3d3d5c; font-weight: 500; margin-bottom: 12px; }
+  .m-check input { width: 15px; height: 15px; accent-color: #7b6ef6; }
+  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+
+  .cert-frame { border: 2px solid #c9c3f0; border-radius: 8px; padding: 24px; background: #fffefc; }
+  .cert-header { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 2px solid #1a1a2e; margin-bottom: 14px; }
+  .cert-logo { width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; flex-shrink: 0; }
+  .cert-school-name { font-family: Georgia, serif; font-weight: 700; font-size: 15px; color: #1a1a2e; }
+  .cert-meta { font-size: 10px; color: #9494ac; }
+  .cert-title-band { text-align: center; margin: 4px 0 16px; }
+  .cert-title-band .t1 { font-family: Georgia, serif; font-size: 15px; font-weight: 700; color: #1a1a2e; letter-spacing: 1px; }
+  .cert-title-band .t2 { font-size: 10.5px; color: #9494ac; margin-top: 2px; }
+  .cert-serial { text-align: right; font-size: 10.5px; color: #6b6b85; margin-bottom: 10px; }
+  .cert-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 12px; }
+  .cert-grid .full { grid-column: 1 / -1; }
+  .cert-field-label { color: #9494ac; font-size: 10px; text-transform: uppercase; letter-spacing: .2px; }
+  .cert-field-value { color: #1a1a2e; font-weight: 600; border-bottom: 1px dotted #d9d6f5; padding-bottom: 2px; }
+  .cert-sign-row { display: flex; justify-content: space-between; margin-top: 36px; }
+  .cert-sign-block { text-align: center; width: 30%; }
+  .cert-sign-line { border-top: 1px solid #9494ac; margin-bottom: 6px; }
+  .cert-sign-block span { font-size: 10.5px; color: #6b6b85; }
+</style>
+</head>
+<body>
+
+<div class="doc-note">
+  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
+  Certificates &rarr; Generate Transfer Certificate. Class filter is
+  optional narrowing (matches Manage Students' "shows all by default"
+  rule), not gated. Status distinguishes "Issued" (a serial number is
+  locked in, reprinting shows the same number) from "Not Issued" (the
+  Issue action is still available). The Issue TC modal captures the
+  leaving-specific facts (Date of Leaving, Reason, Conduct, Dues
+  Cleared) that Manage Students' regular record has no reason to
+  carry, then generates the printable certificate.
+</div>
+
+<div class="sw">
+  <div class="sw-header">
+    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
+    <div class="sw-right">
+      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
+      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
+      <div class="sw-profile" onclick="document.getElementById('profileDrop').classList.toggle('open')">
+        <div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i>
+      </div>
+    </div>
+  </div>
+  <div class="sw-profile-drop" id="profileDrop">
+    <div class="sw-drop-school">
+      <div class="sw-school-logo">GV</div>
+      <div><div class="sw-school-name">Green Valley Public School</div><div class="sw-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div>
+    </div>
+    <div class="sw-drop-item"><i class="ti ti-user"></i>My Profile</div>
+    <div class="sw-drop-item"><i class="ti ti-settings"></i>School Settings</div>
+    <div class="sw-drop-item"><i class="ti ti-logout"></i>Logout</div>
+  </div>
+  <div class="sw-spacer"></div>
+  <div class="sw-body">
+    <div class="sb-wrap">
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
+      <div class="sb-group" data-group="student">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="staff">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="academic">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="attendance">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="leave">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="holiday">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="payroll">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="fees">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
+        </div>
+      </div>
+      <div class="sb-group" data-group="examination">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
+        </div>
+      </div>
+      <div class="sb-group open" data-group="certificates">
+        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
+          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Generate TC</div>
+        </div>
+      </div>
+      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
+      <div class="sb-group" data-group="settings">
+        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
+        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
+          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
+        </div>
+      </div>
+    </div>
+    <div class="sw-main">
+      <div class="ls-strip">
+        <span class="ls-badge"><span class="ls-dot"></span>Structure active</span>
+        <div class="ls-sep"></div>
+        <span class="ls-count"><b>612</b> total students</span>
+        <span class="ls-count"><b>7</b> TCs issued this session</span>
+      </div>
+
+      <div class="sw-card-main">
+        <div class="sw-title">Generate Transfer Certificate</div>
+
+        <div class="sw-toolbar">
+          <div class="sw-search"><i class="ti ti-search"></i><input placeholder="Search by name or admission no."/></div>
+          <div class="sw-select-pill"><select><option>All classes</option><option>8th</option><option>11th</option></select><i class="ti ti-chevron-down"></i></div>
+          <div class="sw-select-pill"><select><option>Any status</option><option>Issued</option><option>Not Issued</option></select><i class="ti ti-chevron-down"></i></div>
+        </div>
+
+        <div class="sw-table-scroll">
+          <div class="sw-table-inner">
+            <div class="sw-thead">
+              <div class="sw-th roll">Roll No.</div>
+              <div class="sw-th student">Student</div>
+              <div class="sw-th cls">Class</div>
+              <div class="sw-th date">Date of Leaving</div>
+              <div class="sw-th status">Status</div>
+              <div class="sw-th action">Action</div>
+            </div>
+
+            <div class="sw-row">
+              <div class="sw-r-roll">07</div>
+              <div class="sw-r-info"><div class="sw-r-avatar" style="background:linear-gradient(135deg,#ff9a76,#ff7676);">MN</div><div><div class="sw-r-name">Meera Nair</div><div class="sw-r-sub">Adm. 2022071</div></div></div>
+              <div class="sw-r-cls"><span class="cls-tag">6th</span></div>
+              <div class="sw-r-date">02 Sep 2026</div>
+              <div class="sw-r-status"><span class="sw-chip issued">Issued</span></div>
+              <div class="sw-r-action">
+                <div class="sw-icon" onclick="document.getElementById('previewModal').classList.add('open')"><i class="ti ti-printer"></i></div>
+              </div>
+            </div>
+
+            <div class="sw-row">
+              <div class="sw-r-roll">12</div>
+              <div class="sw-r-info"><div class="sw-r-avatar" style="background:linear-gradient(135deg,#7b6ef6,#5b4fd6);">RK</div><div><div class="sw-r-name">Rohan Kapoor</div><div class="sw-r-sub">Adm. 2024142</div></div></div>
+              <div class="sw-r-cls"><span class="cls-tag">8th</span></div>
+              <div class="sw-r-date">&mdash;</div>
+              <div class="sw-r-status"><span class="sw-chip notissued">Not Issued</span></div>
+              <div class="sw-r-action">
+                <button class="sw-issue-pill" onclick="document.getElementById('issueModal').classList.add('open')"><i class="ti ti-file-export" style="font-size:12px;"></i> Issue TC</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sw-footer">
+          <span>Showing 2 of 612 students</span>
+          <span>2026-27 session</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE TC -->
+  <div class="modal-overlay" id="issueModal">
+    <div class="modal-box">
+      <div class="modal-head"><span class="modal-title">Issue Transfer Certificate — Rohan Kapoor</span><div class="modal-close" onclick="document.getElementById('issueModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="m-row">
+          <div class="m-field"><label>TC Serial No.</label><input type="text" value="TC-2026-0048" disabled></div>
+          <div class="m-field"><label>Date of Leaving</label><input type="text" placeholder="dd/mm/yyyy"></div>
+        </div>
+        <div class="m-field"><label>Reason for Leaving</label><select><option>Parent's Transfer</option><option>Relocation</option><option>Admission Elsewhere</option><option>Other</option></select></div>
+        <div class="m-field"><label>Conduct Remark</label><select><option>Good</option><option>Satisfactory</option><option>Excellent</option></select></div>
+        <div class="m-row">
+          <div class="m-field"><label>Attendance % (this session)</label><input type="text" value="92" disabled><div class="m-hint" style="font-size:10.5px;color:#9494ac;margin-top:3px;">Pulled automatically from Attendance.</div></div>
+          <div class="m-field"><label>Games / Extra-Curricular (optional)</label><input type="text" placeholder="e.g. School Cricket Team"></div>
+        </div>
+        <label class="m-check"><input type="checkbox" checked> All fee dues cleared</label>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('issueModal').classList.remove('open')">Cancel</button>
+        <button class="btn-submit" onclick="document.getElementById('issueModal').classList.remove('open');document.getElementById('previewModal').classList.add('open')">Issue &amp; Generate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFESSIONAL TC PREVIEW/PRINT -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal-box wide">
+      <div class="modal-head"><span class="modal-title">Transfer Certificate</span><div class="modal-close" onclick="document.getElementById('previewModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="cert-frame">
+          <div class="cert-header">
+            <div class="cert-logo"><i class="ti ti-school"></i></div>
+            <div>
+              <div class="cert-school-name">GREEN VALLEY PUBLIC SCHOOL</div>
+              <div class="cert-meta">Recognized by CBSE &middot; Affiliation No. 1234567 &middot; Indore, Madhya Pradesh</div>
+            </div>
+          </div>
+          <div class="cert-serial">Serial No. TC-2026-0048</div>
+          <div class="cert-title-band">
+            <div class="t1">TRANSFER CERTIFICATE</div>
+            <div class="t2">Issued on 05 Sep 2026</div>
+          </div>
+          <div class="cert-grid">
+            <div><div class="cert-field-label">Student Name</div><div class="cert-field-value">Rohan Kapoor</div></div>
+            <div><div class="cert-field-label">Father's Name</div><div class="cert-field-value">Suresh Kapoor</div></div>
+            <div><div class="cert-field-label">Admission No.</div><div class="cert-field-value">2024142</div></div>
+            <div><div class="cert-field-label">Date of Birth</div><div class="cert-field-value">12/03/2013</div></div>
+            <div><div class="cert-field-label">Class Left From</div><div class="cert-field-value">8th</div></div>
+            <div><div class="cert-field-label">Date of Admission</div><div class="cert-field-value">12/06/2022</div></div>
+            <div><div class="cert-field-label">Date of Leaving</div><div class="cert-field-value">05/09/2026</div></div>
+            <div><div class="cert-field-label">Reason for Leaving</div><div class="cert-field-value">Parent's Transfer</div></div>
+            <div><div class="cert-field-label">Conduct</div><div class="cert-field-value">Good</div></div>
+            <div><div class="cert-field-label">Attendance</div><div class="cert-field-value">92%</div></div>
+            <div class="full"><div class="cert-field-label">Fee Dues</div><div class="cert-field-value">All dues cleared</div></div>
+          </div>
+          <div class="cert-sign-row">
+            <div class="cert-sign-block"><div class="cert-sign-line"></div><span>Class Teacher</span></div>
+            <div class="cert-sign-block"><div class="cert-sign-line"></div><span>Accountant</span></div>
+            <div class="cert-sign-block"><div class="cert-sign-line"></div><span>Principal</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('previewModal').classList.remove('open')">Close</button>
+        <button class="btn-submit"><i class="ti ti-printer" style="margin-right:6px;"></i>Print</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function toggleGroup(el) {
+  const group = el.closest('.sb-group');
+  const wasOpen = group.classList.contains('open');
+  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
+  if (!wasOpen) group.classList.add('open');
+}
+</script>
+</body>
+</html>
