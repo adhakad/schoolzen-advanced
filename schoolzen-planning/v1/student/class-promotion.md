@@ -11,6 +11,12 @@ new session. Creates NEW placement records for the next session
 rather than mutating the current one — the current session's
 enrollment stays in history exactly as it was.
 
+**Requires the target session to already exist** (as Upcoming or
+Active) via Settings → Academic Sessions before promotion can target
+it — see `../settings/academic-sessions.md`'s "Relationship to Class
+Promotion" section for the recommended order of operations (create
+session → promote students into it → verify configs → set Active).
+
 ---
 
 ## Summary strip

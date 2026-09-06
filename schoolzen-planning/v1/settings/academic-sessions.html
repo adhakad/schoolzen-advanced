@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Settings - Academic Sessions - approved reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
+  .doc-note { max-width: 1000px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
+  .doc-note b { display: block; margin-bottom: 4px; }
+  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1000px; margin: 0 auto; }
+  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
+  .sw-brand { display: flex; align-items: center; gap: 10px; }
+  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+  .sw-right { display: flex; align-items: center; gap: 12px; }
+  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
+  .sw-session i { font-size: 14px; color: #7b6ef6; }
+  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
+  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+  .sw-profile-drop { display: none; position: absolute; top: 60px; right: 20px; width: 260px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(20,20,60,0.14); padding: 14px; z-index: 10; }
+  .sw-profile-drop.open { display: block; }
+  .sw-drop-school { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #f0eeff; margin-bottom: 10px; }
+  .sw-school-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg,#2f8fd8,#1f6fad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
+  .sw-school-name { font-weight: 700; font-size: 13px; color: #1a1a2e; }
+  .sw-school-meta { font-size: 10.5px; color: #9494ac; margin-top: 1px; }
+  .sw-drop-item { display: flex; align-items: center; gap: 9px; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; color: #6b6b85; cursor: pointer; }
+  .sw-drop-item:hover { background: #f6f5ff; }
+  .sw-drop-item i { font-size: 15px; color: #9494ac; }
+  .sw-spacer { height: 24px; }
+  .sw-body { display: flex; gap: 16px; align-items: stretch; }
+  .sb-wrap { background: #fff; border-radius: 18px; padding: 16px 10px; width: 210px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; display: flex; flex-direction: column; }
+  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; color: #4a4a68; cursor: pointer; margin-bottom: 3px; font-weight: 500; }
+  .sb-item-left { display: flex; align-items: center; gap: 9px; }
+  .sb-item i { font-size: 17px; }
+  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.35); }
+  .sb-sub-wrap { position: relative; padding-left: 26px; margin: 2px 0 8px; }
+  .sb-sub-line { position: absolute; left: 17px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
+  .sb-sub-item { padding: 7px 10px; border-radius: 8px; font-size: 12.5px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; }
+  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; }
+  .sw-main { flex: 1; min-width: 0; }
+  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
+  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+  .sw-subtitle { font-size: 12px; color: #9494ac; margin-bottom: 18px; }
+  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; margin-left: auto; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 0 8px 8px; text-align: left; }
+  td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; }
+  .sess-label { font-weight: 600; color: #1a1a2e; font-size: 13.5px; }
+  .status-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 88px; font-size: 10.5px; font-weight: 700; padding: 5px 0; border-radius: 999px; }
+  .status-chip.active { background: #d9f7ea; color: #0c8a52; }
+  .status-chip.upcoming { background: #f0eeff; color: #7b6ef6; }
+  .status-chip.closed { background: #f0eeff; color: #9494ac; }
+  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; margin-right: 4px; cursor: pointer; }
+  .icon-btn.warn { background: #fde8ef; color: #b8265a; }
+  .set-active-btn { background: #f6f5ff; color: #7b6ef6; border: none; border-radius: 9px; padding: 6px 12px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+  .not-set { color: #b0b0c9; font-style: italic; font-size: 11.5px; }
+
+  .info-strip { background: #f0eeff; border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #3d2fa8; line-height: 1.6; margin-bottom: 18px; }
+  .info-strip b { color: #241b6b; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #fff; border-radius: 16px; width: 460px; max-height: 86vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
+  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
+  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
+  .m-row { display: flex; gap: 10px; }
+  .m-field { margin-bottom: 12px; flex: 1; }
+  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
+  .m-field input { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
+  .m-hint { font-size: 10.5px; color: #9494ac; margin-top: 4px; }
+
+  .copy-forward-block { background: #f9f8ff; border-radius: 12px; padding: 12px 14px; margin-top: 14px; }
+  .copy-forward-title { font-size: 12px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+  .copy-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #3d3d5c; font-weight: 500; padding: 5px 0; }
+  .copy-check input { width: 15px; height: 15px; accent-color: #7b6ef6; }
+
+  .warn-box { background: #fde8ef; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #8a1f42; line-height: 1.6; margin-bottom: 14px; }
+  .warn-box b { color: #6b1230; }
+  .confirm-field label { display: block; font-size: 11.5px; color: #4a4a68; margin-bottom: 6px; font-weight: 600; }
+  .confirm-field input { width: 100%; border: 1.5px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; font-family: monospace; }
+  .confirm-field input.match { border-color: #22c55e; }
+  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-submit:disabled { background: #e2e2ee; color: #b0b0c9; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div class="doc-note">
+  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
+  Settings &rarr; Academic Sessions. Manages the sessions every other
+  page's header session-selector reads from. Exactly ONE session is
+  Active per school at a time — the header selector lets anyone VIEW
+  any past session's data read-only, but new records (admissions,
+  attendance, fees, payroll) are always created against the Active
+  session regardless of which one is being viewed. Creating a session
+  never auto-copies student placements (that's Class Promotion's job)
+  but DOES offer to copy forward config that would otherwise need
+  re-entering every year (Fee Structure, Marksheet Structure, Salary
+  Groups, Holiday Templates).
+</div>
+
+<div class="sw">
+  <div class="sw-header">
+    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
+    <div class="sw-right">
+      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
+      <div class="sw-profile" onclick="document.getElementById('profileDrop').classList.toggle('open')">
+        <div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i>
+      </div>
+    </div>
+  </div>
+  <div class="sw-profile-drop" id="profileDrop">
+    <div class="sw-drop-school">
+      <div class="sw-school-logo">GV</div>
+      <div><div class="sw-school-name">Green Valley Public School</div><div class="sw-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div>
+    </div>
+    <div class="sw-drop-item"><i class="ti ti-user"></i>My Profile</div>
+    <div class="sw-drop-item"><i class="ti ti-settings"></i>School Settings</div>
+    <div class="sw-drop-item"><i class="ti ti-logout"></i>Logout</div>
+  </div>
+  <div class="sw-spacer"></div>
+  <div class="sw-body">
+    <div class="sb-wrap">
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-home"></i>Dashboard</div></div>
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-school"></i>Student</div></div>
+      <div class="sb-item parent-active">
+        <div class="sb-item-left"><i class="ti ti-settings"></i>Settings</div>
+        <i class="ti ti-chevron-down"></i>
+      </div>
+      <div class="sb-sub-wrap">
+        <div class="sb-sub-line"></div>
+        <div class="sb-sub-item active-sub">Academic Sessions</div>
+        <div class="sb-sub-item">Admission Form Fields</div>
+        <div class="sb-sub-item">Roles &amp; Permissions</div>
+      </div>
+    </div>
+
+    <div class="sw-main">
+      <div class="sw-card-main">
+        <div class="sw-title">Academic Sessions</div>
+        <div class="sw-subtitle">Exactly one session is Active at a time — everything you create anywhere in the app is saved against it.</div>
+
+        <div class="info-strip">You're currently <b>viewing</b> 2026-27 (the Active session) via the selector in the header. Switch it to any past session to browse that year's records read-only — it won't change where new records get saved.</div>
+
+        <div class="sw-toolbar">
+          <button class="sw-add-btn" onclick="document.getElementById('createModal').classList.add('open')"><i class="ti ti-plus" style="font-size:13px;"></i> Create Session</button>
+        </div>
+
+        <table>
+          <thead><tr><th>Session</th><th>Start Date</th><th>End Date</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="sess-label">2026-27</span></td>
+              <td>01 Apr 2026</td>
+              <td>31 Mar 2027</td>
+              <td><span class="status-chip active">Active</span></td>
+              <td><span class="not-set">Currently active</span></td>
+            </tr>
+            <tr>
+              <td><span class="sess-label">2025-26</span></td>
+              <td>01 Apr 2025</td>
+              <td>31 Mar 2026</td>
+              <td><span class="status-chip closed">Closed</span></td>
+              <td><div class="icon-btn" title="View this session's records read-only"><i class="ti ti-eye"></i></div></td>
+            </tr>
+            <tr>
+              <td><span class="sess-label">2027-28</span></td>
+              <td>01 Apr 2027</td>
+              <td>31 Mar 2028</td>
+              <td><span class="status-chip upcoming">Upcoming</span></td>
+              <td>
+                <button class="set-active-btn" onclick="document.getElementById('activateModal').classList.add('open')">Set as Active</button>
+                <div class="icon-btn warn" style="margin-left:4px;"><i class="ti ti-trash"></i></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE SESSION -->
+  <div class="modal-overlay" id="createModal">
+    <div class="modal-box">
+      <div class="modal-head"><span class="modal-title">Create Academic Session</span><div class="modal-close" onclick="document.getElementById('createModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="m-field"><label>Session Label</label><input type="text" placeholder="2028-29"></div>
+        <div class="m-row">
+          <div class="m-field"><label>Start Date</label><input type="text" placeholder="dd/mm/yyyy"></div>
+          <div class="m-field"><label>End Date</label><input type="text" placeholder="dd/mm/yyyy"></div>
+        </div>
+        <p class="m-hint">This creates the session as <b>Upcoming</b> — it won't become the active session (and no new records will be saved to it) until you explicitly set it active, typically once the current session ends.</p>
+
+        <div class="copy-forward-block">
+          <div class="copy-forward-title">Copy forward from 2026-27 (optional)</div>
+          <label class="copy-check"><input type="checkbox" checked> Fee Structure (per class/stream)</label>
+          <label class="copy-check"><input type="checkbox" checked> Marksheet Structure &amp; Admit Card Structure</label>
+          <label class="copy-check"><input type="checkbox" checked> Salary Groups</label>
+          <label class="copy-check"><input type="checkbox"> Holiday Templates</label>
+          <p class="m-hint">Copies the CONFIGURATION only, as a starting point you can edit — never student placements or financial records. Class Promotion is still a separate, explicit step for moving students into this session.</p>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('createModal').classList.remove('open')">Cancel</button>
+        <button class="btn-submit">Create Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SET ACTIVE - type to confirm since this affects the whole school -->
+  <div class="modal-overlay" id="activateModal">
+    <div class="modal-box" style="width:420px;">
+      <div class="modal-head"><span class="modal-title">Set 2027-28 as Active</span><div class="modal-close" onclick="document.getElementById('activateModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="warn-box"><b>This changes where every new record in the app is saved</b> — every admission, attendance punch, fee payment, and payroll run from this point on goes into 2027-28 instead of 2026-27, for every user at this school, immediately. 2026-27 becomes Closed and stays fully browsable read-only.</div>
+        <div class="confirm-field">
+          <label>Type <b>2027-28</b> to confirm</label>
+          <input type="text" id="activateConfirmInput" placeholder="2027-28" oninput="checkActivateConfirm()">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('activateModal').classList.remove('open')">Cancel</button>
+        <button class="btn-submit" id="confirmActivateBtn" disabled>Set as Active</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function checkActivateConfirm() {
+  const val = document.getElementById('activateConfirmInput').value;
+  const btn = document.getElementById('confirmActivateBtn');
+  const input = document.getElementById('activateConfirmInput');
+  const match = val === '2027-28';
+  btn.disabled = !match;
+  input.classList.toggle('match', match);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Settings - Roles &amp; Permissions - approved reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
+  .doc-note { max-width: 1100px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
+  .doc-note b { display: block; margin-bottom: 4px; }
+  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1100px; margin: 0 auto; }
+  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
+  .sw-brand { display: flex; align-items: center; gap: 10px; }
+  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
+  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
+  .sw-right { display: flex; align-items: center; gap: 12px; }
+  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
+  .sw-session i { font-size: 14px; color: #7b6ef6; }
+  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
+  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+  .sw-spacer { height: 24px; }
+  .sw-body { display: flex; gap: 16px; align-items: stretch; }
+  .sb-wrap { background: #fff; border-radius: 18px; padding: 16px 10px; width: 210px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; display: flex; flex-direction: column; }
+  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; color: #4a4a68; cursor: pointer; margin-bottom: 3px; font-weight: 500; }
+  .sb-item-left { display: flex; align-items: center; gap: 9px; }
+  .sb-item i { font-size: 17px; }
+  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.35); }
+  .sb-sub-wrap { position: relative; padding-left: 26px; margin: 2px 0 8px; }
+  .sb-sub-line { position: absolute; left: 17px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
+  .sb-sub-item { padding: 7px 10px; border-radius: 8px; font-size: 12.5px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; }
+  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; }
+  .sw-main { flex: 1; min-width: 0; }
+  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
+  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+  .sw-subtitle { font-size: 12px; color: #9494ac; margin-bottom: 18px; }
+  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .role-tabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  .role-tab { padding: 8px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #6b6b85; background: #f6f5ff; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .role-tab.active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; }
+  .role-tab .role-count { font-size: 10px; opacity: .8; }
+  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
+
+  .locked-role-note { display: flex; align-items: center; gap: 8px; background: #f0eeff; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #5b4fd6; margin-bottom: 16px; }
+
+  .matrix-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+  .matrix-table { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 640px; }
+  .matrix-table th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 8px; text-align: center; letter-spacing: .3px; }
+  .matrix-table th.module-col { text-align: left; width: 220px; }
+  .matrix-table td { padding: 10px 8px; border-top: 1px solid #f2f1fa; text-align: center; }
+  .matrix-table td.module-col { text-align: left; }
+  .module-name { font-weight: 600; color: #1a1a2e; font-size: 13px; }
+  .module-row.sub td.module-col { padding-left: 24px; color: #6b6b85; font-size: 12px; font-weight: 500; }
+  .perm-check { width: 18px; height: 18px; accent-color: #7b6ef6; cursor: pointer; }
+  .perm-check:disabled { accent-color: #d9d6f5; cursor: not-allowed; }
+  .scope-tag { font-size: 9.5px; color: #7b6ef6; background: #f0eeff; padding: 2px 6px; border-radius: 999px; font-weight: 600; margin-top: 3px; display: inline-block; cursor: pointer; }
+
+  .sw-footer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f0eeff; }
+  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 20px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: #fff; border-radius: 16px; width: 420px; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; }
+  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
+  .modal-body-scroll { padding: 18px 22px; }
+  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; display: flex; justify-content: flex-end; gap: 8px; }
+  .m-field { margin-bottom: 12px; }
+  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
+  .m-field input, .m-field select { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
+  .m-hint { font-size: 10.5px; color: #9494ac; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="doc-note">
+  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
+  Settings &rarr; Roles &amp; Permissions. Implements R3's permission
+  system as an actual UI: a role tab strip + a module&times;action
+  matrix of checkboxes. "Class Teacher" is scoped (its checkbox row
+  shows a clickable "Scoped" tag opening a small picker for WHICH
+  class+section this grant applies to) rather than a blanket module
+  permission, matching R3's specific "Class Teacher = permission
+  scoped to a Class+Section, not the whole school" rule. Admin/Super
+  Admin are locked, uneditable roles (the school always needs at least
+  one role with full access that can't be misconfigured into a
+  lockout).
+</div>
+
+<div class="sw">
+  <div class="sw-header">
+    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
+    <div class="sw-right">
+      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
+      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+    </div>
+  </div>
+  <div class="sw-spacer"></div>
+  <div class="sw-body">
+    <div class="sb-wrap">
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-home"></i>Dashboard</div></div>
+      <div class="sb-item"><div class="sb-item-left"><i class="ti ti-users"></i>Staff</div></div>
+      <div class="sb-item parent-active">
+        <div class="sb-item-left"><i class="ti ti-settings"></i>Settings</div>
+        <i class="ti ti-chevron-down"></i>
+      </div>
+      <div class="sb-sub-wrap">
+        <div class="sb-sub-line"></div>
+        <div class="sb-sub-item">Academic Sessions</div>
+        <div class="sb-sub-item">Admission Form Fields</div>
+        <div class="sb-sub-item active-sub">Roles &amp; Permissions</div>
+      </div>
+    </div>
+
+    <div class="sw-main">
+      <div class="sw-card-main">
+        <div class="sw-title">Roles &amp; Permissions</div>
+        <div class="sw-subtitle">Control exactly which modules and actions each role can access.</div>
+
+        <div class="sw-toolbar">
+          <div class="role-tabs">
+            <div class="role-tab active">Super Admin <span class="role-count">(locked)</span></div>
+            <div class="role-tab">Admin</div>
+            <div class="role-tab">Accountant</div>
+            <div class="role-tab">Class Teacher <span class="role-count">(scoped)</span></div>
+            <div class="role-tab">Subject Teacher</div>
+          </div>
+          <button class="sw-add-btn" onclick="document.getElementById('createRoleModal').classList.add('open')"><i class="ti ti-plus" style="font-size:13px;"></i> Create Role</button>
+        </div>
+
+        <div class="locked-role-note"><i class="ti ti-lock"></i> Super Admin has full access to every module and cannot be edited — every school always keeps one role that can never be locked out of its own system.</div>
+
+        <div class="matrix-scroll">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th class="module-col">Module</th>
+                <th>View</th>
+                <th>Create</th>
+                <th>Edit</th>
+                <th>Delete</th>
+                <th>Approve</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="module-row">
+                <td class="module-col"><span class="module-name">Student</span></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td>&mdash;</td>
+              </tr>
+              <tr class="module-row">
+                <td class="module-col"><span class="module-name">Staff</span></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td>&mdash;</td>
+              </tr>
+              <tr class="module-row">
+                <td class="module-col"><span class="module-name">Attendance</span></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td>&mdash;</td>
+              </tr>
+              <tr class="module-row">
+                <td class="module-col"><span class="module-name">Leave</span></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+              </tr>
+              <tr class="module-row">
+                <td class="module-col"><span class="module-name">Payroll</span></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td>&mdash;</td>
+              </tr>
+              <tr class="module-row">
+                <td class="module-col"><span class="module-name">Fees</span></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td>&mdash;</td>
+              </tr>
+              <tr class="module-row">
+                <td class="module-col"><span class="module-name">Examination</span></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td>&mdash;</td>
+              </tr>
+              <tr class="module-row">
+                <td class="module-col"><span class="module-name">Settings</span></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td><input type="checkbox" class="perm-check" checked disabled></td>
+                <td>&mdash;</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE ROLE -->
+  <div class="modal-overlay" id="createRoleModal">
+    <div class="modal-box">
+      <div class="modal-head"><span class="modal-title">Create Role</span><div class="modal-close" onclick="document.getElementById('createRoleModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <div class="m-field"><label>Role Name</label><input type="text" placeholder="Librarian"></div>
+        <div class="m-field"><label>Scope</label><select><option>Whole school (like Admin/Accountant)</option><option>Scoped to a Class + Section (like Class Teacher)</option></select><div class="m-hint">Scoped roles show a "Scoped" tag on each permission row instead of applying school-wide — pick this for any role that should only ever act on specific classes.</div></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('createRoleModal').classList.remove('open')">Cancel</button>
+        <button class="btn-submit">Create &amp; Configure Permissions</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCOPE PICKER (for Class Teacher-style scoped roles) -->
+  <div class="modal-overlay" id="scopeModal">
+    <div class="modal-box" style="width:380px;">
+      <div class="modal-head"><span class="modal-title">Scope — Attendance</span><div class="modal-close" onclick="document.getElementById('scopeModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
+      <div class="modal-body-scroll">
+        <p style="font-size:12px;color:#6b6b85;margin:0 0 12px;">This permission only applies to the class(es) assigned below — not the whole school.</p>
+        <div class="m-field"><label>Class</label><select><option>8th</option><option>9th</option></select></div>
+        <div class="m-field"><label>Section</label><select><option>A</option><option>B</option></select></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-cancel" onclick="document.getElementById('scopeModal').classList.remove('open')">Cancel</button>
+        <button class="btn-submit">Save Scope</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.role-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

@@ -634,3 +634,170 @@
   regression-check dependencies → cut over → move to next module).
 - README updated: banner marks the whole package FINAL and points to
   the new implementation strategy doc before any code is written.
+
+## v1 (major addition) — 2026-09-05
+- NEW: Centralized error handling architecture, backend and frontend,
+  designed for scale (millions of users, more modules later):
+  `_core/error-handling/README.md` explains the design (category-wise
+  organization, not module-wise — HTTP status codes and UI treatment
+  are category-driven, so a new module never needs new error-handling
+  code, it just tags its own `module` string on the existing 8
+  categories), the chosen packages (express-async-errors, winston,
+  @sentry/node on the backend; a single HttpInterceptor,
+  @sentry/angular, Angular's ErrorHandler, MatSnackBar on the
+  frontend), the correlation-ID design tying frontend/backend/logs
+  together, the one-shape API error response contract, and
+  scalability notes (Sentry sampling by category, structured JSON
+  logs, the isOperational flag distinguishing expected failures from
+  real bugs).
+  Actual code included: `backend/errors/` (AppError base class plus
+  ValidationError, NotFoundError, ConflictError — with a
+  fromMongoDuplicateKey helper that turns a raw Mongo 11000 into a
+  friendly message automatically — AuthenticationError,
+  PermissionError, RateLimitError, ExternalServiceError, InternalError,
+  and a barrel index.js), `backend/middleware/` (requestId.js,
+  errorHandler.js — the single Express error middleware, wired via
+  express-async-errors so no route needs try/catch), `backend/utils/
+  logger.js` (Winston setup), and an example-route-usage.js showing
+  the pattern in practice. Frontend: `frontend/api-error.model.ts`
+  (the shared TypeScript contract), `error.interceptor.ts` (the single
+  HttpInterceptor, category-to-UI-treatment switch), `global-error-
+  handler.ts` (catches uncaught runtime errors separately from HTTP
+  errors), and example-component-usage.ts showing how a form component
+  maps ValidationError.fields onto inline field errors.
+
+## v1 (new page) — 2026-09-05
+- NEW: Settings / Academic Sessions — manages the multi-year session
+  lifecycle every page's header selector depends on. Exactly one
+  session is Active per school at a time; every new record anywhere
+  in the app saves against the Active session regardless of which one
+  the header is currently showing (viewing a Closed session is
+  read-only browsing, never a write-context switch - all create/edit/
+  delete is disabled while viewing a non-Active session). Table shows
+  Active/Upcoming/Closed status with the right actions per state
+  (Upcoming gets Set-as-Active + Delete; Closed gets a read-only View;
+  Active gets no action - you activate a different session instead,
+  which closes it as a side effect). Create Session offers an optional
+  "Copy Forward" checklist (Fee Structure, Marksheet/Admit Card
+  Structure, Salary Groups, Holiday Templates) that copies
+  CONFIGURATION only, explicitly never student placements or financial
+  records - a new session is always created as Upcoming, never
+  directly Active. Set as Active is the one type-to-confirm action on
+  this page (heavier than the app's usual single-confirm) since its
+  blast radius is the whole school, every user, immediately. Documents
+  the recommended operational order with Class Promotion: create
+  session → promote students into it → verify configs → set Active.
+  Cross-referenced from Class Promotion's own doc. Added "Academic
+  Sessions" to the Settings sidebar on both pages for consistency.
+
+## v1 (new page + new doc) — 2026-09-05
+- NEW: Settings / Roles & Permissions — implements R3's permission
+  system as an actual admin UI. Role tab strip (Super Admin locked/
+  uneditable; Class Teacher and similar roles marked scoped) + a
+  module×action checkbox matrix (View/Create/Edit/Delete/Approve,
+  with a dash where an action doesn't apply to a module). Scoped
+  permissions show a clickable "Scoped" tag opening a Class+Section
+  picker per R3's specific rule (Class Teacher = scoped to a Class+
+  Section, one teacher can hold several such scopes). Create Role
+  asks for scope mode (whole-school vs. scoped) up front. Linked
+  consistently into all three Settings pages' sidebars.
+- NEW: `_core/additional-technical-considerations.md` — cross-cutting
+  concerns beyond module pages and error-handling: Cloudinary file
+  storage convention (existing, documented for completeness), a
+  proposed unified Notifications service (category-tagged like
+  errors, in-app bell + WhatsApp/SMS/Email channels), i18n readiness
+  (all current UI text is hardcoded English, needs @angular/localize
+  or ngx-translate before scaling beyond English-medium schools),
+  print-CSS vs. server-generated PDF for official documents
+  (Marksheet/TC), standardized file upload handling, cursor-based
+  pagination, skeleton loading states, dark mode readiness (CSS
+  custom-properties refactor, not a per-page redesign), a background
+  job queue (bullmq/Redis) for slow bulk operations (Excel import,
+  WhatsApp sends, bulk PDF generation) that shouldn't block requests,
+  rate limiting (express-rate-limit with a Redis store for multi-
+  instance deployments), environment configuration practices, a
+  health-check endpoint, a Redis caching layer for slow-changing
+  config data, and a note on migrating Student search to Elasticsearch/
+  Atlas Search if MongoDB text search doesn't scale to the ~2M-student
+  target. Backup/disaster-recovery explicitly deferred per instruction.
+
+## v1 (fix) — 2026-09-05
+- Search-at-scale recommendation changed from Elasticsearch to MongoDB
+  Atlas Search - Atlas Search runs inside the existing Atlas cluster
+  with no separate infrastructure to provision or pay for, whereas
+  Elasticsearch requires its own hosted cluster and adds real ongoing
+  infra cost. Elasticsearch is now only mentioned as a last resort if
+  Atlas Search genuinely can't meet a specific need.
+
+## v1 (fix) — 2026-09-05
+- Removed Dark Mode section from additional-technical-considerations.md per instruction - out of scope.
+
+## v1 (new module) — 2026-09-05
+- NEW: Dashboard — the home landing page after login, previously
+  entirely missing from this package. Replaces the legacy 4-card
+  layout (Students/Teachers/WhatsApp Messages/Marksheets on bespoke
+  gradient-card CSS) with real cross-module metrics on the
+  established stat-card/panel system: Students (+ admitted this
+  month), Staff (Teaching/Admin split), Fees Collected (+ arrears-
+  aware Due total), Attendance Today (% + absent/late) - every card
+  links through to its source module. Added an Attendance Trend
+  7-day bar panel and a Fee Collection Status donut, both lightweight
+  CSS visualizations appropriate for a glanceable dashboard rather
+  than a full charting library. Added a CALENDAR WIDGET (explicit
+  requirement) with today's date rendered in the same purple gradient
+  used for primary actions app-wide, holiday dots pulled from the
+  Holiday module, and month navigation matching the existing month-
+  picker convention. Added Upcoming Holidays and Pending Approvals
+  panels, both linking to their full modules rather than duplicating
+  them. Build order updated: Dashboard is built genuinely last, since
+  it has no data of its own and is only meaningfully testable once
+  the modules it aggregates are real.
+
+## v1 (redesign) — 2026-09-05
+- Dashboard rebuilt from scratch (v2): the first draft's flat 4-cards-
+  then-panels layout read too similar to the legacy page's own
+  structure. New design: a full-width gradient hero banner (name/date/
+  school + four headline stats as translucent chips) replacing the
+  plain white welcome row, followed by an ASYMMETRIC bento grid (8/4,
+  5/7, full-width rows) instead of a uniform grid - larger 20px card
+  radius throughout. Attendance overview now nests three color-coded
+  mini-stat tiles above the 7-day trend inside one richer card.
+  Pending Approvals and Upcoming Holidays merged into one card (both
+  are "needs attention soon" lists). Added a new Quick Actions row
+  (New Admission, Collect Fee, Apply Leave, Issue TC, Generate
+  Marksheet) making the dashboard a genuine action starting point, not
+  only a summary screen. Calendar's today-highlight and holiday-dot
+  behavior is unchanged from the first draft - only the surrounding
+  visual language was revised.
+
+## v1 (redesign) — 2026-09-05
+- Dashboard hero redesigned again (v3): the gradient banner from v2
+  was a generic, overused SaaS trope and mismatched the app's own
+  established look (no other page anywhere in this package uses a
+  full-bleed color background - every surface is a white card, purple
+  is reserved for buttons/active-nav/chips). Rebuilt as a white card:
+  distinctiveness now comes from a bold gradient date-badge (day+month,
+  reinforcing "today" before the calendar tile loads), soft blurred
+  pastel blob shapes as quiet background texture, and clean right-
+  aligned stat pairs instead of translucent glass chips on color. Rest
+  of the bento grid (Attendance/Calendar/Fees/Approvals/Quick Actions)
+  unchanged from v2.
+
+## v1 (FINAL) — 2026-09-05
+- Dashboard locked at v5 after iterating through several approaches:
+  a plain-4-cards first draft, a gradient-hero banner (rejected as a
+  generic overused SaaS trope mismatching the app's own all-white-card
+  look), a fully component-reused version with no hero at all, and
+  finally this version merging both — a white-card hero (gradient date
+  badge + welcome text + right-aligned stat pairs + soft pastel blob
+  decoration, no chips, no duplicate summary strip) on top of a body
+  built entirely from already-established components (ls-strip's
+  sibling `layout-row` two-column structure, `sw-card-main` cards,
+  the same calendar/approval-row/status-chip patterns used elsewhere).
+  dashboard.md documents the full design history so the reasoning
+  behind the final shape isn't lost.
+- Package marked FINAL and repackaged in full - this is the complete,
+  locked design reference across all 13 modules (12 module folders +
+  Dashboard), 35 pages, the _core design system + implementation
+  strategy + error-handling architecture + additional technical
+  considerations.

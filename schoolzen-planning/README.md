@@ -22,12 +22,15 @@ Claude Code as-is when implementing.
    - `<page>.md` — what it does and why, for implementation
 3. Build in this order (matches dependency): Academic Setup → Student
    → Staff → Attendance → Leave → Holiday → Payroll → Fees →
-   Examination → Certificates → Approvals → Settings.
+   Examination → Certificates → Approvals → Settings → Dashboard
+   (built last since it only aggregates data every other module
+   already produces).
 
 ## Module map — all FINAL
 
 | Module | Pages | Purpose |
 |---|---|---|
+| **Dashboard** | Dashboard | Home landing page — white-card hero with today's date badge, attendance/fee panels built from reused components, a calendar with today highlighted, upcoming holidays, pending approvals, quick actions |
 | **Academic Setup** | Classes & Sections, Subjects, Subject Groups | School's academic structure — source data for every Class/Section/Stream/Subject filter app-wide |
 | **Student** | Manage Students, Admission, Class Promotion | Student records — intake, ongoing management, year-end class promotion |
 | **Staff** | Manage Staff, Departments, Designations | Staff records and org structure |
@@ -39,7 +42,7 @@ Claude Code as-is when implementing.
 | **Examination** | Marksheet Structure, Marksheet Structure Setup, Generate Marksheet, Admit Card Structure, Generate Admit Card | Exam-linked printable documents — subject/marks/grading config and result entry, admit card config and issuance |
 | **Certificates** | TC Structure, Generate TC | Student-exit administrative documents (Transfer Certificate; room for Bonafide/Character certificates later) |
 | **Approvals** | Requests | Cross-module unified approval inbox |
-| **Settings** | Admission Form Fields | Dynamic field/validation config for Student forms — single source of truth for form, table, and Excel columns |
+| **Settings** | Academic Sessions, Admission Form Fields, Roles & Permissions | Multi-year session lifecycle; dynamic field/validation config for Student forms; role-based permission matrix (R3) |
 
 ## Locked global rules (see `_core` for full detail)
 
@@ -64,6 +67,10 @@ Claude Code as-is when implementing.
 
 - `v1/_core/` — design system reference (read first), plus
   `claude-code-implementation-strategy.md` for how to actually build
-  this against the legacy codebase without breaking it
+  this against the legacy codebase without breaking it,
+  `error-handling/` for the centralized backend+frontend error
+  handling architecture, and `additional-technical-considerations.md`
+  for cross-cutting concerns (notifications, i18n, print/PDF, file
+  upload, pagination, job queue, rate limiting, caching, search)
 - `v1/<module>/` — one folder per module, as mapped above
 - `CHANGELOG.md` — full history of every revision made during design review

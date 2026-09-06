@@ -63,6 +63,10 @@ reads data the previous ones create:
     table/Excel behavior, so it's safest to bolt onto a Student module
     that's already stable and tested, not while Student itself is
     still being built.
+13. **Dashboard** — build genuinely last. It has no data of its own —
+    every stat card and panel aggregates data from Student, Staff,
+    Attendance, Fees, and Approvals — so it's only meaningfully
+    testable once those modules are real and populated, not stubbed.
 
 ## Never break existing code — the isolation rules
 
