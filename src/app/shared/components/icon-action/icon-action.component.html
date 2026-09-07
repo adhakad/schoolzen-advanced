@@ -1,0 +1,10 @@
+<button type="button" [class]="buttonClass" [disabled]="disabled"
+        [attr.aria-label]="ariaLabel" [title]="ariaLabel" (click)="onClick()">
+  <i class="ti ti-{{ icon }}"></i>
+</button>
+
+<app-confirm-modal *ngIf="confirm"
+                   [open]="confirmOpen"
+                   [config]="confirm"
+                   (confirmed)="onConfirmed()"
+                   (cancelled)="onCancelled()"></app-confirm-modal>

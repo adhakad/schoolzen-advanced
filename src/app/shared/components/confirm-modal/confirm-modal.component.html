@@ -1,0 +1,35 @@
+<div class="sw-modal-backdrop" *ngIf="open" (click)="onCancel()">
+  <div class="sw-modal" (click)="$event.stopPropagation()">
+    <div class="sw-modal-head">
+      <div class="sw-modal-title">{{ config.title }}</div>
+      <button type="button" class="sw-modal-close" aria-label="Close" (click)="onCancel()">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+
+    <div class="sw-modal-body">
+      <div>{{ config.message }}</div>
+      <div class="sw-modal-scope" *ngIf="config.scopeNote">{{ config.scopeNote }}</div>
+
+      <ng-container *ngIf="config.typeToConfirm">
+        <label class="sw-modal-confirm-label" [attr.for]="'confirm-word'">
+          Type <b>{{ config.typeToConfirm }}</b> to continue.
+        </label>
+        <input id="confirm-word" class="sw-modal-input" type="text" autocomplete="off"
+               [(ngModel)]="typed" [placeholder]="config.typeToConfirm" />
+      </ng-container>
+    </div>
+
+    <div class="sw-modal-foot">
+      <button type="button" class="sw-btn-ghost" (click)="onCancel()">
+        {{ config.cancelLabel || 'Cancel' }}
+      </button>
+      <button type="button"
+              [class]="config.variant === 'warning' ? 'sw-btn-danger' : 'sw-gen-btn'"
+              [disabled]="confirmDisabled"
+              (click)="onConfirm()">
+        {{ config.confirmLabel }}
+      </button>
+    </div>
+  </div>
+</div>

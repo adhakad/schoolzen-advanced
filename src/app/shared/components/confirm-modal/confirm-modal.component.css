@@ -1,0 +1,2 @@
+/* Backdrop/box/sticky header+footer live in the global design system stylesheet. */
+:host { display: contents; }

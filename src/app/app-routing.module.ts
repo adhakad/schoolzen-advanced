@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
 import { TeacherAuthGuard } from './guards/teacher-auth.guard';
 import { SalesAuthGuard } from './guards/sales-auth.guard';
+import { V2SessionGuard } from './shared/guards/v2-session.guard';
 
 const routes: Routes = [
   { path: '', redirectTo: '/', pathMatch: 'full' },
@@ -15,6 +16,11 @@ const routes: Routes = [
   { path: 'terms-and-conditions', loadChildren: () => import('src/app/pages/main/terms-conditions/terms-conditions.module').then((module) => module.TermsConditionsModule) },
   { path: 'privacy-policy', loadChildren: () => import('src/app/pages/main/privacy-policy/privacy-policy.module').then((module) => module.PrivacyPolicyModule) },
   { path: 'refund-cancellation-policy', loadChildren: () => import('src/app/pages/main/refund-cancellation-policy/refund-cancellation-policy.module').then((module) => module.RefundCancellationPolicyModule) },
+  // V2 Routing Section — the new shared shell. Every redesigned page is a CHILD of this
+  // one route, so it inherits the header/sidebar without declaring them. Legacy routes
+  // below are untouched until a page has been verified against its design reference.
+  { path: 'v2', loadChildren: () => import('src/app/v2/v2.module').then((module) => module.V2Module), canActivate: [V2SessionGuard] },
+
   // Admin Routing Section
 
   { path: 'admin/login', loadChildren: () => import('src/app/pages/auth/admin-auth/admin-login/admin-login.module').then((module) => module.AdminLoginModule) },

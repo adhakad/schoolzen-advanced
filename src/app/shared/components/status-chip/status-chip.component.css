@@ -1,0 +1,3 @@
+/* Chip visuals live in the global design system (shared/styles/schoolzen-design-system.css)
+   so a module page can use .sw-chip in its own markup too. Only host layout lives here. */
+:host { display: inline-flex; }

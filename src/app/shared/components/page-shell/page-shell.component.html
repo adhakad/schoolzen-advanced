@@ -1,0 +1,22 @@
+<div class="sw">
+  <app-shell-header [context]="context"
+                    [notifications]="notifications"
+                    (menuToggled)="toggleMobileNav()"
+                    (sessionChanged)="onSessionChanged($event)"
+                    (loggedOut)="onLogout()"></app-shell-header>
+
+  <div class="sw-body" [class.mobile-open]="mobileOpen">
+    <div class="sb-backdrop" (click)="closeMobileNav()"></div>
+
+    <app-shell-sidebar [context]="context"
+                       [activeUrl]="activeUrl"
+                       (navigated)="closeMobileNav()"></app-shell-sidebar>
+
+    <main class="sw-main">
+      <!-- Header zone and body zone read as two distinct areas: the header's border-bottom
+           plus this explicit spacer, not a margin. -->
+      <div class="sw-spacer"></div>
+      <ng-content></ng-content>
+    </main>
+  </div>
+</div>
