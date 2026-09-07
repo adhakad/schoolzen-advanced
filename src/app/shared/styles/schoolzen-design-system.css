@@ -1,0 +1,548 @@
+/* =====================================================================================
+   Schoolzen design system — the locked R5 visual language.
+
+   Source of truth, copied class-for-class from the approved references:
+     docs/schoolzen-planning/v1/_core/shell/app-shell.html          (header, sidebar, responsive)
+     docs/schoolzen-planning/v1/payroll/generate-payroll.html       (strip, card, toolbar, table)
+
+   Loaded GLOBALLY (angular.json "styles") rather than as component styles, because module
+   pages use these classes directly in their own templates — a page's toolbar and table markup
+   is the same markup the shared components emit, so the CSS has to be reachable from both.
+
+   Rules that are dimensions, not preferences (do not vary them per page):
+     filter pill        128px      status chip      80px
+     action column      100px      row avatar       38px / 12px radius
+     icon button        30x30      breakpoint       860px
+   ===================================================================================== */
+
+:root {
+  --sw-font: Inter, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  --sw-accent: #7b6ef6;
+  --sw-accent-dark: #5b4fd6;
+  --sw-accent-grad: linear-gradient(135deg, #7b6ef6, #5b4fd6);
+  --sw-accent-tint: #f6f5ff;
+
+  --sw-bg: #f4f4fb;
+  --sw-surface: #fff;
+  --sw-border: #e8e6f5;
+  --sw-row-hover: #faf9ff;
+
+  --sw-text: #1a1a2e;
+  --sw-text-muted: #6b6b85;
+  --sw-text-soft: #9494ac;
+  --sw-text-faint: #b0b0c9;
+
+  --sw-card-shadow: 0 2px 8px rgba(20, 20, 60, 0.05);
+  --sw-drop-shadow: 0 8px 24px rgba(20, 20, 60, 0.14);
+
+  --sw-radius-card: 18px;
+  --sw-radius-control: 12px;
+
+  --sw-pill-width: 128px;
+  --sw-search-min: 220px;
+  --sw-search-max: 340px;
+  --sw-chip-width: 80px;
+  --sw-action-col: 100px;
+  --sw-sidebar-width: 224px;
+  --sw-breakpoint: 860px;
+}
+
+/* --- app surface ------------------------------------------------------------------- */
+/* The references render inside a 1180px rounded demo panel; in the app the same surface
+   fills the viewport. Everything inside it is unchanged. */
+.sw {
+  font-family: var(--sw-font);
+  background: var(--sw-bg);
+  position: relative;
+  /* app.component.html reserves a global 10vh strip above <router-outlet> for the legacy
+     fixed header. Subtracting it keeps the shell exactly one viewport tall instead of
+     forcing a scrollbar on every page; the strip itself is legacy markup and is left
+     alone. */
+  min-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.sw * { box-sizing: border-box; }
+
+/* Normalisation the reference HTML never needed and this app does. The references are
+   standalone files; here the same markup sits under Bootstrap + the Material theme +
+   styles.css, and it is rendered with real <button>/<a>/<select> elements (the references
+   use <div>s with onclick, which an Angular app must not). Those two facts cost three
+   things that have to be put back explicitly:
+     - form controls do not inherit font-family/size from an ancestor in any browser;
+     - Bootstrap underlines every <a>, so sidebar links picked up an underline;
+     - Bootstrap's button reset sets its own line-height.
+   Scoped to .sw, so no legacy page is affected. */
+.sw button, .sw select, .sw input, .sw textarea { font-family: inherit; font-size: inherit; line-height: normal; }
+.sw a { text-decoration: none; }
+.sw button { cursor: pointer; }
+
+/* --- header ------------------------------------------------------------------------ */
+.sw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--sw-border);
+  background: var(--sw-bg);
+  position: relative;
+  z-index: 20;
+}
+.sw-left { display: flex; align-items: center; gap: 14px; }
+.hamburger-btn {
+  display: none;
+  width: 34px; height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(20, 20, 60, 0.06);
+  align-items: center; justify-content: center;
+  cursor: pointer; color: #4a4a68; font-size: 17px; flex-shrink: 0;
+}
+.sw-brand { display: flex; align-items: center; gap: 10px; }
+.sw-brand-mark {
+  width: 36px; height: 36px; border-radius: 11px;
+  background: var(--sw-accent-grad);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 16px; flex-shrink: 0;
+}
+.sw-brand-name { font-weight: 700; font-size: 16px; color: var(--sw-text); }
+.sw-right { display: flex; align-items: center; gap: 10px; }
+
+.sw-session {
+  display: flex; align-items: center; gap: 6px;
+  background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px;
+  box-shadow: 0 1px 2px rgba(20, 20, 60, 0.06);
+}
+.sw-session i { font-size: 14px; color: var(--sw-accent); }
+.sw-session select {
+  border: none; background: transparent; font-size: 12.5px; font-weight: 600;
+  color: #3d3d5c; outline: none; appearance: none; cursor: pointer;
+}
+
+/* Notification bell */
+.sw-bell {
+  position: relative; width: 38px; height: 38px; border-radius: 50%;
+  background: #fff; border: none;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 1px 2px rgba(20, 20, 60, 0.06);
+  cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0;
+}
+.sw-bell .bell-badge {
+  position: absolute; top: 6px; right: 7px; width: 8px; height: 8px;
+  border-radius: 50%; background: #b8265a; border: 1.5px solid #fff;
+}
+.sw-bell-drop {
+  position: absolute; top: 60px; right: 168px; width: 300px;
+  background: #fff; border-radius: 16px; box-shadow: var(--sw-drop-shadow);
+  padding: 8px; z-index: 30;
+}
+.bell-drop-title { font-size: 12.5px; font-weight: 700; color: var(--sw-text); padding: 8px 10px 6px; }
+.bell-item {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 9px 10px; border-radius: 10px; cursor: pointer;
+}
+.bell-item:hover { background: var(--sw-accent-tint); }
+.bell-item .bi-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--sw-accent); margin-top: 5px; flex-shrink: 0;
+}
+.bell-item .bi-dot.read { background: #d9d6f5; }
+.bell-item .bi-text { font-size: 12px; color: #3d3d5c; }
+.bell-item .bi-time { font-size: 10.5px; color: var(--sw-text-soft); margin-top: 2px; }
+.bell-empty { font-size: 12px; color: var(--sw-text-soft); padding: 10px; }
+.bell-view-all {
+  display: block; width: 100%; text-align: center; font-size: 11.5px;
+  color: var(--sw-accent); font-weight: 600; padding: 8px; cursor: pointer;
+  background: none; border: none;
+}
+
+/* Profile pill + dropdown */
+.sw-profile {
+  display: flex; align-items: center; gap: 8px;
+  background: #fff; border: none; border-radius: 999px; padding: 5px 12px 5px 5px;
+  box-shadow: 0 1px 2px rgba(20, 20, 60, 0.06); cursor: pointer; flex-shrink: 0;
+}
+.sw-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, #ffb199, #ff7676);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 12px;
+}
+.sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
+.sw-profile-drop {
+  position: absolute; top: 60px; right: 20px; width: 250px;
+  background: #fff; border-radius: 16px; box-shadow: var(--sw-drop-shadow);
+  padding: 14px; z-index: 30;
+}
+.sw-drop-school {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 12px; border-bottom: 1px solid #f0eeff; margin-bottom: 10px;
+}
+.sw-school-logo {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, #2f8fd8, #1f6fad);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0;
+  object-fit: cover;
+}
+.sw-school-name { font-weight: 700; font-size: 13px; color: var(--sw-text); }
+.sw-school-meta { font-size: 10.5px; color: var(--sw-text-soft); margin-top: 1px; }
+.sw-drop-item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 6px; border: none; background: none; border-radius: 8px;
+  font-size: 12.5px; color: var(--sw-text-muted); cursor: pointer; text-align: left;
+}
+.sw-drop-item:hover { background: var(--sw-accent-tint); }
+.sw-drop-item i { font-size: 15px; color: var(--sw-text-soft); }
+
+/* --- body layout ------------------------------------------------------------------- */
+.sw-body { display: flex; align-items: stretch; position: relative; flex: 1; min-height: 0; }
+.sw-main { flex: 1; min-width: 0; padding: 18px 20px; }
+/* The header zone and the body zone read as two distinct areas: a border-bottom on the
+   header AND an explicit spacer block, not just a margin. */
+.sw-spacer { height: 24px; }
+
+/* --- sidebar ----------------------------------------------------------------------- */
+.sb-backdrop { display: none; }
+/* Deliberate, reviewed departure from app-shell.html: its .sb-wrap was written flush and
+   shadowless, which makes the sidebar the only white surface in the app without the
+   card treatment .sw-card-main and every modal use. The radius+shadow pair below is that
+   shared treatment, not a new value. Desktop only — the mobile drawer overrides both in
+   the 860px block, where a flush left edge is correct for a slide-in panel. */
+.sb-wrap {
+  background: #fff;
+  width: var(--sw-sidebar-width);
+  flex-shrink: 0;
+  padding: 14px 8px;
+  overflow-y: auto;
+  border-right: 1px solid #efeefa;
+  border-radius: var(--sw-radius-card);
+  box-shadow: var(--sw-card-shadow);
+  transition: transform .25s ease;
+}
+.sb-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border-radius: 10px;
+  font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500;
+  width: 100%; border: none; background: none; text-align: left;
+}
+.sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-item i.ti { font-size: 16px; flex-shrink: 0; }
+.sb-item.parent-active {
+  background: var(--sw-accent-grad); color: #fff;
+  box-shadow: 0 3px 10px rgba(123, 110, 246, 0.3);
+}
+.sb-item.single:hover { background: var(--sw-accent-tint); }
+.sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
+.sb-item.parent-active .chev { color: #fff; }
+.sb-group.open > .sb-item .chev { transform: rotate(90deg); }
+.sb-sub-wrap {
+  max-height: 0; overflow: hidden; transition: max-height .2s ease;
+  padding-left: 14px; position: relative;
+}
+.sb-group.open .sb-sub-wrap { max-height: 400px; }
+.sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
+.sb-sub-item {
+  padding: 7px 10px 7px 20px; border-radius: 8px;
+  font-size: 12px; color: var(--sw-text-muted); cursor: pointer; margin-bottom: 1px;
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; border: none; background: none; text-align: left;
+  text-decoration: none;
+}
+.sb-sub-item:hover { background: #f9f8ff; }
+.sb-sub-item.active-sub { color: var(--sw-accent); font-weight: 600; background: var(--sw-accent-tint); }
+.sb-sub-item.locked { color: #c9c7d9; cursor: not-allowed; }
+.sb-sub-item.locked:hover { background: transparent; }
+.sb-sub-item.locked i.ti-lock { color: #d9d6f5; font-size: 12px; }
+.sb-item.locked-parent { color: #c9c7d9; cursor: not-allowed; }
+.sb-item.locked-parent:hover { background: transparent; }
+
+/* --- back link --------------------------------------------------------------------- */
+.sw-backlink {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; color: var(--sw-accent); font-weight: 600;
+  cursor: pointer; margin-bottom: 12px; text-decoration: none;
+}
+.sw-backlink i { font-size: 15px; }
+
+/* --- summary / live strip ---------------------------------------------------------- */
+.ls-strip {
+  display: flex; align-items: center; gap: 14px;
+  background: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(20, 20, 60, 0.04); flex-wrap: wrap;
+}
+.ls-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  background: #e8f9f0; color: #0c8a52;
+}
+.ls-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: sw-pulse 1.6s infinite; }
+@keyframes sw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.ls-sep { width: 1px; height: 16px; background: #ececf7; }
+.ls-count { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--sw-text-muted); }
+.ls-count b { font-size: 14px; font-weight: 700; color: var(--sw-text); }
+.ls-count.hero b { color: var(--sw-accent); }
+
+/* --- content card + toolbar -------------------------------------------------------- */
+.sw-card-main {
+  background: #fff; border-radius: var(--sw-radius-card); padding: 20px;
+  box-shadow: var(--sw-card-shadow);
+}
+.sw-title { font-size: 17px; font-weight: 700; color: var(--sw-text); margin-bottom: 16px; }
+
+.sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+/* Grows into genuinely empty space on a sparse toolbar, but bounded at both ends so the
+   search box is the same size on a toolbar with one filter and one with five — an
+   unbounded flex:1 made it balloon on sparse pages and crowd on dense ones. */
+.sw-search {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--sw-accent-tint); border-radius: var(--sw-radius-control);
+  padding: 9px 14px; flex: 1; min-width: var(--sw-search-min); max-width: var(--sw-search-max);
+}
+.sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
+.sw-search i { color: #a6a6c9; font-size: 15px; }
+.sw-select-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--sw-accent-tint); border-radius: var(--sw-radius-control);
+  padding: 9px 12px; width: var(--sw-pill-width); flex-shrink: 0;
+}
+.sw-select-pill select {
+  border: none; background: transparent; font-size: 12.5px; color: var(--sw-text-muted);
+  outline: none; flex: 1; min-width: 0; appearance: none; font-weight: 500; cursor: pointer;
+}
+.sw-select-pill i { font-size: 12px; color: var(--sw-text-faint); flex-shrink: 0; }
+.sw-select-pill.disabled { background: #f2f2f6; opacity: .5; }
+.sw-select-pill.disabled select { cursor: not-allowed; color: var(--sw-text-faint); }
+
+/* --- Angular Material re-theme ------------------------------------------------------
+   The filter pills and the header's session selector are Material controls (mat-select,
+   mat-datepicker) wearing the design system's pill instead of Material's Indigo/Pink
+   chrome. Every selector below is anchored to a class only these shared components emit
+   (.sw-select-pill, .sw-session, .sw-pill-control) or to a panelClass only they pass
+   (.sw-select-panel, .sw-datepicker-panel), so no legacy admin/teacher page — which use
+   plain mat-select, mat-datepicker and mat-menu inside mat-form-field — is reachable from
+   here. Nothing global to Material is overridden.
+
+   These live in the global sheet rather than the components' own CSS because a mat-select
+   panel and a datepicker calendar render in the CDK overlay container at the document
+   root, outside every component's view: :host ::ng-deep cannot reach them at all. */
+.sw-select-pill .sw-pill-control,
+.sw-session .sw-pill-control {
+  flex: 1; min-width: 0;
+  font-family: inherit; font-size: 12.5px; font-weight: 500;
+  color: var(--sw-text-muted); cursor: pointer;
+}
+.sw-session .sw-pill-control { font-weight: 600; color: #3d3d5c; }
+
+/* Material draws its own dropdown arrow and focus ring; the pill supplies a Tabler
+   chevron instead, and the pill itself is the focus surface. */
+.sw-select-pill .mat-select-arrow-wrapper,
+.sw-session .mat-select-arrow-wrapper { display: none; }
+.sw-select-pill .mat-select-value,
+.sw-session .mat-select-value { color: inherit; font: inherit; max-width: none; }
+.sw-select-pill .mat-select-placeholder,
+.sw-session .mat-select-placeholder { color: var(--sw-text-faint); }
+.sw-select-pill .mat-select:focus,
+.sw-session .mat-select:focus { outline: none; }
+.sw-select-pill.disabled .mat-select-value { color: var(--sw-text-faint); }
+.sw-select-pill .mat-select-disabled .mat-select-value { color: var(--sw-text-faint); }
+
+/* Date/month pill: our own label shows the value, the datepicker's input lies invisibly
+   over the pill so it stays the overlay anchor and keeps the picker's keyboard support. */
+.sw-select-pill { position: relative; }
+.sw-pill-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw-pill-text.empty { color: var(--sw-text-faint); }
+.sw-pill-date-input {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; border: none; background: transparent; cursor: pointer;
+}
+.sw-select-pill.disabled .sw-pill-date-input { cursor: not-allowed; }
+
+/* Dropdown panel — rounded card, purple only as the accent, no Material blue anywhere. */
+.mat-select-panel.sw-select-panel {
+  background: var(--sw-surface);
+  border-radius: var(--sw-radius-control);
+  box-shadow: var(--sw-drop-shadow);
+  padding: 6px;
+  min-width: calc(var(--sw-pill-width) + 24px);
+}
+.sw-select-panel .mat-option {
+  font-family: var(--sw-font); font-size: 12.5px; line-height: 34px; height: 34px;
+  border-radius: 8px; color: var(--sw-text-muted);
+}
+.sw-select-panel .mat-option:hover:not(.mat-option-disabled),
+.sw-select-panel .mat-option.mat-active { background: var(--sw-accent-tint); }
+.sw-select-panel .mat-option.mat-selected:not(.mat-option-multiple) {
+  background: var(--sw-accent-tint); color: var(--sw-accent); font-weight: 600;
+}
+/* Material tints the selected option with the theme's primary; ours is the accent. */
+.sw-select-panel .mat-option.mat-selected:not(.mat-option-disabled) .mat-option-text { color: inherit; }
+.sw-select-panel .mat-pseudo-checkbox-checked { background: var(--sw-accent); }
+
+/* Calendar — accent-purple selection instead of Indigo. Note MatDatepicker puts its
+   panelClass on the <mat-calendar> element itself (not on the content wrapper), so
+   .sw-datepicker-panel IS the calendar and every cell rule below is scoped by it. */
+.sw-datepicker-panel { font-family: var(--sw-font); }
+/* The wrapper around the calendar carries no panelClass of its own, so it is reached
+   through the calendar. Browsers without :has simply keep Material's default card —
+   a slightly tighter radius, nothing broken. */
+.mat-datepicker-content:has(.sw-datepicker-panel) {
+  border-radius: var(--sw-radius-card);
+  box-shadow: var(--sw-drop-shadow);
+}
+.sw-datepicker-panel .mat-calendar-body-selected {
+  background: var(--sw-accent); color: #fff;
+}
+.sw-datepicker-panel .mat-calendar-body-today:not(.mat-calendar-body-selected) {
+  border-color: var(--sw-accent);
+}
+.sw-datepicker-panel .mat-calendar-body-cell-content:hover:not(.mat-calendar-body-selected) {
+  background: var(--sw-accent-tint);
+}
+.sw-datepicker-panel .mat-calendar-arrow { border-top-color: var(--sw-text-muted); }
+.sw-gen-btn {
+  background: var(--sw-accent-grad); color: #fff; border: none;
+  border-radius: var(--sw-radius-control); padding: 10px 18px;
+  font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(123, 110, 246, .4);
+  cursor: pointer; flex-shrink: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.sw-gen-btn:disabled { background: #e2e2ee; color: var(--sw-text-faint); box-shadow: none; cursor: not-allowed; }
+
+/* --- table ------------------------------------------------------------------------- */
+/* Both layers are required: the outer wrapper scrolls (with negative margin so the
+   scrollbar spans the card's full width), the inner one carries the real min-width. */
+.sw-table-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
+.sw-table-inner { min-width: 880px; }
+
+.sw-thead { display: flex; align-items: center; padding: 0 8px 8px; }
+.sw-th {
+  font-size: 10.5px; font-weight: 700; color: var(--sw-text-faint);
+  text-transform: uppercase; letter-spacing: .4px; flex-shrink: 0;
+}
+.sw-th.check { width: 32px; }
+.sw-th.action { text-align: right; }
+
+.sw-row {
+  display: flex; align-items: center; padding: 12px 8px;
+  border-radius: 14px; margin-bottom: 2px; border-top: 1px solid #f2f1fa;
+}
+.sw-row:hover { background: var(--sw-row-hover); }
+.sw-r-check { width: 32px; flex-shrink: 0; }
+.sw-r-check input { width: 16px; height: 16px; accent-color: var(--sw-accent); cursor: pointer; }
+.sw-cell { flex-shrink: 0; min-width: 0; font-size: 13px; color: #4a4a68; }
+.sw-cell.right { text-align: right; }
+
+.sw-r-avatar {
+  width: 38px; height: 38px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 12px; margin-right: 12px; flex-shrink: 0;
+}
+.sw-r-info { min-width: 0; display: flex; align-items: center; }
+.sw-r-name { font-weight: 600; font-size: 13.5px; color: var(--sw-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw-r-role { font-size: 11.5px; color: var(--sw-text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw-r-att { display: flex; gap: 7px; font-size: 12px; color: var(--sw-text-muted); font-weight: 600; flex-shrink: 0; }
+.sw-r-att .d { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 3px; }
+/* A leading minus already says "subtracted" — deductions stay the neutral numeric colour,
+   never a saturated red, which would read as an error rather than a routine line. */
+.sw-r-ded { font-size: 13px; color: var(--sw-text-muted); }
+.sw-r-net { font-weight: 700; font-size: 14px; color: var(--sw-text); }
+.sw-r-net.pending { font-weight: 400; font-size: 12px; color: var(--sw-text-faint); }
+
+/* Status chips are FIXED WIDTH — every chip in a column is the same visual size,
+   whatever its label. */
+.sw-chip {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  width: var(--sw-chip-width); font-size: 11px; font-weight: 700;
+  padding: 5px 0; border-radius: 999px;
+}
+.sw-chip.draft, .sw-chip.pending-review { background: #fff2d6; color: #b8790a; }
+.sw-chip.locked, .sw-chip.present, .sw-chip.approved, .sw-chip.active { background: #d9f7ea; color: #0c8a52; }
+.sw-chip.pending, .sw-chip.neutral, .sw-chip.inactive { background: #f0eeff; color: var(--sw-text-soft); }
+.sw-chip.late, .sw-chip.halfday { background: #fdf0dc; color: #b06f0a; }
+.sw-chip.absent, .sw-chip.rejected { background: #fde8ef; color: #b8265a; }
+.sw-chip.leave { background: #dcecfb; color: #1f6fad; }
+.sw-chip.holiday { background: #efeefa; color: #5a5a7a; }
+
+/* The action slot is a fixed-width box with icons right-aligned and vertically centred,
+   so a one-icon row sits exactly where a two-icon row does. */
+.sw-r-action {
+  width: var(--sw-action-col); display: flex; gap: 5px;
+  justify-content: flex-end; align-items: center; flex-shrink: 0;
+}
+.sw-icon {
+  width: 30px; height: 30px; border-radius: 9px; border: none;
+  background: var(--sw-accent-tint);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--sw-accent); cursor: pointer; font-size: 14px; flex-shrink: 0;
+}
+.sw-icon.primary { background: var(--sw-accent); color: #fff; }
+.sw-icon.warn { background: #fde8ef; color: #b8265a; }
+.sw-icon:disabled { opacity: .45; cursor: not-allowed; }
+
+.sw-footer {
+  padding: 13px 8px 0; font-size: 12.5px; color: var(--sw-text-soft);
+  display: flex; justify-content: space-between;
+}
+.sw-empty { padding: 34px 8px; text-align: center; font-size: 13px; color: var(--sw-text-soft); }
+
+/* --- modal ------------------------------------------------------------------------- */
+.sw-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(20, 20, 60, .35);
+  display: flex; align-items: center; justify-content: center; z-index: 60; padding: 20px;
+}
+/* Sticky header + footer, only the middle scrolls — the title and the action buttons stay
+   reachable however much the content grows. */
+.sw-modal {
+  background: #fff; border-radius: var(--sw-radius-card); width: 100%; max-width: 440px;
+  max-height: 86vh; display: flex; flex-direction: column; box-shadow: var(--sw-drop-shadow);
+}
+.sw-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 14px; border-bottom: 1px solid #f0eeff; flex-shrink: 0;
+}
+.sw-modal-title { font-size: 15.5px; font-weight: 700; color: var(--sw-text); }
+.sw-modal-close { border: none; background: none; cursor: pointer; color: var(--sw-text-soft); font-size: 18px; }
+.sw-modal-body { padding: 18px 20px; overflow-y: auto; flex: 1; font-size: 13px; color: var(--sw-text-muted); line-height: 1.55; }
+.sw-modal-scope { margin-top: 10px; background: var(--sw-accent-tint); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: #4a4a68; }
+.sw-modal-confirm-label { display: block; margin-top: 14px; font-size: 12.5px; color: var(--sw-text-muted); }
+.sw-modal-input {
+  margin-top: 6px; width: 100%; border: 1px solid var(--sw-border); border-radius: 10px;
+  padding: 9px 12px; font-size: 13px; outline: none; font-family: inherit;
+}
+.sw-modal-input:focus { border-color: var(--sw-accent); }
+.sw-modal-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 20px 18px; border-top: 1px solid #f0eeff; flex-shrink: 0;
+}
+.sw-btn-ghost {
+  border: none; background: var(--sw-accent-tint); color: var(--sw-text-muted);
+  border-radius: var(--sw-radius-control); padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.sw-btn-danger {
+  border: none; background: #b8265a; color: #fff;
+  border-radius: var(--sw-radius-control); padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.sw-btn-danger:disabled { background: #e2e2ee; color: var(--sw-text-faint); cursor: not-allowed; }
+
+/* --- responsive: real off-canvas drawer, not a simulated toggle --------------------- */
+@media (max-width: 860px) {
+  .hamburger-btn { display: flex; }
+  .sb-wrap {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 40;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(20, 20, 60, .18);
+    border-radius: 0 20px 20px 0; padding-top: 70px;
+  }
+  .sw-body.mobile-open .sb-wrap { transform: translateX(0); }
+  .sw-body.mobile-open .sb-backdrop {
+    display: block; position: fixed; inset: 0; background: rgba(20, 20, 60, .35); z-index: 35;
+  }
+  .sw-right .sw-session { display: none; }
+  .sw-profile-name { display: none; }
+  .sw-bell-drop { right: 20px; }
+  /* Never below 16px on a mobile input — browsers auto-zoom on focus under that. */
+  .sw-search input, .sw-modal-input { font-size: 16px; }
+}

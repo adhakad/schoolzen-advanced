@@ -1,4 +1,6 @@
-import { NgModule } from '@angular/core';
+import { ErrorHandler, NgModule } from '@angular/core';
+import { ErrorInterceptor } from './shared/interceptors/error.interceptor';
+import { GlobalErrorHandler } from './shared/global-error-handler';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -55,6 +57,11 @@ import { ToastrModule } from 'ngx-toastr';
     SalesSharedModule,
   ],
   providers: [
+    // Registered FIRST so it sits outside the auth interceptors: their silent
+    // refresh-and-retry on an expired token runs beneath it, and only a failure that
+    // survives the retry ever reaches the user.
+    { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
+    { provide: ErrorHandler, useClass: GlobalErrorHandler },
     { provide: HTTP_INTERCEPTORS, useClass: AdminAuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: TeacherAuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: SalesAuthInterceptor, multi: true },

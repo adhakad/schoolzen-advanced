@@ -1,5 +1,9 @@
 'use strict'
 require('dotenv').config()
+// Patches Express 4 so a rejected promise inside an `async` route handler is forwarded to
+// the error middleware instead of hanging the request. Must be required before any route is
+// defined (see modules/middleware/errorHandler.js).
+require('express-async-errors');
 const constant = "./config/config.js";
 global.global_config = require(constant);
 
@@ -12,12 +16,19 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");
 const path = require('path');
+const requestId = require('./modules/middleware/requestId');
+const errorHandler = require('./modules/middleware/errorHandler');
+const { NotFoundError } = require('./modules/errors');
 require('./cron-job');
 
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 app.use(cors());
+// Correlation ID on every request — threads through Winston logs, the error
+// response body, and the X-Request-Id response header, so a user's error toast
+// can be traced to an exact log line.
+app.use(requestId);
 // Index sync runs once the connection is actually open, on every startup — local and
 // production alike. It is deliberately NOT awaited before listen(): index builds on large
 // collections take time, and the API has no reason to be unreachable while they run.
@@ -35,6 +46,15 @@ app.use('/public', express.static('public'));
 // app.use('/',express.static(path.join(__dirname,'./dist/zoclass')));
 
 require('./routes')(app);
+
+// Anything that matched no route above. Handed to the error middleware rather than answered
+// here, so a 404 has the same response shape as every other error.
+app.use((req, res, next) => {
+    next(new NotFoundError('Route not found', { module: 'app', context: { path: req.originalUrl } }));
+});
+
+// LAST — after every route and every other middleware.
+app.use(errorHandler);
 
 // app.get('/*',(req,res) => {
 //   res.sendFile(path.join(__dirname ,'./dist/zoclass/index.html'));

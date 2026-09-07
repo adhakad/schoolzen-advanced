@@ -1,0 +1,29 @@
+<div class="sw-table-scroll">
+  <div class="sw-table-inner" [style.minWidth]="minWidth">
+    <div class="sw-thead">
+      <div class="sw-th check" *ngIf="selectable">
+        <input type="checkbox" aria-label="Select all rows"
+               [checked]="allSelected" [indeterminate]="someSelected" (change)="toggleAll()" />
+      </div>
+      <div class="sw-th" *ngFor="let column of columns; trackBy: trackByColumn"
+           [class.action]="column.align === 'right'" [style.width]="column.width">
+        {{ column.label }}
+      </div>
+    </div>
+
+    <div class="sw-row" *ngFor="let row of rows; trackBy: trackByRow; let i = index">
+      <div class="sw-r-check" *ngIf="selectable">
+        <input type="checkbox" [attr.aria-label]="'Select row ' + (i + 1)"
+               [checked]="isSelected(row)" (change)="toggleRow(row)" />
+      </div>
+      <ng-container *ngTemplateOutlet="cellTemplate; context: { $implicit: row, index: i }"></ng-container>
+    </div>
+
+    <div class="sw-empty" *ngIf="!rows.length">{{ emptyText }}</div>
+  </div>
+</div>
+
+<div class="sw-footer" *ngIf="footerLeft || footerRight">
+  <span>{{ footerLeft }}</span>
+  <span>{{ footerRight }}</span>
+</div>

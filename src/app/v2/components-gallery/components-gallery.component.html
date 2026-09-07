@@ -1,0 +1,286 @@
+<!-- ===================================================================================
+     COMPONENT GALLERY — every shared component, in the states a module page will use it.
+     Diff section 1 against docs/schoolzen-planning/v1/payroll/generate-payroll.html and
+     the surrounding shell against _core/shell/app-shell.html.
+     =================================================================================== -->
+
+<div class="sw-card-main gal-intro">
+  <div class="sw-title">Shared component gallery</div>
+  <div class="gal-lead">
+    The nine components every /v2 page is assembled from, each shown in two or three real
+    states. Nothing here is a product page — it exists so a module's screen can be checked
+    against a working component before that module is built.
+  </div>
+  <div class="gal-lead" style="margin-top:10px;">
+    <b>1 &middot; app-page-shell</b> — you are inside it. The header (brand, session pill,
+    bell, profile), the 13-group accordion sidebar and the 24px spacer above this card are
+    all the shell; a page contributes only what is below that spacer.
+  </div>
+</div>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 2. The payroll reference, rebuilt from the components ───────────────────────── -->
+<div class="gal-heading">2 &middot; The reference page, assembled from the library</div>
+<div class="gal-sub">Same columns, same three row states and same sample data as generate-payroll.html.</div>
+
+<app-summary-strip badgeLabel="Session active" [counts]="counts"></app-summary-strip>
+
+<div class="sw-card-main">
+  <div class="sw-title">Generate payroll</div>
+
+  <app-data-toolbar searchPlaceholder="Search by name or ID"
+                    [filters]="filters"
+                    [primaryAction]="primaryAction"
+                    (searchChange)="onSearch($event)"
+                    (filterChange)="onFilterChange($event)"></app-data-toolbar>
+
+  <app-data-table [columns]="columns"
+                  [rows]="rows"
+                  trackByKey="id"
+                  [selectable]="true"
+                  [selected]="selected"
+                  [footerLeft]="footerLeft"
+                  footerRight="August 2026 · 2026-27 session"
+                  (selectionChange)="onSelectionChange($event)">
+    <ng-template #cells let-row>
+      <app-row-avatar class="sw-cell sw-r-info" style="width:180px"
+                      [name]="row.name" [role]="row.role" [colorSeed]="row.id"></app-row-avatar>
+
+      <div class="sw-r-att" style="width:110px">
+        <span><span class="d" style="background:#22c55e;"></span>{{ row.present }}</span>
+        <span><span class="d" style="background:#f59e0b;"></span>{{ row.late }}</span>
+        <span><span class="d" style="background:#ef4444;"></span>{{ row.absent }}</span>
+      </div>
+
+      <div class="sw-cell" style="width:90px">{{ row.gross }}</div>
+      <div class="sw-cell sw-r-ded" style="width:90px">{{ row.deductions }}</div>
+      <div class="sw-cell sw-r-net" style="width:100px" [class.pending]="row.pending">{{ row.net }}</div>
+
+      <div class="sw-cell" style="width:100px">
+        <app-status-chip [label]="row.status" [variant]="row.variant"></app-status-chip>
+      </div>
+
+      <div class="sw-r-action">
+        <!-- Locked: view + unlock (unlock is a reversing action, so it confirms first) -->
+        <ng-container *ngIf="row.status === 'Locked'">
+          <app-icon-action icon="external-link" ariaLabel="View payroll"
+                           (action)="onAction('View', row)"></app-icon-action>
+          <app-icon-action icon="lock-open" variant="warning" ariaLabel="Unlock payroll"
+                           [confirm]="unlockConfirm"
+                           (action)="onAction('Unlock', row)"></app-icon-action>
+        </ng-container>
+        <!-- Pending: nothing generated yet, so a single primary action -->
+        <app-icon-action *ngIf="row.status === 'Pending'"
+                         icon="player-play" variant="primary" ariaLabel="Generate payroll"
+                         (action)="onAction('Generate', row)"></app-icon-action>
+        <!-- Draft: regenerate (to correct a mistake) + lock -->
+        <ng-container *ngIf="row.status === 'Draft'">
+          <app-icon-action icon="refresh" ariaLabel="Regenerate payroll"
+                           (action)="onAction('Regenerate', row)"></app-icon-action>
+          <app-icon-action icon="lock" ariaLabel="Lock payroll"
+                           (action)="onAction('Lock', row)"></app-icon-action>
+        </ng-container>
+      </div>
+    </ng-template>
+  </app-data-table>
+</div>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 3. app-summary-strip ────────────────────────────────────────────────────────── -->
+<div class="gal-heading">3 &middot; app-summary-strip</div>
+<div class="gal-sub">One strip of top-line numbers, never a row of separate metric cards. At most one hero figure.</div>
+
+<div class="gal-state">With a hero figure</div>
+<app-summary-strip badgeLabel="Session active" [counts]="counts"></app-summary-strip>
+
+<div class="gal-state">All equal weight</div>
+<app-summary-strip badgeLabel="Live" [counts]="attendanceCounts"></app-summary-strip>
+
+<div class="gal-state">A single count</div>
+<app-summary-strip badgeLabel="Draft" [counts]="singleCount"></app-summary-strip>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 4. app-data-toolbar ─────────────────────────────────────────────────────────── -->
+<div class="gal-heading">4 &middot; app-data-toolbar</div>
+<div class="gal-sub">
+  Fixed order — search, then scope filters, then status, then the period picker last, with
+  a dependent pair kept adjacent. Change the Department below and watch Designation enable.
+  Dropdowns are mat-select and the period/day pills are mat-datepicker, both re-themed to
+  the pill — a date filter emits the same plain string a dropdown does.
+</div>
+
+<div class="sw-card-main">
+  <div class="gal-state" style="margin-top:0;">Full toolbar — dependent filter disabled until its parent has a value</div>
+  <app-data-toolbar searchPlaceholder="Search by name or ID"
+                    [filters]="filters"
+                    [primaryAction]="primaryAction"
+                    (searchChange)="onSearch($event)"
+                    (filterChange)="onFilterChange($event)"></app-data-toolbar>
+
+  <div class="gal-state">A status dropdown and a single-day picker, no bulk action</div>
+  <app-data-toolbar searchPlaceholder="Search staff"
+                    [filters]="simpleFilters"
+                    (searchChange)="onSearch($event)"></app-data-toolbar>
+
+  <div class="gal-state">Search only</div>
+  <app-data-toolbar searchPlaceholder="Search holidays" (searchChange)="onSearch($event)"></app-data-toolbar>
+
+  <div class="gal-note">Last toolbar event — {{ lastEvent }}</div>
+</div>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 5. app-data-table ───────────────────────────────────────────────────────────── -->
+<div class="gal-heading">5 &middot; app-data-table</div>
+<div class="gal-sub">
+  Owns the checkbox column, header row, horizontal scroll and footer; the page supplies only
+  its cells. Selecting rows here drives the count in the footer.
+</div>
+
+<div class="sw-card-main">
+  <div class="gal-state" style="margin-top:0;">Compact table, no selection column</div>
+  <app-data-table [columns]="staffColumns" [rows]="staffRows" trackByKey="id"
+                  footerLeft="3 departments">
+    <ng-template #cells let-row>
+      <app-row-avatar class="sw-cell sw-r-info" style="width:200px"
+                      [name]="row.name" [role]="row.role" [colorSeed]="row.id"></app-row-avatar>
+      <div class="sw-cell" style="width:160px">{{ row.department }}</div>
+      <div class="sw-cell" style="width:120px">
+        <app-status-chip [label]="row.status" [variant]="row.variant"></app-status-chip>
+      </div>
+      <div class="sw-r-action">
+        <app-icon-action icon="edit" ariaLabel="Edit staff member"
+                         (action)="onAction('Edit', row)"></app-icon-action>
+        <app-icon-action icon="trash" variant="warning" ariaLabel="Delete staff member"
+                         [confirm]="deleteStaffConfirm"
+                         (action)="onAction('Delete', row)"></app-icon-action>
+      </div>
+    </ng-template>
+  </app-data-table>
+
+  <div class="gal-state">Empty state</div>
+  <app-data-table [columns]="staffColumns" [rows]="noRows" trackByKey="id"
+                  emptyText="No staff match these filters yet.">
+    <ng-template #cells let-row>
+      <div class="sw-cell">{{ row.name }}</div>
+    </ng-template>
+  </app-data-table>
+</div>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 6. app-status-chip ──────────────────────────────────────────────────────────── -->
+<div class="gal-heading">6 &middot; app-status-chip</div>
+<div class="gal-sub">Fixed 80px so a status column never jitters between rows.</div>
+
+<div class="sw-card-main">
+  <div class="gal-grid">
+    <div class="gal-cell" *ngFor="let item of allVariants; trackBy: trackByVariant">
+      <app-status-chip [label]="item.label" [variant]="item.variant"></app-status-chip>
+      <span class="gal-note">{{ item.variant }}</span>
+    </div>
+  </div>
+  <div class="gal-note" style="margin-top:12px;">
+    An unknown variant falls back to neutral and warns in the console rather than rendering
+    unstyled — try passing one in dev.
+  </div>
+</div>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 7. app-row-avatar ───────────────────────────────────────────────────────────── -->
+<div class="gal-heading">7 &middot; app-row-avatar</div>
+<div class="gal-sub">
+  Initials plus name and role. The colour is derived from the seed, so the same person keeps
+  the same tile on every page and every reload — never random.
+</div>
+
+<div class="sw-card-main">
+  <div class="gal-avatars">
+    <app-row-avatar class="sw-r-info gal-avatar-cell"
+                    *ngFor="let person of avatarPeople; trackBy: trackByPersonId"
+                    [name]="person.name" [role]="person.role" [colorSeed]="person.id"></app-row-avatar>
+  </div>
+  <div class="gal-state">Name longer than its column — truncates, never wraps the row</div>
+  <div class="gal-avatars">
+    <app-row-avatar class="sw-r-info gal-avatar-cell"
+                    name="Lakshmi Narayanan Venkataraghavan"
+                    role="Senior Mathematics Teacher, Secondary Section"
+                    colorSeed="long"></app-row-avatar>
+  </div>
+</div>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 8. app-icon-action ──────────────────────────────────────────────────────────── -->
+<div class="gal-heading">8 &middot; app-icon-action</div>
+<div class="gal-sub">30×30 square button. Given a confirm config it opens the modal first and only emits on confirm.</div>
+
+<div class="sw-card-main">
+  <div class="gal-row">
+    <app-icon-action icon="external-link" ariaLabel="Neutral action"
+                     (action)="lastEvent = 'neutral icon-action'"></app-icon-action>
+    <span class="gal-note">neutral</span>
+
+    <app-icon-action icon="player-play" variant="primary" ariaLabel="Primary action"
+                     (action)="lastEvent = 'primary icon-action'"></app-icon-action>
+    <span class="gal-note">primary</span>
+
+    <app-icon-action icon="lock-open" variant="warning" ariaLabel="Warning action"
+                     [confirm]="unlockConfirm"
+                     (action)="lastEvent = 'warning icon-action confirmed'"></app-icon-action>
+    <span class="gal-note">warning + confirm</span>
+
+    <app-icon-action icon="trash" variant="warning" ariaLabel="Disabled action" [disabled]="true"
+                     (action)="lastEvent = 'never fires'"></app-icon-action>
+    <span class="gal-note">disabled</span>
+  </div>
+  <div class="gal-note" style="margin-top:12px;">Last component event — {{ lastEvent }}</div>
+</div>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 9. app-confirm-modal ────────────────────────────────────────────────────────── -->
+<div class="gal-heading">9 &middot; app-confirm-modal</div>
+<div class="gal-sub">
+  Calm, one sentence of consequence. The heavier type-to-confirm variant is required for
+  bulk deletes and for deleting a record other records depend on.
+</div>
+
+<div class="sw-card-main">
+  <div class="gal-row">
+    <button type="button" class="sw-gen-btn" (click)="plainConfirmOpen = true">
+      <i class="ti ti-lock-open" style="font-size:13px;"></i> Plain confirm
+    </button>
+    <span class="gal-note">single reversing action</span>
+
+    <button type="button" class="sw-gen-btn" (click)="standaloneConfirmOpen = true">
+      <i class="ti ti-trash" style="font-size:13px;"></i> Type-to-confirm
+    </button>
+    <span class="gal-note">bulk / cascading delete — type DELETE to enable the button</span>
+  </div>
+
+  <app-confirm-modal [open]="plainConfirmOpen"
+                     [config]="unlockConfirm"
+                     (confirmed)="lastEvent = 'plain confirm accepted'; plainConfirmOpen = false"
+                     (cancelled)="plainConfirmOpen = false"></app-confirm-modal>
+
+  <app-confirm-modal [open]="standaloneConfirmOpen"
+                     [config]="clearRosterConfirm"
+                     (confirmed)="lastEvent = 'type-to-confirm confirmed'; standaloneConfirmOpen = false"
+                     (cancelled)="standaloneConfirmOpen = false"></app-confirm-modal>
+</div>
+
+<div class="sw-spacer"></div>
+
+<!-- ── 10. app-back-link ───────────────────────────────────────────────────────────── -->
+<div class="gal-heading">10 &middot; app-back-link</div>
+<div class="gal-sub">Sits above a page title on any detail or sub-page.</div>
+
+<div class="sw-card-main">
+  <app-back-link label="Back to Payroll" route="/v2/payroll/generate-payroll"></app-back-link>
+  <app-back-link label="Back" route="/v2/dashboard"></app-back-link>
+</div>

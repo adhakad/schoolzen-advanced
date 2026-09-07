@@ -1,0 +1,10 @@
+<div class="ls-strip">
+  <span class="ls-badge" *ngIf="badgeLabel"><span class="ls-dot"></span>{{ badgeLabel }}</span>
+  <div class="ls-sep" *ngIf="badgeLabel && counts.length"></div>
+
+  <ng-container *ngFor="let count of counts; trackBy: trackByLabel; let first = first">
+    <div class="ls-sep" *ngIf="!first && count.hero"></div>
+    <span class="ls-count" [class.hero]="count.hero"><b>{{ count.value }}</b> {{ count.label }}</span>
+    <div class="ls-sep" *ngIf="count.hero"></div>
+  </ng-container>
+</div>
