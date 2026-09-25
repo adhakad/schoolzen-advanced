@@ -19,11 +19,35 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import * as Sentry from '@sentry/angular';
 import { v4 as uuidv4 } from 'uuid';
+import { TranslateService } from '@ngx-translate/core';
 import { ApiError, ApiErrorResponse } from './api-error.model';
 
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
-  constructor(private snackBar: MatSnackBar, private router: Router) {}
+  constructor(
+    private snackBar: MatSnackBar,
+    private router: Router,
+    private translate: TranslateService // i18n - see resolveMessage() below
+  ) {}
+
+  /**
+   * The ONLY place an API error's text gets localized. Looks up
+   * `errors.<code>` in the active locale's JSON (loaded via
+   * ngx-translate, per state-management.md's i18n note); if that
+   * module hasn't added a translation for this code yet, falls back
+   * to the backend's English `message` rather than showing a raw,
+   * untranslated key to the user - the exact bug found in the
+   * i18next reference that was reviewed for this app (EN/HI key sets
+   * that didn't match 1:1). A CI check (see additional-technical-
+   * considerations.md) keeps `errors.*` key coverage complete across
+   * locales so this fallback stays rare in practice, not routine.
+   */
+  private resolveMessage(code: string | null, fallback: string): string {
+    if (!code) return fallback;
+    const key = `errors.${code}`;
+    const translated = this.translate.instant(key);
+    return translated === key ? fallback : translated; // ngx-translate returns the key itself on a miss
+  }
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     // Attach a request ID so a frontend crash and the backend error it
@@ -64,8 +88,9 @@ export class ErrorInterceptor implements HttpInterceptor {
         break;
 
       case 'RateLimitError': {
-        const wait = apiError.retryAfter ? ` Please wait ${apiError.retryAfter}s.` : '';
-        this.snackBar.open(apiError.message + wait, 'Dismiss', { duration: 6000 });
+        const text = this.resolveMessage(apiError.code, apiError.message);
+        const wait = apiError.retryAfter ? ` ${this.translate.instant('errors.RETRY_AFTER', { seconds: apiError.retryAfter })}` : '';
+        this.snackBar.open(text + wait, 'Dismiss', { duration: 6000 });
         break;
       }
 
@@ -73,9 +98,10 @@ export class ErrorInterceptor implements HttpInterceptor {
       case 'NotFoundError':
       case 'PermissionError':
       case 'ExternalServiceError':
-        // Server's message is already written to be user-safe -
-        // shown directly, no translation/mapping needed.
-        this.snackBar.open(apiError.message, 'Dismiss', { duration: 5000 });
+        // Localized via `code` when this locale has that key; the
+        // server's English `message` is only the fallback, never
+        // translated by the backend itself (see api-error.model.ts).
+        this.snackBar.open(this.resolveMessage(apiError.code, apiError.message), 'Dismiss', { duration: 5000 });
         break;
 
       case 'InternalError':

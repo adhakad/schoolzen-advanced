@@ -1,49 +1,18 @@
-# Leave — Leave Create page (finalized design)
+# Leave — Leave Create
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `leave-create.html` (same folder)
+Status: **FINAL**
+Reference: `leave-create.html`
 
-**Renamed from "Leave Type"** — this page CREATES the types of leave a
-school offers (Casual, Sick, Medical, Maternity, etc.), so a name
-describing the action fits better than the noun of what's being listed.
-Same naming logic as Payroll's "Assign Salary" vs a generic "Salary
-Limits".
+Defines the types of leave the school offers.
 
 ---
 
-## Toolbar
+## Frontend
 
-Search (mandatory) + "Create" primary button, inside the toolbar —
-same shape as Salary Groups' Search+Add.
+**Table**: Name, Who Can Take It (tag), Assigned Days, Paid (yes/no), Status, Action.
 
-## Table
+**Add/Edit modal**: Name (required) → "Who can take this leave" `.dd` (Everyone / Staff only / Students only — controls visibility on the Apply Leave form elsewhere) → Assigned Days per year (a default, overridable per-person on Leave Assign) → a toggle-switch "Salary is paid for these days" (off = deducted from salary at payroll time) → Status `.dd`.
 
-Name → Who Can Take It (Everyone / Staff only / Students only — plain
-language, never the raw stored enum) → Assigned Days → Paid (fixed-
-width Paid/Unpaid chip) → Status (Active/Inactive) → Action
-(Edit/Delete icons).
+## Backend
 
-## Create/Edit modal (sticky header+footer)
-
-- Name, with a hint listing examples (Sick Leave, Casual Leave,
-  Maternity Leave).
-- "Who can take this leave" — Everyone / Staff only / Students only.
-  Hint: "Only these people will see this leave on the apply form."
-- Assigned Days per year, with a hint noting it can be overridden per
-  person on **Leave Assign**.
-- "Salary is paid for these days" toggle, with a hint: turning it off
-  means the days get deducted from salary when payroll is generated —
-  this ties the Leave and Payroll modules together and should read as
-  a real consequence, not a throwaway label.
-- Status (Active/Inactive), with a hint that Inactive keeps history but
-  hides it from new requests — same convention as every other
-  Active/Inactive toggle in the app (Shifts, Salary Groups).
-
-## Delete confirmation
-
-Per the global cascade-delete rule (see `_core`): if nobody has ever
-requested this leave type, a simple confirm is enough. If requests
-exist under it, the modal names the dependent count and requires
-type-to-confirm, same as Salary Groups' delete flow — "Set Inactive"
-offered as the lighter alternative, never the only option.
+Schema — `LeaveType`: `adminId`, `name`, `whoCanTake:'everyone'|'staff'|'students'`, `defaultDays`, `isPaid` (bool), `status`. `isPaid:false` is read by Payroll's generation logic to deduct salary for days taken under this type — this is a genuine cross-module dependency, not decorative.

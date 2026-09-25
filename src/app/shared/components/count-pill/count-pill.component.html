@@ -1,0 +1,5 @@
+<button type="button" class="count-pill" [class.sec]="variantClass === 'section'"
+        [attr.aria-expanded]="open" (click)="toggle()">
+  {{ label }}
+  <span class="count-pop" *ngIf="open">{{ popoverText }}</span>
+</button>

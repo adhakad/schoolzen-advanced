@@ -1,39 +1,18 @@
-# Certificates — Transfer Certificate Structure (finalized design)
+# Certificates — TC Structure
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
+Status: **FINAL**
 Reference: `tc-structure.html`
 
-New top-level module: **Certificates** — administrative student-exit
-documents, separate from Examination (exam-linked documents) and from
-Student (record-keeping). Currently holds Transfer Certificate; future
-certificates (Bonafide, Character) would join this module rather than
-starting a new one each time.
+One school-wide structure — a Transfer Certificate's content doesn't vary by class, unlike Marksheet/Admit Card Structure. Not a table page — a single settings form.
 
 ---
 
-## One school-wide structure, not per-class
+## Frontend
 
-Unlike Marksheet/Admit Card Structure, a TC's content doesn't vary by
-which class the leaving student was in — there is exactly one
-structure for the whole school, so this page has no Class filter at
-all, just a single settings form.
+**Body**: a 19-field checklist, all checked and **locked** (disabled checkbox + lock icon) — these are the board-mandated standard TC fields and are not a school's choice to toggle off. Below it, a single editable field: "Next TC Serial Number" (auto-increments per certificate; editable only to correct a numbering gap) → "Save Structure" button.
 
-## Always Included vs. Optional Fields
+**Side panel**: stats (Fields on Certificate=19, Next Serial No., TCs Issued This Session) + tips explicitly stating the fields can't be turned off and the serial-number edit only affects future certificates.
 
-**Always Included** (locked, matches the legal minimum every TC
-needs): Student Name, Father's Name, Date of Birth, Admission No.,
-Class Left From, Date of Leaving, Reason for Leaving, Date of
-Admission, School Serial No. — same locked-checkbox visual treatment
-established by Admission Form Fields' "Always Required" group.
+## Backend
 
-**Optional Fields** (school toggles on/off): Conduct Remark, Subjects
-Studied, Attendance %, Fee Dues Cleared, Games/Extra-Curricular,
-Qualified for Promotion.
-
-## Certificate Numbering
-
-A single "Next TC Serial Number" field, auto-incrementing with every
-certificate issued — editable here only to correct a genuine gap
-(e.g. a physical register was already ahead of the system), not for
-routine use.
+Schema — `TcStructure`: `adminId`, `nextSerialNumber` (string, e.g. "TC-2026-0048"). The 19 fields themselves are NOT stored per-school configuration — they're a fixed constant in code (the standard board format), since the page itself states they're locked and non-configurable. Generate TC reads this doc only for the current serial number, incrementing it on each issue.

@@ -1,42 +1,22 @@
-# Certificates — Generate Transfer Certificate (finalized design)
+# Certificates — Generate TC
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`, TC Structure
+Status: **FINAL**
 Reference: `generate-tc.html`
+
+Every student, all shown by default — issue a TC for a leaving student, then print it. Class filter narrows only, never gates (same rule as Manage Students).
 
 ---
 
-## Shows all students by default
+## Frontend
 
-Same principle as Manage Students: Class and Status are optional
-narrowing filters, not a gate — a school needs to find any student
-(not just ones already flagged as leaving) to issue a TC for them.
+**Toolbar**: row1 (search) + row2 (Class→Stream→Section cascade) + row3 (Status: Any/Issued/Not Issued).
 
-## Table — flex-row, matching Payroll/Generate Marksheet exactly
+**Table**: Roll No., Student, Class (tag), Date of Leaving (— if not yet issued), Status (tag), Action — **not-yet-issued rows show an "Issue TC" button; already-issued rows show a printer icon** (same not-yet vs. done dual-action-column pattern as elsewhere in this app).
 
-Roll No. → Student (avatar+name) → Class → Date of Leaving (em-dash
-until issued) → Status chip ("Issued" green / "Not Issued" muted) →
-Action: a "Not Issued" row shows an **"Issue TC"** pill (primary); an
-"Issued" row shows a **reprint icon** instead — the two states never
-show both actions at once, matching Payroll's Locked/Pending/Draft
-per-status action convention.
+**Issue TC**: opens a form (date of leaving, reason, conduct, etc. per TC Structure's locked field list) → generates the certificate using the current `TcStructure.nextSerialNumber`, then increments it.
 
-## Issue TC modal — captures leaving-specific facts, not a duplicate student form
+**Print**: uses the shared letterhead print template (same as Admission Letter / Admit Card).
 
-TC Serial No. (read-only, auto-assigned) → Date of Leaving → Reason
-for Leaving → Conduct Remark → Attendance % (**auto-pulled from
-Attendance, read-only** — never re-typed and risking mismatch with the
-real record) → Games/Extra-Curricular (optional) → "All fee dues
-cleared" checkbox. This modal only asks for what Manage Students'
-regular record has no reason to carry — everything else (name,
-father's name, DOB, admission details) is read from the existing
-student record, not re-entered.
+## Backend
 
-## Professional Transfer Certificate
-
-Same letterhead language as every other printable document in the app
-(bordered frame, serif school name, dotted-underline fields) — a
-right-aligned Serial No. line, a two-column field grid, and **three**
-signature lines (Class Teacher / Accountant / Principal) rather than
-the two used on Admit Card, since a TC specifically needs the
-accountant's sign-off on cleared dues alongside academic sign-off.
+Schema — `TransferCertificate`: `adminId`, `studentId`, `serialNumber` (captured at issue time — locked, never recalculated on reprint), `dateOfLeaving`, `reasonForLeaving`, `generalConduct`, `remarks`, plus the snapshot of the 19 board-mandated fields pulled from the student's record at issue time (a TC reflects the record AS OF issuing, not live data that could change later). Issuing increments `TcStructure.nextSerialNumber` transactionally with creating this document.

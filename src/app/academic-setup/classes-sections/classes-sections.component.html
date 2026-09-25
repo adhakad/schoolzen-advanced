@@ -1,0 +1,256 @@
+<!-- Classes & Sections.
+     Reference: docs/schoolzen-planning/v1/academic-setup/classes-sections.html
+
+     This template is the reference file's own markup — same nesting, same class names, in
+     the same order — with Angular bindings layered on top. Where the reference has a
+     <div onclick> it has a real <button type="button"> here (an Angular app must not ship
+     click handlers on divs) and where it has four hardcoded <tr> it has one *ngFor; nothing
+     else about the structure differs. The classes it uses come from the global design-system
+     sheet, which is that reference's <style> block, so a change to either without the other
+     is a bug.
+
+     The sidebar and topbar above this are rendered by app-page-shell on the /v2 route —
+     this page contributes the page head and the layout row, nothing more. -->
+
+<div class="page-head">
+  <div>
+    <h1>Classes &amp; Sections</h1>
+    <div class="subtitle">Set up grade levels, streams and sections for the current academic year.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <!-- One toolbar row: this page has no filters. Search left, the two buttons right. -->
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search classes" aria-label="Search classes"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-danger-outline"
+                  [disabled]="!selectedCount" (click)="onDeleteSelected()">
+            <i class="bi bi-trash"></i> Delete Selected
+          </button>
+          <button type="button" class="btn-primary" (click)="onAddClass()">
+            <i class="bi bi-plus-lg"></i> Add Class
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="check-col">
+              <input type="checkbox" class="select-all" aria-label="Select all classes"
+                     [checked]="allSelected" (change)="toggleAll()" />
+            </th>
+            <th>Class</th>
+            <th>Streams</th>
+            <th>Sections</th>
+            <th class="num">Students</th>
+            <th class="act">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td class="check-col">
+              <input type="checkbox" class="row-check" [attr.aria-label]="'Select ' + row.className"
+                     [checked]="isSelected(row._id)" (change)="toggleRow(row._id)" />
+            </td>
+
+            <td>
+              <div class="class-cell">
+                <span class="class-num">{{ row.classNum }}</span>
+                <span class="class-suffix" *ngIf="row.classSuffix">{{ row.classSuffix }}</span>
+              </div>
+            </td>
+
+            <!-- Streams. A count, never the names inline: two streams and ten must render
+                 at the same width. The names live in the Details modal. -->
+            <td>
+              <button type="button" class="tag tag-slate clickable" *ngIf="row.showStreamTag; else noStreams"
+                      (click)="showDetails(row)">{{ row.streamTagLabel }}</button>
+              <ng-template #noStreams><span class="na">&mdash; not applicable</span></ng-template>
+            </td>
+
+            <td>
+              <button type="button" class="tag clickable"
+                      [class.tag-slate]="!row.sectionTagMuted" [class.tag-muted]="row.sectionTagMuted"
+                      (click)="showDetails(row)">{{ row.sectionTagLabel }}</button>
+            </td>
+
+            <td class="num"><span class="students-count">{{ row.studentCount }}</span></td>
+
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.className"
+                        (click)="onEditClass(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.className"
+                        (click)="onDeleteClass(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty" *ngIf="!rows.length && !loading">No classes configured yet.</div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row">
+        <span class="stat-label">Total Classes</span><span class="stat-value">{{ stats.classes }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Sections Created</span><span class="stat-value">{{ stats.sections }}</span>
+      </div>
+      <div class="stat-row accent">
+        <span class="stat-label">Streams Configured</span><span class="stat-value">{{ stats.streams }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Students Enrolled</span><span class="stat-value">{{ stats.students }}</span>
+      </div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>Streams only apply from 11th onward, where students choose a
+        specialization.
+      </div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>Sections split a class into smaller teaching groups &mdash; click a
+        class's section or stream tag to see the full breakdown.
+      </div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>Deleting a class removes all its streams, sections and section
+        assignments.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit. The streams toggle restructures the whole lower half of this form: a class
+     either keeps its sections directly, or keeps them under each stream. -->
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+
+  <div class="m-field">
+    <label for="class-name">Class Name <span class="req-star">*</span></label>
+    <!-- The reference's free-text input, as an app-dd of the standard class names not yet
+         configured: `class` is the NUMBER every other collection joins on, so it cannot be
+         typed freehand. See this component's header comment. -->
+    <app-dd id="class-name" [options]="classDdOptions" [value]="classValue"
+            placeholder="Choose a class" ariaLabel="Class name"
+            [disabled]="!!form.id"
+            (valueChange)="onClassSelected($event)"></app-dd>
+    <!-- The class number is the record's identity and the key every other collection joins
+         on, so an edit may restructure everything except which class it is. -->
+    <p class="m-hint" *ngIf="form.id">A class cannot be changed after it is created.</p>
+    <p class="m-error" *ngIf="fieldErrors['class']">{{ fieldErrors['class'] }}</p>
+  </div>
+
+  <label class="toggle-row">
+    <input type="checkbox" [checked]="form.hasStreams"
+           (change)="onStreamsToggled($any($event.target).checked)" />
+    This class has streams (e.g. Science, Commerce)
+  </label>
+  <div class="m-hint tight">Streams are typically only used for 11th and 12th.</div>
+
+  <div class="sec-block" *ngIf="!form.hasStreams">
+    <div class="sec-head">
+      <span class="sec-title">Sections</span>
+      <button type="button" class="sec-add" aria-label="Add section" (click)="addSection()">+</button>
+    </div>
+    <div class="sec-row" *ngFor="let section of form.sections; let i = index; trackBy: trackByIndex">
+      <input type="text" [value]="section" placeholder="A" maxlength="30"
+             [attr.aria-label]="'Section ' + (i + 1)"
+             (input)="updateSection(i, $any($event.target).value)" />
+      <button type="button" class="sec-remove" [attr.aria-label]="'Remove section ' + (i + 1)"
+              (click)="removeSection(i)">&times;</button>
+    </div>
+    <p class="m-hint no-gap" *ngIf="!form.sections.length">No sections yet &mdash; add one.</p>
+    <p class="m-error" *ngIf="fieldErrors['sections']">{{ fieldErrors['sections'] }}</p>
+  </div>
+
+  <div *ngIf="form.hasStreams">
+    <div class="sec-block">
+      <div class="sec-head">
+        <span class="sec-title">Streams</span>
+        <button type="button" class="sec-add" aria-label="Add stream" (click)="addStream()">+</button>
+      </div>
+      <div class="sec-row" *ngFor="let stream of form.streams; let i = index; trackBy: trackByIndex">
+        <input type="text" [value]="stream.name" placeholder="Science" maxlength="50"
+               [attr.aria-label]="'Stream ' + (i + 1)"
+               (input)="updateStreamName(i, $any($event.target).value)" />
+        <button type="button" class="sec-remove" [attr.aria-label]="'Remove stream ' + (i + 1)"
+                (click)="removeStream(i)">&times;</button>
+      </div>
+      <p class="m-hint no-gap" *ngIf="!form.streams.length">No streams yet &mdash; add one.</p>
+      <p class="m-error" *ngIf="fieldErrors['streams']">{{ fieldErrors['streams'] }}</p>
+    </div>
+
+    <!-- One bordered block per stream, so which sections belong to which stream is
+         visible rather than inferred. A stream with no sections is a real, valid state. -->
+    <div class="stream-block" *ngFor="let stream of form.streams; let i = index; trackBy: trackByIndex">
+      <div class="sec-head">
+        <span class="stream-block-title">{{ stream.name || 'Stream ' + (i + 1) }} &mdash; Sections</span>
+        <button type="button" class="sec-add" [attr.aria-label]="'Add section to stream ' + (i + 1)"
+                (click)="addStreamSection(i)">+</button>
+      </div>
+      <div class="sec-row" *ngFor="let section of stream.sections; let j = index; trackBy: trackByIndex">
+        <input type="text" [value]="section" placeholder="A" maxlength="30"
+               [attr.aria-label]="'Section ' + (j + 1)"
+               (input)="updateStreamSection(i, j, $any($event.target).value)" />
+        <button type="button" class="sec-remove" [attr.aria-label]="'Remove section ' + (j + 1)"
+                (click)="removeStreamSection(i, j)">&times;</button>
+      </div>
+      <p class="m-hint no-gap" *ngIf="!stream.sections.length">
+        None &mdash; add one if this stream needs sections.
+      </p>
+    </div>
+  </div>
+</app-form-modal>
+
+<!-- Read-only breakdown behind a Streams/Sections tag. 420px in the reference, not 460. -->
+<app-form-modal [open]="detailsOpen" [title]="detailsTitle" [width]="420"
+                [showSubmit]="false" cancelLabel="Close"
+                (cancelled)="closeDetails()">
+  <div class="detail-stream-group" *ngFor="let group of detailsGroups; trackBy: trackByGroup">
+    <div class="detail-stream-name">{{ group.name }}</div>
+    <div class="detail-section-list">
+      <span class="detail-section-chip" *ngFor="let section of group.sections; trackBy: trackByName">
+        Section {{ section }}
+      </span>
+      <span class="detail-empty" *ngIf="!group.sections.length">No sections yet.</span>
+    </div>
+  </div>
+
+  <div class="detail-section-list" *ngIf="!detailsGroups.length">
+    <span class="detail-section-chip" *ngFor="let section of detailsSections; trackBy: trackByName">
+      Section {{ section }}
+    </span>
+    <span class="detail-empty" *ngIf="!detailsSections.length">No sections yet.</span>
+  </div>
+</app-form-modal>
+
+<!-- Delete, and the submit-time guard for a save that would strand a stream's students. -->
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

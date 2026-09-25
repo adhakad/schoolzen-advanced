@@ -1,49 +1,20 @@
-# Leave — Leave Assign page (finalized design)
+# Leave — Leave Assign
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `leave-assign.html` (same folder)
+Status: **FINAL**
+Reference: `leave-assign.html`
 
-**Renamed from "Leave Limit"** — this page gives each person their
-leave allowance, same naming family as Payroll's "Assign Salary" (not
-"Salary Limit"). A request can only be approved for a leave type the
-person has been given here first.
+Gives each person their yearly leave allowance per leave type — overrides the type's default.
 
 ---
 
-## Toolbar
+## Frontend
 
-Search → Person-type (Staff/Student) → Department+Designation (Staff)
-→ Class+Section (Student, existence-check, same pattern as Requests
-and everywhere else this filter pair appears).
+**Toolbar**: same shape/filters as Leave Requests (Person Type/Dept/Class/Designation/Stream/Group/Section cascade), plus a "Set Leave Limit" button (disabled until rows selected).
 
-## Selection + bulk action
+**Table**: checkbox, Name, Department, then **one column per active Leave Type** (dynamic columns, not fixed) — each cell shows the days set ("12 days") or "Not set" with an inline "Set" link.
 
-Checkbox column (header = select-all) + a selection bar: "N selected"
-+ "Set Leave Limit" button, disabled until ≥1 row is checked — same
-disable pattern as every other bulk-action button in the app.
+**Bulk-assign modal**: sets one leave type's day-count for every selected person at once — existing per-person values it doesn't touch stay as they are (not reset).
 
-## Table
+## Backend
 
-One column per active Leave Type (dynamic, not fixed) — Name+code,
-Department/Class, then one cell per leave type showing "N days"
-(+ "M days left" only once some have been used — an untouched "10
-days / 10 days left" on every row is noise) or a muted "Not set" with
-an inline "Set" link for assigning that one type to that one person
-individually.
-
-## Set Leave Limit modal (bulk)
-
-States the selection count, then a checklist of every leave type
-(checkbox + days/year) — tick which ones this batch of people should
-be allowed. A note clarifies: anyone who already has one of the ticked
-types keeps the days they've already taken; nothing is reset by
-re-assigning.
-
-## Empty states
-
-- No leave type created yet: a note pointing to **Leave Create** to set
-  one up first (link, not just a name — this page can't do anything
-  until one exists).
-- Student view, no class chosen yet: "Choose a class to see its
-  students" — a whole school's roll is not a usable table.
+Schema — `LeaveLimit`: `adminId`, `personType`, `personId`, `leaveTypeId`, `sessionId`, `allocatedDays`, `usedDays` (incremented transactionally by Leave Requests' approve action, per that page's `.md`). Bulk-set is one `bulkWrite`, not N single updates.

@@ -1,40 +1,46 @@
-<div class="sb-wrap">
-  <ng-container *ngFor="let group of groups; trackBy: trackByKey">
+<!-- The reference's sidebar markup, class-for-class:
+     docs/schoolzen-planning/v1/_core/shell/app-shell.html (structure) and every page's own
+     .html (which uses Bootstrap Icons where the shell file still had inline SVG — its own
+     .md flags that SVG as something to fix during build, not to copy). -->
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill"></i>Schoolzen</div>
 
-    <!-- Single item (Dashboard, Approvals) -->
-    <a *ngIf="group.route" class="sb-item single"
-       [class.parent-active]="activeRoute === group.route"
-       [routerLink]="group.route" (click)="onNavigate()">
-      <span class="sb-item-left"><i class="ti ti-{{ group.icon }}"></i><span>{{ group.label }}</span></span>
-    </a>
+  <nav>
+    <ng-container *ngFor="let group of groups; trackBy: trackByKey">
+      <!-- Single item (Dashboard, Approvals) -->
+      <a *ngIf="group.route" class="nav-item"
+         [class.active]="activeGroupKey === group.key"
+         [routerLink]="group.route" (click)="onNavigate()">
+        <span><i class="bi bi-{{ group.icon }} icon"></i>{{ group.label }}</span>
+      </a>
 
-    <!-- Collapsible module group -->
-    <div class="sb-group" *ngIf="!group.route" [class.open]="openGroupKey === group.key">
-      <button type="button" class="sb-item"
-              [class.parent-active]="activeGroupKey === group.key"
-              [attr.aria-expanded]="openGroupKey === group.key"
-              (click)="toggleGroup(group.key)">
-        <span class="sb-item-left"><i class="ti ti-{{ group.icon }}"></i><span>{{ group.label }}</span></span>
-        <i class="ti ti-chevron-right chev"></i>
-      </button>
+      <!-- Collapsible module group. One open at a time; the current page's group opens
+           itself on navigation. -->
+      <ng-container *ngIf="!group.route">
+        <button type="button" class="nav-item"
+                [class.active]="activeGroupKey === group.key"
+                [attr.aria-expanded]="openGroupKey === group.key"
+                (click)="toggleGroup(group.key)">
+          <span><i class="bi bi-{{ group.icon }} icon"></i>{{ group.label }}</span>
+          <i class="bi chevron"
+             [ngClass]="openGroupKey === group.key ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+        </button>
 
-      <div class="sb-sub-wrap">
-        <div class="sb-sub-line"></div>
-        <ng-container *ngFor="let item of group.items; trackBy: trackByRoute">
-          <!-- Permission granted: a real link. -->
-          <a *ngIf="!item.locked" class="sb-sub-item"
-             [class.active-sub]="activeRoute === item.route"
-             [routerLink]="item.route" (click)="onNavigate()">
-            <i class="ti ti-point"></i>{{ item.label }}
-          </a>
-          <!-- Permission missing: visible but locked — no link, no click handler. -->
-          <span *ngIf="item.locked" class="sb-sub-item locked"
-                [attr.aria-disabled]="true" [title]="item.label + ' — no access'">
-            <i class="ti ti-lock"></i>{{ item.label }}
-          </span>
-        </ng-container>
-      </div>
-    </div>
-
-  </ng-container>
+        <div class="nav-sub" *ngIf="openGroupKey === group.key">
+          <ng-container *ngFor="let item of group.items; trackBy: trackByRoute">
+            <!-- Permission granted: a real link. -->
+            <a *ngIf="!item.locked"
+               [class.current]="activeRoute === item.route"
+               [routerLink]="item.route" (click)="onNavigate()">{{ item.label }}</a>
+            <!-- Permission missing: VISIBLE but locked — no link, no click — so a teacher
+                 can see the feature exists and ask for access. -->
+            <a *ngIf="item.locked" class="locked"
+               [attr.aria-disabled]="true" [title]="item.label + ' — no access'">
+              {{ item.label }}<i class="bi bi-lock-fill lock"></i>
+            </a>
+          </ng-container>
+        </div>
+      </ng-container>
+    </ng-container>
+  </nav>
 </div>

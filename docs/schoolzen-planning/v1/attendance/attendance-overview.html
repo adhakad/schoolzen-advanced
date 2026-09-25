@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Schoolzen — Attendance Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root{
+    --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
+
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
+
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;}
+  nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
+
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;}
+  .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .year-pill{ font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; }
+  .year-pill .bi{color:var(--brand);}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+
+  .dd{position:relative;}
+  .dd-trigger{cursor:pointer; user-select:none;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:240px; width:max-content; max-width:300px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;}
+  .dd-menu.align-left{right:auto; left:0;}
+  .dd-menu.full-width{min-width:100%; width:100%; max-width:none;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option .bi{width:15px; text-align:center; flex-shrink:0;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;}
+  .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);}
+  .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd.disabled{pointer-events:none; opacity:1;}
+  .dd.disabled .dd-trigger{color:#B7B0C9; cursor:not-allowed;}
+  .dd.disabled .chevron{color:#D3CEE0;}
+
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+
+  .content{padding:28px 32px;}
+  .page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+
+  .sw-toolbar{ display:flex; flex-direction:column; gap:14px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+  .toolbar-row1{display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .toolbar-row2{display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; align-items:stretch;}
+  .toolbar-row2 .dd{display:flex; align-items:stretch;}
+  .toolbar-row3{display:flex; align-items:center; margin-top:2px;}
+  .search{position:relative; flex:0 0 340px; width:340px;}
+  .search input{ width:100%; height:38px; padding:0 14px 0 34px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .search input:focus{border-color:var(--brand);}
+  .search .bi-search{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:14px; }
+  .sw-select-pill{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; width:100%; box-sizing:border-box; }
+  .dd-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+  .sw-select-pill.disabled select{color:#B7B0C9; cursor:not-allowed;}
+  .sw-select-pill.disabled .chevron{color:#D3CEE0;}
+  .month-nav{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; box-sizing:border-box;}
+
+  /* Calendar-view month filter — same component as Roster's toolbar month picker */
+  .range-cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .range-cal-nav{width:28px; height:28px; border-radius:var(--radius); border:none; background:var(--ink); color:#ae86ff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:11px; flex-shrink:0;}
+  .range-cal-nav:hover:not(:disabled){background:#2A3242;}
+  .range-cal-nav:disabled{color:#6B6480; cursor:not-allowed; background:var(--line-soft);}
+  .range-cal-title{font-family:'Fraunces',serif; font-size:13px; font-weight:500; color:var(--ink);}
+  .range-cal{background:var(--surface); pointer-events:none;}
+  .range-cal-dow{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:6px;}
+  .range-cal-dow span{font-size:9.5px; font-weight:700; color:var(--ink-faint); text-transform:uppercase;}
+  .range-cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:0; row-gap:2px;}
+  .range-day{ height:30px; display:flex; align-items:center; justify-content:center; position:relative; }
+  .range-day .range-day-num{
+    position:relative; z-index:1; width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--ink-soft); background:transparent;
+  }
+  .range-day.in-range::before{
+    content:''; position:absolute; top:2px; bottom:2px; left:0; right:0; background:#EAE0FB; z-index:0;
+  }
+  .range-day.band-l::before{left:4px; border-radius:13px 0 0 13px;}
+  .range-day.band-r::before{right:4px; border-radius:0 13px 13px 0;}
+  .range-day.band-l.band-r::before{left:4px; right:4px; border-radius:13px;}
+  .range-day.chain-endpoint .range-day-num{background:var(--brand); color:#fff; font-weight:600;}
+  .range-day.today .range-day-num{border:1.5px solid var(--brand); color:var(--brand); font-weight:600;}
+  .range-day.today.chain-endpoint .range-day-num{background:var(--brand); color:#fff; border:none;}
+  .month-nav .bi{cursor:pointer; color:var(--brand); font-size:13px;}
+  .month-nav span{font-size:13.5px; font-weight:600; color:var(--ink); min-width:90px; text-align:center;}
+  .sw-gen-btn{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .sw-gen-btn:hover{background:#2A3242;}
+  .sw-gen-btn .bi{color:#ae86ff;}
+  .toolbar-btn-group{display:flex; align-items:center; gap:8px;}
+  .sw-report-btn{ flex-shrink:0; height:38px; background:var(--surface); color:var(--brand); border:1px solid var(--brand); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--radius); display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .sw-report-btn:hover:not(:disabled){background:var(--brand-soft);}
+  .sw-report-btn:disabled{color:var(--ink-faint); border-color:var(--line); cursor:not-allowed;}
+
+  .pagination-bar{display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);}
+  .rows-per-page{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);}
+  .page-controls{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);}
+  .page-btn{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft);}
+  .page-btn:disabled{opacity:.4; cursor:not-allowed;}
+
+  .grid-scroll{overflow-x:auto; border-radius:var(--radius);}
+  .att-grid{border-collapse:collapse; font-size:12px; min-width:2148px; width:100%;}
+  .att-grid th{color:var(--ink-faint); font-weight:700; font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; padding:4px 6px 8px; text-align:center; border-bottom:1px solid var(--line);}
+  .att-grid th .dow{display:block; font-size:9px; color:#CBC4DA; font-weight:600; text-transform:none; margin-top:2px;}
+  .att-grid th.check-col{position:sticky; left:0; background:var(--surface); z-index:3; width:38px; text-align:center; box-shadow:1px 0 0 var(--line);}
+  .att-grid th.name-col{text-align:left; position:sticky; left:38px; background:var(--surface); z-index:3; width:160px; padding-left:14px; box-shadow:1px 0 0 var(--line);}
+  .att-grid th.type-col{text-align:left; position:sticky; left:198px; background:var(--surface); z-index:3; width:90px; box-shadow:1px 0 0 var(--line);}
+  .att-grid td{padding:8px 6px; text-align:center; border-bottom:1px solid var(--line-soft);}
+  .att-grid td.check-cell{position:sticky; left:0; background:var(--surface); z-index:1; text-align:center; box-shadow:1px 0 0 var(--line-soft);}
+  .att-grid td.name-cell{text-align:left; position:sticky; left:38px; background:var(--surface); z-index:1; padding-left:14px; box-shadow:1px 0 0 var(--line-soft);}
+  .att-grid td.type-cell{text-align:left; position:sticky; left:198px; background:var(--surface); z-index:1; box-shadow:1px 0 0 var(--line-soft);}
+  .row-check, #selectAll{width:16px; height:16px; accent-color:var(--brand); cursor:pointer; vertical-align:middle;}
+  .type-tag{display:inline-block; font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; border:1px solid;}
+  .type-tag.brand{color:var(--brand); border-color:var(--brand-soft);}
+  .type-tag.slate{color:var(--slate); border-color:var(--slate-soft);}
+  .name-inner{display:flex; align-items:center; gap:8px;}
+  .g-avatar{width:26px; height:26px; border-radius:var(--radius); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:10px; flex-shrink:0;}
+  .g-name{font-weight:600; font-size:12px; color:var(--ink);}
+  .g-shift{font-size:9.5px; color:var(--ink-faint);}
+  .day-cell{width:60px;}
+  .day-cell.today-col, td.today-col{background:var(--paper);}
+  .att-grid th.today-col{color:var(--brand);}
+  .att-grid th.today-col .dow{color:#C7ACFF;}
+  .chip{display:inline-flex; flex-direction:column; align-items:center; justify-content:center; padding:3px 4px; border-radius:var(--radius); width:38px; height:30px; border:1px solid; background:transparent; text-align:center;}
+  .chip .s{font-size:10px; font-weight:700;}
+  .chip .t{font-size:8px; margin-top:1px; font-weight:500;}
+  .chip.present{border-color:var(--line);} .chip.present .s{color:var(--success);} .chip.present .t{color:var(--success); opacity:.75;}
+  .chip.late{border-color:var(--line);} .chip.late .s{color:var(--warning);} .chip.late .t{color:var(--warning); opacity:.75;}
+  .chip.absent{border-color:var(--line);} .chip.absent .s{color:var(--danger);}
+  .chip.holiday{border-color:var(--line);} .chip.holiday .s{color:var(--ink-faint);}
+  .pulse-cell{display:flex; align-items:center; justify-content:center; width:38px; height:30px; margin:0 auto;}
+  .pring{position:relative; width:10px; height:10px;}
+  .pring .ring{position:absolute; inset:0; border-radius:50%; border:2px solid var(--success); animation:ringpulse 1.4s infinite;}
+  .pring .pdot2{position:absolute; top:2px; left:2px; width:6px; height:6px; border-radius:50%; background:var(--success);}
+  @keyframes ringpulse{0%{transform:scale(.6);opacity:1} 100%{transform:scale(1.8);opacity:0}}
+
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .ls-badge{ display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; padding:4px 10px; border-radius:20px; border:1px solid #BFE0CC; color:var(--success); }
+  .ls-dot{width:6px; height:6px; border-radius:50%; background:currentColor; animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1} 50%{opacity:.3}}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;}
+  .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);}
+  .stat-row.accent .stat-value{color:var(--brand);}
+
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .arrivals-scroll{max-height:260px; overflow-y:auto; padding-right:4px;}
+  .arrivals-scroll::-webkit-scrollbar{width:5px;}
+  .arrivals-scroll::-webkit-scrollbar-thumb{background:var(--line); border-radius:10px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;}
+  .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .arrival-section-title{font-size:10px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;}
+  .arrival-section-title:not(:first-of-type){margin-top:14px; padding-top:12px; border-top:1px solid var(--line-soft);}
+  .arrival-row{display:flex; align-items:center; gap:6px; padding:6px 4px; border-radius:6px; cursor:pointer;}
+  .arrival-row:hover{background:var(--paper);}
+  .arrival-row .pdot{width:6px; height:6px; border-radius:50%; background:var(--success); flex-shrink:0; animation:pulse 1.6s infinite;}
+  .arrival-row .aname{font-weight:600; color:var(--ink); font-size:11.5px;}
+  .arrival-row .atime{margin-left:auto; color:var(--ink-faint); font-size:10px;}
+  .arrival-info{display:none; background:var(--brand-soft); border-radius:var(--radius); padding:10px; margin:2px 0 4px; font-size:11px; color:var(--ink-soft);}
+  .arrival-info.open{display:block;}
+  .arrival-info .role-line{font-weight:600; color:var(--ink); margin-bottom:4px;}
+  .arrival-info .id-line{display:flex; align-items:center; gap:6px; margin-bottom:4px;}
+  .arrival-info .id-line .id-label{color:var(--ink-faint);}
+  .arrival-info .id-line .id-value{font-family:monospace; background:#fff; color:var(--brand); padding:1px 7px; border-radius:5px; font-weight:600; font-size:10.5px; border:1px solid var(--line);}
+
+  .report-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:50; align-items:flex-start; justify-content:center; padding:60px 20px; overflow-y:auto;}
+  .report-overlay.open{display:flex;}
+  .report-modal{background:var(--surface); border-radius:var(--radius); width:100%; max-width:640px; padding:0; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .report-modal-head{display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--line);}
+  .report-modal-title{font-family:'Fraunces',serif; font-size:18px; font-weight:500; color:var(--ink);}
+  .report-modal-sub{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+  .report-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+  .report-modal-body{padding:16px 24px 24px; max-height:60vh; overflow-y:auto;}
+  .report-row{display:flex; align-items:center; gap:12px; padding:14px 0; border-top:1px solid var(--line-soft);}
+  .report-row:first-child{border-top:none;}
+  .report-row .g-avatar{width:34px; height:34px; font-size:12px;}
+  .report-row-name{font-weight:600; font-size:13px; color:var(--ink);}
+  .report-row-sub{font-size:11px; color:var(--ink-faint);}
+  .report-stats{display:flex; gap:18px; margin-left:auto;}
+  .report-stat{text-align:right;}
+  .report-stat b{font-family:'Fraunces',serif; font-size:16px; font-weight:600; display:block; color:var(--ink);}
+  .report-stat.p b{color:var(--success);}
+  .report-stat.l b{color:var(--warning);}
+  .report-stat.a b{color:var(--danger);}
+  .report-stat span{font-size:9.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em;}
+  .report-modal-foot{padding:14px 24px; border-top:1px solid var(--line); display:flex; justify-content:flex-end;}
+
+  .confirm-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:70; align-items:center; justify-content:center; padding:20px;}
+  .confirm-overlay.open{display:flex;}
+  .confirm-modal{background:var(--surface); border-radius:var(--radius); width:100%; max-width:380px; box-shadow:0 20px 50px rgba(30,23,48,0.25); padding:22px;}
+  .confirm-modal .bi-question-circle{font-size:26px; color:var(--brand); margin-bottom:10px; display:block;}
+  .confirm-modal h3{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink); margin-bottom:6px;}
+  .confirm-modal p{font-size:12.5px; color:var(--ink-soft); margin-bottom:18px; line-height:1.5;}
+  .confirm-modal .confirm-actions{display:flex; justify-content:flex-end; gap:8px;}
+  .btn-plain{height:36px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer;}
+  .btn-brand{height:36px; padding:0 16px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:12.5px; font-weight:600; cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a class="current" href="#">Overview</a>
+      <a href="#">Manage Shifts</a>
+      <a href="#">Roster</a>
+    </div>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-right chevron"></i></a>
+  </nav>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Attendance / <b>Overview</b></div>
+    <div class="top-actions">
+      <div class="dd" id="sessionDD">
+        <div class="year-pill dd-trigger" onclick="toggleDD(event,'sessionDD')"><i class="bi bi-calendar-event"></i> <span class="dd-label">2026–2027</span></div>
+        <div class="dd-menu align-left">
+          <div class="dd-option selected" onclick="selectSession(this,'2026–2027')">2026–2027</div>
+          <div class="dd-option" onclick="selectSession(this,'2025–2026')">2025–2026</div>
+          <div class="dd-option" onclick="selectSession(this,'2024–2025')">2024–2025</div>
+        </div>
+      </div>
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')">
+          <div class="avatar">A</div>
+          <span class="profile-name">Admin</span>
+          <i class="bi bi-chevron-down chevron"></i>
+        </div>
+        <div class="dd-menu">
+          <div class="drop-school">
+            <div class="drop-school-logo">GV</div>
+            <div>
+              <div class="drop-school-name">Green Valley Public School</div>
+              <div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div>
+            </div>
+          </div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div>
+          <div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div>
+          <div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-head">
+      <div>
+        <h1>Attendance</h1>
+        <div class="subtitle">Live status, daily grid and recent check-ins across staff and students.</div>
+      </div>
+    </div>
+
+    <div class="layout-row">
+      <div class="sw-card-main">
+        <div class="sw-toolbar">
+          <div class="toolbar-row1">
+            <div class="search"><i class="bi bi-search"></i><input type="text" placeholder="Search staff or student"></div>
+            <div class="toolbar-btn-group">
+              <button class="sw-report-btn" id="reportBtn" disabled onclick="generateReport()"><i class="bi bi-file-earmark-text"></i> Generate Report</button>
+              <button class="sw-gen-btn" onclick="confirmSync()"><i class="bi bi-arrow-repeat"></i> Sync now</button>
+            </div>
+          </div>
+          <div class="toolbar-row2">
+            <div class="dd sw-select-pill" id="ptypePill" data-value="staff">
+              <div class="dd-trigger" onclick="toggleDD(event,'ptypePill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">Staff</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'ptypePill','staff','Staff')">Staff</div>
+                <div class="dd-option" onclick="selectFilter(this,'ptypePill','student','Student')">Student</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill" id="deptPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'deptPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All departments</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'deptPill','','All departments')">All departments</div>
+                <div class="dd-option" onclick="selectFilter(this,'deptPill','teaching','Teaching')">Teaching</div>
+                <div class="dd-option" onclick="selectFilter(this,'deptPill','admin','Admin')">Admin</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="desigPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'desigPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All designations</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'desigPill','','All designations')">All designations</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="classPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'classPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All classes</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'classPill','','All classes')">All classes</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','6','6th')">6th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','7','7th')">7th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','9','9th')">9th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','11','11th')">11th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','12','12th')">12th</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="streamPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'streamPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All streams</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'streamPill','','All streams')">All streams</div>
+                <div class="dd-option" onclick="selectFilter(this,'streamPill','science','Science')">Science</div>
+                <div class="dd-option" onclick="selectFilter(this,'streamPill','commerce','Commerce')">Commerce</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="sectionPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'sectionPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All sections</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'sectionPill','','All sections')">All sections</div>
+              </div>
+            </div>
+          </div>
+          <div class="toolbar-row3">
+            <div class="dd" id="monthDD">
+              <div class="month-nav dd-trigger" onclick="toggleDD(event,'monthDD')">
+                <i class="bi bi-chevron-left" onclick="event.stopPropagation(); toolbarMonthShift(-1)"></i>
+                <span class="dd-label" id="toolbarMonthLabel">August 2026</span>
+                <i class="bi bi-chevron-right" onclick="event.stopPropagation(); toolbarMonthShift(1)"></i>
+              </div>
+              <div class="dd-menu align-left" style="padding:14px; width:260px;" onclick="event.stopPropagation();">
+                <div class="range-cal-head">
+                  <button type="button" class="range-cal-nav" onclick="toolbarMonthShift(-1)"><i class="bi bi-chevron-left"></i></button>
+                  <span class="range-cal-title" id="toolbarMonthTitle">August 2026</span>
+                  <button type="button" class="range-cal-nav" onclick="toolbarMonthShift(1)"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <div class="range-cal">
+                  <div class="range-cal-dow">
+                    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                  </div>
+                  <div class="range-cal-grid" id="toolbarCalGrid"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid-scroll" id="gridScroll">
+          <table class="att-grid">
+            <thead>
+              <tr>
+                <th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
+                <th class="name-col">Name</th>
+                <th class="type-col">Type</th>
+                <th class="day-cell">Sat<span class="dow">1</span></th>
+                <th class="day-cell">Sun<span class="dow">2</span></th>
+                <th class="day-cell">Mon<span class="dow">3</span></th>
+                <th class="day-cell">Tue<span class="dow">4</span></th>
+                <th class="day-cell">Wed<span class="dow">5</span></th>
+                <th class="day-cell">Thu<span class="dow">6</span></th>
+                <th class="day-cell">Fri<span class="dow">7</span></th>
+                <th class="day-cell">Sat<span class="dow">8</span></th>
+                <th class="day-cell">Sun<span class="dow">9</span></th>
+                <th class="day-cell today-col">Mon<span class="dow">10</span></th>
+                <th class="day-cell">Tue<span class="dow">11</span></th>
+                <th class="day-cell">Wed<span class="dow">12</span></th>
+                <th class="day-cell">Thu<span class="dow">13</span></th>
+                <th class="day-cell">Fri<span class="dow">14</span></th>
+                <th class="day-cell">Sat<span class="dow">15</span></th>
+                <th class="day-cell">Sun<span class="dow">16</span></th>
+                <th class="day-cell">Mon<span class="dow">17</span></th>
+                <th class="day-cell">Tue<span class="dow">18</span></th>
+                <th class="day-cell">Wed<span class="dow">19</span></th>
+                <th class="day-cell">Thu<span class="dow">20</span></th>
+                <th class="day-cell">Fri<span class="dow">21</span></th>
+                <th class="day-cell">Sat<span class="dow">22</span></th>
+                <th class="day-cell">Sun<span class="dow">23</span></th>
+                <th class="day-cell">Mon<span class="dow">24</span></th>
+                <th class="day-cell">Tue<span class="dow">25</span></th>
+                <th class="day-cell">Wed<span class="dow">26</span></th>
+                <th class="day-cell">Thu<span class="dow">27</span></th>
+                <th class="day-cell">Fri<span class="dow">28</span></th>
+                <th class="day-cell">Sat<span class="dow">29</span></th>
+                <th class="day-cell">Sun<span class="dow">30</span></th>
+                <th class="day-cell">Mon<span class="dow">31</span></th>
+              </tr>
+            </thead>
+<tbody>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--brand-soft); color:var(--brand);">PS</div>
+                    <div><div class="g-name">Priya Sharma</div><div class="g-shift">Morning Shift</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag brand">Staff</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:23</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:46</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:50</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:31</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:25</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><div class="pulse-cell"><span class="pring"><span class="ring"></span><span class="pdot2"></span></span></div></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:28</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:09</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:41</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:17</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:23</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:21</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:32</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:36</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:40</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:13</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:13</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:42</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:18</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:34</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:48</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--slate-soft); color:var(--slate);">RV</div>
+                    <div><div class="g-name">Rahul Verma</div><div class="g-shift">Morning Shift</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag brand">Staff</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:26</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:01</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:30</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">9:50</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:21</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:44</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:01</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:21</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:13</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:19</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:57</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:40</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:22</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:15</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:01</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:25</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--brand-soft); color:var(--brand);">RK</div>
+                    <div><div class="g-name">Rohan Kapoor</div><div class="g-shift">Class 8-A</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag slate">Student</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:38</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:59</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:34</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:47</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:47</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">9:59</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:01</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:45</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:18</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:26</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:48</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:33</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:46</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:31</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:29</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:11</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:11</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:05</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:37</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:19</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--slate-soft); color:var(--slate);">AS</div>
+                    <div><div class="g-name">Ananya Singh</div><div class="g-shift">Class 6-B</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag slate">Student</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:05</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:32</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:40</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:17</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:48</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">8:42</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:23</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:02</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:30</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:11</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:01</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:29</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:50</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:28</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:23</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:05</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:36</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:02</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:31</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:29</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:25</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--brand-soft); color:var(--brand);">VR</div>
+                    <div><div class="g-name">Vikram Rao</div><div class="g-shift">Morning Shift</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag brand">Staff</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:02</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:57</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:53</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:50</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:53</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">9:01</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:12</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:06</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:35</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:52</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:19</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:08</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:17</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:55</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:03</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:22</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:04</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:51</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:33</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--slate-soft); color:var(--slate);">SI</div>
+                    <div><div class="g-name">Sneha Iyer</div><div class="g-shift">Class 9-C</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag slate">Student</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:46</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:51</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:17</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:17</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:31</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">9:48</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:09</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:09</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:39</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:09</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:55</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:21</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:16</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:36</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:18</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:06</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:36</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--brand-soft); color:var(--brand);">AM</div>
+                    <div><div class="g-name">Arjun Mehta</div><div class="g-shift">General Shift</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag brand">Staff</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:28</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:49</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:34</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:23</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:08</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">9:18</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:40</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:22</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:49</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:05</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:55</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:28</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:47</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:38</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:49</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:15</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:14</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:17</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:54</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--slate-soft); color:var(--slate);">KN</div>
+                    <div><div class="g-name">Kavya Nair</div><div class="g-shift">Class 7-B</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag slate">Student</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:30</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:26</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:18</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:42</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:32</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">9:44</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:44</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:31</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:23</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:20</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:56</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:56</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:43</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:00</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:11</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:24</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:00</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:51</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:20</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:29</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:00</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--brand-soft); color:var(--brand);">RKu</div>
+                    <div><div class="g-name">Rajesh Kumar</div><div class="g-shift">Morning Shift</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag brand">Staff</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:33</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:05</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:45</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:48</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">9:56</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:02</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:22</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:15</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:15</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:22</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:50</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:08</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:07</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:19</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:34</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:36</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:30</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:31</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:14</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:40</span></span></td>
+              </tr>
+              <tr>
+                <td class="check-cell"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+                <td class="name-cell">
+                  <div class="name-inner">
+                    <div class="g-avatar" style="background:var(--slate-soft); color:var(--slate);">IP</div>
+                    <div><div class="g-name">Isha Patel</div><div class="g-shift">Class 10-A</div></div>
+                  </div>
+                </td>
+                <td class="type-cell"><span class="type-tag slate">Student</span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:18</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:32</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:53</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:04</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:57</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td class="today-col"><span class="chip present"><span class="s">P</span><span class="t">9:49</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:08</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:12</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:55</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:52</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:31</span></span></td>
+                <td><span class="chip late"><span class="s">L</span><span class="t">9:35</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:18</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:41</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:29</span></span></td>
+                <td><span class="chip absent"><span class="s">A</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:51</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:05</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">8:49</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip holiday"><span class="s">H</span></span></td>
+                <td><span class="chip present"><span class="s">P</span><span class="t">9:43</span></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination-bar">
+          <div class="rows-per-page">
+            Rows per page
+            <div class="dd sw-select-pill" id="rowsPill" data-value="10" style="width:70px;">
+              <div class="dd-trigger" onclick="toggleDD(event,'rowsPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">10</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'rowsPill','10','10')">10</div>
+                <div class="dd-option" onclick="selectFilter(this,'rowsPill','25','25')">25</div>
+                <div class="dd-option" onclick="selectFilter(this,'rowsPill','50','50')">50</div>
+              </div>
+            </div>
+          </div>
+          <div class="page-controls">
+            <span class="page-range">1–10 of 10</span>
+            <button class="page-btn" disabled><i class="bi bi-chevron-left"></i></button>
+            <button class="page-btn" disabled><i class="bi bi-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-side">
+        <div class="stats-card">
+          <div class="stats-card-head">
+            <span class="stats-card-title">Live Status</span>
+            <span class="ls-badge"><span class="ls-dot"></span>Live</span>
+          </div>
+          <div class="stat-row"><span class="stat-label">Present</span><span class="stat-value">312</span></div>
+          <div class="stat-row"><span class="stat-label">Late</span><span class="stat-value">6</span></div>
+          <div class="stat-row accent"><span class="stat-label">Punched</span><span class="stat-value">4</span></div>
+          <div class="stat-row"><span class="stat-label">Absent</span><span class="stat-value">18</span></div>
+        </div>
+
+        <div class="status-card">
+          <div class="card-title-row">Recent arrivals</div>
+          <div class="arrivals-scroll">
+          <div class="arrival-section-title">Staff</div>
+          <div id="staff1">
+            <div class="arrival-row" onclick="toggleInfo('staff1')"><span class="pdot"></span><span class="aname">Priya Sharma</span><span class="atime">9:02 AM</span></div>
+            <div class="arrival-info" id="staff1-info">
+              <div class="role-line">Primary Teacher</div>
+              <div class="id-line"><span class="id-label">Staff ID</span><span class="id-value">STF-0142</span></div>
+              Morning Shift &middot; 22 present this month
+            </div>
+          </div>
+          <div id="staff2">
+            <div class="arrival-row" onclick="toggleInfo('staff2')"><span class="pdot"></span><span class="aname">Rahul Verma</span><span class="atime">8:55 AM</span></div>
+            <div class="arrival-info" id="staff2-info">
+              <div class="role-line">Accountant</div>
+              <div class="id-line"><span class="id-label">Staff ID</span><span class="id-value">STF-0087</span></div>
+              Morning Shift &middot; 20 present this month
+            </div>
+          </div>
+          <div id="staff3">
+            <div class="arrival-row" onclick="toggleInfo('staff3')"><span class="pdot"></span><span class="aname">Vikram Rao</span><span class="atime">8:48 AM</span></div>
+            <div class="arrival-info" id="staff3-info">
+              <div class="role-line">Primary Teacher</div>
+              <div class="id-line"><span class="id-label">Staff ID</span><span class="id-value">STF-0119</span></div>
+              Morning Shift &middot; 21 present this month
+            </div>
+          </div>
+          <div class="arrival-section-title">Student</div>
+          <div id="stu1">
+            <div class="arrival-row" onclick="toggleInfo('stu1')"><span class="pdot"></span><span class="aname">Rohan Kapoor</span><span class="atime">8:58 AM</span></div>
+            <div class="arrival-info" id="stu1-info">
+              <div class="role-line">Class 8-A</div>
+              <div class="id-line"><span class="id-label">Roll No</span><span class="id-value">14</span></div>
+              26 present this month
+            </div>
+          </div>
+          <div id="stu2">
+            <div class="arrival-row" onclick="toggleInfo('stu2')"><span class="pdot"></span><span class="aname">Ananya Singh</span><span class="atime">8:54 AM</span></div>
+            <div class="arrival-info" id="stu2-info">
+              <div class="role-line">Class 6-B</div>
+              <div class="id-line"><span class="id-label">Roll No</span><span class="id-value">07</span></div>
+              24 present this month
+            </div>
+          </div>
+          <div id="stu3">
+            <div class="arrival-row" onclick="toggleInfo('stu3')"><span class="pdot"></span><span class="aname">Sneha Iyer</span><span class="atime">8:50 AM</span></div>
+            <div class="arrival-info" id="stu3-info">
+              <div class="role-line">Class 9-C</div>
+              <div class="id-line"><span class="id-label">Roll No</span><span class="id-value">22</span></div>
+              25 present this month
+            </div>
+          </div>
+          <div id="stu4">
+            <div class="arrival-row" onclick="toggleInfo('stu4')"><span class="pdot"></span><span class="aname">Isha Patel</span><span class="atime">8:45 AM</span></div>
+            <div class="arrival-info" id="stu4-info">
+              <div class="role-line">Class 10-A</div>
+              <div class="id-line"><span class="id-label">Roll No</span><span class="id-value">03</span></div>
+              27 present this month
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <div class="status-card">
+          <div class="card-title-row">Good to know</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>The Live Status card updates in real time as punches come in through the day.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Click any staff or student in Recent Arrivals to see their ID and month-to-date attendance.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Once attendance is recorded for a day, that day's roster can no longer be changed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="report-overlay" id="reportOverlay">
+  <div class="report-modal">
+    <div class="report-modal-head">
+      <div>
+        <div class="report-modal-title">Monthly Attendance Report</div>
+        <div class="report-modal-sub" id="reportSub">August 2026</div>
+      </div>
+      <button class="report-close" onclick="closeReport()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="report-modal-body" id="reportBody"></div>
+    <div class="report-modal-foot">
+      <button class="sw-gen-btn" onclick="closeReport()">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="syncConfirmOverlay">
+  <div class="confirm-modal">
+    <i class="bi bi-question-circle"></i>
+    <h3>Sync attendance now?</h3>
+    <p>This pulls the latest punches from every connected biometric device. It can take a few seconds and cannot be cancelled once started.</p>
+    <div class="confirm-actions">
+      <button class="btn-plain" onclick="closeSyncConfirm()">Cancel</button>
+      <button class="btn-brand" onclick="performSync()">Yes, sync now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  if (dd.classList.contains('disabled')) return;
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+});
+
+function setDDValue(id, value, label){
+  const dd = document.getElementById(id);
+  dd.dataset.value = value;
+  dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
+}
+function disableDD(id, resetLabel){
+  const dd = document.getElementById(id);
+  dd.classList.add('disabled');
+  if (resetLabel) setDDValue(id, '', resetLabel);
+}
+function enableDD(id){ document.getElementById(id).classList.remove('disabled'); }
+
+function selectFilter(optionEl, ddId, value, label){
+  const dd = document.getElementById(ddId);
+  dd.dataset.value = value;
+  dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  optionEl.classList.add('selected');
+  dd.classList.remove('open');
+  cascadeFilters();
+}
+function selectSession(optionEl, label){
+  setDDValue('sessionDD', label, label);
+  document.getElementById('sessionDD').classList.remove('open');
+}
+
+/* Calendar-view month filter — same component/behaviour as Roster's toolbar month picker */
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const toolbarCal = { year: 2026, month: 7 };
+function toolbarMonthShift(dir){
+  toolbarCal.month += dir;
+  if (toolbarCal.month > 11) { toolbarCal.month = 0; toolbarCal.year++; }
+  if (toolbarCal.month < 0) { toolbarCal.month = 11; toolbarCal.year--; }
+  renderToolbarMonth();
+}
+function renderMonthGrid(gridId, year, month){
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  for (let i = 0; i < firstDow; i++) {
+    grid.innerHTML += `<div class="range-day"></div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = (year === 2026 && month === 7 && d === 10);
+    const dow = (firstDow + d - 1) % 7;
+    const isMonthStart = d === 1;
+    const isMonthEnd = d === daysInMonth;
+    const roundLeft = dow === 0 || isMonthStart;
+    const roundRight = dow === 6 || isMonthEnd;
+    let cls = 'range-day in-range';
+    if (roundLeft) cls += ' band-l';
+    if (roundRight) cls += ' band-r';
+    if (isMonthStart || isMonthEnd) cls += ' chain-endpoint';
+    if (isToday) cls += ' today';
+    grid.innerHTML += `<div class="${cls}"><span class="range-day-num">${d}</span></div>`;
+  }
+}
+function renderToolbarMonth(){
+  const { year, month } = toolbarCal;
+  const label = `${monthNames[month]} ${year}`;
+  document.getElementById('toolbarMonthLabel').textContent = label;
+  document.getElementById('toolbarMonthTitle').textContent = label;
+  renderMonthGrid('toolbarCalGrid', year, month);
+}
+renderToolbarMonth();
+
+const classSections = { '6': ['A', 'B'], '9': ['A', 'B', 'C'] };
+const streamSections = { 'science': ['A', 'B'] };
+
+function cascadeFilters(){
+  const ptype = document.getElementById('ptypePill').dataset.value;
+  const dept = document.getElementById('deptPill').dataset.value;
+  const cls = document.getElementById('classPill').dataset.value;
+  const stream = document.getElementById('streamPill').dataset.value;
+
+  if (ptype === 'staff') {
+    enableDD('deptPill');
+    disableDD('classPill', 'All classes');
+    disableDD('streamPill', 'All streams');
+    disableDD('sectionPill', 'All sections');
+    if (dept) enableDD('desigPill'); else disableDD('desigPill', 'All designations');
+  } else {
+    enableDD('classPill');
+    disableDD('deptPill', 'All departments');
+    disableDD('desigPill', 'All designations');
+    disableDD('streamPill', 'All streams');
+    disableDD('sectionPill', 'All sections');
+    if (cls === '11' || cls === '12') {
+      enableDD('streamPill');
+    } else if (cls && classSections[cls]) {
+      enableDD('sectionPill');
+      const menu = document.querySelector('#sectionPill .dd-menu');
+      menu.innerHTML = classSections[cls].map(s =>
+        `<div class="dd-option" onclick="selectFilter(this,'sectionPill','${s}','Section ${s}')">Section ${s}</div>`
+      ).join('');
+      setDDValue('sectionPill', '', 'All sections');
+    }
+    if (stream && streamSections[stream]) {
+      enableDD('sectionPill');
+      const menu = document.querySelector('#sectionPill .dd-menu');
+      menu.innerHTML = streamSections[stream].map(s =>
+        `<div class="dd-option" onclick="selectFilter(this,'sectionPill','${s}','Section ${s}')">Section ${s}</div>`
+      ).join('');
+      setDDValue('sectionPill', '', 'All sections');
+    }
+  }
+}
+
+function toggleAll(master){
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = master.checked);
+  onRowCheck();
+}
+function onRowCheck(){
+  const checked = document.querySelectorAll('.row-check:checked').length;
+  const total = document.querySelectorAll('.row-check').length;
+  document.getElementById('selectAll').checked = total > 0 && checked === total;
+  document.getElementById('reportBtn').disabled = checked === 0;
+}
+
+function generateReport(){
+  const rows = Array.from(document.querySelectorAll('.att-grid tbody tr'))
+    .filter(tr => tr.querySelector('.row-check').checked);
+  const body = document.getElementById('reportBody');
+  body.innerHTML = '';
+  rows.forEach(tr => {
+    const name = tr.querySelector('.g-name').textContent;
+    const sub = tr.querySelector('.g-shift').textContent;
+    const avatarStyle = tr.querySelector('.g-avatar').getAttribute('style');
+    const initials = tr.querySelector('.g-avatar').textContent;
+    const present = tr.querySelectorAll('.chip.present').length;
+    const late = tr.querySelectorAll('.chip.late').length;
+    const absent = tr.querySelectorAll('.chip.absent').length;
+    const row = document.createElement('div');
+    row.className = 'report-row';
+    row.innerHTML = `
+      <div class="g-avatar" style="${avatarStyle}">${initials}</div>
+      <div>
+        <div class="report-row-name">${name}</div>
+        <div class="report-row-sub">${sub}</div>
+      </div>
+      <div class="report-stats">
+        <div class="report-stat p"><b>${present}</b><span>Present</span></div>
+        <div class="report-stat l"><b>${late}</b><span>Late</span></div>
+        <div class="report-stat a"><b>${absent}</b><span>Absent</span></div>
+      </div>`;
+    body.appendChild(row);
+  });
+  document.getElementById('reportSub').textContent = `August 2026 · ${rows.length} selected`;
+  document.getElementById('reportOverlay').classList.add('open');
+}
+function closeReport(){ document.getElementById('reportOverlay').classList.remove('open'); }
+
+function confirmSync(){ document.getElementById('syncConfirmOverlay').classList.add('open'); }
+function closeSyncConfirm(){ document.getElementById('syncConfirmOverlay').classList.remove('open'); }
+function performSync(){
+  closeSyncConfirm();
+}
+
+cascadeFilters();
+const todayCell = document.querySelector('.att-grid th.today-col');
+if (todayCell) todayCell.scrollIntoView({ inline: 'center', block: 'nearest' });
+function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle('open'); }
+</script>
+</body>
+</html>

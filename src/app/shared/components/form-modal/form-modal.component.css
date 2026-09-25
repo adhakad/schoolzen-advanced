@@ -1,0 +1,5 @@
+/* `.sz-modal-overlay` and everything inside it are styled by the global design-system
+   sheet, so this component and the reference HTML render identically. The overlay is
+   position:fixed and must not be clipped or offset by a host box. */
+
+:host { display: contents; }

@@ -37,6 +37,7 @@ function normalizeError(err, module) {
   // message only in context for logging, never send it to the client.
   return new InternalError('Something went wrong.', {
     module,
+    code: 'INTERNAL_ERROR',
     context: { originalMessage: err.message, name: err.name }
   });
 }

@@ -2,380 +2,688 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fees - Collection - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>Schoolzen — Fees</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 1050px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1050px; margin: 0 auto; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 12px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-spacer { height: 24px; }
-  .sw-body { display: flex; gap: 16px; align-items: stretch; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
-  .sw-main { flex: 1; min-width: 0; }
-  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
-  .summary-strip { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(20,20,60,0.04); flex-wrap: wrap; }
-  .summary-item { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: #6b6b85; }
-  .summary-item b { font-size: 14px; font-weight: 700; color: #1a1a2e; }
-  .fee-status-chip { display: inline-flex; align-items: center; justify-content: center; min-width: 88px; font-size: 10.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px; }
-  .fee-status-chip.paid { background: #d9f7ea; color: #0c8a52; }
-  .fee-status-chip.arrears { background: #fff2d6; color: #b8790a; }
-  .fee-status-chip.unpaid { background: #fde8ef; color: #b8265a; }
-  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-  .sw-search { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 9px 14px; flex: 1; min-width: 140px; }
-  .sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
-  .sw-search i { color: #a6a6c9; font-size: 15px; }
-  .sw-select-pill { display: flex; align-items: center; gap: 6px; background: #f6f5ff; border-radius: 12px; padding: 9px 12px; width: 128px; flex-shrink: 0; }
-  .sw-select-pill select { border: none; background: transparent; font-size: 12px; color: #6b6b85; outline: none; flex: 1; appearance: none; font-weight: 500; }
-  .sw-select-pill.disabled { background: #f2f2f6; opacity: 0.5; }
-  .sw-select-pill.disabled select { cursor: not-allowed; color: #b0b0c9; }
-  .sw-secondary-btn { background: #f6f5ff; color: #7b6ef6; border: none; border-radius: 12px; padding: 10px 16px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
+  :root{
+    --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
 
-  .grid-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
-  .table-inner { min-width: 1320px; }
-  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 0 8px 8px; text-align: left; white-space: nowrap; }
-  td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; white-space: nowrap; }
-  .st-name { font-weight: 600; color: #1a1a2e; font-size: 13px; }
-  .adm-no { font-family: monospace; font-size: 11.5px; color: #4a4a68; }
-  .amt-due { color: #4a4a68; font-weight: 600; }
-  .amt-paid { color: #4a4a68; font-weight: 600; }
-  .arrear-note { font-size: 10px; color: #b8790a; font-weight: 500; margin-top: 2px; }
-  .not-set { color: #b0b0c9; font-style: italic; font-size: 11.5px; }
-  .cls-tag { font-size: 10.5px; color: #7b6ef6; background: #f0eeff; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
-  .collect-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 9px; padding: 7px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
-  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; cursor: pointer; }
-  .due-breakdown { background: #f9f8ff; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
-  .due-row { display: flex; justify-content: space-between; font-size: 12.5px; color: #4a4a68; padding: 4px 0; }
-  .due-row.arrear { color: #b8790a; }
-  .due-total-row { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700; color: #1a1a2e; padding-top: 8px; margin-top: 4px; border-top: 1px solid #e5e3f5; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
 
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
-  .modal-overlay.open { display: flex; }
-  .modal-box { background: #fff; border-radius: 16px; width: 460px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
-  .modal-box.wide { width: 540px; }
-  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
-  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
-  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
-  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
-  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
-  .m-field { margin-bottom: 12px; }
-  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
-  .m-field input, .m-field select { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
-  .student-info-strip { background: #f9f8ff; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 12.5px; color: #4a4a68; line-height: 1.8; }
-  .student-info-strip b { color: #1a1a2e; }
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;}
+  nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
 
-  .letter-frame { border: 2px solid #c9c3f0; border-radius: 8px; padding: 22px; background: #fffefc; }
-  .letter-header { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 2px solid #1a1a2e; margin-bottom: 14px; }
-  .letter-logo { width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; flex-shrink: 0; }
-  .letter-school-name { font-family: Georgia, serif; font-weight: 700; font-size: 15px; color: #1a1a2e; }
-  .letter-meta { font-size: 10px; color: #9494ac; margin-top: 2px; }
-  .receipt-band { text-align: center; background: #f0eeff; color: #5b4fd6; font-weight: 700; font-size: 12px; padding: 6px; border-radius: 8px; margin-bottom: 14px; }
-  .receipt-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
-  .receipt-table td { padding: 5px 4px; }
-  .receipt-table td.label { color: #6b6b85; font-weight: 600; width: 40%; }
-  .receipt-divider { border-top: 1px dashed #d9d6f5; margin: 10px 0; }
-  .receipt-total-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #1a1a2e; padding: 4px 0; }
-  .receipt-total-row.paid { color: #1a1a2e; }
-  .receipt-total-row.due { color: #1a1a2e; }
-  .receipt-words { font-size: 11px; color: #6b6b85; text-align: center; margin-top: 10px; font-style: italic; }
-  .receipt-sign-row { display: flex; justify-content: flex-end; margin-top: 26px; }
-  .receipt-sign-block { text-align: center; width: 45%; }
-  .receipt-sign-line { border-top: 1px solid #9494ac; margin-bottom: 6px; }
-  .receipt-sign-block span { font-size: 10px; color: #6b6b85; }
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;}
+  .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .year-pill{ font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; }
+  .year-pill .bi{color:var(--brand);}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
 
-  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-submit:disabled { background: #e2e2ee; color: #b0b0c9; cursor: not-allowed; }
+  .dd{position:relative;}
+  .dd-trigger{cursor:pointer; user-select:none;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:240px; width:max-content; max-width:300px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;}
+  .dd-menu.align-left{right:auto; left:0;}
+  .dd-menu.full-width{min-width:100%; width:100%; max-width:none;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option .bi{width:15px; text-align:center; flex-shrink:0;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;}
+  .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);}
+  .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd.disabled{pointer-events:none; opacity:1;}
+  .dd.disabled .dd-trigger{color:#B7B0C9; cursor:not-allowed;}
+  .dd.disabled .chevron{color:#D3CEE0;}
+  .dd-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;}
+
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+
+  .content{padding:28px 32px;}
+  .page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+
+  .sw-toolbar{ display:flex; flex-direction:column; gap:14px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+  .toolbar-row1{display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .toolbar-row2{display:flex; align-items:center; gap:8px;}
+  .search{position:relative; flex:0 0 300px; width:300px;}
+  .search input{ width:100%; height:38px; padding:0 14px 0 34px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .search input:focus{border-color:var(--brand);}
+  .search .bi-search{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:14px;}
+  .sw-select-pill{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; width:150px; flex-shrink:0; box-sizing:border-box; }
+
+  .grid-scroll{overflow-x:auto;}
+  .table-inner{min-width:1460px;}
+  .check-col{width:38px; text-align:center;}
+  .check-col input{width:16px; height:16px; accent-color:var(--brand); cursor:pointer;}
+  table{width:100%; border-collapse:collapse;}
+  thead th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-faint); letter-spacing:0.06em; padding:0 14px 12px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  tbody tr{border-bottom:1px solid var(--line-soft);}
+  tbody tr:hover{background:#F7F4FC;}
+  tbody tr:last-child{border-bottom:none;}
+  td{padding:14px; vertical-align:middle; white-space:nowrap;}
+  .st-name{font-weight:600; color:var(--ink); font-size:13.5px;}
+  .adm-no{font-family:monospace; font-size:11.5px; color:var(--ink-soft);}
+  .amt-due{color:var(--ink-soft); font-weight:600;}
+  .arrear-note{font-size:10px; color:var(--warning); font-weight:600; margin-top:2px;}
+  .na{color:var(--ink-faint); font-style:italic; font-size:11.5px;}
+
+  .tag{ display:inline-flex; align-items:center; padding:4px 11px; border-radius:20px; font-size:12px; font-weight:500; border:1px solid; }
+  .tag-slate{color:var(--slate); border-color:#D9CDEE;}
+  .tag-status{width:88px; justify-content:center;}
+  .tag-paid{color:var(--success); border-color:#BFE0CC;}
+  .tag-arrears{color:var(--warning); border-color:#E9D6A0;}
+  .tag-unpaid{color:var(--danger); border-color:#E0BDB4;}
+
+  .toolbar-btn-group{display:flex; align-items:center; gap:10px;}
+  .sw-report-btn{ flex-shrink:0; height:38px; background:var(--surface); color:var(--brand); border:1px solid var(--brand); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--radius); display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .sw-report-btn:disabled{color:var(--ink-faint); border-color:var(--line); cursor:not-allowed; background:var(--surface);}
+  .sw-report-btn:hover{background:var(--brand-soft);}
+  .collect-btn{ background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:7px 14px; font-size:11.5px; font-weight:600; cursor:pointer; }
+  .collect-btn:hover{background:#2A3242;}
+  .icon-btn{ width:30px; height:30px; border-radius:6px; border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:13px; }
+  .icon-btn:hover{border-color:var(--slate); color:var(--slate);}
+
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;}
+  .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);}
+  .stat-row.accent .stat-value{color:var(--brand);}
+
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;}
+  .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
+
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:60; align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); border-radius:var(--radius); width:440px; max-width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .modal-box.wide{width:560px;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); border-radius:var(--radius) var(--radius) 0 0; flex-shrink:0;}
+  .modal-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink);}
+  .modal-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+  .modal-body{padding:20px 24px; flex:1; overflow-y:auto; min-height:0;}
+  .modal-foot{padding:16px 24px; border-top:1px solid var(--line); border-radius:0 0 var(--radius) var(--radius); flex-shrink:0; display:flex; justify-content:flex-end; gap:10px;}
+  .m-field{margin-bottom:16px;}
+  .m-field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);}
+  .req-star{color:var(--danger);}
+  .m-hint{font-size:11px; color:var(--ink-faint); margin-top:6px; line-height:1.4;}
+  .format-toggle{display:flex; gap:8px;}
+  .format-btn{flex:1; height:40px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:12.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;}
+  .format-btn:hover{border-color:var(--slate);}
+  .format-btn.active{border-color:var(--brand); background:var(--brand-soft); color:var(--brand);}
+  .student-info-strip{background:var(--paper); border-radius:var(--radius); padding:12px 14px; margin-bottom:16px; font-size:12.5px; color:var(--ink-soft); line-height:1.8;}
+  .student-info-strip b{color:var(--ink);}
+  .due-breakdown{background:var(--paper); border-radius:var(--radius); padding:12px 14px; margin-bottom:16px;}
+  .due-row{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-soft); padding:4px 0;}
+  .due-row.arrear{color:var(--warning);}
+  .due-total-row{display:flex; justify-content:space-between; font-size:13.5px; font-weight:700; color:var(--ink); padding-top:8px; margin-top:4px; border-top:1px solid var(--line);}
+  .btn-plain{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand{height:38px; padding:0 18px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px;}
+
+  /* Receipt — formal, colon-separated, no grid borders (matches TC print convention) */
+  .receipt-frame{border:2px solid var(--brand-soft); border-radius:var(--radius); padding:22px; background:#FFFEFC;}
+  .receipt-header{display:flex; align-items:center; gap:12px; padding-bottom:12px; border-bottom:2px solid var(--ink); margin-bottom:14px;}
+  .receipt-logo{width:44px; height:44px; border-radius:8px; background:linear-gradient(145deg,var(--brand),var(--brand-deep)); display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px; flex-shrink:0;}
+  .receipt-school-name{font-family:'Fraunces',serif; font-weight:600; font-size:15px; color:var(--ink);}
+  .receipt-meta{font-size:10.5px; color:var(--ink-faint); margin-top:2px;}
+  .receipt-band{text-align:center; background:var(--brand-soft); color:var(--brand-deep); font-weight:700; font-size:12px; padding:6px; border-radius:6px; margin-bottom:14px;}
+  .receipt-line{display:flex; justify-content:space-between; font-size:12.5px; padding:5px 0; color:var(--ink-soft);}
+  .receipt-line b{color:var(--ink); font-weight:600;}
+  .receipt-divider{border-top:1px dashed var(--line); margin:10px 0;}
+  .receipt-total-row{display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:var(--ink); padding:4px 0;}
+  .receipt-words{font-size:11px; color:var(--ink-soft); text-align:center; margin-top:10px; font-style:italic;}
+  .receipt-sign-row{display:flex; justify-content:flex-end; margin-top:26px;}
+  .receipt-sign-block{text-align:center; width:45%;}
+  .receipt-sign-line{border-top:1px solid var(--ink-faint); margin-bottom:6px;}
+  .receipt-sign-block span{font-size:11px; color:var(--ink-soft);}
 </style>
 </head>
 <body>
 
-<div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  Fees &rarr; Fees (Collection) page. Class+Stream existence+dependency
-  filter pair (same pattern as everywhere else). "Collect" button per
-  row opens the payment modal; a fully-paid student shows a fixed
-  "Paid" status chip instead of the button, never both. Payment
-  submission is followed immediately by a professional printable
-  receipt — redesigned the same way the Admission Letter was: formal
-  letterhead, dotted-line item breakdown, amount-in-words, signature
-  line.
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a class="current" href="#">Fees</a>
+      <a href="#">Fee Structure</a>
+      <a href="#">Fee Statement</a>
+      <a href="#">Fee Reminder</a>
+    </div>
+    <a class="nav-item" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-right chevron"></i></a>
+  </nav>
 </div>
 
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
-      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Fees / <b>Fees</b></div>
+    <div class="top-actions">
+      <div class="dd" id="sessionDD">
+        <div class="year-pill dd-trigger" onclick="toggleDD(event,'sessionDD')"><i class="bi bi-calendar-event"></i> <span class="dd-label">2026–2027</span></div>
+        <div class="dd-menu align-left">
+          <div class="dd-option selected" onclick="selectSession(this,'2026–2027')">2026–2027</div>
+          <div class="dd-option" onclick="selectSession(this,'2025–2026')">2025–2026</div>
+          <div class="dd-option" onclick="selectSession(this,'2024–2025')">2024–2025</div>
+        </div>
+      </div>
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')">
+          <div class="avatar">A</div>
+          <span class="profile-name">Admin</span>
+          <i class="bi bi-chevron-down chevron"></i>
+        </div>
+        <div class="dd-menu">
+          <div class="drop-school">
+            <div class="drop-school-logo">GV</div>
+            <div>
+              <div class="drop-school-name">Green Valley Public School</div>
+              <div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div>
+            </div>
+          </div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div>
+          <div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div>
+          <div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="sw-spacer"></div>
-  <div class="sw-body">
-    <div class="sb-wrap">
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="staff">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="academic">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="holiday">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-      <div class="sb-group open" data-group="fees">
-        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="examination">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="certificates">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-      <div class="sb-group" data-group="settings">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
-        </div>
+
+  <div class="content">
+    <div class="page-head">
+      <div>
+        <h1>Fees</h1>
+        <div class="subtitle">Collect fees per student across the session.</div>
       </div>
     </div>
-    <div class="sw-main">
-      <div class="summary-strip">
-        <span class="summary-item"><b>&#8377;18.4L</b> collected this month</span>
-        <span class="summary-item"><b>96</b> fully paid</span>
-        <span class="summary-item"><b>14</b> has arrears</span>
-        <span class="summary-item"><b>3</b> unpaid</span>
-      </div>
 
+    <div class="layout-row">
       <div class="sw-card-main">
-        <div class="sw-title">Fees</div>
-
         <div class="sw-toolbar">
-          <div class="sw-search"><i class="ti ti-search"></i><input placeholder="Search by name or admission no."/></div>
-          <div class="sw-select-pill" id="classPill"><select id="cls" onchange="onClassChange()"><option value="">All classes</option><option value="8">8th</option><option value="11">11th</option></select></div>
-          <div class="sw-select-pill disabled" id="streamPill" style="display:none;"><select id="stream"><option>Science</option><option>Commerce</option></select></div>
+          <div class="toolbar-row1">
+            <div class="search"><i class="bi bi-search"></i><input type="text" placeholder="Search by name or admission no."></div>
+            <div class="toolbar-btn-group">
+              <button class="sw-report-btn" id="reportBtn" disabled onclick="openReportModal()"><i class="bi bi-file-earmark-bar-graph"></i> Generate Report</button>
+            </div>
+          </div>
+          <div class="toolbar-row2">
+            <div class="dd sw-select-pill" id="classPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'classPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All classes</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'classPill','','All classes')">All classes</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','8','8th')">8th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','11','11th')">11th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','12','12th')">12th</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="streamPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'streamPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All streams</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'streamPill','','All streams')">All streams</div>
+                <div class="dd-option" onclick="selectFilter(this,'streamPill','science','Science')">Science</div>
+                <div class="dd-option" onclick="selectFilter(this,'streamPill','commerce','Commerce')">Commerce</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="groupPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'groupPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All groups</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width" id="groupMenu">
+                <div class="dd-option selected" onclick="selectFilter(this,'groupPill','','All groups')">All groups</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="grid-scroll">
           <div class="table-inner">
             <table>
-              <thead><tr><th>Student</th><th>Admission No.</th><th>Class</th><th>Stream</th><th>Fee Concession</th><th>Paid Fee</th><th>Due Fee</th><th>Total Fee</th><th>Status</th><th>Collected By</th><th>Collect</th><th>Statement</th></tr></thead>
+              <thead>
+                <tr><th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th><th>Student</th><th>Admission No.</th><th>Class</th><th>Stream</th><th>Group</th><th>Concession</th><th>Paid Fee</th><th>Due Fee</th><th>Total Fee</th><th>Status</th><th>Collected By</th><th>Collect</th><th>Statement</th><th>Report</th></tr>
+              </thead>
               <tbody>
                 <tr>
+                  <td class="check-col"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
                   <td><span class="st-name">Rohan Kapoor</span></td>
                   <td><span class="adm-no">2024142</span></td>
-                  <td><span class="cls-tag">8th</span></td>
-                  <td><span class="not-set">N/A</span></td>
-                  <td>&#8377; 0</td>
-                  <td class="amt-paid">&#8377; 22,000</td>
-                  <td class="amt-due">&#8377; 26,500<div class="arrear-note">incl. &#8377; 6,500 from 7th</div></td>
-                  <td>&#8377; 42,000</td>
-                  <td><span class="fee-status-chip arrears">Has Arrears</span></td>
+                  <td><span class="tag tag-slate">8th</span></td>
+                  <td><span class="na">N/A</span></td>
+                  <td><span class="na">N/A</span></td>
+                  <td>₹ 0</td>
+                  <td>₹ 22,000</td>
+                  <td><span class="amt-due">₹ 26,500</span><div class="arrear-note">incl. ₹ 6,500 from 7th</div></td>
+                  <td>₹ 42,000</td>
+                  <td><span class="tag tag-status tag-arrears">Has Arrears</span></td>
                   <td>Abhishek</td>
-                  <td><button class="collect-btn" onclick="document.getElementById('payModal').classList.add('open')">Collect</button></td>
-                  <td><div class="icon-btn"><i class="ti ti-launch"></i></div></td>
+                  <td><button class="collect-btn" onclick="openPayModal()">Collect</button></td>
+                  <td><button class="icon-btn"><i class="bi bi-box-arrow-up-right"></i></button></td>
+                  <td><button class="icon-btn" onclick="openStudentReport(this.closest('tr'))"><i class="bi bi-file-earmark-text"></i></button></td>
                 </tr>
                 <tr>
+                  <td class="check-col"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
                   <td><span class="st-name">Ananya Sharma</span></td>
                   <td><span class="adm-no">2024089</span></td>
-                  <td><span class="cls-tag">11th</span></td>
+                  <td><span class="tag tag-slate">11th</span></td>
                   <td>Science</td>
-                  <td>&#8377; 2,000</td>
-                  <td class="amt-paid">&#8377; 42,000</td>
-                  <td>&#8377; 0</td>
-                  <td>&#8377; 42,000</td>
-                  <td><span class="fee-status-chip paid">Fully Paid</span></td>
+                  <td>Mathematics Group</td>
+                  <td>₹ 2,000</td>
+                  <td>₹ 42,000</td>
+                  <td>₹ 0</td>
+                  <td>₹ 42,000</td>
+                  <td><span class="tag tag-status tag-paid">Fully Paid</span></td>
                   <td>Abhishek</td>
-                  <td><span class="not-set" style="font-style:normal;">&mdash;</span></td>
-                  <td><div class="icon-btn"><i class="ti ti-launch"></i></div></td>
+                  <td><span class="na" style="font-style:normal;">—</span></td>
+                  <td><button class="icon-btn"><i class="bi bi-box-arrow-up-right"></i></button></td>
+                  <td><button class="icon-btn" onclick="openStudentReport(this.closest('tr'))"><i class="bi bi-file-earmark-text"></i></button></td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- PAYMENT MODAL -->
-  <div class="modal-overlay" id="payModal">
-    <div class="modal-box">
-      <div class="modal-head"><span class="modal-title">Fee Payment</span><div class="modal-close" onclick="document.getElementById('payModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <div class="student-info-strip">
-          Admission No. <b>2024142</b> &middot; Class <b>8th</b><br>
-          Student <b>Rohan Kapoor</b> &middot; Father <b>Suresh Kapoor</b>
+      <div class="col-side">
+        <div class="stats-card">
+          <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+          <div class="stat-row accent"><span class="stat-label">Collected This Month</span><span class="stat-value">₹18.4L</span></div>
+          <div class="stat-row"><span class="stat-label">Fully Paid</span><span class="stat-value">96</span></div>
+          <div class="stat-row"><span class="stat-label">Has Arrears</span><span class="stat-value">14</span></div>
+          <div class="stat-row"><span class="stat-label">Unpaid</span><span class="stat-value">3</span></div>
         </div>
-        <div class="due-breakdown">
-          <div class="due-row"><span>8th (current year)</span><b>&#8377; 20,000</b></div>
-          <div class="due-row arrear"><span>7th (previous year, unpaid)</span><b>&#8377; 6,500</b></div>
-          <div class="due-total-row"><span>Total Due</span><span>&#8377; 26,500</span></div>
+        <div class="status-card">
+          <div class="card-title-row">Good to know</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>A fully-paid student shows a status chip instead of a Collect button — never both.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Collecting a payment clears the oldest dues first, including any prior-year arrears.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Click the Statement icon for a student's full payment history and receipts.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>A stream can have more than one Subject Group — each may carry a different fee structure, so filter by Group to see them separately.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Generate Report exports the currently filtered list for any period, day-wise up to the full session — or download just one student's report from their row.</div>
         </div>
-        <div class="m-field"><label>Enter Fee Amount (&#8377;)</label><input type="number" placeholder="26500" min="1"></div>
-        <div class="m-field"><label>Payment Mode</label><select><option>Cash</option><option>Online</option><option>Cheque</option></select></div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn-cancel" onclick="document.getElementById('payModal').classList.remove('open')">Cancel</button>
-        <button class="btn-submit" onclick="document.getElementById('payModal').classList.remove('open');document.getElementById('receiptModal').classList.add('open')">Collect Now</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PROFESSIONAL RECEIPT -->
-  <div class="modal-overlay" id="receiptModal">
-    <div class="modal-box wide">
-      <div class="modal-head"><span class="modal-title">Fee Receipt</span><div class="modal-close" onclick="document.getElementById('receiptModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <div class="letter-frame">
-          <div class="letter-header">
-            <div class="letter-logo"><i class="ti ti-school"></i></div>
-            <div>
-              <div class="letter-school-name">GREEN VALLEY PUBLIC SCHOOL</div>
-              <div class="letter-meta">MG Road, Indore, Madhya Pradesh &middot; +91 731 2345678</div>
-            </div>
-          </div>
-          <div class="receipt-band">FEE RECEIPT &middot; No. RCPT-2026-0512</div>
-          <table class="receipt-table">
-            <tr><td class="label">Student Name</td><td>Rohan Kapoor</td><td class="label">Admission No.</td><td>2024142</td></tr>
-            <tr><td class="label">Class</td><td>8th</td><td class="label">Payment Date</td><td>05 Sep 2026</td></tr>
-            <tr><td class="label">Payment Mode</td><td colspan="3">Cash</td></tr>
-          </table>
-          <div class="receipt-divider"></div>
-          <table class="receipt-table">
-            <tr><td class="label">Tuition Fee</td><td>&#8377; 15,000</td></tr>
-            <tr><td class="label">Transport Fee</td><td>&#8377; 5,000</td></tr>
-            <tr><td class="label" style="color:#b8790a;">Previous Year Due (7th)</td><td style="color:#b8790a;">&#8377; 6,500</td></tr>
-            <tr><td class="label">Concession Amount</td><td>&minus; &#8377; 0</td></tr>
-          </table>
-          <div class="receipt-divider"></div>
-          <div class="receipt-total-row"><span>Total Fee</span><span>&#8377; 42,000</span></div>
-          <div class="receipt-total-row paid"><span>Paid Fee</span><span>&#8377; 42,000</span></div>
-          <div class="receipt-total-row due"><span>Due Fee</span><span>&#8377; 0</span></div>
-          <p class="receipt-words">Rupees Twenty Thousand Only received towards fee for 8th, Session 2026-27.</p>
-          <div class="receipt-sign-row">
-            <div class="receipt-sign-block"><div class="receipt-sign-line"></div><span>Authorized Signatory</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn-submit"><i class="ti ti-printer" style="margin-right:6px;"></i>Print</button>
       </div>
     </div>
   </div>
 </div>
 
+<div class="modal-overlay" id="reportModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Generate Fee Report</span>
+      <button class="modal-close" onclick="document.getElementById('reportModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="m-field" id="reportScopeNote" style="background:var(--paper); border-radius:var(--radius); padding:10px 12px; font-size:12.5px; color:var(--ink-soft);"></div>
+      <div class="m-field">
+        <label>Period</label>
+        <div class="dd sw-select-pill" id="periodPill" data-value="session" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'periodPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+            <span class="dd-label">Full Academic Session</span><i class="bi bi-chevron-down chevron"></i>
+          </div>
+          <div class="dd-menu full-width">
+            <div class="dd-option" onclick="selectFilter(this,'periodPill','day','Day-wise (Today)')">Day-wise (Today)</div>
+            <div class="dd-option" onclick="selectFilter(this,'periodPill','7d','Last 7 Days')">Last 7 Days</div>
+            <div class="dd-option" onclick="selectFilter(this,'periodPill','15d','Last 15 Days')">Last 15 Days</div>
+            <div class="dd-option" onclick="selectFilter(this,'periodPill','1m','Last 1 Month')">Last 1 Month</div>
+            <div class="dd-option" onclick="selectFilter(this,'periodPill','3m','Last 3 Months')">Last 3 Months</div>
+            <div class="dd-option" onclick="selectFilter(this,'periodPill','6m','Last 6 Months')">Last 6 Months</div>
+            <div class="dd-option selected" onclick="selectFilter(this,'periodPill','session','Full Academic Session')">Full Academic Session</div>
+          </div>
+        </div>
+        <div class="m-hint">Uses the Class / Stream / Group filters currently applied above the table.</div>
+      </div>
+      <div class="m-field">
+        <label>Format</label>
+        <div class="format-toggle">
+          <button type="button" class="format-btn active" data-format="excel" onclick="selectFormat(this)"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          <button type="button" class="format-btn" data-format="csv" onclick="selectFormat(this)"><i class="bi bi-filetype-csv"></i> CSV</button>
+          <button type="button" class="format-btn" data-format="pdf" onclick="selectFormat(this)"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="document.getElementById('reportModal').classList.remove('open')">Cancel</button>
+      <button class="btn-brand" id="reportDownloadBtn" onclick="downloadFeeReport()"><i class="bi bi-download"></i> Download</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="studentReportModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="studentReportTitle">Fee Report — Rohan Kapoor</span>
+      <button class="modal-close" onclick="document.getElementById('studentReportModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="student-info-strip" id="studentReportInfo"></div>
+      <div class="due-breakdown" id="studentReportBreakdown"></div>
+      <div class="m-field">
+        <label>Format</label>
+        <div class="format-toggle">
+          <button type="button" class="format-btn active" data-format="excel" onclick="selectFormat(this)"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          <button type="button" class="format-btn" data-format="csv" onclick="selectFormat(this)"><i class="bi bi-filetype-csv"></i> CSV</button>
+          <button type="button" class="format-btn" data-format="pdf" onclick="selectFormat(this)"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+        </div>
+      </div>
+      <p class="m-hint" style="margin-top:2px;">Downloads this student's full fee detail — dues, particulars and payment history.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="document.getElementById('studentReportModal').classList.remove('open')">Close</button>
+      <button class="btn-brand" onclick="downloadStudentReport()"><i class="bi bi-download"></i> Download</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="payModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Fee Payment</span>
+      <button class="modal-close" onclick="document.getElementById('payModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="student-info-strip">
+        Admission No. <b>2024142</b> &middot; Class <b>8th</b><br>
+        Student <b>Rohan Kapoor</b> &middot; Father <b>Suresh Kapoor</b>
+      </div>
+      <div class="due-breakdown">
+        <div class="due-row"><span>8th (current year)</span><b>₹ 20,000</b></div>
+        <div class="due-row arrear"><span>7th (previous year, unpaid)</span><b>₹ 6,500</b></div>
+        <div class="due-total-row"><span>Total Due</span><span>₹ 26,500</span></div>
+      </div>
+      <div class="m-field">
+        <label>Enter Fee Amount (₹) <span class="req-star">*</span></label>
+        <input type="number" placeholder="26500" min="1">
+      </div>
+      <div class="m-field">
+        <label>Payment Mode</label>
+        <div class="dd sw-select-pill" id="modePill" data-value="cash" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'modePill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+            <span class="dd-label">Cash</span><i class="bi bi-chevron-down chevron"></i>
+          </div>
+          <div class="dd-menu full-width">
+            <div class="dd-option selected" onclick="selectFilter(this,'modePill','cash','Cash')">Cash</div>
+            <div class="dd-option" onclick="selectFilter(this,'modePill','online','Online')">Online</div>
+            <div class="dd-option" onclick="selectFilter(this,'modePill','cheque','Cheque')">Cheque</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="document.getElementById('payModal').classList.remove('open')">Cancel</button>
+      <button class="btn-brand" onclick="document.getElementById('payModal').classList.remove('open'); openReceipt();">Collect Now</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="receiptModal">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <span class="modal-title">Fee Receipt</span>
+      <button class="modal-close" onclick="document.getElementById('receiptModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body" id="printArea">
+      <div class="receipt-frame">
+        <div class="receipt-header">
+          <div class="receipt-logo"><i class="bi bi-mortarboard-fill"></i></div>
+          <div>
+            <div class="receipt-school-name">GREEN VALLEY PUBLIC SCHOOL</div>
+            <div class="receipt-meta">MG Road, Indore, Madhya Pradesh &middot; +91 731 2345678</div>
+          </div>
+        </div>
+        <div class="receipt-band">FEE RECEIPT · No. RCPT-2026-0512</div>
+        <div class="receipt-line"><span>Student Name</span><b>Rohan Kapoor</b></div>
+        <div class="receipt-line"><span>Admission No.</span><b>2024142</b></div>
+        <div class="receipt-line"><span>Class</span><b>8th</b></div>
+        <div class="receipt-line"><span>Payment Date</span><b>05 Sep 2026</b></div>
+        <div class="receipt-line"><span>Payment Mode</span><b>Cash</b></div>
+        <div class="receipt-divider"></div>
+        <div class="receipt-line"><span>Tuition Fee</span><b>₹ 15,000</b></div>
+        <div class="receipt-line"><span>Transport Fee</span><b>₹ 5,000</b></div>
+        <div class="receipt-line" style="color:var(--warning);"><span>Previous Year Due (7th)</span><b style="color:var(--warning);">₹ 6,500</b></div>
+        <div class="receipt-line"><span>Concession Amount</span><b>− ₹ 0</b></div>
+        <div class="receipt-divider"></div>
+        <div class="receipt-total-row"><span>Total Fee</span><span>₹ 42,000</span></div>
+        <div class="receipt-total-row"><span>Paid Fee</span><span>₹ 42,000</span></div>
+        <div class="receipt-total-row"><span>Due Fee</span><span>₹ 0</span></div>
+        <p class="receipt-words">Rupees Twenty Thousand Only received towards fee for 8th, Session 2026-27.</p>
+        <div class="receipt-sign-row">
+          <div class="receipt-sign-block"><div class="receipt-sign-line"></div><span>Authorized Signatory</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="document.getElementById('receiptModal').classList.remove('open')">Close</button>
+      <button class="btn-brand" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+    </div>
+  </div>
+</div>
+
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  if (dd.classList.contains('disabled')) return;
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+});
+function setDDValue(id, value, label){
+  const dd = document.getElementById(id);
+  dd.dataset.value = value;
+  dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
+}
+function disableDD(id, resetLabel){
+  const dd = document.getElementById(id);
+  dd.classList.add('disabled');
+  if (resetLabel) setDDValue(id, '', resetLabel);
+}
+function enableDD(id){ document.getElementById(id).classList.remove('disabled'); }
+function selectFilter(optionEl, ddId, value, label){
+  setDDValue(ddId, value, label);
+  document.getElementById(ddId).classList.remove('open');
+  if (ddId === 'classPill') onClassChange();
+  if (ddId === 'streamPill') onStreamChange();
+}
+function selectSession(optionEl, label){
+  setDDValue('sessionDD', label, label);
+  document.getElementById('sessionDD').classList.remove('open');
+}
+const groupsByStream = {
+  science: ['Mathematics Group', 'Biology Group'],
+  commerce: ['Commerce Group']
+};
+function onClassChange(){
+  const val = document.getElementById('classPill').dataset.value;
+  if (val === '11' || val === '12') enableDD('streamPill');
+  else { disableDD('streamPill', 'All streams'); disableDD('groupPill', 'All groups'); }
+}
+function onStreamChange(){
+  const stream = document.getElementById('streamPill').dataset.value;
+  const menu = document.getElementById('groupMenu');
+  if (stream && groupsByStream[stream]) {
+    enableDD('groupPill');
+    menu.innerHTML = '<div class="dd-option selected" onclick="selectFilter(this,\'groupPill\',\'\',\'All groups\')">All groups</div>'
+      + groupsByStream[stream].map(g => `<div class="dd-option" onclick="selectFilter(this,'groupPill','${g}','${g}')">${g}</div>`).join('');
+    setDDValue('groupPill', '', 'All groups');
+  } else {
+    disableDD('groupPill', 'All groups');
+  }
+}
+function openPayModal(){ document.getElementById('payModal').classList.add('open'); }
+function openReceipt(){ document.getElementById('receiptModal').classList.add('open'); }
+
+/* ---------- Row selection ---------- */
+function toggleAll(master){
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = master.checked);
+  onRowCheck();
+}
+function onRowCheck(){
+  const checked = document.querySelectorAll('.row-check:checked').length;
+  const total = document.querySelectorAll('.row-check').length;
+  document.getElementById('selectAll').checked = total > 0 && checked === total;
+  document.getElementById('reportBtn').disabled = checked === 0;
 }
 
-function onClassChange() {
-  const val = document.getElementById('cls').value;
-  const streamPill = document.getElementById('streamPill');
-  streamPill.style.display = (val === '11' || val === '12') ? 'flex' : 'none';
+/* ---------- Reports: period-wise bulk export + per-student export, in Excel / CSV / PDF ---------- */
+let currentFormat = 'excel';
+function selectFormat(btn){
+  btn.parentElement.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFormat = btn.dataset.format;
+}
+
+/* Cell order: 0 checkbox, 1 Student, 2 Admission No., 3 Class, 4 Stream, 5 Group,
+   6 Concession, 7 Paid Fee, 8 Due Fee, 9 Total Fee, 10 Status, 11 Collected By */
+function extractRowData(tr){
+  const cells = tr.querySelectorAll('td');
+  return {
+    'Student': cells[1].querySelector('.st-name').textContent.trim(),
+    'Admission No.': cells[2].textContent.trim(),
+    'Class': cells[3].textContent.trim(),
+    'Stream': cells[4].textContent.trim(),
+    'Group': cells[5].textContent.trim(),
+    'Concession': cells[6].textContent.trim(),
+    'Paid Fee': cells[7].textContent.trim(),
+    'Due Fee': cells[8].querySelector('.amt-due') ? cells[8].querySelector('.amt-due').textContent.trim() : cells[8].textContent.trim(),
+    'Total Fee': cells[9].textContent.trim(),
+    'Status': cells[10].querySelector('.tag').textContent.trim(),
+    'Collected By': cells[11].textContent.trim()
+  };
+}
+
+function openReportModal(){
+  const selected = document.querySelectorAll('.row-check:checked').length;
+  const note = document.getElementById('reportScopeNote');
+  note.textContent = `${selected} student${selected === 1 ? '' : 's'} selected — the report covers just them.`;
+  document.getElementById('reportModal').classList.add('open');
+}
+
+function getReportRows(){
+  const checked = Array.from(document.querySelectorAll('.row-check:checked'));
+  const trs = checked.length > 0
+    ? checked.map(cb => cb.closest('tr'))
+    : Array.from(document.querySelectorAll('.table-inner tbody tr'));
+  return trs.map(extractRowData);
+}
+
+function exportRows(rows, baseFileName){
+  if (!rows.length) { alert('Nothing to export — no rows match.'); return; }
+  if (currentFormat === 'excel') {
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Fee Report');
+    XLSX.writeFile(wb, `${baseFileName}.xlsx`);
+  } else if (currentFormat === 'csv') {
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const csv = XLSX.utils.sheet_to_csv(ws);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${baseFileName}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } else if (currentFormat === 'pdf') {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const headers = Object.keys(rows[0]);
+    const body = rows.map(r => headers.map(h => r[h]));
+    doc.setFontSize(13);
+    doc.text(baseFileName.replace(/-/g, ' '), 14, 14);
+    doc.autoTable({ head: [headers], body: body, startY: 20, styles: { fontSize: 8 } });
+    doc.save(`${baseFileName}.pdf`);
+  }
+}
+
+function downloadFeeReport(){
+  const periodLabel = document.querySelector('#periodPill .dd-label').textContent;
+  const rows = getReportRows();
+  const fileName = `Fee-Report_${periodLabel.replace(/\s+/g,'-')}_${new Date().toISOString().slice(0,10)}`;
+  exportRows(rows, fileName);
+  document.getElementById('reportModal').classList.remove('open');
+}
+
+let currentReportRow = null;
+function openStudentReport(tr){
+  currentReportRow = tr;
+  const data = extractRowData(tr);
+  document.getElementById('studentReportTitle').textContent = `Fee Report — ${data['Student']}`;
+  document.getElementById('studentReportInfo').innerHTML = `Admission No. <b>${data['Admission No.']}</b> &middot; Class <b>${data['Class']}</b><br>Student <b>${data['Student']}</b>`;
+  document.getElementById('studentReportBreakdown').innerHTML = `
+    <div class="due-row"><span>Paid Fee</span><b>${data['Paid Fee']}</b></div>
+    <div class="due-row"><span>Due Fee</span><b>${data['Due Fee']}</b></div>
+    <div class="due-total-row"><span>Total Fee</span><span>${data['Total Fee']}</span></div>`;
+  document.getElementById('studentReportModal').classList.add('open');
+}
+function downloadStudentReport(){
+  if (!currentReportRow) return;
+  const data = extractRowData(currentReportRow);
+  exportRows([data], `Fee-Report_${data['Student'].replace(/\s+/g,'-')}`);
+  document.getElementById('studentReportModal').classList.remove('open');
 }
 </script>
 </body>

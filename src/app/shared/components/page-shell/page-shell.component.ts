@@ -1,6 +1,6 @@
 /**
- * app-page-shell — the header + sidebar + spacer + content slot every page in the new UI
- * renders inside. Built ONCE (this file); no module page carries its own header/sidebar
+ * app-page-shell — the sidebar + topbar + content slot every page in the new UI renders
+ * inside. Built ONCE (this file); no module page carries its own header/sidebar
  * markup, which is what the 35 page references in the planning package were standing in
  * for with a static snapshot.
  *
@@ -13,6 +13,8 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnIni
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
+import { SHELL_NAV } from 'src/app/shared/config/shell-nav.config';
+import { ShellCrumb } from './shell-header/shell-header.component';
 import { ShellContext, ShellNotification } from 'src/app/shared/models/shell-context.model';
 import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 
@@ -26,6 +28,9 @@ export class PageShellComponent implements OnInit, OnDestroy {
   context: ShellContext | null = null;
   activeUrl = '';
   mobileOpen = false;
+  /** 'Academic Setup / Classes & Sections' — derived from the nav config, so a page never
+      has to declare its own crumb and the two can never drift apart. */
+  crumb: ShellCrumb | null = null;
 
   /**
    * Placeholder until the unified notifications service exists (see
@@ -42,7 +47,7 @@ export class PageShellComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.activeUrl = this.router.url;
+    this.setActiveUrl(this.router.url);
 
     this.shellContext.context
       .pipe(takeUntil(this.destroy$))
@@ -55,7 +60,7 @@ export class PageShellComponent implements OnInit, OnDestroy {
     this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd), takeUntil(this.destroy$))
       .subscribe((event) => {
-        this.activeUrl = event.urlAfterRedirects;
+        this.setActiveUrl(event.urlAfterRedirects);
         this.mobileOpen = false;
         this.cdr.markForCheck();
       });
@@ -80,5 +85,32 @@ export class PageShellComponent implements OnInit, OnDestroy {
 
   onLogout(): void {
     this.shellContext.logout();
+  }
+
+  private setActiveUrl(url: string): void {
+    this.activeUrl = url;
+    this.crumb = this.resolveCrumb(url.split('?')[0]);
+  }
+
+  /**
+   * Longest-prefix match against the nav config, so /v2/payroll/salary-groups resolves to
+   * its own page rather than to the group's first entry. A route the config doesn't know
+   * (the components gallery, the not-built placeholder) simply gets no crumb.
+   */
+  private resolveCrumb(url: string): ShellCrumb | null {
+    const candidates: { route: string; crumb: ShellCrumb }[] = [];
+
+    SHELL_NAV.forEach((group) => {
+      if (group.route) candidates.push({ route: group.route, crumb: { group: '', page: group.label } });
+      (group.items || []).forEach((item) => {
+        candidates.push({ route: item.route, crumb: { group: group.label, page: item.label } });
+      });
+    });
+
+    const match = candidates
+      .filter((candidate) => url === candidate.route || url.indexOf(candidate.route + '/') === 0)
+      .sort((a, b) => b.route.length - a.route.length)[0];
+
+    return match ? match.crumb : null;
   }
 }

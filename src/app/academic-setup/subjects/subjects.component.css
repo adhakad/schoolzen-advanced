@@ -1,0 +1,21 @@
+/* Almost everything here comes from the global design system
+   (shared/styles/schoolzen-design-system.css), which IS this page's reference <style>
+   block. What is left is the two things only this page's reference names. */
+
+.table-scroll { min-width: 0; }
+
+/* The subject name is the row's identity, set in the heading face like every other
+   primary cell in the app. */
+.subj-name {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+/* Type and Status are FIXED-WIDTH tags, per design-system.md: every chip in a set is the
+   same width, so the two columns read as columns rather than as ragged text. */
+.type-tag, .status-tag {
+  width: 88px;
+  justify-content: center;
+}

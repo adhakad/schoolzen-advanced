@@ -1,0 +1,13 @@
+/* Classes & Sections owns almost no CSS of its own.
+
+   Every class this page's template uses — .sw-toolbar, .toolbar-row1, .search, .btn-primary,
+   the table rules, .tag, .icon-btn, .stats-card, .status-card and the modal/confirm blocks —
+   comes from the global design system (shared/styles/schoolzen-design-system.css), which IS
+   the reference file's <style> block. A page-local copy of any of them would be the start of
+   the two drifting apart, which is exactly what the single design system exists to prevent.
+
+   The one rule below is structural, not visual: the table's scroll wrapper must be allowed
+   to shrink inside the flex card, or the card grows to the table's width instead of the
+   table scrolling within it. */
+
+.table-scroll { min-width: 0; }

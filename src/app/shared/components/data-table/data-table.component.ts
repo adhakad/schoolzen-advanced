@@ -49,8 +49,17 @@ export class DataTableComponent<T extends Record<string, any> = Record<string, a
 
   @ContentChild('cells') cellTemplate: TemplateRef<{ $implicit: T; index: number }> | null = null;
 
-  /** Precomputed so the template never calls a function per row. */
+  /**
+   * Precomputed so the template never calls a function per row.
+   *
+   * Both are the SAME value — the sum of the declared column widths — because every cell
+   * is fixed-width: a table wider than its columns add up to is not a table with wider
+   * columns, it is a table with dead space to the right of the last one, and the row
+   * hover and separator lines painting across that space is what read as "large empty
+   * gaps on desktop". Narrower than the sum, the outer layer scrolls instead.
+   */
   minWidth = '880px';
+  naturalWidth = '880px';
 
   ngOnChanges(): void {
     const columnsWidth = this.columns.reduce((total, column) => {
@@ -58,7 +67,10 @@ export class DataTableComponent<T extends Record<string, any> = Record<string, a
       return total + (isNaN(width) ? 0 : width);
     }, 0);
     const checkWidth = this.selectable ? 32 : 0;
-    this.minWidth = Math.max(columnsWidth + checkWidth + 16, 640) + 'px';
+    // +16 for the .sw-thead / .sw-row horizontal padding the columns sit inside.
+    const total = columnsWidth + checkWidth + 16;
+    this.minWidth = total + 'px';
+    this.naturalWidth = total + 'px';
   }
 
   get allSelected(): boolean {

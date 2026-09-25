@@ -1,1 +1,41 @@
+/* A one-line row of counts above a page's table.
+   Built from the design system's tokens and constants; verify against the Attendance /
+   Payroll references when those modules are built — no reference read so far defines it. */
+
 :host { display: block; }
+
+.ls-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.ls-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px;
+  border-radius: 20px;
+  border: 1px solid #BFE0CC;
+  color: var(--success);
+  font-weight: 500;
+}
+.ls-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+
+.ls-sep { width: 1px; align-self: stretch; background: var(--line-soft); }
+
+.ls-count b {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-right: 4px;
+}
+.ls-count.hero b { color: var(--brand); }

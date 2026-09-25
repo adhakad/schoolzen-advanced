@@ -1,8 +1,10 @@
 # App Shell — Header + Sidebar (finalized design)
 
 Status: **FINAL** — v1
-Depends on: `refactor-plan-and-design-system.md` (R3 permission system,
-R4 unified frontend shell)
+Depends on: `settings/roles-permissions.md` (Role/RoleAssignment — the
+permission system the sidebar's lock-icon behavior reads from) and
+`_core/state-management.md` (`ShellContextService` — the session-wide
+state this shell renders against)
 Reference: `app-shell.html`
 
 This is the **definitive** header + sidebar component — every one of
@@ -86,8 +88,4 @@ actual product surface this package designs.
 
 ## Responsive breakpoint
 
-860px, matching the point where the fixed 210-224px sidebar plus a
-reasonably-usable main content area stops fitting comfortably. Below
-it: the sidebar becomes a fixed off-canvas panel, the header's session
-selector and profile name text hide (icon-only, to save header width),
-and the hamburger button appears to open the drawer.
+**992px** (`lg`) — matches `design-system.md`'s industry-standard breakpoint scale (Bootstrap/Material/Tailwind all use a breakpoint in this same 992–1024px neighborhood for exactly this sidebar-collapse purpose; supersedes an earlier 860px figure used before that scale was settled on). Below 992px (phones, portrait and landscape, plus tablet portrait): the sidebar becomes a fixed off-canvas panel, the header's session selector and profile name text hide (icon-only, to save header width), and the hamburger button appears to open the drawer. From 992px up: sidebar is persistent at 248px.

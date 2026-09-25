@@ -2,457 +2,338 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Settings - Admission Form Fields - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>Schoolzen — Admission Form Fields</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 900px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 900px; margin: 0 auto; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 12px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-spacer { height: 24px; }
-  .sw-body { display: flex; gap: 16px; align-items: stretch; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
-  .sw-main { flex: 1; min-width: 0; }
-  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
-  .sw-subtitle { font-size: 12px; color: #9494ac; margin-bottom: 6px; }
-  .impact-note { background: #f0eeff; border-radius: 10px; padding: 10px 14px; font-size: 11.5px; color: #5b4fd6; margin-bottom: 18px; line-height: 1.6; }
-  .impact-note b { color: #3d2fa8; }
-
-  .grp-title { font-size: 11px; font-weight: 700; color: #7b6ef6; text-transform: uppercase; letter-spacing: .4px; margin: 18px 0 8px; }
-  .grp-title:first-of-type { margin-top: 0; }
-  .field-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #f9f8ff; border-radius: 10px; margin-bottom: 6px; }
-  .field-row.locked { background: #fff; border: 1px dashed #e5e3f5; }
-  .field-name { flex: 1; font-size: 13px; font-weight: 600; color: #1a1a2e; }
-  .field-name small { display: block; font-size: 10.5px; color: #9494ac; font-weight: 500; margin-top: 1px; }
-  .lock-tag { font-size: 9.5px; color: #b0b0c9; background: #f0eeff; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
-  .req-toggle { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6b6b85; font-weight: 600; }
-  .req-toggle input { width: 14px; height: 14px; accent-color: #b8790a; }
-  .show-switch { width: 34px; height: 19px; border-radius: 999px; background: #d9f7ea; position: relative; cursor: pointer; flex-shrink: 0; }
-  .show-switch.off { background: #e5e3f5; }
-  .show-switch::after { content: ''; width: 15px; height: 15px; border-radius: 50%; background: #fff; position: absolute; top: 2px; right: 2px; }
-  .show-switch.off::after { right: auto; left: 2px; }
-
-  .add-custom-btn { background: #f6f5ff; color: #7b6ef6; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; margin-top: 14px; }
-  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 10px 20px; font-size: 12.5px; font-weight: 600; cursor: pointer; margin-top: 18px; }
-  .modal-overlay.open { display: flex !important; }
+  :root{ --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;} nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;} .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+  .dd{position:relative;} .dd-trigger{cursor:pointer; user-select:none; display:flex; align-items:center; gap:6px;}
+  .state-select-pill{background:var(--surface); border:1px solid var(--line); border-radius:20px; height:30px; padding:0 12px; text-transform:none; letter-spacing:0; font-weight:600; font-size:11.5px; color:var(--brand);}
+  .state-select-pill .dd-label{color:var(--brand);}
+  .state-select-pill .bi-geo-alt{color:var(--brand); font-size:12px;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:max(100%,165px); width:max-content; max-width:260px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);} .dd-option.danger:hover{background:var(--danger-soft);}
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+  .content{padding:28px 32px;} .page-head{margin-bottom:20px;}
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .col-side{width:270px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;} .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);} .stat-row.accent .stat-value{color:var(--brand);}
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;} .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .grp-title{font-size:11px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; margin:20px 0 10px; padding-top:16px; border-top:1px solid var(--line-soft); display:flex; align-items:center; justify-content:space-between;}
+  .state-badge{font-size:10.5px; font-weight:600; color:var(--brand); background:var(--brand-soft); padding:4px 10px; border-radius:20px; text-transform:none; letter-spacing:0; display:inline-flex; align-items:center; gap:5px;}
+  .field-row.inactive-state{opacity:.55;}
+  .not-applicable-tag{font-size:11px; color:var(--ink-faint); font-style:italic; margin-left:auto;}
+  .grp-title:first-child{margin-top:0; padding-top:0; border-top:none;}
+  .field-row{display:flex; align-items:center; gap:14px; padding:11px 0; border-bottom:1px solid var(--line-soft);}
+  .field-row.locked{background:var(--paper); margin:0 -12px; padding:11px 12px; border-radius:var(--radius); border-bottom:none;}
+  .field-name{flex:1; font-size:13.5px; font-weight:600; color:var(--ink);}
+  .field-name small{display:block; font-weight:400; font-size:11px; color:var(--ink-faint); margin-top:2px;}
+  .lock-tag{font-size:10.5px; color:var(--ink-faint); font-weight:600; display:flex; align-items:center; gap:5px; flex-shrink:0;}
+  .req-toggle{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-soft); font-weight:600; flex-shrink:0; cursor:pointer;}
+  .req-toggle input{width:14px; height:14px; accent-color:var(--warning); cursor:pointer;}
+  .req-toggle input:disabled{cursor:not-allowed;}
+  .edit-field-btn{width:28px; height:28px; border-radius:7px; background:var(--brand-soft); color:var(--brand); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px; flex-shrink:0;}
+  .edit-field-btn:hover{background:var(--brand); color:#fff;}
+  .show-switch{width:38px; height:22px; border-radius:20px; background:var(--line); position:relative; cursor:pointer; flex-shrink:0;}
+  .show-switch::after{content:''; position:absolute; width:16px; height:16px; border-radius:50%; background:#fff; top:3px; left:3px; transition:left .15s;}
+  .show-switch.on{background:var(--success);} .show-switch.on::after{left:19px;}
+  .add-custom-btn{background:none; border:1.5px dashed var(--line); border-radius:var(--radius); color:var(--brand); font-size:12.5px; font-weight:600; padding:10px 16px; cursor:pointer; display:flex; align-items:center; gap:7px; margin-top:20px;}
+  .add-custom-btn:hover{background:var(--brand-soft);}
+  .btn-brand{height:38px; padding:0 18px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:600; cursor:pointer; margin-top:20px;}
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:60; align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); border-radius:var(--radius); width:460px; max-width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .modal-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink);}
+  .modal-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+  .modal-body{padding:20px 24px; flex:1; overflow-y:auto; min-height:0;}
+  .modal-foot{padding:16px 24px; border-top:1px solid var(--line); flex-shrink:0; display:flex; justify-content:flex-end; gap:10px;}
+  .m-field{margin-bottom:14px;}
+  .m-field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);}
+  .sw-select-pill-full{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; box-sizing:border-box; }
+  .dd-menu.full-width{width:100%;}
+  .rule-row{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .rule-row select, .rule-row input{flex:1; height:34px; border:1px solid var(--line); border-radius:var(--radius); padding:0 8px; font-size:12px; font-family:inherit; outline:none;}
+  .rule-remove{width:26px; height:26px; border-radius:6px; background:var(--danger-soft); color:var(--danger); border:none; cursor:pointer; flex-shrink:0;}
+  .add-rule-btn{background:var(--brand-soft); color:var(--brand); border:none; border-radius:var(--radius); padding:6px 12px; font-size:11px; font-weight:600; cursor:pointer; margin-top:4px;}
+  .btn-plain{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
 </style>
 </head>
 <body>
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a href="#">Academic Sessions</a>
+      <a class="current" href="#">Admission Form Fields</a>
+      <a href="#">Roles &amp; Permissions</a>
+      <a href="#">Marksheet Templates</a>
+    </div>
+  </nav>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Settings / <b>Admission Form Fields</b></div>
+    <div class="top-actions">
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')"><div class="avatar">A</div><span class="profile-name">Admin</span><i class="bi bi-chevron-down chevron"></i></div>
+        <div class="dd-menu">
+          <div class="drop-school"><div class="drop-school-logo">GV</div><div><div class="drop-school-name">Green Valley Public School</div><div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div></div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div><div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div><div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-head"><h1>Admission Form Fields</h1><div class="subtitle">Which fields show on the Admission form, whether each is required, and any validation rules.</div></div>
+    <div class="layout-row">
+    <div class="sw-card-main">
+      <div class="grp-title">Always Required — can't be hidden or made optional, but you can add extra rules on top of the default one</div>
+      <div class="field-row locked"><div class="field-name">Name<small>Default (fixed): must be text</small></div><span class="lock-tag"><i class="bi bi-lock-fill"></i> Always shown</span><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div></div>
+      <div class="field-row locked"><div class="field-name">Class<small>Default (fixed): must match a class from Academic Setup</small></div><span class="lock-tag"><i class="bi bi-lock-fill"></i> Always shown</span><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div></div>
+      <div class="field-row locked"><div class="field-name">Date of Birth<small>Default (fixed): cannot be a future date</small></div><span class="lock-tag"><i class="bi bi-lock-fill"></i> Always shown</span><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div></div>
+      <div class="field-row locked"><div class="field-name">Gender<small>Default (fixed): must be Male, Female or Other</small></div><span class="lock-tag"><i class="bi bi-lock-fill"></i> Always shown</span><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div></div>
 
-<div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  Settings &rarr; Admission Form Fields. This is the SINGLE SOURCE OF
-  TRUTH for the Admission and Manage Students forms, their table
-  columns, and Excel import/export columns - hiding a field here
-  removes it everywhere (form, table, Excel); marking it Required
-  makes Excel import validate it as mandatory too. "Always Required"
-  fields (Name, Class, DOB, Gender) are locked - the app cannot
-  function without them, so they can't be hidden.
+      <div class="grp-title">Student Info</div>
+      <div class="field-row"><div class="field-name">Aadhar Number<small>12 digits &middot; numeric only &middot; must be unique</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" onclick="toggleSwitch(this)"></div></div>
+      <div class="field-row"><div class="field-name">UDISE Number<small>11 digits &middot; numeric only</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch off" onclick="toggleSwitch(this)"></div></div>
+      <div class="field-row"><div class="field-name">Bank A/C Number<small>9–18 digits &middot; numeric only</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch off" onclick="toggleSwitch(this)"></div></div>
+      <div class="field-row"><div class="field-name">Bank IFSC Code<small>exactly 11 characters &middot; letters+digits &middot; 5th character is 0</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch off" onclick="toggleSwitch(this)"></div></div>
+      <div class="field-row"><div class="field-name">Last School<small>text &middot; max 50 characters</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" onclick="toggleSwitch(this)"></div></div>
+
+      <div class="grp-title">
+        State-Specific
+        <div class="dd state-select-pill" id="stateSelectPill" data-value="Madhya Pradesh">
+          <div class="dd-trigger" onclick="toggleDD(event,'stateSelectPill')"><i class="bi bi-geo-alt"></i><span class="dd-label">Madhya Pradesh</span><i class="bi bi-chevron-down chevron"></i></div>
+          <div class="dd-menu full-width" id="stateSelectMenu"></div>
+        </div>
+      </div>
+      <div id="stateFieldRows"></div>
+      <button class="add-custom-btn" onclick="openStateFieldModal()"><i class="bi bi-plus-lg"></i> Add State-Specific Field</button>
+
+      <div class="grp-title">Parents Info</div>
+      <div class="field-row"><div class="field-name">Father / Mother Qualification<small>choose from list</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" onclick="toggleSwitch(this)"></div></div>
+      <div class="field-row"><div class="field-name">Father / Mother Occupation<small>choose from list</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" onclick="toggleSwitch(this)"></div></div>
+      <div class="field-row"><div class="field-name">Family Annual Income<small>numeric &middot; whole rupees &middot; cannot be negative</small></div><label class="req-toggle"><input type="checkbox" checked> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" onclick="toggleSwitch(this)"></div></div>
+
+      <div class="grp-title">Parents Contact</div>
+      <div class="field-row"><div class="field-name">Parents Contact<small>10 digits &middot; must start with 6, 7, 8 or 9 &middot; not all identical digits</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" onclick="toggleSwitch(this)"></div></div>
+
+      <div class="grp-title">Admission Info</div>
+      <div class="field-row"><div class="field-name">Admission Number<small>numeric &middot; must be unique across the school</small></div><label class="req-toggle"><input type="checkbox" checked disabled> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" style="opacity:.5; pointer-events:none;"></div></div>
+      <div class="field-row"><div class="field-name">Roll Number<small>numeric &middot; must be unique within the class and section</small></div><label class="req-toggle"><input type="checkbox" checked disabled> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" style="opacity:.5; pointer-events:none;"></div></div>
+
+      <button class="add-custom-btn" onclick="openFieldModal(null)"><i class="bi bi-plus-lg"></i> Add Custom Field</button>
+      <br>
+      <button class="btn-brand">Save Changes</button>
+    </div>
+    <div class="col-side">
+      <div class="stats-card">
+        <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+        <div class="stat-row"><span class="stat-label">Total Fields</span><span class="stat-value">16</span></div>
+        <div class="stat-row accent"><span class="stat-label">Custom Fields</span><span class="stat-value">0</span></div>
+      </div>
+      <div class="status-card">
+        <div class="card-title-row">Good to know</div>
+        <div class="tip-item"><i class="bi bi-info-circle"></i>Name, Class, Date of Birth and Gender are always required — Schoolzen needs them to create the student record itself.</div>
+        <div class="tip-item"><i class="bi bi-info-circle"></i>Hiding a field only affects new admissions — it doesn't remove data already saved for existing students.</div>
+        <div class="tip-item"><i class="bi bi-info-circle"></i>Add a custom field for anything your school tracks that isn't listed — with its own type and validation rules.</div>
+        <div class="tip-item"><i class="bi bi-info-circle"></i>State-specific fields (like Samagra ID) follow your school's state, set in School Profile — only the ones for your state ever show here.</div>
+      </div>
+    </div>
+    </div>
+  </div>
 </div>
 
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
-      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+<div class="modal-overlay" id="stateFieldModal">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title" id="stateFieldModalTitle">Add State-Specific Field</span><button class="modal-close" onclick="document.getElementById('stateFieldModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="m-field" style="margin-bottom:0;"><label>Field Label</label><input type="text" id="stateFieldNameInput" placeholder="e.g. Child ID"></div>
     </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('stateFieldModal').classList.remove('open')">Cancel</button><button class="btn-brand" style="margin-top:0;" onclick="saveStateField()">Add Field</button></div>
   </div>
-  <div class="sw-spacer"></div>
-  <div class="sw-body">
-    <div class="sb-wrap">
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
+</div>
+
+<div class="modal-overlay" id="fieldModal">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title" id="fieldModalTitle">Add Custom Field</span><button class="modal-close" onclick="document.getElementById('fieldModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="m-field"><label>Field Label</label><input type="text" id="fieldLabelInput" placeholder="e.g. Blood Group"></div>
+      <div class="m-field">
+        <label>Field Type</label>
+        <div class="dd sw-select-pill-full" id="fieldTypePill" data-value="Text" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'fieldTypePill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">Text</span><i class="bi bi-chevron-down chevron"></i></div>
+          <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectFieldType(this,'Text')">Text</div><div class="dd-option" onclick="selectFieldType(this,'Number')">Number</div><div class="dd-option" onclick="selectFieldType(this,'Dropdown')">Dropdown (choose from list)</div><div class="dd-option" onclick="selectFieldType(this,'Date')">Date</div></div>
         </div>
       </div>
-      <div class="sb-group" data-group="staff">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="academic">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="holiday">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="fees">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="examination">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="certificates">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-      <div class="sb-group open" data-group="settings">
-        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
-        </div>
-      </div>
+      <div class="m-field"><label>Validation Rules</label><div id="ruleRows"></div><button type="button" class="add-rule-btn" onclick="addRuleRow()"><i class="bi bi-plus-lg"></i> Add another rule</button></div>
     </div>
-    <div class="sw-main">
-      <div class="sw-card-main">
-        <div class="sw-title">Admission Form Fields</div>
-        <div class="sw-subtitle">Choose which fields appear on the New Admission form, and whether each is required.</div>
-        <div class="impact-note">
-          <b>This drives everything downstream:</b> the fields you enable here appear on both the Admission and Manage Students forms, as columns in their tables, and as columns in Excel Import/Export. Hide a field and it disappears everywhere; mark one Required and Excel import will reject rows missing it.
-        </div>
-
-        <div class="grp-title">Always Required <span style="font-weight:500;color:#9494ac;text-transform:none;letter-spacing:0;">— can't be hidden or made optional, but you can add extra rules on top of the default one</span></div>
-        <div class="field-row locked">
-          <div class="field-name">Name<small>Default (fixed): must be text</small></div>
-          <span class="lock-tag">Always shown</span>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div>
-        </div>
-        <div class="field-row locked">
-          <div class="field-name">Class<small>Default (fixed): must match a class from Academic Setup</small></div>
-          <span class="lock-tag">Always shown</span>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div>
-        </div>
-        <div class="field-row locked">
-          <div class="field-name">Date of Birth<small>Default (fixed): cannot be a future date</small></div>
-          <span class="lock-tag">Always shown</span>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div>
-        </div>
-        <div class="field-row locked">
-          <div class="field-name">Gender<small>Default (fixed): must be Male, Female or Other</small></div>
-          <span class="lock-tag">Always shown</span>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div>
-        </div>
-
-        <div class="grp-title">Student Info</div>
-        <div class="field-row">
-          <div class="field-name">Aadhar Number<small>12 digits &middot; numeric only &middot; must be unique</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch on" onclick="toggle(this)"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-name">Samagra ID<small>9 digits &middot; numeric only</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch on" onclick="toggle(this)"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-name">UDISE Number<small>11 digits &middot; numeric only</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch off" onclick="toggle(this)"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-name">Bank A/C Number<small>9&ndash;18 digits &middot; numeric only</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch off" onclick="toggle(this)"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-name">Bank IFSC Code<small>exactly 11 characters &middot; letters+digits &middot; 5th character is 0</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch off" onclick="toggle(this)"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-name">Last School<small>text &middot; max 50 characters</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch on" onclick="toggle(this)"></div>
-        </div>
-
-        <div class="grp-title">Parents Info</div>
-        <div class="field-row">
-          <div class="field-name">Father / Mother Qualification<small>choose from list</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch on" onclick="toggle(this)"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-name">Father / Mother Occupation<small>choose from list</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch on" onclick="toggle(this)"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-name">Family Annual Income<small>numeric &middot; whole rupees &middot; cannot be negative</small></div>
-          <label class="req-toggle"><input type="checkbox" checked> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch on" onclick="toggle(this)"></div>
-        </div>
-
-        <div class="grp-title">Parents Contact</div>
-        <div class="field-row">
-          <div class="field-name">Parents Contact<small>10 digits &middot; must start with 6, 7, 8 or 9 &middot; not all identical digits</small></div>
-          <label class="req-toggle"><input type="checkbox"> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div><div class="show-switch on" onclick="toggle(this)"></div>
-        </div>
-
-        <div class="grp-title">Admission Info</div>
-        <div class="field-row">
-          <div class="field-name">Admission Number<small>numeric &middot; must be unique across the school</small></div>
-          <label class="req-toggle"><input type="checkbox" checked disabled> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div>
-          <div class="show-switch on" style="opacity:.5;pointer-events:none;"></div>
-        </div>
-        <div class="field-row">
-          <div class="field-name">Roll Number<small>numeric &middot; must be unique within the class and section</small></div>
-          <label class="req-toggle"><input type="checkbox" checked disabled> Required</label>
-          <div class="edit-field-btn" onclick="openEditField(this)" style="width:26px;height:26px;border-radius:7px;background:#f0eeff;color:#7b6ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;"><i class="ti ti-settings"></i></div>
-          <div class="show-switch on" style="opacity:.5;pointer-events:none;"></div>
-        </div>
-
-        <button class="add-custom-btn" onclick="openAddField()"><i class="ti ti-plus" style="font-size:13px;"></i> Add Custom Field</button>
-        <br>
-        <button class="btn-submit">Save Changes</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add/Edit Field modal - shared by "Add Custom Field" and every existing field's edit icon -->
-  <div class="modal-overlay" id="customFieldModal" style="display:none;position:fixed;inset:0;background:rgba(20,20,60,0.35);align-items:center;justify-content:center;z-index:50;">
-    <div style="background:#fff;border-radius:16px;width:420px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #f0eeff;flex-shrink:0;">
-        <span id="fieldModalTitle" style="font-size:15px;font-weight:700;color:#1a1a2e;">Add Custom Field</span>
-        <div onclick="document.getElementById('customFieldModal').classList.remove('open')" style="cursor:pointer;color:#9494ac;"><i class="ti ti-x"></i></div>
-      </div>
-      <div style="padding:18px 22px;overflow-y:auto;flex:1;">
-        <div style="margin-bottom:12px;"><label style="display:block;font-size:11px;color:#9494ac;margin-bottom:4px;font-weight:600;">Field Label</label><input type="text" id="fieldLabelInput" placeholder="Sibling Name" style="width:100%;border:1px solid #e5e3f5;border-radius:10px;padding:9px 12px;font-size:13px;box-sizing:border-box;"></div>
-        <div style="margin-bottom:12px;"><label style="display:block;font-size:11px;color:#9494ac;margin-bottom:4px;font-weight:600;">Field Type</label><select id="fieldTypeSel" onchange="onFieldTypeChange()" style="width:100%;border:1px solid #e5e3f5;border-radius:10px;padding:9px 12px;font-size:13px;box-sizing:border-box;"><option>Text</option><option>Number</option><option>Date</option><option>Dropdown (choose from list)</option><option>Phone Number</option></select></div>
-        <div id="dropdownOptions" style="margin-bottom:12px;display:none;">
-          <label style="display:block;font-size:11px;color:#9494ac;margin-bottom:4px;font-weight:600;">List Options</label>
-          <input type="text" placeholder="One option per line: Option A, Option B, ..." style="width:100%;border:1px solid #e5e3f5;border-radius:10px;padding:9px 12px;font-size:13px;box-sizing:border-box;">
-        </div>
-        <div id="validationExtra" style="margin-bottom:12px;">
-          <label style="display:block;font-size:11px;color:#9494ac;margin-bottom:4px;font-weight:600;">Validation Rules</label>
-          <div id="ruleList">
-            <div class="rule-row" style="display:flex;gap:6px;margin-bottom:6px;">
-              <select class="rule-type-sel" onchange="onRuleTypeChange(this)" style="flex:1;border:1px solid #e5e3f5;border-radius:8px;padding:7px 10px;font-size:12px;box-sizing:border-box;">
-                <option value="">-- Choose a rule --</option>
-                <option value="exact_length">Exact length</option>
-                <option value="min_length">Minimum length</option>
-                <option value="max_length">Maximum length</option>
-                <option value="numeric_only">Numeric characters only</option>
-                <option value="letters_only">Letters only</option>
-                <option value="starts_with">Must start with</option>
-                <option value="not_start_with">Must not start with</option>
-                <option value="min_value">Minimum value</option>
-                <option value="max_value">Maximum value</option>
-                <option value="unique">Must be unique (no duplicates)</option>
-                <option value="not_future_date">Cannot be a future date</option>
-                <option value="not_identical_digits">Digits cannot all be the same</option>
-              </select>
-              <input type="text" class="rule-param" placeholder="Value" style="width:70px;border:1px solid #e5e3f5;border-radius:8px;padding:7px 10px;font-size:12px;box-sizing:border-box;display:none;">
-              <button onclick="this.parentElement.remove()" style="width:26px;height:26px;border-radius:6px;background:#fde8ef;color:#b8265a;border:none;cursor:pointer;flex-shrink:0;">&times;</button>
-            </div>
-          </div>
-          <button onclick="addRuleRow()" style="background:#f6f5ff;color:#7b6ef6;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;">+ Add another rule</button>
-          <div style="font-size:10.5px;color:#9494ac;margin-top:6px;">Pick from this list — the system knows exactly how to check each one. Rules needing a number (length, min/max) show a value box; others apply as-is. All rules added must pass together.</div>
-        </div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#3d3d5c;font-weight:500;"><input type="checkbox" id="fieldRequiredChk" style="width:15px;height:15px;accent-color:#7b6ef6;"> Make this Required</label>
-      </div>
-      <div style="padding:14px 22px;border-top:1px solid #f0eeff;flex-shrink:0;display:flex;justify-content:space-between;gap:8px;">
-        <button id="removeFieldBtn" style="display:none;background:#fde8ef;color:#b8265a;border:none;border-radius:10px;padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;">Remove Field</button>
-        <div style="display:flex;gap:8px;margin-left:auto;">
-          <button onclick="document.getElementById('customFieldModal').classList.remove('open')" style="background:#f6f5ff;color:#6b6b85;border:none;border-radius:10px;padding:9px 16px;font-size:12.5px;font-weight:600;cursor:pointer;">Cancel</button>
-          <button id="fieldModalSaveBtn" style="background:linear-gradient(135deg,#7b6ef6,#5b4fd6);color:#fff;border:none;border-radius:10px;padding:9px 18px;font-size:12.5px;font-weight:600;cursor:pointer;">Add Field</button>
-        </div>
-      </div>
-    </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('fieldModal').classList.remove('open')">Cancel</button><button class="btn-brand" style="margin-top:0;" onclick="document.getElementById('fieldModal').classList.remove('open')">Save Field</button></div>
   </div>
 </div>
 
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
 }
-
-function toggle(el) { el.classList.toggle('off'); }
-
-// Rules that need a typed parameter get a visible value box; the rest
-// (unique, numeric_only, letters_only, not_future_date, not_identical_digits)
-// are self-contained checks and need nothing extra typed in.
-const RULES_NEEDING_VALUE = ['exact_length', 'min_length', 'max_length', 'starts_with', 'not_start_with', 'min_value', 'max_value'];
-
-function ruleRowHTML() {
-  return `<select class="rule-type-sel" onchange="onRuleTypeChange(this)" style="flex:1;border:1px solid #e5e3f5;border-radius:8px;padding:7px 10px;font-size:12px;box-sizing:border-box;">
-      <option value="">-- Choose a rule --</option>
-      <option value="exact_length">Exact length</option>
-      <option value="min_length">Minimum length</option>
-      <option value="max_length">Maximum length</option>
-      <option value="numeric_only">Numeric characters only</option>
-      <option value="letters_only">Letters only</option>
-      <option value="starts_with">Must start with</option>
-      <option value="not_start_with">Must not start with</option>
-      <option value="min_value">Minimum value</option>
-      <option value="max_value">Maximum value</option>
-      <option value="unique">Must be unique (no duplicates)</option>
-      <option value="not_future_date">Cannot be a future date</option>
-      <option value="not_identical_digits">Digits cannot all be the same</option>
-    </select>
-    <input type="text" class="rule-param" placeholder="Value" style="width:70px;border:1px solid #e5e3f5;border-radius:8px;padding:7px 10px;font-size:12px;box-sizing:border-box;display:none;">
-    <button onclick="this.parentElement.remove()" style="width:26px;height:26px;border-radius:6px;background:#fde8ef;color:#b8265a;border:none;cursor:pointer;flex-shrink:0;">&times;</button>`;
+document.addEventListener('click', () => document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open')));
+function setDDValue(id, label){
+  const dd = document.getElementById(id);
+  dd.dataset.value = label; dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
 }
+function selectFieldType(optionEl, label){ setDDValue('fieldTypePill', label); document.getElementById('fieldTypePill').classList.remove('open'); }
 
-function onRuleTypeChange(sel) {
-  const row = sel.closest('.rule-row');
-  const param = row.querySelector('.rule-param');
-  if (RULES_NEEDING_VALUE.includes(sel.value)) {
-    param.style.display = 'block';
-    param.placeholder = (sel.value === 'starts_with' || sel.value === 'not_start_with') ? 'e.g. 9' : 'Number';
-  } else {
-    param.style.display = 'none';
-    param.value = '';
+function toggleSwitch(el){ el.classList.toggle('on'); el.classList.toggle('off'); }
+
+const stateFields = [
+  { state: 'Madhya Pradesh', name: 'Samagra ID', format: '9 digits · numeric only' },
+  { state: 'Uttar Pradesh', name: 'Prerna ID', format: '11 digits · numeric only' },
+  { state: 'Bihar', name: 'E-Shiksha Kosh ID', format: 'alphanumeric · school-issued' },
+  { state: 'Rajasthan', name: 'Shala Darpan ID', format: '11 digits · numeric only' },
+  { state: 'Haryana', name: 'PRERNA ID', format: 'alphanumeric · school-issued' },
+  { state: 'Delhi', name: 'EduSATS ID', format: 'alphanumeric · school-issued' },
+  { state: 'Chhattisgarh', name: 'Samagra-CG ID', format: '9 digits · numeric only' },
+  { state: 'Jharkhand', name: 'e-Vidyavahini ID', format: 'alphanumeric · school-issued' },
+  { state: 'Uttarakhand', name: 'Student Database ID', format: 'alphanumeric · school-issued' },
+  { state: 'Himachal Pradesh', name: 'Him Prerna ID', format: 'alphanumeric · school-issued' }
+];
+let currentSchoolState = 'Madhya Pradesh';
+const customStateFields = [];
+
+function renderStateSelectMenu(){
+  document.getElementById('stateSelectMenu').innerHTML = stateFields.map(s =>
+    `<div class="dd-option${s.state===currentSchoolState?' selected':''}" onclick="selectSchoolState('${s.state}')">${s.state}</div>`
+  ).join('');
+}
+function selectSchoolState(state){
+  currentSchoolState = state;
+  const dd = document.getElementById('stateSelectPill');
+  dd.dataset.value = state;
+  dd.querySelector('.dd-label').textContent = state;
+  dd.classList.remove('open');
+  renderStateSelectMenu();
+  renderStateFieldRows();
+}
+function renderStateFieldRows(){
+  const active = stateFields.find(s => s.state === currentSchoolState);
+  const rows = [];
+  if (active) {
+    rows.push(`<div class="field-row"><div class="field-name">${active.name}<small>${currentSchoolState} only &middot; ${active.format}</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" onclick="toggleSwitch(this)"></div></div>`);
   }
+  customStateFields.filter(f => f.state === currentSchoolState).forEach((f, i) => {
+    rows.push(`<div class="field-row"><div class="field-name">${f.name}<small>${currentSchoolState} only &middot; custom field</small></div><label class="req-toggle"><input type="checkbox"> Required</label><div class="edit-field-btn" onclick="openFieldModal(this)"><i class="bi bi-gear"></i></div><div class="show-switch on" onclick="toggleSwitch(this)"></div></div>`);
+  });
+  stateFields.filter(s => s.state !== currentSchoolState).forEach(s => {
+    rows.push(`<div class="field-row inactive-state"><div class="field-name">${s.name}<small>${s.state} only &middot; not shown — school is in ${currentSchoolState}</small></div><span class="not-applicable-tag">Not applicable</span></div>`);
+  });
+  document.getElementById('stateFieldRows').innerHTML = rows.join('');
 }
-
-function addRuleRow() {
-  const list = document.getElementById('ruleList');
-  const row = document.createElement('div');
-  row.className = 'rule-row';
-  row.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;';
-  row.innerHTML = ruleRowHTML();
-  list.appendChild(row);
+function openStateFieldModal(){
+  document.getElementById('stateFieldModalTitle').textContent = `Add State-Specific Field — ${currentSchoolState}`;
+  document.getElementById('stateFieldNameInput').value = '';
+  document.getElementById('stateFieldModal').classList.add('open');
 }
-
-function onFieldTypeChange() {
-  const val = document.getElementById('fieldTypeSel').value;
-  document.getElementById('dropdownOptions').style.display = val.startsWith('Dropdown') ? 'block' : 'none';
+function saveStateField(){
+  const name = document.getElementById('stateFieldNameInput').value.trim();
+  if (!name) return;
+  customStateFields.push({ state: currentSchoolState, name });
+  document.getElementById('stateFieldModal').classList.remove('open');
+  renderStateFieldRows();
 }
+renderStateSelectMenu();
+renderStateFieldRows();
 
-function openAddField() {
-  document.getElementById('fieldModalTitle').textContent = 'Add Custom Field';
-  document.getElementById('fieldModalSaveBtn').textContent = 'Add Field';
-  document.getElementById('removeFieldBtn').style.display = 'none';
-  document.getElementById('fieldLabelInput').value = '';
-  document.getElementById('fieldLabelInput').disabled = false;
-  document.getElementById('fieldRequiredChk').checked = false;
-  document.getElementById('fieldRequiredChk').disabled = false;
-  document.getElementById('ruleList').innerHTML = '';
+
+let ruleCount = 0;
+function addRuleRow(){
+  ruleCount++;
+  const div = document.createElement('div');
+  div.className = 'rule-row';
+  div.innerHTML = `<select><option>Min Length</option><option>Max Length</option><option>Must be numeric</option><option>Must be unique</option><option>Pattern (regex)</option></select><input type="text" placeholder="Value"><button type="button" class="rule-remove" onclick="this.parentElement.remove()">×</button>`;
+  document.getElementById('ruleRows').appendChild(div);
+}
+function openFieldModal(sourceEl){
+  const isEdit = !!sourceEl;
+  document.getElementById('fieldModalTitle').textContent = isEdit ? 'Edit Field' : 'Add Custom Field';
+  document.getElementById('fieldLabelInput').value = isEdit ? sourceEl.closest('.field-row').querySelector('.field-name').childNodes[0].textContent.trim() : '';
+  setDDValue('fieldTypePill', 'Text');
+  document.getElementById('ruleRows').innerHTML = '';
+  ruleCount = 0;
   addRuleRow();
-  document.getElementById('customFieldModal').classList.add('open');
-}
-
-function openEditField(btn) {
-  const row = btn.closest('.field-row');
-  const nameEl = row.querySelector('.field-name');
-  const label = nameEl.childNodes[0].textContent.trim();
-  const reqInput = row.querySelector('.req-toggle input');
-  // The four base-identity fields (Name/Class/DOB/Gender) have no
-  // Show/Required toggle at all - they're always shown, always required,
-  // by definition - so isLocked is true whenever there's nothing to read.
-  const isLocked = !reqInput || reqInput.disabled;
-
-  document.getElementById('fieldModalTitle').textContent = 'Edit Field';
-  document.getElementById('fieldModalSaveBtn').textContent = 'Save Changes';
-  // A locked field can still have EXTRA validation rules layered on top
-  // of its fixed default rule (e.g. Name defaults to "must be text," but
-  // a school can still add "max 50 characters") - it just can't be
-  // hidden, made optional, or removed entirely.
-  document.getElementById('removeFieldBtn').style.display = 'none';
-  document.getElementById('fieldLabelInput').value = label;
-  document.getElementById('fieldLabelInput').disabled = isLocked;
-  document.getElementById('fieldRequiredChk').checked = reqInput ? reqInput.checked : true;
-  document.getElementById('fieldRequiredChk').disabled = isLocked;
-
-  // In the real build this reads the field's STORED structured rules
-  // (rule-type key + parameter, e.g. {type:'exact_length', value:12}).
-  // For a locked field, its one default rule renders as a NON-REMOVABLE
-  // row (no × button) so it can't be deleted, with "+ Add another rule"
-  // still available below it for anything extra the school wants to add.
-  // Shown here as one empty addable row since this static reference has
-  // no live rule storage to read from.
-  document.getElementById('ruleList').innerHTML = '';
-  addRuleRow();
-
-  document.getElementById('customFieldModal').classList.add('open');
+  document.getElementById('fieldModal').classList.add('open');
 }
 </script>
 </body>

@@ -1,68 +1,73 @@
-<div class="sw-header">
-  <div class="sw-left">
-    <button type="button" class="hamburger-btn" aria-label="Open menu" (click)="menuToggled.emit()">
-      <i class="ti ti-menu-2"></i>
+<!-- The reference's `.topbar`: crumb left, session pill + notification bell + profile
+     dropdown right. Sits INSIDE .main, beside the full-height sidebar — not above it.
+     docs/schoolzen-planning/v1/academic-setup/classes-sections.html -->
+<div class="topbar">
+  <div class="crumb-left">
+    <button type="button" class="hamburger" aria-label="Open menu" (click)="menuToggled.emit()">
+      <i class="bi bi-list"></i>
     </button>
-    <div class="sw-brand">
-      <div class="sw-brand-mark">S</div>
-      <span class="sw-brand-name">Schoolzen</span>
+    <div class="crumb" *ngIf="crumb">
+      <ng-container *ngIf="crumb.group">{{ crumb.group }} / </ng-container><b>{{ crumb.page }}</b>
     </div>
   </div>
 
-  <div class="sw-right">
-    <div class="sw-session" *ngIf="context && context.sessions.length">
-      <i class="ti ti-calendar-event"></i>
-      <!-- Same Material control as the toolbar's filter pills, re-themed to the header's
-           999px session pill; Material's field chrome is never rendered. -->
-      <mat-select class="sw-pill-control" panelClass="sw-select-panel" disableRipple
-                  aria-label="Academic session"
-                  [value]="context.activeSession"
-                  (selectionChange)="onSessionChange($event.value)">
-        <mat-option *ngFor="let session of context.sessions; trackBy: trackBySession" [value]="session">
-          {{ session }}
-        </mat-option>
-      </mat-select>
+  <div class="top-actions">
+    <!-- Always rendered once there is a context. It used to be gated on the session LIST
+         being non-empty, so on any database where /v1/academic-session answers nothing the
+         selector vanished from every page in the app rather than showing the one session
+         it does know about. ShellContextService now always supplies at least that. -->
+    <app-dd class="year-pill" *ngIf="context"
+            [pill]="false"
+            [showChevron]="false"
+            triggerIcon="calendar-event"
+            menuAlign="left"
+            [fullWidth]="false"
+            ariaLabel="Academic session"
+            [options]="sessionOptions"
+            [value]="context.activeSession"
+            (valueChange)="onSessionChange($event)"></app-dd>
+
+    <div class="dd" [class.open]="bellOpen">
+      <button type="button" class="bell dd-trigger" aria-label="Notifications"
+              [attr.aria-expanded]="bellOpen" (click)="toggleBell($event)">
+        <i class="bi bi-bell"></i><span class="bell-dot" *ngIf="hasUnread"></span>
+      </button>
+      <div class="dd-menu">
+        <div class="notif-row" *ngFor="let notification of notifications; trackBy: trackById">
+          <span class="notif-title">{{ notification.text }}</span>
+          <span class="notif-meta">{{ notification.time }}</span>
+        </div>
+        <div class="notif-empty" *ngIf="!notifications.length">Nothing new right now.</div>
+      </div>
     </div>
 
-    <button type="button" class="sw-bell" aria-label="Notifications" (click)="toggleBell()">
-      <i class="ti ti-bell"></i><span class="bell-badge" *ngIf="hasUnread"></span>
-    </button>
+    <div class="dd" [class.open]="profileOpen">
+      <div class="profile dd-trigger" role="button" tabindex="0"
+           [attr.aria-expanded]="profileOpen"
+           (click)="toggleProfile($event)" (keydown.enter)="toggleProfile($event)">
+        <div class="avatar">{{ context?.initials }}</div>
+        <span class="profile-name">{{ context?.displayName }}</span>
+        <i class="bi bi-chevron-down chevron"></i>
+      </div>
 
-    <button type="button" class="sw-profile" (click)="toggleProfile()">
-      <span class="sw-avatar">{{ context?.initials }}</span>
-      <span class="sw-profile-name">{{ context?.displayName }}</span>
-      <i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i>
-    </button>
-  </div>
-</div>
-
-<div class="sw-bell-drop" *ngIf="bellOpen">
-  <div class="bell-drop-title">Notifications</div>
-  <div class="bell-item" *ngFor="let notification of notifications; trackBy: trackById">
-    <span class="bi-dot" [class.read]="!notification.unread"></span>
-    <div>
-      <div class="bi-text">{{ notification.text }}</div>
-      <div class="bi-time">{{ notification.time }}</div>
+      <div class="dd-menu">
+        <!-- The school identity block above the menu items — never dropped. -->
+        <div class="drop-school" *ngIf="context?.school as school">
+          <img class="drop-school-logo" *ngIf="school.logoUrl" [src]="school.logoUrl" [alt]="school.name" />
+          <div class="drop-school-logo" *ngIf="!school.logoUrl">{{ school.initials }}</div>
+          <div>
+            <div class="drop-school-name">{{ school.name }}</div>
+            <div class="drop-school-meta">{{ school.meta }}</div>
+          </div>
+        </div>
+        <div class="dd-option"><i class="bi bi-person"></i>My Profile</div>
+        <!-- Admin only, matching the legacy teacher header having no profile menu at all. -->
+        <div class="dd-option" *ngIf="context?.role === 'admin'"><i class="bi bi-gear"></i>School Settings</div>
+        <div class="dd-divider"></div>
+        <div class="dd-option danger" (click)="loggedOut.emit()">
+          <i class="bi bi-box-arrow-right"></i>Logout
+        </div>
+      </div>
     </div>
   </div>
-  <div class="bell-empty" *ngIf="!notifications.length">Nothing new right now.</div>
-  <button type="button" class="bell-view-all">View all notifications</button>
-</div>
-
-<div class="sw-profile-drop" *ngIf="profileOpen">
-  <div class="sw-drop-school" *ngIf="context?.school as school">
-    <img class="sw-school-logo" *ngIf="school.logoUrl" [src]="school.logoUrl" [alt]="school.name" />
-    <div class="sw-school-logo" *ngIf="!school.logoUrl">{{ school.initials }}</div>
-    <div>
-      <div class="sw-school-name">{{ school.name }}</div>
-      <div class="sw-school-meta">{{ school.meta }}</div>
-    </div>
-  </div>
-  <button type="button" class="sw-drop-item"><i class="ti ti-user"></i>My Profile</button>
-  <button type="button" class="sw-drop-item" *ngIf="context?.role === 'admin'">
-    <i class="ti ti-settings"></i>School Settings
-  </button>
-  <button type="button" class="sw-drop-item" (click)="loggedOut.emit()">
-    <i class="ti ti-logout"></i>Logout
-  </button>
 </div>

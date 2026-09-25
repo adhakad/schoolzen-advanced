@@ -13,12 +13,13 @@ const { ValidationError, NotFoundError } = require('../errors');
 router.get('/students/:id', async (req, res) => {
   const student = await Student.findOne({
     _id: req.params.id,
-    schoolId: req.schoolId // multi-tenancy scoping, per database-architecture.md §1
+    adminId: req.adminId // multi-tenancy scoping, per database-design-principles.md §1
   }).lean();
 
   if (!student) {
     throw new NotFoundError('Student not found', {
       module: 'student',
+      code: 'STUDENT_NOT_FOUND',
       context: { studentId: req.params.id }
     });
   }
@@ -30,15 +31,17 @@ router.post('/students', async (req, res) => {
   if (!req.body.name) {
     throw new ValidationError('Please fix the highlighted fields', {
       module: 'student',
-      fields: [{ field: 'name', message: 'Name is required' }]
+      code: 'VALIDATION_FAILED',
+      fields: [{ field: 'name', code: 'NAME_REQUIRED', message: 'Name is required' }]
     });
   }
 
   // A duplicate admissionNo throws a raw Mongo error (code 11000) from
   // this .create() call - we DON'T catch it here. It propagates up to
   // the error middleware, which normalizes it into a friendly
-  // ConflictError automatically (see errorHandler.js's normalizeError).
-  const student = await Student.create({ ...req.body, schoolId: req.schoolId });
+  // ConflictError automatically (see errorHandler.js's normalizeError),
+  // which also derives a stable `code` (e.g. "ADMISSION_NO_DUPLICATE").
+  const student = await Student.create({ ...req.body, adminId: req.adminId });
   res.status(201).json(student);
 });
 

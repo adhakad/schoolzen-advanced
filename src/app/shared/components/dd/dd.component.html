@@ -1,0 +1,25 @@
+<div class="dd-trigger" role="button" tabindex="0"
+     [attr.aria-haspopup]="'listbox'"
+     [attr.aria-expanded]="open"
+     [attr.aria-disabled]="disabled"
+     [attr.aria-label]="ariaLabel || null"
+     (click)="toggle($event)"
+     (keydown.enter)="toggle($event)"
+     (keydown.space)="toggle($event)">
+  <i class="bi bi-{{ triggerIcon }}" *ngIf="triggerIcon"></i>
+  <span class="dd-label">{{ label }}</span>
+  <i class="bi bi-chevron-down chevron" *ngIf="showChevron"></i>
+</div>
+
+<div class="dd-menu" role="listbox"
+     [class.full-width]="fullWidth"
+     [class.align-left]="menuAlign === 'left'">
+  <div class="dd-option" role="option"
+       *ngFor="let option of options; trackBy: trackByValue"
+       [class.selected]="isSelected(option)"
+       [class.danger]="option.danger"
+       [attr.aria-selected]="isSelected(option)"
+       (click)="select($event, option)">
+    <i class="bi" [ngClass]="'bi-' + option.icon" *ngIf="option.icon"></i>{{ option.label }}
+  </div>
+</div>

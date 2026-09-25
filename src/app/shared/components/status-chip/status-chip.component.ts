@@ -29,13 +29,13 @@ export class StatusChipComponent implements OnChanges {
   @Input() variant: StatusVariant = 'neutral';
 
   /** Precomputed in ngOnChanges — never a function call from the template. */
-  chipClass = 'sw-chip neutral';
+  chipClass = 'status-chip neutral';
 
   ngOnChanges(): void {
     const known = KNOWN_VARIANTS.indexOf(this.variant) !== -1;
     if (!known && isDevMode()) {
       console.warn('[app-status-chip] unknown variant "' + this.variant + '" — falling back to neutral');
     }
-    this.chipClass = 'sw-chip ' + (known ? this.variant : 'neutral');
+    this.chipClass = 'status-chip ' + (known ? this.variant : 'neutral');
   }
 }

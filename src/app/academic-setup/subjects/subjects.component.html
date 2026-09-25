@@ -1,0 +1,172 @@
+<!-- Subjects.
+     Reference: docs/schoolzen-planning/v1/academic-setup/subjects.html
+
+     The reference file's own markup, with Angular bindings layered on and its four
+     hardcoded <tr> replaced by one *ngFor. Every class comes from the global design system
+     (which IS that reference's <style> block), so the two cannot drift apart.
+
+     ONE toolbar row: this page has no filters. Subject Groups needs two rows; that is its
+     shape, not this one's. -->
+
+<div class="page-head">
+  <div>
+    <h1>Subjects</h1>
+    <div class="subtitle">
+      The master list of subjects available across classes &mdash; the pool Subject Groups is built from.
+    </div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search subjects" aria-label="Search subjects"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-danger-outline"
+                  [disabled]="!selectedCount" (click)="onDeleteSelected()">
+            <i class="bi bi-trash"></i> Delete Selected
+          </button>
+          <button type="button" class="btn-primary" (click)="onAddSubject()">
+            <i class="bi bi-plus-lg"></i> Add Subject
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="check-col">
+              <input type="checkbox" class="select-all" aria-label="Select all subjects"
+                     [checked]="allSelected" (change)="toggleAll()" />
+            </th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th class="act">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td class="check-col">
+              <input type="checkbox" class="row-check" [attr.aria-label]="'Select ' + row.name"
+                     [checked]="isSelected(row._id)" (change)="toggleRow(row._id)" />
+            </td>
+
+            <td><div class="subj-name">{{ row.name }}</div></td>
+
+            <!-- Fixed-width outline tags: Core in the brand colour, Elective in warning. -->
+            <td>
+              <span class="tag type-tag" [class.tag-brand]="row.type === 'core'"
+                    [class.tag-warning]="row.type === 'elective'">
+                {{ row.type === 'core' ? 'Core' : 'Elective' }}
+              </span>
+            </td>
+
+            <td>
+              <span class="tag status-tag" [class.tag-success]="row.status === 'active'"
+                    [class.tag-muted]="row.status === 'inactive'">
+                {{ row.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name"
+                        (click)="onEditSubject(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        (click)="onDeleteSubject(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+      {{ search ? 'No subjects match that search.' : 'No subjects added yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <!-- School-wide counts, from the same aggregation as the rows — never narrowed by the
+         search box, so "Total Subjects" always means the school's total. -->
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row">
+        <span class="stat-label">Total Subjects</span><span class="stat-value">{{ summary.total }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Core</span><span class="stat-value">{{ summary.core }}</span>
+      </div>
+      <div class="stat-row accent">
+        <span class="stat-label">Elective</span><span class="stat-value">{{ summary.elective }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Inactive</span><span class="stat-value">{{ summary.inactive }}</span>
+      </div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>Core subjects apply to every student in a class automatically.
+      </div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>Elective subjects only matter once they're picked into a Subject
+        Group.
+      </div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>Deactivating a subject keeps its history but removes it from new
+        assignments.
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+
+  <div class="m-field">
+    <label for="subject-name">Name <span class="req-star">*</span></label>
+    <input id="subject-name" type="text" placeholder="Hindi" maxlength="60"
+           [value]="form.name" (input)="onNameChange($any($event.target).value)" />
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+
+  <div class="m-field">
+    <label for="subject-type">Type</label>
+    <app-dd id="subject-type" [options]="typeOptions" [value]="form.type"
+            ariaLabel="Subject type" (valueChange)="onTypeChange($event)"></app-dd>
+    <div class="m-hint">
+      Core: everyone in the class takes it. Elective: only relevant when picked into a Subject Group.
+    </div>
+    <p class="m-error" *ngIf="fieldErrors['type']">{{ fieldErrors['type'] }}</p>
+  </div>
+
+  <div class="m-field">
+    <label for="subject-status">Status</label>
+    <app-dd id="subject-status" [options]="statusOptions" [value]="form.status"
+            ariaLabel="Subject status" (valueChange)="onStatusChange($event)"></app-dd>
+    <p class="m-error" *ngIf="fieldErrors['status']">{{ fieldErrors['status'] }}</p>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

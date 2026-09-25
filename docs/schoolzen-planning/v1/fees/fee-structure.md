@@ -1,52 +1,20 @@
-# Fees — Fee Structure page (finalized design)
+# Fees — Fee Structure
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `fee-structure.html` (same folder)
+Status: **FINAL**
+Reference: `fee-structure.html`
 
-Defines the annual fee for a Class(+Stream) — this is what every
-student's fee record in **Fees** and **Fee Statement** is generated
-from.
+Defines the annual fee for a Class(+Stream+Group) — admission fee plus a checklist of named particulars.
 
 ---
 
-## Toolbar
+## Frontend
 
-Search + Class+Stream (existence+dependency pair, filters the list) +
-"Create" — inside the toolbar row.
+**Toolbar**: search + Create (row1), Class→Stream→Group cascade (row2).
 
-## Table
+**Table**: Session, Class, Stream, Group, Particular Total, Admission Fee, Breakdown (clickable, opens the full particulars list), Action.
 
-Session → Class → Stream (existence-shown, "N/A" when not
-applicable) → Particular Total → Admission Fee → Breakdown (icon
-opening a read-only view) → Action (Edit/Delete).
+**Add/Edit modal**: Session/Class/Stream/Group selectors + Admission Fee + a dynamic add/remove checklist of particulars (name+amount pairs, e.g. Tuition, Transport, Lab) that sum to Particular Total.
 
-## Create/Edit modal
+## Backend
 
-Session (read-only, current) → Class → Stream (dependency-gated,
-disabled/hidden unless 11th/12th) → Admission Fee (hint: applies only
-to newly admitted students) → **Particulars** — a checklist (Tuition,
-Transport, Library, Lab, Sports) where ticking one reveals its amount
-input below, and a computed **Particular Total** updates live as
-amounts are entered.
-
-## Breakdown view modal
-
-Read-only, split into three clearly labeled sections: **New
-Students** (Admission Fee applies, shows the combined total including
-it), **Existing Students** (Admission Fee doesn't apply, shows the
-particular-only total), and **Particulars** (each line item and its
-amount). This distinction — new vs existing student totals — is a
-real business fact from the legacy component and stays prominent
-rather than being buried in a single flat number.
-
-## Delete confirmation — cascade, type-to-confirm
-
-Per the global cascade-delete rule: this is the one case in the app
-where deleting a config record destroys real financial history, not
-just placement data — the modal states plainly that every student's
-fee records generated from this structure are deleted too, including
-anything already paid, and requires typing "DELETE" to confirm. The
-legacy component's plain paragraph warning becomes a proper gated
-confirmation here, consistent with how every other cascade-delete in
-the app now works.
+Schema — `FeeStructure`: `adminId`, `sessionId`, `classId`, `streamId` (nullable), `groupId` (nullable), `admissionFee`, `particulars:[{name,amount}]`. Unique `(adminId, sessionId, classId, streamId, groupId)`. This is what `StudentFeeRecord.totalFee` derives from when a student's fee record is created/rolled over for a session — Class Promotion's warning about a missing Fee Structure for the target class+session (see `class-promotion.md`) checks against this exact collection.

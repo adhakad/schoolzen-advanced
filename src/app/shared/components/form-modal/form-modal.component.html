@@ -1,0 +1,25 @@
+<!-- The reference's `.modal-overlay` / `.modal-box` markup, class-for-class:
+     docs/schoolzen-planning/v1/academic-setup/*.html. Head and foot are fixed; only the
+     body scrolls, so the title and Submit stay reachable however tall the form grows. -->
+<div class="sz-modal-overlay open" *ngIf="open" (click)="onCancel()">
+  <div class="modal-box" [style.width.px]="width" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <span class="modal-title">{{ title }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="onCancel()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <ng-content></ng-content>
+    </div>
+
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="onCancel()">{{ cancelLabel }}</button>
+      <button type="button" class="btn-brand" *ngIf="showSubmit"
+              [disabled]="submitDisabled" (click)="onSubmit()">
+        {{ submitLabel }}
+      </button>
+    </div>
+  </div>
+</div>

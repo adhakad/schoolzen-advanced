@@ -7,12 +7,15 @@ const AppError = require('./AppError');
  * distinction, per the multi-tenancy isolation rule).
  *
  * Usage:
- *   throw new NotFoundError('Student not found', { module: 'student', context: { studentId } });
+ *   throw new NotFoundError('Student not found', {
+ *     module: 'student', code: 'STUDENT_NOT_FOUND', context: { studentId }
+ *   });
  */
 class NotFoundError extends AppError {
-  constructor(message, { module, context } = {}) {
+  constructor(message, { module, code, context } = {}) {
     super(message, {
       category: 'NotFoundError',
+      code,
       statusCode: 404,
       module,
       context,

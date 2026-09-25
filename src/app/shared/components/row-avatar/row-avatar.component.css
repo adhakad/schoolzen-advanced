@@ -1,2 +1,36 @@
-:host { display: flex; align-items: center; min-width: 0; }
+/* Name + role in one cell, with a generated-colour initials square.
+   Sized from the design system's constants (38px row avatar, 6px radius). Verify against
+   the Staff / Attendance references when those modules are built — no page reference read
+   so far defines this cell. */
+
+:host { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+.sw-r-avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .sw-r-text { min-width: 0; }
+.sw-r-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sw-r-role {
+  font-size: 11px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,50 +1,31 @@
-# Academic Setup — Classes & Sections page (finalized design)
+# Academic Setup — Classes & Sections
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `classes-sections.html` (same folder)
+Status: **FINAL**
+Reference: `classes-sections.html`
 
-New top-level module: **Academic Setup**. This is the source data
-behind every Class/Section/Stream filter used across the whole app
-(Attendance, Leave, Holiday, Manage Students, Admission, Subject
-Groups) — it's config, not a records list, which is why it sits
-separate from the Student module (that's for actual student records).
+Source data behind every Class/Stream/Section reference used across the app.
 
 ---
 
-## Toolbar
+## Frontend
 
-Search + "Add Class" — inside the toolbar.
+**Toolbar**: single `toolbar-row1` (search left, "+ Add Class" primary button + "Delete Selected" outline-danger button right, `justify-content:space-between`) — no filter row, this page has no filters.
 
-## Table — fixed-width count pills, not inline tags
+**Table**: checkbox, Class (Fraunces numeral + suffix, e.g. "11"+"th"), Streams, Sections, Students (right-aligned), Action.
+- Streams/Sections render as a **clickable tag** ("2 streams", "6 sections") that opens a read-only Details modal listing every stream's name and its section chips (or the flat section chips if no streams) — never inline-list the names in the table itself.
+- No streams/sections configured → muted italic tag ("Set per stream" / plain dash), not blank.
+- Row actions: edit (pencil) opens the Add/Edit modal pre-filled; delete opens the confirm flow.
 
-Class → Streams → Sections → Students → Action.
+**Add/Edit Class modal**: Class Name (required, gates Submit) + a "This class has streams" toggle that swaps the whole body:
+- **Off**: one Sections block — add/remove rows (`+`/`×`), a flat list.
+- **On**: a Streams block (add/remove rows) PLUS one independent Sections sub-block per stream, each with its own add/remove — a stream can have zero sections.
 
-Streams and Sections are shown as a **fixed-width count pill** ("2
-streams", "4 streams") rather than listing every tag inline — 2
-streams and 10 streams must render identically in the row. Clicking
-the pill opens a popover listing the actual names. This was a specific
-correction: inline tags would make the column grow unpredictably wide
-as more streams/sections get added.
+**Delete**: selecting rows enables "Delete Selected"; confirming opens a modal stating the count and that it's irreversible, gated by typing `DELETE` before the button enables — this is the pattern for any destructive action in this app.
 
-## Add/Edit Class modal — stream toggle restructures the form
+**Side column**: a stats card (Total Classes / Sections Created / Streams Configured / Students Enrolled) and a "Good to know" tips card (plain info rows, no interaction).
 
-- Class Name (dropdown of standard class names).
-- **"This class has streams (11th/12th)" toggle** — this is the pivot
-  point of the whole form:
-  - **Off**: a flat "Sections" block directly on the class (add/remove
-    rows with a "+"/"×", same inline-editor pattern as Salary Groups'
-    allowances).
-  - **On**: the Sections block is replaced by a "Streams" block (same
-    add/remove pattern), and EACH stream gets its OWN independent
-    Sections block beneath it — a stream can have sections or none at
-    all, same existence-based principle used everywhere else (e.g.
-    Commerce having no sections shows "None — add one if this stream
-    needs sections").
+## Backend
 
-## Delete confirmation
+Schema — `Class`: `adminId`, `class` (string/number, e.g. "9th"), `hasStreams` (boolean). If false: `sections: [{name}]`. If true: `streams: [{name, sections: [{name}]}]` — never populate both. Unique index `(adminId, class)`.
 
-Per the global cascade-delete rule: a class/stream/section with
-students currently in it triggers type-to-confirm naming the count
-("142 students are in this class and will need reassigning"); an empty
-one uses the lighter single-confirm.
+Delete: if any student is enrolled against this class, the confirm modal's "N class(es)" count and warning text should reflect real dependent data (fetched with the list, not a second request) before allowing the type-to-confirm delete.

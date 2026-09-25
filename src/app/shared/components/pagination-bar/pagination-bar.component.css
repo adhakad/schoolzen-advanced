@@ -1,0 +1,5 @@
+/* `.pagination-bar`, `.rows-per-page`, `.page-controls` and `.page-btn` come from the
+   global design-system sheet — the reference markup uses them directly. Only the
+   rows-per-page pill's fixed width (70px in the reference) is specific to this component. */
+
+.rows-dd { width: 70px; }

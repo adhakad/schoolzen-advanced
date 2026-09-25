@@ -2,257 +2,1125 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Holiday - Holidays - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>Schoolzen — Holidays</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 1100px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1100px; margin: 0 auto; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 12px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-spacer { height: 24px; }
-  .sw-body { display: flex; gap: 16px; align-items: stretch; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
-  .sw-main { flex: 1; min-width: 0; }
-  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
-  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-  .sw-search { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 9px 14px; flex: 1; min-width: 160px; }
-  .sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
-  .sw-search i { color: #a6a6c9; font-size: 15px; }
-  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(123,110,246,0.4); display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
-  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .3px; padding: 0 8px 8px; text-align: left; }
-  td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; }
-  .lm-name { font-weight: 600; color: #1a1a2e; font-size: 13px; }
-  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; margin-right: 4px; cursor: pointer; }
-  .icon-btn.warn { background: #fde8ef; color: #b8265a; }
+  :root{
+    --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
 
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
-  .modal-overlay.open { display: flex; }
-  .modal-box { background: #fff; border-radius: 16px; width: 420px; max-height: 84vh; display: flex; flex-direction: column; overflow: hidden; }
-  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
-  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
-  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
-  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
-  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
-  .m-field { margin-bottom: 12px; }
-  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
-  .m-field input, .m-field select { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
-  .m-hint { font-size: 10.5px; color: #9494ac; margin-top: 3px; }
-  .confirm-title { font-size: 14.5px; font-weight: 700; color: #1a1a2e; margin: 0 0 8px; }
-  .confirm-note { font-size: 12.5px; color: #6b6b85; line-height: 1.6; margin: 0; }
-  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-danger { background: #b8265a; color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
+
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;}
+  nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
+
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;}
+  .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .year-pill{ font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; }
+  .year-pill .bi{color:var(--brand);}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+
+  .dd{position:relative;}
+  .dd-trigger{cursor:pointer; user-select:none;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:240px; width:max-content; max-width:300px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;}
+  .dd-menu.align-left{right:auto; left:0;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option .bi{width:15px; text-align:center; flex-shrink:0;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;}
+  .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);}
+  .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;}
+
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+
+  .content{padding:28px 32px;}
+  .page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+
+  .sw-toolbar{ display:flex; flex-direction:column; gap:14px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+  .toolbar-row1{display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .toolbar-row2{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .month-nav{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; box-sizing:border-box; cursor:pointer;}
+  .month-nav .bi{cursor:pointer; color:var(--brand); font-size:12px;}
+  .cal-legend{display:flex; flex-wrap:wrap; gap:8px;}
+  .cal-legend-chip{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; font-size:11.5px; font-weight:600; border:1px solid var(--brand-soft); color:var(--brand); background:var(--brand-soft);}
+  .cal-legend-chip.existing-chip{border-color:var(--brand-soft); color:var(--brand); background:var(--brand-soft);}
+  .hol-tooltip{ position:fixed; z-index:200; background:var(--ink); color:#fff; padding:8px 12px; border-radius:6px; font-size:12px; line-height:1.5; box-shadow:0 8px 20px rgba(30,23,48,0.3); pointer-events:none; max-width:220px; }
+  .hol-tooltip b{color:#ae86ff;}
+  .search{position:relative; flex:0 0 300px; width:300px;}
+  .search input{ width:100%; height:38px; padding:0 14px 0 34px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .search input:focus{border-color:var(--brand);}
+  .search .bi-search{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:14px;}
+  .toolbar-btn-group{display:flex; align-items:center; gap:10px;}
+  .btn-danger-outline{ flex-shrink:0; height:38px; background:var(--surface); color:var(--danger); border:1px solid var(--danger); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--radius); display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-danger-outline:hover:not(:disabled){background:var(--danger-soft);}
+  .btn-danger-outline:disabled{color:var(--ink-faint); border-color:var(--line); cursor:not-allowed;}
+  .btn-primary{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-primary:hover{background:#2A3242;}
+  .btn-primary .bi{color:#ae86ff;}
+
+  table{width:100%; border-collapse:collapse;}
+  thead th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-faint); letter-spacing:0.06em; padding:0 16px 12px 16px; border-bottom:1px solid var(--line); }
+  th.chk, td.chk{width:38px; text-align:center;}
+  td.chk input, th.chk input{width:16px; height:16px; accent-color:var(--brand); cursor:pointer;}
+  thead th.act, td.act{text-align:right;}
+  tbody tr{border-bottom:1px solid var(--line-soft);}
+  tbody tr:hover{background:#F7F4FC;}
+  tbody tr:last-child{border-bottom:none;}
+  td{padding:16px; vertical-align:middle;}
+  .hol-name{font-family:'Fraunces',serif; font-weight:600; font-size:15px; color:var(--ink);}
+  .hol-days{ display:inline-flex; align-items:center; justify-content:center; width:34px; height:26px; border-radius:6px; background:var(--brand-soft); color:var(--brand); font-weight:700; font-size:12.5px; }
+  .not-set{color:var(--ink-faint); font-style:italic; font-size:11.5px;}
+  .tag{ display:inline-flex; align-items:center; padding:4px 11px; border-radius:20px; font-size:11.5px; font-weight:600; border:1px solid; }
+  .tag-manual{color:var(--slate); border-color:#D9CDEE;}
+  .tag-auto{color:var(--brand); border-color:var(--brand-soft);}
+  .btn-secondary{ flex-shrink:0; height:38px; background:var(--surface); color:var(--brand); border:1px solid var(--brand); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--radius); display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-secondary:hover{background:var(--brand-soft);}
+
+  .actions{display:flex; gap:6px; justify-content:flex-end;}
+  .icon-btn{ width:30px; height:30px; border-radius:6px; border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:13px; }
+  .icon-btn:hover{border-color:var(--slate); color:var(--slate);}
+  .icon-btn.danger:hover{border-color:var(--danger); color:var(--danger);}
+
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;}
+  .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);}
+  .stat-row.accent .stat-value{color:var(--brand);}
+
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;}
+  .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
+
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:60; align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); border-radius:var(--radius); width:420px; max-width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); border-radius:var(--radius) var(--radius) 0 0; flex-shrink:0;}
+  .modal-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink);}
+  .modal-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+  .modal-body{padding:20px 24px; flex:1; overflow-y:auto; min-height:0;}
+  .modal-foot{padding:16px 24px; border-top:1px solid var(--line); border-radius:0 0 var(--radius) var(--radius); flex-shrink:0; display:flex; justify-content:flex-end; gap:10px;}
+  .m-row{display:flex; gap:12px;}
+  .m-row .m-field{flex:1;}
+  .m-field{margin-bottom:16px;}
+  .m-field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);}
+  .m-hint{font-size:11px; color:var(--ink-faint); margin-top:6px; line-height:1.4;}
+  .req-star{color:var(--danger);}
+  .days-note{background:var(--brand-soft); border-radius:var(--radius); padding:10px 12px; font-size:12.5px; color:var(--brand-deep); font-weight:500;}
+
+  /* Modern interactive range-picker calendar — click a date to start, click again to set the end */
+  .range-cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; width:280px; margin-left:auto; margin-right:auto;}
+  .range-cal-nav{width:28px; height:28px; border-radius:var(--radius); border:none; background:var(--ink); color:#ae86ff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:11px; flex-shrink:0;}
+  .range-cal-nav:hover{background:#2A3242;}
+  .range-cal-title{font-family:'Fraunces',serif; font-size:13px; font-weight:500; color:var(--ink);}
+  .range-cal-dow{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; margin-bottom:6px; width:280px; margin-left:auto; margin-right:auto;}
+  .range-cal-dow span{font-size:9.5px; font-weight:700; color:var(--ink-faint); text-transform:uppercase;}
+  .range-cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:0; row-gap:2px; width:280px; margin-left:auto; margin-right:auto;}
+  .range-day{ height:32px; display:flex; align-items:center; justify-content:center; position:relative; cursor:pointer; }
+  .range-day-num{ position:relative; z-index:1; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--ink-soft); background:transparent; }
+  .range-day.in-range::before{ content:''; position:absolute; top:3px; bottom:3px; left:0; right:0; background:var(--brand-soft); z-index:0; }
+  .range-day.band-l::before{left:4px; border-radius:13px 0 0 13px;}
+  .range-day.band-r::before{right:4px; border-radius:0 13px 13px 0;}
+  .range-day.band-l.band-r::before{left:4px; right:4px; border-radius:13px;}
+  .range-day.chain-endpoint .range-day-num{background:var(--brand); color:#fff; font-weight:600;}
+  .range-day.disabled{cursor:not-allowed; pointer-events:none;}
+  .range-day.existing-hol::before{ content:''; position:absolute; top:3px; bottom:3px; left:0; right:0; background:var(--brand-soft); z-index:0; }
+  .range-day.existing-band-l::before{left:4px; border-radius:13px 0 0 13px;}
+  .range-day.existing-band-r::before{right:4px; border-radius:0 13px 13px 0;}
+  .range-day.existing-band-l.existing-band-r::before{left:4px; right:4px; border-radius:13px;}
+  .range-day.existing-endpoint .range-day-num{background:var(--brand); color:#fff; font-weight:600;}
+  .range-day.disabled .range-day-num{color:#D3CEE0;}
+  .range-day.existing-hol.disabled .range-day-num{color:var(--brand);}
+  .range-day.existing-endpoint.disabled .range-day-num{background:var(--brand); color:#fff;}
+  .range-cal-summary{font-size:12.5px; color:var(--brand-deep); font-weight:500; background:var(--brand-soft); border-radius:var(--radius); padding:9px 12px; margin-top:10px; text-align:center;}
+  .hol-conflict-box{background:var(--danger-soft); border-radius:var(--radius); padding:12px; margin-top:10px;}
+  .hol-conflict-text{font-size:12px; color:#8A3A2E; line-height:1.6; margin-bottom:10px;}
+  .btn-override{width:100%; height:36px; border-radius:var(--radius); border:none; background:var(--danger); color:#fff; font-size:12.5px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;}
+  .btn-override:hover{background:#9E4E3C;}
+  .change-dates-link{display:none; width:100%; text-align:center; background:none; border:none; color:var(--brand); font-size:12px; font-weight:600; cursor:pointer; margin-top:10px; padding:4px;}
+  .confirm-gate{ display:flex; align-items:center; gap:9px; background:var(--warning-soft); border-radius:var(--radius); padding:10px 12px; margin-bottom:12px; font-size:12.5px; color:#8A6D1F; font-weight:500; cursor:pointer; }
+  .confirm-gate input{width:16px; height:16px; accent-color:var(--warning); cursor:pointer; flex-shrink:0;}
+  #dateGateContent.gated{opacity:.45; pointer-events:none; user-select:none;}
+  .change-dates-link:hover{text-decoration:underline;}
+  .sw-select-pill{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; box-sizing:border-box; }
+  .dd-menu.full-width{min-width:100%; width:100%; max-width:none;}
+  .hol-check-list{display:flex; flex-direction:column; gap:1px; margin-top:8px; max-height:180px; overflow-y:auto; border-top:1px solid var(--line-soft);}
+  .hol-check{ display:flex; align-items:center; gap:10px; padding:9px 4px; font-size:13px; color:var(--ink-soft); font-weight:500; cursor:pointer; border-bottom:1px solid var(--line-soft); }
+  .hol-check:hover{background:var(--paper);}
+  .hol-check.checked{color:var(--brand); font-weight:600;}
+  .hol-check input{width:16px; height:16px; accent-color:var(--brand); cursor:pointer; flex-shrink:0;}
+  .hol-check .hc-name{flex:1;}
+  .hol-check .hc-days{font-size:11px; color:var(--ink-faint); font-weight:500;}
+  .hol-check.checked .hc-days{color:var(--brand);}
+  .custom-hol-error{font-size:11px; color:var(--danger); margin-top:6px; display:none;}
+  .name-error{font-size:11px; color:var(--danger); margin-top:-10px; margin-bottom:12px; display:none;}
+  .days-note b{font-weight:700;}
+  .btn-plain{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand{height:38px; padding:0 18px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand:disabled{background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed;}
+
+  .confirm-input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; outline:none; box-sizing:border-box; font-family:monospace; margin-bottom:6px; }
+  .confirm-input:focus{border-color:var(--danger);}
+  .confirm-input.match{border-color:var(--success);}
+  .confirm-hint{font-size:11px; color:var(--ink-faint);}
+  .btn-danger{height:38px; padding:0 16px; border-radius:var(--radius); border:none; background:var(--danger); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-danger:disabled{background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed;}
 </style>
 </head>
 <body>
 
-<div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  Holiday &rarr; Holidays page. First of THREE separate pages (Holidays,
-  Templates, Assign) - each its own module sub-item, not tabs on one
-  screen, matching the app-wide convention (Payroll, Leave). A range
-  picker sets first+last day together (same date twice = one-day
-  holiday).
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a class="current" href="#">Holidays</a>
+      <a href="#">Templates</a>
+      <a href="#">Assign</a>
+    </div>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-right chevron"></i></a>
+  </nav>
 </div>
 
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
-      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Holiday / <b>Holidays</b></div>
+    <div class="top-actions">
+      <div class="dd" id="sessionDD">
+        <div class="year-pill dd-trigger" onclick="toggleDD(event,'sessionDD')"><i class="bi bi-calendar-event"></i> <span class="dd-label">2026–2027</span></div>
+        <div class="dd-menu align-left">
+          <div class="dd-option selected" onclick="selectSession(this,'2026–2027')">2026–2027</div>
+          <div class="dd-option" onclick="selectSession(this,'2025–2026')">2025–2026</div>
+          <div class="dd-option" onclick="selectSession(this,'2024–2025')">2024–2025</div>
+        </div>
+      </div>
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')">
+          <div class="avatar">A</div>
+          <span class="profile-name">Admin</span>
+          <i class="bi bi-chevron-down chevron"></i>
+        </div>
+        <div class="dd-menu">
+          <div class="drop-school">
+            <div class="drop-school-logo">GV</div>
+            <div>
+              <div class="drop-school-name">Green Valley Public School</div>
+              <div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div>
+            </div>
+          </div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div>
+          <div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div>
+          <div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="sw-spacer"></div>
-  <div class="sw-body">
-    <div class="sb-wrap">
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="staff">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="academic">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-      <div class="sb-group open" data-group="holiday">
-        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="fees">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="examination">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="certificates">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-      <div class="sb-group" data-group="settings">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
-        </div>
+
+  <div class="content">
+    <div class="page-head">
+      <div>
+        <h1>Holidays</h1>
+        <div class="subtitle">The master list of holiday dates — bundled into Templates and assigned to staff or classes.</div>
       </div>
     </div>
-    <div class="sw-main">
-      <div class="sw-card-main">
-        <div class="sw-title">Holidays</div>
 
+    <div class="layout-row">
+      <div class="sw-card-main">
         <div class="sw-toolbar">
-          <div class="sw-search"><i class="ti ti-search"></i><input placeholder="Search holidays"/></div>
-          <button class="sw-add-btn" onclick="document.getElementById('holidayModal').classList.add('open')"><i class="ti ti-plus" style="font-size:13px;"></i> Add Holiday</button>
+          <div class="toolbar-row1">
+            <div class="search"><i class="bi bi-search"></i><input type="text" placeholder="Search holidays"></div>
+            <div class="toolbar-btn-group">
+              <button class="btn-danger-outline" id="deleteBtn" disabled onclick="confirmBulkDelete()"><i class="bi bi-trash"></i> Delete Selected</button>
+              <button class="btn-secondary" onclick="openPublicHolidaysModal()"><i class="bi bi-stars"></i> Generate from Public Holidays</button>
+              <button class="btn-primary" onclick="openHolidayModal()"><i class="bi bi-plus-lg"></i> Add Holiday</button>
+            </div>
+          </div>
+          <div class="toolbar-row2">
+            <div class="dd" id="monthFilterDD">
+              <div class="month-nav dd-trigger" onclick="toggleDD(event,'monthFilterDD')">
+                <i class="bi bi-chevron-left" onclick="event.stopPropagation(); monthFilterShift(-1)"></i>
+                <span class="dd-label" id="monthFilterLabel">Holiday Calendar</span>
+                <i class="bi bi-chevron-right" onclick="event.stopPropagation(); monthFilterShift(1)"></i>
+              </div>
+              <div class="dd-menu align-left" style="padding:14px; width:314px; max-width:314px; max-height:none; overflow:visible;" onclick="event.stopPropagation();">
+                <div class="cal-legend" id="monthFilterChips" style="margin-bottom:12px;"></div>
+                <div class="range-cal-head">
+                  <button type="button" class="range-cal-nav" onclick="monthFilterShift(-1)"><i class="bi bi-chevron-left"></i></button>
+                  <span class="range-cal-title" id="monthFilterTitle">Apr 2026</span>
+                  <button type="button" class="range-cal-nav" onclick="monthFilterShift(1)"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                <div class="range-cal-dow">
+                  <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                </div>
+                <div class="range-cal-grid" id="monthFilterGrid"></div>
+                <button type="button" class="change-dates-link" style="display:block; margin-top:8px;" onclick="clearMonthFilter()">Show all months</button>
+              </div>
+            </div>
+          </div>
         </div>
 
+        <div class="hol-tooltip" id="holTooltip" style="display:none;"></div>
+
         <table>
-          <thead><tr><th>Name</th><th>Start Date</th><th>End Date</th><th>Days</th><th>Action</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><div class="lm-name">Diwali</div></td>
+          <thead>
+            <tr><th class="chk"><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th><th>Name</th><th>Start Date</th><th>End Date</th><th>Days</th><th>Source</th><th class="act">Action</th></tr>
+          </thead>
+          <tbody id="holidayRows">
+            <tr data-first="2026-10-28" data-last="2026-11-01" data-source="manual">
+              <td class="chk"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+              <td><div class="hol-name">Diwali</div></td>
               <td>28 Oct 2026</td>
               <td>01 Nov 2026</td>
-              <td>5</td>
-              <td><div class="icon-btn" onclick="document.getElementById('holidayModal').classList.add('open')"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+              <td><span class="hol-days">5</span></td>
+              <td><span class="tag tag-manual">Manual</span></td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openHolidayModal(this.closest('tr'))"><i class="bi bi-pencil"></i></button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))"><i class="bi bi-trash"></i></button></div></td>
             </tr>
-            <tr>
-              <td><div class="lm-name">Independence Day</div></td>
+            <tr data-first="2026-08-15" data-last="2026-08-15" data-source="manual">
+              <td class="chk"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+              <td><div class="hol-name">Independence Day</div></td>
               <td>15 Aug 2026</td>
               <td>15 Aug 2026</td>
-              <td>1</td>
-              <td><div class="icon-btn"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+              <td><span class="hol-days">1</span></td>
+              <td><span class="tag tag-manual">Manual</span></td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openHolidayModal(this.closest('tr'))"><i class="bi bi-pencil"></i></button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))"><i class="bi bi-trash"></i></button></div></td>
             </tr>
-            <tr>
-              <td><div class="lm-name">Summer Break</div></td>
+            <tr data-first="2026-05-01" data-last="2026-06-15" data-source="manual">
+              <td class="chk"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+              <td><div class="hol-name">Summer Break</div></td>
               <td>01 May 2026</td>
               <td>15 Jun 2026</td>
-              <td>46</td>
-              <td><div class="icon-btn"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+              <td><span class="hol-days">46</span></td>
+              <td><span class="tag tag-manual">Manual</span></td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openHolidayModal(this.closest('tr'))"><i class="bi bi-pencil"></i></button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))"><i class="bi bi-trash"></i></button></div></td>
             </tr>
           </tbody>
         </table>
       </div>
-    </div>
-  </div>
 
-  <div class="modal-overlay" id="holidayModal">
-    <div class="modal-box">
-      <div class="modal-head"><span class="modal-title">Add Holiday</span><div class="modal-close" onclick="document.getElementById('holidayModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <div class="m-field"><label>Name</label><input type="text" placeholder="Diwali"><div class="m-hint">For example Diwali, Independence Day, Summer Break</div></div>
-        <div class="m-field"><label>First day</label><input type="text" placeholder="dd/mm/yyyy"></div>
-        <div class="m-field"><label>Last day</label><input type="text" placeholder="dd/mm/yyyy"><div class="m-hint">For a one-day holiday, pick the same day twice.</div></div>
-        <p class="confirm-note">That is <b>5 day(s)</b> off, first and last day included.</p>
-      </div>
-      <div class="modal-foot">
-        <button class="btn-cancel" onclick="document.getElementById('holidayModal').classList.remove('open')">Cancel</button>
-        <button class="btn-submit">Submit</button>
+      <div class="col-side">
+        <div class="stats-card">
+          <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+          <div class="stat-row"><span class="stat-label">Holidays Listed</span><span class="stat-value">3</span></div>
+          <div class="stat-row accent"><span class="stat-label">Total Days Off</span><span class="stat-value">52</span></div>
+        </div>
+        <div class="status-card">
+          <div class="card-title-row">Good to know</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>For a one-day holiday, pick the same date for first and last day.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>A holiday here doesn't apply anywhere until it's bundled into a Template and assigned.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a holiday removes it from every Template that includes it.</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<div class="modal-overlay" id="holidayModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="holidayModalTitle">Add Holiday</span>
+      <button class="modal-close" onclick="closeHolidayModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="m-field">
+        <label>Name <span class="req-star">*</span></label>
+        <input type="text" id="holidayNameInput" placeholder="Diwali" oninput="renderHolCal()">
+        <div class="name-error" id="holidayNameError">A holiday with this name already exists.</div>
+        <div class="m-hint">For example Diwali, Independence Day, Summer Break.</div>
+      </div>
+      <div class="m-field">
+        <label>Dates <span class="req-star">*</span></label>
+        <label class="confirm-gate" id="editDateGate" style="display:none;">
+          <input type="checkbox" onchange="toggleEditDateGate(this)">
+          I confirm I want to change this holiday's dates
+        </label>
+        <div id="dateGateContent">
+          <div class="m-hint" style="margin:0 0 8px;">Click a date to start, then click a second date to set the end. A single click and re-click makes it a one-day holiday.</div>
+          <div class="cal-legend" id="holCalExistingChips" style="margin-bottom:10px;"></div>
+          <div class="range-cal-head">
+            <button type="button" class="range-cal-nav" onclick="holCalShift(-1)"><i class="bi bi-chevron-left"></i></button>
+            <span class="range-cal-title" id="holCalTitle">October 2026</span>
+            <button type="button" class="range-cal-nav" onclick="holCalShift(1)"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <div class="range-cal-dow">
+            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+          </div>
+          <div class="range-cal-grid" id="holCalGrid"></div>
+          <div class="range-cal-summary" id="daysNote">Pick a date to start.</div>
+          <div class="hol-conflict-box" id="holConflictBox" style="display:none;">
+            <div class="hol-conflict-text" id="holConflictText"></div>
+            <button type="button" class="btn-override" onclick="overrideConflict()"><i class="bi bi-trash"></i> Delete existing &amp; use these dates</button>
+          </div>
+          <button type="button" class="change-dates-link" id="changeDatesLink" onclick="resetHolDates()" style="display:none;">Change dates</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="closeHolidayModal()">Cancel</button>
+      <button class="btn-brand" id="holidaySubmitBtn" disabled onclick="submitHoliday()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="publicHolModal">
+  <div class="modal-box" style="width:480px;">
+    <div class="modal-head">
+      <span class="modal-title">Generate from Public Holidays</span>
+      <button class="modal-close" onclick="document.getElementById('publicHolModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="hol-conflict-box" id="genConflictBox" style="display:none; background:var(--warning-soft); margin-bottom:16px;">
+        <div class="hol-conflict-text" id="genConflictText" style="color:#8A6D1F;"></div>
+      </div>
+      <div class="m-field">
+        <label>State</label>
+        <div class="dd sw-select-pill" id="statePill" data-value="mp" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'statePill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+            <span class="dd-label">Madhya Pradesh</span><i class="bi bi-chevron-down chevron"></i>
+          </div>
+          <div class="dd-menu full-width">
+            <div class="dd-option selected" onclick="selectState(this,'mp','Madhya Pradesh')">Madhya Pradesh</div>
+            <div class="dd-option" onclick="selectState(this,'mh','Maharashtra')">Maharashtra</div>
+            <div class="dd-option" onclick="selectState(this,'dl','Delhi (NCT)')">Delhi (NCT)</div>
+          </div>
+        </div>
+        <div class="m-hint">The suggested list below changes to that state's official calendar. These are added as <b>Auto-generated</b> holidays.</div>
+      </div>
+      <div class="range-cal-head">
+        <button type="button" class="range-cal-nav" onclick="pubCalShift(-1)"><i class="bi bi-chevron-left"></i></button>
+        <span class="range-cal-title" id="pubCalTitle">January 2026</span>
+        <button type="button" class="range-cal-nav" onclick="pubCalShift(1)"><i class="bi bi-chevron-right"></i></button>
+      </div>
+      <div class="range-cal-dow">
+        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+      </div>
+      <div class="range-cal-grid" id="pubCalGrid" style="pointer-events:none;"></div>
+
+      <div class="hol-check-list" id="publicHolList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="document.getElementById('publicHolModal').classList.remove('open')">Cancel</button>
+      <button class="btn-brand" onclick="generateFromPublicHolidays()"><i class="bi bi-stars"></i> Add Selected Holidays</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal-box" style="width:400px;">
+    <div class="modal-head">
+      <span class="modal-title">Delete Holiday</span>
+      <button class="modal-close" onclick="closeConfirm()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12.5px; color:var(--ink-soft); line-height:1.6; margin-bottom:14px;">This removes <b id="delHolName">this holiday</b> from every Template that includes it. <b>This can't be undone.</b></p>
+      <input type="text" class="confirm-input" id="confirmInput" placeholder="Type DELETE to confirm" oninput="checkConfirmInput()">
+      <div class="confirm-hint">Type <b>DELETE</b> in the box above to enable the button.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-danger" id="confirmDeleteBtn" disabled onclick="performDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+});
+function setDDValue(id, value, label){
+  const dd = document.getElementById(id);
+  dd.dataset.value = value;
+  dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
+}
+function selectSession(optionEl, label){
+  setDDValue('sessionDD', label, label);
+  document.getElementById('sessionDD').classList.remove('open');
+}
+
+function disableDD(id, resetLabel){
+  const dd = document.getElementById(id);
+  dd.classList.add('disabled');
+  if (resetLabel) setDDValue(id, '', resetLabel);
+}
+function enableDD(id){ document.getElementById(id).classList.remove('disabled'); }
+function selectFilter(optionEl, ddId, value, label){
+  setDDValue(ddId, value, label);
+  document.getElementById(ddId).classList.remove('open');
+}
+
+/* ---------- Add/Edit Holiday: interactive range-picker calendar ---------- */
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+let holCal = { year: 2026, month: 9, start: null, end: null };
+let editingHolidayRow = null;
+let conflictRow = null;
+
+function fmtISO(y, m, d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function fmtLong(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return `${d} ${monthNames[m-1]} ${y}`;
+}
+function fmtShort(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return `${d} ${monthNames[m-1].slice(0,3)}`;
+}
+function showHolTooltip(e, name, first, last){
+  const tip = document.getElementById('holTooltip');
+  const range = first === last ? fmtLong(first) : `${fmtLong(first)} – ${fmtLong(last)}`;
+  tip.innerHTML = `<b>${name}</b><br>${range}`;
+  tip.style.display = 'block';
+  const rect = e.target.closest('.range-day').getBoundingClientRect();
+  tip.style.left = Math.round(rect.left + rect.width / 2 - tip.offsetWidth / 2) + 'px';
+  tip.style.top = Math.round(rect.top - tip.offsetHeight - 8) + 'px';
+}
+function hideHolTooltip(){
+  document.getElementById('holTooltip').style.display = 'none';
+}
+function pickHolDate(iso){
+  if (!holCal.start || (holCal.start && holCal.end)) {
+    // First click of a fresh pick sets the start only — click the same date again
+    // for a one-day holiday, or a different date to set the end of a range.
+    holCal.start = iso;
+    holCal.end = null;
+  } else {
+    holCal.end = iso >= holCal.start ? iso : holCal.start;
+    if (iso < holCal.start) holCal.start = iso;
+  }
+  conflictRow = null;
+  renderHolCal();
+}
+function resetHolDates(){
+  holCal.start = null;
+  holCal.end = null;
+  conflictRow = null;
+  renderHolCal();
+}
+function holCalShift(dir){
+  holCal.month += dir;
+  if (holCal.month > 11) { holCal.month = 0; holCal.year++; }
+  if (holCal.month < 0) { holCal.month = 11; holCal.year--; }
+  renderHolCal();
+}
+function findConflictingHoliday(start, end){
+  return Array.from(document.querySelectorAll('#holidayRows tr')).find(tr => {
+    if (tr === editingHolidayRow) return false;
+    return start <= tr.dataset.last && end >= tr.dataset.first;
+  });
+}
+function isDuplicateHolidayName(name){
+  return Array.from(document.querySelectorAll('#holidayRows tr')).some(tr => {
+    if (tr === editingHolidayRow) return false;
+    return tr.querySelector('.hol-name').textContent.trim().toLowerCase() === name.toLowerCase();
+  });
+}
+function renderHolCal(){
+  const { year, month, start, end } = holCal;
+  document.getElementById('holCalTitle').textContent = `${monthNames[month]} ${year}`;
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const grid = document.getElementById('holCalGrid');
+  grid.innerHTML = '';
+
+  // Existing holidays that fall in the month currently on screen — shown as chips
+  // above the grid, and lightly marked on the dates themselves, so the person can
+  // see what's already taken while they browse, not just after they click.
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+  const existingRows = Array.from(document.querySelectorAll('#holidayRows tr')).filter(tr => tr !== editingHolidayRow);
+  const existingThisMonth = existingRows.filter(tr => new Date(tr.dataset.first) <= monthEnd && new Date(tr.dataset.last) >= monthStart);
+  const existingDayInfo = {};
+  existingThisMonth.forEach(tr => {
+    const s = new Date(tr.dataset.first), e = new Date(tr.dataset.last);
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const day = d.getDate();
+        existingDayInfo[day] = {
+          name: tr.querySelector('.hol-name').textContent,
+          first: tr.dataset.first,
+          last: tr.dataset.last,
+          isStart: tr.dataset.first === fmtISO(year, month, day),
+          isEnd: tr.dataset.last === fmtISO(year, month, day)
+        };
+      }
+    }
+  });
+  const chipBox = document.getElementById('holCalExistingChips');
+  chipBox.innerHTML = existingThisMonth.length
+    ? existingThisMonth.map(tr => `<span class="cal-legend-chip existing-chip">${tr.querySelector('.hol-name').textContent} · ${fmtShort(tr.dataset.first)}${tr.dataset.first !== tr.dataset.last ? ' – ' + fmtShort(tr.dataset.last) : ''}</span>`).join('')
+    : '<span class="not-set">No existing holidays this month</span>';
+
+  for (let i = 0; i < firstDow; i++) grid.innerHTML += `<div class="range-day"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const iso = fmtISO(year, month, d);
+    const isStart = iso === start;
+    const isEnd = iso === end;
+    const inRange = start && end && iso >= start && iso <= end;
+    // Before the start while still picking the end, AND — once the range is complete —
+    // everything outside [start, end] too, so a finished range can't be nudged by a
+    // stray click; "Change dates" below is the deliberate way back in.
+    const isDisabled = (start && !end && iso < start) || (start && end && (iso < start || iso > end));
+    const dow = (firstDow + d - 1) % 7;
+    let cls = 'range-day';
+    const exInfo = existingDayInfo[d];
+    if (exInfo && !inRange) {
+      cls += ' existing-hol';
+      if (exInfo.isStart || dow === 0) cls += ' existing-band-l';
+      if (exInfo.isEnd || dow === 6) cls += ' existing-band-r';
+      if (exInfo.isStart || exInfo.isEnd) cls += ' existing-endpoint';
+    }
+    if (inRange) {
+      cls += ' in-range';
+      if (dow === 0 || iso === start) cls += ' band-l';
+      if (dow === 6 || iso === end) cls += ' band-r';
+    }
+    if (isStart || isEnd) cls += ' chain-endpoint';
+    if (isDisabled) cls += ' disabled';
+    const exHandlers = exInfo
+      ? `onmouseenter="showHolTooltip(event,'${exInfo.name.replace(/'/g,"\\'")}','${exInfo.first}','${exInfo.last}')" onmouseleave="hideHolTooltip()"`
+      : '';
+    grid.innerHTML += `<div class="${cls}" ${exHandlers} ${isDisabled ? '' : `onclick="pickHolDate('${iso}')"`}><span class="range-day-num">${d}</span></div>`;
+  }
+
+  const note = document.getElementById('daysNote');
+  const conflictBox = document.getElementById('holConflictBox');
+  const submitBtn = document.getElementById('holidaySubmitBtn');
+  document.getElementById('changeDatesLink').style.display = start ? 'block' : 'none';
+
+  const name = document.getElementById('holidayNameInput').value.trim();
+  const isDupeName = name.length > 0 && isDuplicateHolidayName(name);
+  document.getElementById('holidayNameError').style.display = isDupeName ? 'block' : 'none';
+
+  if (!start) {
+    note.style.display = 'block';
+    conflictBox.style.display = 'none';
+    note.textContent = 'Pick a date to start.';
+    submitBtn.disabled = true;
+  } else if (!end) {
+    // The start alone already lands on a taken date — no reason to make them pick an
+    // end before finding that out.
+    conflictRow = findConflictingHoliday(start, start) || null;
+    if (conflictRow) {
+      note.style.display = 'none';
+      conflictBox.style.display = 'block';
+      const cName = conflictRow.querySelector('.hol-name').textContent;
+      document.getElementById('holConflictText').innerHTML =
+        `<b>${cName}</b> already covers ${fmtLong(start)} (${fmtLong(conflictRow.dataset.first)} – ${fmtLong(conflictRow.dataset.last)}). Delete it to use this date, or change dates to pick another.`;
+      submitBtn.disabled = true;
+    } else {
+      note.style.display = 'block';
+      conflictBox.style.display = 'none';
+      note.textContent = `${fmtLong(start)} — now pick the last day (or click it again for a one-day holiday).`;
+      submitBtn.disabled = true;
+    }
+  } else {
+    conflictRow = findConflictingHoliday(start, end) || null;
+    if (conflictRow) {
+      note.style.display = 'none';
+      conflictBox.style.display = 'block';
+      const cName = conflictRow.querySelector('.hol-name').textContent;
+      document.getElementById('holConflictText').innerHTML =
+        `<b>${cName}</b> already covers part of this range (${fmtLong(conflictRow.dataset.first)} – ${fmtLong(conflictRow.dataset.last)}). Delete it to use these dates, or change dates to avoid it.`;
+      submitBtn.disabled = true;
+    } else {
+      note.style.display = 'block';
+      conflictBox.style.display = 'none';
+      const days = Math.round((new Date(end) - new Date(start)) / 86400000) + 1;
+      note.innerHTML = start === end
+        ? `<b>${fmtLong(start)}</b> · 1 day off.`
+        : `<b>${fmtLong(start)}</b> – <b>${fmtLong(end)}</b> · ${days} days off, first and last day included.`;
+      submitBtn.disabled = name.length === 0 || isDupeName;
+    }
+  }
+}
+function overrideConflict(){
+  if (conflictRow) {
+    conflictRow.remove();
+    conflictRow = null;
+    onRowCheck();
+    renderMonthFilter();
+  }
+  renderHolCal();
+}
+function openHolidayModal(rowEl){
+  document.getElementById('holidayModalTitle').textContent = rowEl ? 'Edit Holiday' : 'Add Holiday';
+  editingHolidayRow = rowEl || null;
+  conflictRow = null;
+  const gate = document.getElementById('editDateGate');
+  const content = document.getElementById('dateGateContent');
+  if (rowEl){
+    document.getElementById('holidayNameInput').value = rowEl.querySelector('.hol-name').textContent;
+    holCal.start = rowEl.dataset.first;
+    holCal.end = rowEl.dataset.last;
+    const [y, m] = rowEl.dataset.first.split('-').map(Number);
+    holCal.year = y; holCal.month = m - 1;
+    gate.style.display = 'flex';
+    gate.querySelector('input').checked = false;
+    content.classList.add('gated');
+  } else {
+    document.getElementById('holidayNameInput').value = '';
+    holCal = { year: 2026, month: 9, start: null, end: null };
+    gate.style.display = 'none';
+    content.classList.remove('gated');
+  }
+  renderHolCal();
+  document.getElementById('holidayModal').classList.add('open');
+}
+function toggleEditDateGate(cb){
+  document.getElementById('dateGateContent').classList.toggle('gated', !cb.checked);
+}
+function closeHolidayModal(){
+  document.getElementById('holidayModal').classList.remove('open');
+}
+function submitHoliday(){
+  const name = document.getElementById('holidayNameInput').value.trim();
+  const { start, end } = holCal;
+  if (!name || !start || !end || conflictRow) return;
+  const days = Math.round((new Date(end) - new Date(start)) / 86400000) + 1;
+  const displayFirst = fmtLong(start).replace(/(\d+) (\w+) (\d+)/, (_, d, m, y) => `${d.padStart(2,'0')} ${m.slice(0,3)} ${y}`);
+  const displayLast = fmtLong(end).replace(/(\d+) (\w+) (\d+)/, (_, d, m, y) => `${d.padStart(2,'0')} ${m.slice(0,3)} ${y}`);
+
+  if (editingHolidayRow) {
+    editingHolidayRow.dataset.first = start;
+    editingHolidayRow.dataset.last = end;
+    const cells = editingHolidayRow.querySelectorAll('td');
+    cells[1].querySelector('.hol-name').textContent = name;
+    cells[2].textContent = displayFirst;
+    cells[3].textContent = displayLast;
+    cells[4].querySelector('.hol-days').textContent = days;
+  } else {
+    const tr = document.createElement('tr');
+    tr.dataset.first = start;
+    tr.dataset.last = end;
+    tr.dataset.source = 'manual';
+    tr.innerHTML = `
+      <td class="chk"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+      <td><div class="hol-name">${name}</div></td>
+      <td>${displayFirst}</td>
+      <td>${displayLast}</td>
+      <td><span class="hol-days">${days}</span></td>
+      <td><span class="tag tag-manual">Manual</span></td>
+      <td class="act"><div class="actions"><button class="icon-btn" onclick="openHolidayModal(this.closest('tr'))"><i class="bi bi-pencil"></i></button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))"><i class="bi bi-trash"></i></button></div></td>`;
+    document.getElementById('holidayRows').appendChild(tr);
+  }
+  sortHolidaysTable();
+  renderMonthFilter();
+  closeHolidayModal();
+}
+
+function toggleAll(master){
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = master.checked);
+  onRowCheck();
+}
+function onRowCheck(){
+  const checked = document.querySelectorAll('.row-check:checked').length;
+  const total = document.querySelectorAll('.row-check').length;
+  document.getElementById('selectAll').checked = total > 0 && checked === total;
+  document.getElementById('deleteBtn').disabled = checked === 0;
+}
+
+let pendingDeleteRows = [];
+function confirmDelete(rowEl){
+  pendingDeleteRows = [rowEl];
+  document.getElementById('delHolName').textContent = rowEl.querySelector('.hol-name').textContent;
+  document.getElementById('confirmInput').value = '';
+  document.getElementById('confirmInput').classList.remove('match');
+  document.getElementById('confirmDeleteBtn').disabled = true;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function confirmBulkDelete(){
+  pendingDeleteRows = Array.from(document.querySelectorAll('.row-check:checked')).map(cb => cb.closest('tr'));
+  if (pendingDeleteRows.length === 0) return;
+  document.getElementById('delHolName').textContent = pendingDeleteRows.length === 1
+    ? pendingDeleteRows[0].querySelector('.hol-name').textContent
+    : `${pendingDeleteRows.length} selected holidays`;
+  document.getElementById('confirmInput').value = '';
+  document.getElementById('confirmInput').classList.remove('match');
+  document.getElementById('confirmDeleteBtn').disabled = true;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function checkConfirmInput(){
+  const input = document.getElementById('confirmInput');
+  const match = input.value.trim().toUpperCase() === 'DELETE';
+  input.classList.toggle('match', match);
+  document.getElementById('confirmDeleteBtn').disabled = !match;
+}
+function closeConfirm(){
+  document.getElementById('confirmOverlay').classList.remove('open');
+  pendingDeleteRows = [];
+}
+function performDelete(){
+  pendingDeleteRows.forEach(row => row.remove());
+  pendingDeleteRows = [];
+  onRowCheck();
+  closeConfirm();
+  renderMonthFilter();
+}
+
+/* ---------- Sort the master list starting from the academic session's opening
+   month (April), not plain January-first calendar order ---------- */
+const ACADEMIC_START_MONTH = 4; // April
+function academicSortKey(dateISO){
+  const [y, m, d] = dateISO.split('-').map(Number);
+  const monthIndex = (m - ACADEMIC_START_MONTH + 12) % 12;
+  return monthIndex * 100 + d;
+}
+function sortHolidaysTable(){
+  const tbody = document.getElementById('holidayRows');
+  const rows = Array.from(tbody.children);
+  rows.sort((a, b) => academicSortKey(a.dataset.first) - academicSortKey(b.dataset.first));
+  rows.forEach(r => tbody.appendChild(r));
+}
+sortHolidaysTable();
+
+/* ---------- Holiday Calendar Filter: browse by month, see that month's holidays
+   as chips, and narrow the table to just that month ---------- */
+let monthFilter = { year: 2026, month: null }; // month: null = "All Months"
+
+function monthFilterShift(dir){
+  if (monthFilter.month === null) monthFilter.month = 3; // start browsing from April
+  else monthFilter.month += dir;
+  if (monthFilter.month > 11) { monthFilter.month = 0; monthFilter.year++; }
+  if (monthFilter.month < 0) { monthFilter.month = 11; monthFilter.year--; }
+  renderMonthFilter();
+}
+function clearMonthFilter(){
+  monthFilter = { year: 2026, month: null };
+  document.getElementById('monthFilterDD').classList.remove('open');
+  renderMonthFilter();
+}
+function renderMonthFilter(){
+  const { year, month } = monthFilter;
+  const fullLabel = month === null ? null : `${monthNames[month]} ${year}`;
+  document.getElementById('monthFilterLabel').textContent = month === null ? 'Holiday Calendar' : fullLabel;
+  document.getElementById('monthFilterTitle').textContent = month === null ? `${monthNames[3]} ${year}` : fullLabel;
+
+  const gridMonth = month === null ? 3 : month;
+  const firstDow = new Date(year, gridMonth, 1).getDay();
+  const daysInMonth = new Date(year, gridMonth + 1, 0).getDate();
+  const rows = Array.from(document.querySelectorAll('#holidayRows tr'));
+
+  // Track each day's OWN holiday, plus that holiday's true start/end — so two
+  // different holidays that happen to sit on back-to-back days never get
+  // merged into one continuous band.
+  const dayInfo = {}; // day -> { name, first, last, isStart, isEnd }
+  rows.forEach(tr => {
+    const start = new Date(tr.dataset.first), end = new Date(tr.dataset.last);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      if (d.getFullYear() === year && d.getMonth() === gridMonth) {
+        const day = d.getDate();
+        dayInfo[day] = {
+          name: tr.querySelector('.hol-name').textContent,
+          first: tr.dataset.first,
+          last: tr.dataset.last,
+          isStart: tr.dataset.first === fmtISO(year, gridMonth, day),
+          isEnd: tr.dataset.last === fmtISO(year, gridMonth, day)
+        };
+      }
+    }
+  });
+
+  const grid = document.getElementById('monthFilterGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < firstDow; i++) grid.innerHTML += `<div class="range-day"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const info = dayInfo[d];
+    const dow = (firstDow + d - 1) % 7;
+    let cls = 'range-day';
+    if (info) {
+      cls += ' in-range';
+      if (info.isStart || dow === 0) cls += ' band-l';
+      if (info.isEnd || dow === 6) cls += ' band-r';
+      if (info.isStart || info.isEnd) cls += ' chain-endpoint';
+    }
+    const handlers = info
+      ? `onmouseenter="showHolTooltip(event,'${info.name.replace(/'/g,"\\'")}','${info.first}','${info.last}')" onmouseleave="hideHolTooltip()" onclick="showHolTooltip(event,'${info.name.replace(/'/g,"\\'")}','${info.first}','${info.last}')"`
+      : '';
+    grid.innerHTML += `<div class="${cls}" ${handlers}><span class="range-day-num">${d}</span></div>`;
+  }
+
+  // Chips: this month's holidays, with start/end dates — empty state if none.
+  const monthStart = new Date(year, gridMonth, 1);
+  const monthEnd = new Date(year, gridMonth + 1, 0);
+  const thisMonthHolidays = rows.filter(tr => new Date(tr.dataset.first) <= monthEnd && new Date(tr.dataset.last) >= monthStart);
+  const chipBox = document.getElementById('monthFilterChips');
+  if (month === null) {
+    chipBox.innerHTML = '<span class="not-set">Pick a month to see its holidays.</span>';
+  } else if (thisMonthHolidays.length) {
+    chipBox.innerHTML = thisMonthHolidays.map(tr => {
+      const name = tr.querySelector('.hol-name').textContent;
+      const first = fmtShort(tr.dataset.first);
+      const last = fmtShort(tr.dataset.last);
+      const range = tr.dataset.first === tr.dataset.last ? first : `${first} – ${last}`;
+      return `<span class="cal-legend-chip">${name} · ${range}</span>`;
+    }).join('');
+  } else {
+    chipBox.innerHTML = '<span class="not-set">No holidays this month</span>';
+  }
+
+  applyMonthFilterToTable();
+}
+function applyMonthFilterToTable(){
+  const { year, month } = monthFilter;
+  const rows = document.querySelectorAll('#holidayRows tr');
+  if (month === null) {
+    rows.forEach(tr => tr.style.display = '');
+    return;
+  }
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 0);
+  rows.forEach(tr => {
+    const overlaps = new Date(tr.dataset.first) <= monthEnd && new Date(tr.dataset.last) >= monthStart;
+    tr.style.display = overlaps ? '' : 'none';
+  });
+}
+renderMonthFilter();
+
+/* ---------- Generate from Public Holidays: state-wise list + calendar preview + custom append ---------- */
+let pubCal = { year: 2026, month: 0 };
+
+const stateHolidays = {
+  mp: [
+    { name: 'Republic Day', date: '2026-01-26' },
+    { name: 'Holi', date: '2026-03-04' },
+    { name: 'Independence Day', date: '2026-08-15' },
+    { name: 'Gandhi Jayanti', date: '2026-10-02' },
+    { name: 'Dussehra Break', date: '2026-10-20', end: '2026-10-22' },
+    { name: 'Christmas', date: '2026-12-25' }
+  ],
+  mh: [
+    { name: 'Republic Day', date: '2026-01-26' },
+    { name: 'Gudi Padwa', date: '2026-03-19' },
+    { name: 'Maharashtra Day', date: '2026-05-01' },
+    { name: 'Independence Day', date: '2026-08-15' },
+    { name: 'Gandhi Jayanti', date: '2026-10-02' },
+    { name: 'Dussehra Break', date: '2026-10-20', end: '2026-10-22' },
+    { name: 'Christmas', date: '2026-12-25' }
+  ],
+  dl: [
+    { name: 'Republic Day', date: '2026-01-26' },
+    { name: 'Holi', date: '2026-03-04' },
+    { name: 'Independence Day', date: '2026-08-15' },
+    { name: 'Gandhi Jayanti', date: '2026-10-02' },
+    { name: 'Dussehra Break', date: '2026-10-20', end: '2026-10-22' },
+    { name: 'Christmas', date: '2026-12-25' }
+  ]
+};
+
+function selectState(optionEl, value, label){
+  setDDValue('statePill', value, label);
+  document.getElementById('statePill').classList.remove('open');
+  renderPublicHolList();
+  renderPubCal();
+}
+function renderPublicHolList(){
+  const state = document.getElementById('statePill').dataset.value;
+  const list = document.getElementById('publicHolList');
+  list.innerHTML = stateHolidays[state].map(h => {
+    const end = h.end || h.date;
+    const label = end === h.date
+      ? fmtLong(h.date).replace(/ \d{4}$/, '')
+      : `${fmtLong(h.date).replace(/ \d{4}$/, '')} – ${fmtLong(end).replace(/ \d{4}$/, '')}`;
+    const conflict = findConflictingHoliday(h.date, end) || (isDuplicateHolidayName(h.name) ? true : null);
+    const checkedAttr = conflict ? '' : 'checked';
+    const checkedClass = conflict ? '' : ' checked';
+    return `<label class="hol-check${checkedClass}" data-conflict="${conflict ? '1' : '0'}"><input type="checkbox" class="pub-hol-cb" data-name="${h.name}" data-date="${h.date}" data-end="${end}" ${checkedAttr} onchange="onPubHolChange(this)"><span class="hc-name">${h.name}</span><span class="hc-days">${label}</span></label>`;
+  }).join('');
+}
+function getCheckedPublicEntries(){
+  return Array.from(document.querySelectorAll('.pub-hol-cb:checked')).map(cb => ({ name: cb.dataset.name, date: cb.dataset.date, end: cb.dataset.end }));
+}
+function openPublicHolidaysModal(){
+  pubCal = { year: 2026, month: 0 };
+  setDDValue('statePill', 'mp', 'Madhya Pradesh');
+  renderPublicHolList();
+  renderPubCal();
+  document.getElementById('genConflictBox').style.display = 'none';
+  document.getElementById('publicHolModal').classList.add('open');
+}
+function pubCalShift(dir){
+  pubCal.month += dir;
+  if (pubCal.month > 11) { pubCal.month = 0; pubCal.year++; }
+  if (pubCal.month < 0) { pubCal.month = 11; pubCal.year--; }
+  renderPubCal();
+}
+function onPubHolChange(cb){
+  const label = cb.closest('.hol-check');
+  label.classList.toggle('checked', cb.checked);
+  const hasConflict = label.dataset.conflict === '1';
+  let errEl = label.nextElementSibling && label.nextElementSibling.classList.contains('pub-hol-inline-error') ? label.nextElementSibling : null;
+  if (cb.checked && hasConflict) {
+    if (!errEl) {
+      errEl = document.createElement('div');
+      errEl.className = 'pub-hol-inline-error custom-hol-error';
+      errEl.style.display = 'block';
+      errEl.style.padding = '0 4px 8px';
+      const conflictRowFound = findConflictingHoliday(cb.dataset.date, cb.dataset.end);
+      errEl.textContent = conflictRowFound
+        ? `${conflictRowFound.querySelector('.hol-name').textContent} already covers part of this range.`
+        : `A holiday named "${cb.dataset.name}" already exists.`;
+      label.insertAdjacentElement('afterend', errEl);
+    }
+  } else if (errEl) {
+    errEl.remove();
+  }
+  renderPubCal();
+}
+
+function renderPubCal(){
+  const { year, month } = pubCal;
+  document.getElementById('pubCalTitle').textContent = `${monthNames[month]} ${year}`;
+  const entries = getCheckedPublicEntries();
+  const dayInfo = {};
+  entries.forEach(e => {
+    if (!e.date) return;
+    const end = e.end || e.date;
+    const start = new Date(e.date), stop = new Date(end);
+    for (let d = new Date(start); d <= stop; d.setDate(d.getDate() + 1)) {
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const day = d.getDate();
+        dayInfo[day] = { isStart: fmtISO(year, month, day) === e.date, isEnd: fmtISO(year, month, day) === end };
+      }
+    }
+  });
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const grid = document.getElementById('pubCalGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < firstDow; i++) grid.innerHTML += `<div class="range-day"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const info = dayInfo[d];
+    const dow = (firstDow + d - 1) % 7;
+    let cls = 'range-day';
+    if (info) {
+      cls += ' in-range';
+      if (info.isStart || dow === 0) cls += ' band-l';
+      if (info.isEnd || dow === 6) cls += ' band-r';
+      if (info.isStart || info.isEnd) cls += ' chain-endpoint';
+    }
+    grid.innerHTML += `<div class="${cls}"><span class="range-day-num">${d}</span></div>`;
+  }
+}
+function addHolidayRowToTable(name, startISO, endISO, source){
+  const startD = new Date(startISO), endD = new Date(endISO);
+  const days = Math.round((endD - startD) / 86400000) + 1;
+  const displayFirst = `${String(startD.getDate()).padStart(2,'0')} ${monthNames[startD.getMonth()].slice(0,3)} ${startD.getFullYear()}`;
+  const displayLast = `${String(endD.getDate()).padStart(2,'0')} ${monthNames[endD.getMonth()].slice(0,3)} ${endD.getFullYear()}`;
+  const tr = document.createElement('tr');
+  tr.dataset.first = startISO;
+  tr.dataset.last = endISO;
+  tr.dataset.source = source;
+  const tagClass = source === 'auto' ? 'tag-auto' : 'tag-manual';
+  const tagLabel = source === 'auto' ? 'Auto-generated' : 'Manual';
+  tr.innerHTML = `
+    <td class="chk"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+    <td><div class="hol-name">${name}</div></td>
+    <td>${displayFirst}</td>
+    <td>${displayLast}</td>
+    <td><span class="hol-days">${days}</span></td>
+    <td><span class="tag ${tagClass}">${tagLabel}</span></td>
+    <td class="act"><div class="actions"><button class="icon-btn" onclick="openHolidayModal(this.closest('tr'))"><i class="bi bi-pencil"></i></button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))"><i class="bi bi-trash"></i></button></div></td>`;
+  document.getElementById('holidayRows').appendChild(tr);
+}
+function generateFromPublicHolidays(){
+  const entries = getCheckedPublicEntries();
+
+  /* Same rule as Add Holiday: a generated entry that lands on a date already taken,
+     or shares a name with an existing holiday, doesn't get silently created or
+     silently skipped — it's called out so nothing is lost without the user knowing. */
+  const toAdd = [];
+  const skipped = [];
+  entries.forEach(e => {
+    const end = e.end || e.date;
+    const dateConflict = findConflictingHoliday(e.date, end);
+    const nameConflict = isDuplicateHolidayName(e.name);
+    if (dateConflict || nameConflict) {
+      skipped.push({ ...e, reason: nameConflict ? `a holiday named "${e.name}" already exists` : `${dateConflict.querySelector('.hol-name').textContent} already covers part of this range` });
+    } else {
+      toAdd.push(e);
+    }
+  });
+
+  toAdd.forEach(e => addHolidayRowToTable(e.name, e.date, e.end || e.date, 'auto'));
+  sortHolidaysTable();
+  renderMonthFilter();
+
+  const box = document.getElementById('genConflictBox');
+  if (skipped.length) {
+    box.style.display = 'block';
+    document.getElementById('genConflictText').innerHTML =
+      (toAdd.length ? `<b>${toAdd.length}</b> holiday${toAdd.length === 1 ? '' : 's'} added. ` : '') +
+      `<b>${skipped.length}</b> skipped — ` +
+      skipped.map(s => `${s.name} (${s.reason})`).join('; ') + '.';
+    if (!toAdd.length && !skipped.length) box.style.display = 'none';
+  } else {
+    document.getElementById('publicHolModal').classList.remove('open');
+  }
 }
 </script>
 </body>

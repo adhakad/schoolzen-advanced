@@ -38,13 +38,17 @@ describe('DataTableComponent', () => {
     sync();
   });
 
-  it('sizes the inner wrapper from the column set plus the checkbox column', () => {
-    // 180 + 100 + 32 + 16 is below the 640 floor, so the floor applies.
-    expect(component.minWidth).toBe('640px');
+  it('sizes the inner wrapper to exactly the column set plus the checkbox column', () => {
+    // 180 + 100 + 32 (checkbox) + 16 (row padding). Min and max are the same value: the
+    // table is never wider than its columns add up to, which is what stopped the row
+    // hover and separators painting across dead space on a wide screen.
+    expect(component.minWidth).toBe('328px');
+    expect(component.naturalWidth).toBe('328px');
 
     component.columns = [{ key: 'a', label: 'A', width: '900px' }];
     component.ngOnChanges();
     expect(component.minWidth).toBe('948px');
+    expect(component.naturalWidth).toBe('948px');
   });
 
   it('selects and deselects a single row without mutating the input array', () => {

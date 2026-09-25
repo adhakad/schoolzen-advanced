@@ -2,320 +2,658 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Academic Setup - Classes & Sections - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>Schoolzen — Classes & Sections</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 1000px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1000px; margin: 0 auto; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 12px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-spacer { height: 24px; }
-  .sw-body { display: flex; gap: 16px; align-items: stretch; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
-  .sw-main { flex: 1; min-width: 0; }
-  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
-  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-  .sw-search { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 9px 14px; flex: 1; min-width: 160px; }
-  .sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
-  .sw-search i { color: #a6a6c9; font-size: 15px; }
-  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 0 8px 8px; text-align: left; }
-  td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; }
-  .cls-name { font-weight: 600; color: #1a1a2e; font-size: 13.5px; }
-  .count-pill { display: inline-flex; align-items: center; gap: 5px; background: #fff2d6; color: #b8790a; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer; position: relative; width: fit-content; }
-  .count-pill.sec { background: #f0eeff; color: #7b6ef6; }
-  .count-pop { display: none; position: absolute; top: 28px; left: 0; background: #1a1a2e; color: #fff; border-radius: 8px; padding: 8px 12px; font-size: 11px; white-space: nowrap; z-index: 10; font-weight: 500; }
-  .count-pop.open { display: block; }
-  .not-set { color: #b0b0c9; font-style: italic; font-size: 11.5px; }
-  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; margin-right: 4px; cursor: pointer; }
-  .icon-btn.warn { background: #fde8ef; color: #b8265a; }
+  :root{
+    --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
 
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
-  .modal-overlay.open { display: flex; }
-  .modal-box { background: #fff; border-radius: 16px; width: 460px; max-height: 86vh; display: flex; flex-direction: column; overflow: hidden; }
-  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
-  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
-  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
-  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
-  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
-  .m-field { margin-bottom: 12px; }
-  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
-  .m-field input, .m-field select { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
-  .m-hint { font-size: 10.5px; color: #9494ac; margin-top: 3px; }
-  .toggle-row { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; }
-  .toggle-switch { width: 38px; height: 22px; border-radius: 999px; background: #e5e3f5; position: relative; cursor: pointer; flex-shrink: 0; }
-  .toggle-switch.on { background: #d9f7ea; }
-  .toggle-switch::after { content: ''; width: 18px; height: 18px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: 0.2s; }
-  .toggle-switch.on::after { left: auto; right: 2px; }
-  .toggle-label { font-size: 13px; color: #3d3d5c; font-weight: 500; }
-  .sec-block { background: #f9f8ff; border-radius: 12px; padding: 12px; margin-top: 14px; }
-  .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .sec-title { font-size: 11.5px; font-weight: 700; color: #4a4a68; }
-  .sec-add { width: 22px; height: 22px; border-radius: 6px; background: #7b6ef6; color: #fff; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .sec-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
-  .sec-row input { flex: 1; border: 1px solid #e5e3f5; border-radius: 8px; padding: 6px 10px; font-size: 12px; outline: none; }
-  .sec-remove { width: 22px; height: 22px; border-radius: 6px; background: #fde8ef; color: #b8265a; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-  .stream-block { border: 1px solid #ece9fb; border-radius: 10px; padding: 10px; margin-top: 10px; }
-  .stream-block-title { font-size: 11px; font-weight: 700; color: #b8790a; margin-bottom: 8px; }
-  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
+
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;}
+  nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
+
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;}
+  .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .year-pill{ font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; }
+  .year-pill .bi{color:var(--brand);}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+
+  .dd{position:relative;}
+  .dd-trigger{cursor:pointer; user-select:none;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:240px; width:max-content; max-width:300px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;}
+  .dd-menu.align-left{right:auto; left:0;}
+  .dd-menu.full-width{min-width:100%; width:100%; max-width:none;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option .bi{width:15px; text-align:center; flex-shrink:0;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;}
+  .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);}
+  .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd.disabled{pointer-events:none; opacity:1;}
+  .dd.disabled .dd-trigger{color:#B7B0C9; cursor:not-allowed;}
+  .dd.disabled .chevron{color:#D3CEE0;}
+  .dd-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;}
+
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+
+  .content{padding:28px 32px;}
+  .page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+
+  .sw-toolbar{ display:flex; flex-direction:column; gap:14px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+  .toolbar-row1{display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .toolbar-btn-group{display:flex; align-items:center; gap:10px;}
+  .search{position:relative; flex:0 0 340px; width:340px;}
+  .search input{ width:100%; height:38px; padding:0 14px 0 34px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .search input:focus{border-color:var(--brand);}
+  .search .bi-search{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:14px;}
+  .btn-primary{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-primary:hover{background:#2A3242;}
+  .btn-primary .bi{color:#ae86ff;}
+  .btn-danger-outline{ flex-shrink:0; height:38px; background:var(--surface); color:var(--danger); border:1px solid var(--danger); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--radius); display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-danger-outline:hover:not(:disabled){background:var(--danger-soft);}
+  .btn-danger-outline:disabled{color:var(--ink-faint); border-color:var(--line); cursor:not-allowed;}
+
+  table{width:100%; border-collapse:collapse;}
+  th.check-col, td.check-col{width:38px; text-align:center;}
+  .row-check, #selectAll{width:16px; height:16px; accent-color:var(--brand); cursor:pointer; vertical-align:middle;}
+  thead th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-faint); letter-spacing:0.06em; padding:0 16px 12px 16px; border-bottom:1px solid var(--line); }
+  thead th.num, td.num{text-align:right;}
+  thead th.act, td.act{text-align:right;}
+  tbody tr{border-bottom:1px solid var(--line-soft);}
+  tbody tr:hover{background:#F7F4FC;}
+  tbody tr:last-child{border-bottom:none;}
+  td{padding:18px 16px; vertical-align:middle;}
+
+  .class-cell{display:flex; align-items:baseline; gap:2px;}
+  .class-num{font-family:'Fraunces',serif; font-weight:600; font-size:19px; color:var(--ink);}
+  .class-suffix{font-family:'Fraunces',serif; font-size:12px; color:var(--ink); font-weight:500; margin-left:1px;}
+
+  .tag{ display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:20px; font-size:12px; font-weight:500; border:1px solid; background:transparent; }
+  .tag.clickable{cursor:pointer;}
+  .tag.clickable:hover{background:var(--brand-soft); border-color:var(--brand); color:var(--brand);}
+  .tag-slate{color:var(--slate); border-color:#D9CDEE;}
+  .tag-muted{color:var(--ink-faint); border-color:var(--line); font-style:italic;}
+  .na{color:var(--ink-faint); font-size:13px;}
+  .students-count{font-variant-numeric:tabular-nums; color:var(--ink-soft); font-weight:500;}
+
+  .actions{display:flex; gap:6px; justify-content:flex-end;}
+  .icon-btn{ width:30px; height:30px; border-radius:6px; border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:13px; }
+  .icon-btn:hover{border-color:var(--slate); color:var(--slate);}
+  .icon-btn.danger:hover{border-color:var(--danger); color:var(--danger);}
+
+  .pagination-bar{display:flex; align-items:center; justify-content:space-between; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);}
+  .rows-per-page{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);}
+  .sw-select-pill{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; box-sizing:border-box; }
+  .page-controls{display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-soft);}
+  .page-btn{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft);}
+  .page-btn:disabled{opacity:.4; cursor:not-allowed;}
+
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;}
+  .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);}
+  .stat-row.accent .stat-value{color:var(--brand);}
+
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .arrival-row{display:flex; align-items:center; gap:8px; padding:8px 4px; border-radius:6px;}
+  .arrival-row + .arrival-row{border-top:1px solid var(--line-soft);}
+  .arrival-row .g-avatar{width:28px; height:28px; border-radius:var(--radius); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:10px; flex-shrink:0;}
+  .arrival-row .aname{font-weight:600; color:var(--ink); font-size:12px;}
+  .arrival-row .asub{font-size:10.5px; color:var(--ink-faint);}
+  .arrival-row .atime{margin-left:auto; color:var(--ink-faint); font-size:10px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;}
+  .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
+
+  /* Add/Edit Class modal + Streams & Sections details modal */
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:60; align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); border-radius:var(--radius); width:460px; max-width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); border-radius:var(--radius) var(--radius) 0 0; flex-shrink:0;}
+  .modal-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink);}
+  .modal-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+  .modal-body{padding:20px 24px; flex:1; overflow-y:auto; min-height:0;}
+  .modal-foot{padding:16px 24px; border-top:1px solid var(--line); border-radius:0 0 var(--radius) var(--radius); flex-shrink:0; display:flex; justify-content:flex-end; gap:10px;}
+  .m-row{display:flex; gap:12px;}
+  .m-row .m-field{flex:1;}
+  .m-field{margin-bottom:16px;}
+  .m-field > label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);}
+  .m-hint{font-size:11px; color:var(--ink-faint); margin-top:6px; line-height:1.4;}
+  .toggle-row{display:flex; align-items:center; gap:9px; margin-bottom:16px; font-size:13px; color:var(--ink-soft); font-weight:500; cursor:pointer;}
+  .toggle-row input{width:16px; height:16px; accent-color:var(--brand); cursor:pointer;}
+  .stream-block{border:1px solid var(--line); border-radius:var(--radius); padding:12px; margin-bottom:10px; position:relative;}
+  .stream-block .remove-stream{position:absolute; top:10px; right:10px; width:24px; height:24px; border-radius:6px; border:1px solid var(--line); background:var(--surface); color:var(--ink-faint); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:12px;}
+  .stream-block .remove-stream:hover{color:var(--danger); border-color:var(--danger);}
+  .btn-add-stream{background:none; border:1px dashed var(--line); border-radius:var(--radius); color:var(--brand); font-size:12.5px; font-weight:600; padding:9px; width:100%; cursor:pointer;}
+  .btn-add-stream:hover{background:var(--brand-soft);}
+
+  .sec-block{margin-bottom:18px;}
+  .sec-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .sec-title{font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em;}
+  .sec-add{width:24px; height:24px; border-radius:6px; border:1px dashed var(--brand); background:var(--brand-soft); color:var(--brand); font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0;}
+  .sec-add:hover{background:var(--brand); color:#fff;}
+  .sec-row{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .sec-row input{flex:1; height:36px; padding:0 10px; border:1px solid var(--line); border-radius:var(--radius); font-size:13px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box;}
+  .sec-row input:focus{border-color:var(--brand);}
+  .sec-remove{width:28px; height:28px; border-radius:6px; border:1px solid var(--line); background:var(--surface); color:var(--ink-faint); cursor:pointer; flex-shrink:0; font-size:16px; display:flex; align-items:center; justify-content:center; line-height:1;}
+  .sec-remove:hover{border-color:var(--danger); color:var(--danger);}
+  .stream-block{border:1px solid var(--line); border-radius:var(--radius); padding:12px; margin-bottom:10px;}
+  .stream-block-title{font-family:'Fraunces',serif; font-size:13px; font-weight:500; color:var(--ink);}
+  .btn-plain{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand{height:38px; padding:0 18px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand:disabled{background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed;}
+  .req-star{color:var(--danger);}
+
+  .detail-stream-group{margin-bottom:14px;}
+  .detail-stream-group:last-child{margin-bottom:0;}
+  .detail-stream-name{font-family:'Fraunces',serif; font-size:14px; font-weight:500; color:var(--ink); margin-bottom:8px;}
+  .detail-section-list{display:flex; flex-wrap:wrap; gap:8px;}
+  .detail-section-chip{ display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:20px; font-size:12.5px; font-weight:500; border:1px solid #D9CDEE; color:var(--slate); }
+
+  .confirm-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:70; align-items:flex-start; justify-content:center; padding:100px 20px;}
+  .confirm-overlay.open{display:flex;}
+  .confirm-modal{background:var(--surface); border-radius:var(--radius); width:100%; max-width:420px; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .confirm-head{padding:20px 24px 4px; display:flex; gap:12px; align-items:flex-start;}
+  .confirm-icon{width:36px; height:36px; border-radius:50%; background:var(--danger-soft); color:var(--danger); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px;}
+  .confirm-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink); margin-bottom:4px;}
+  .confirm-body-text{font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+  .confirm-body{padding:16px 24px 4px;}
+  .confirm-body input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .confirm-body input:focus{border-color:var(--danger);}
+  .confirm-hint{font-size:11px; color:var(--ink-faint); margin-top:6px;}
+  .confirm-foot{padding:20px 24px; display:flex; justify-content:flex-end; gap:10px;}
+  .confirm-cancel{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
+  .confirm-delete{height:38px; padding:0 16px; border-radius:var(--radius); border:none; background:var(--danger); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .confirm-delete:disabled{background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed;}
 </style>
 </head>
 <body>
 
-<div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  Academic Setup &rarr; Classes &amp; Sections page. This is the source
-  data behind every Class/Section/Stream filter used across the whole
-  app (Attendance, Leave, Holiday, Manage Students, Admission).
-  Streams/Sections shown as a FIXED-WIDTH count pill ("2 streams",
-  "4 streams") with a click-to-reveal popover listing them - never
-  inline tags, which would grow the column unpredictably (2 streams
-  vs 10 must render identically). The add/edit modal's stream toggle
-  restructures the whole sections area: off = flat section list
-  directly on the class; on = a stream list, each stream with its own
-  independent section list underneath.
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a class="current" href="#">Classes & Sections</a>
+      <a href="#">Subjects</a>
+      <a href="#">Subject Groups</a>
+    </div>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-right chevron"></i></a>
+  </nav>
 </div>
 
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
-      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Academic Setup / <b>Classes & Sections</b></div>
+    <div class="top-actions">
+      <div class="dd" id="sessionDD">
+        <div class="year-pill dd-trigger" onclick="toggleDD(event,'sessionDD')"><i class="bi bi-calendar-event"></i> <span class="dd-label">2026–2027</span></div>
+        <div class="dd-menu align-left">
+          <div class="dd-option selected" onclick="selectSession(this,'2026–2027')">2026–2027</div>
+          <div class="dd-option" onclick="selectSession(this,'2025–2026')">2025–2026</div>
+          <div class="dd-option" onclick="selectSession(this,'2024–2025')">2024–2025</div>
+        </div>
+      </div>
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')">
+          <div class="avatar">A</div>
+          <span class="profile-name">Admin</span>
+          <i class="bi bi-chevron-down chevron"></i>
+        </div>
+        <div class="dd-menu">
+          <div class="drop-school">
+            <div class="drop-school-logo">GV</div>
+            <div>
+              <div class="drop-school-name">Green Valley Public School</div>
+              <div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div>
+            </div>
+          </div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div>
+          <div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div>
+          <div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="sw-spacer"></div>
-  <div class="sw-body">
-    <div class="sb-wrap">
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="staff">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
-        </div>
-      </div>
-      <div class="sb-group open" data-group="academic">
-        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Classes & Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="holiday">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="fees">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="examination">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="certificates">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-      <div class="sb-group" data-group="settings">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
-        </div>
+
+  <div class="content">
+    <div class="page-head">
+      <div>
+        <h1>Classes & Sections</h1>
+        <div class="subtitle">Set up grade levels, streams and sections for the current academic year.</div>
       </div>
     </div>
-    <div class="sw-main">
-      <div class="sw-card-main">
-        <div class="sw-title">Classes &amp; Sections</div>
 
+    <div class="layout-row">
+      <div class="sw-card-main">
         <div class="sw-toolbar">
-          <div class="sw-search"><i class="ti ti-search"></i><input placeholder="Search classes"/></div>
-          <button class="sw-add-btn" onclick="document.getElementById('classModal').classList.add('open')"><i class="ti ti-plus" style="font-size:13px;"></i> Add Class</button>
+          <div class="toolbar-row1">
+            <div class="search"><i class="bi bi-search"></i><input type="text" placeholder="Search classes"></div>
+            <div class="toolbar-btn-group">
+              <button class="btn-danger-outline" id="deleteBtn" disabled onclick="confirmDelete()"><i class="bi bi-trash"></i> Delete Selected</button>
+              <button class="btn-primary" onclick="openClassModal()"><i class="bi bi-plus-lg"></i> Add Class</button>
+            </div>
+          </div>
         </div>
 
         <table>
-          <thead><tr><th>Class</th><th>Streams</th><th>Sections</th><th>Students</th><th>Action</th></tr></thead>
+          <thead>
+            <tr>
+              <th class="check-col"><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
+              <th>Class</th>
+              <th>Streams</th>
+              <th>Sections</th>
+              <th class="num">Students</th>
+              <th class="act">Action</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr>
-              <td><span class="cls-name">6th</span></td>
-              <td><span class="not-set">N/A</span></td>
-              <td><span class="count-pill sec" onclick="togglePop(this)">2 sections<span class="count-pop">A, B</span></span></td>
-              <td>72</td>
-              <td><div class="icon-btn" onclick="document.getElementById('classModal').classList.add('open')"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+            <tr data-class="9th" data-has-streams="false" data-sections='["A","B"]'>
+              <td class="check-col"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+              <td><div class="class-cell"><span class="class-num">9</span><span class="class-suffix">th</span></div></td>
+              <td><span class="na">— not applicable</span></td>
+              <td><span class="tag tag-slate clickable" onclick="showDetails(this.closest('tr'))">2 sections</span></td>
+              <td class="num"><span class="students-count">0</span></td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openClassModal(this.closest('tr'))">✎</button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))">🗑</button></div></td>
             </tr>
-            <tr>
-              <td><span class="cls-name">7th</span></td>
-              <td><span class="not-set">N/A</span></td>
-              <td><span class="not-set">No sections</span></td>
-              <td>45</td>
-              <td><div class="icon-btn"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+            <tr data-class="10th" data-has-streams="false" data-sections='["A","B"]'>
+              <td class="check-col"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+              <td><div class="class-cell"><span class="class-num">10</span><span class="class-suffix">th</span></div></td>
+              <td><span class="na">— not applicable</span></td>
+              <td><span class="tag tag-slate clickable" onclick="showDetails(this.closest('tr'))">2 sections</span></td>
+              <td class="num"><span class="students-count">0</span></td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openClassModal(this.closest('tr'))">✎</button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))">🗑</button></div></td>
             </tr>
-            <tr>
-              <td><span class="cls-name">11th</span></td>
-              <td><span class="count-pill" onclick="togglePop(this)">2 streams<span class="count-pop">Science, Commerce</span></span></td>
-              <td><span class="not-set">Set per stream</span></td>
-              <td>98</td>
-              <td><div class="icon-btn"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+            <tr data-class="11th" data-has-streams="true" data-streams='[{"name":"Science","sections":["A","B"]},{"name":"Commerce","sections":["A"]}]'>
+              <td class="check-col"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+              <td><div class="class-cell"><span class="class-num">11</span><span class="class-suffix">th</span></div></td>
+              <td><span class="tag tag-slate clickable" onclick="showDetails(this.closest('tr'))">2 streams</span></td>
+              <td><span class="tag tag-muted clickable" onclick="showDetails(this.closest('tr'))">Set per stream</span></td>
+              <td class="num"><span class="students-count">0</span></td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openClassModal(this.closest('tr'))">✎</button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))">🗑</button></div></td>
             </tr>
-            <tr>
-              <td><span class="cls-name">12th</span></td>
-              <td><span class="count-pill" onclick="togglePop(this)">4 streams<span class="count-pop">Science, Commerce, Arts, Vocational</span></span></td>
-              <td><span class="not-set">Set per stream</span></td>
-              <td>102</td>
-              <td><div class="icon-btn"><i class="ti ti-edit"></i></div><div class="icon-btn warn"><i class="ti ti-trash"></i></div></td>
+            <tr data-class="12th" data-has-streams="true" data-streams='[{"name":"Science","sections":["A","B"]},{"name":"Commerce","sections":["A"]}]'>
+              <td class="check-col"><input type="checkbox" class="row-check" onchange="onRowCheck()"></td>
+              <td><div class="class-cell"><span class="class-num">12</span><span class="class-suffix">th</span></div></td>
+              <td><span class="tag tag-slate clickable" onclick="showDetails(this.closest('tr'))">2 streams</span></td>
+              <td><span class="tag tag-muted clickable" onclick="showDetails(this.closest('tr'))">Set per stream</span></td>
+              <td class="num"><span class="students-count">0</span></td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openClassModal(this.closest('tr'))">✎</button><button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))">🗑</button></div></td>
             </tr>
           </tbody>
         </table>
+
+        <div class="pagination-bar">
+          <div class="rows-per-page">
+            Rows per page
+            <div class="dd sw-select-pill" id="rowsPill" data-value="10" style="width:70px;">
+              <div class="dd-trigger" onclick="toggleDD(event,'rowsPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">10</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'rowsPill','10','10')">10</div>
+                <div class="dd-option" onclick="selectFilter(this,'rowsPill','25','25')">25</div>
+                <div class="dd-option" onclick="selectFilter(this,'rowsPill','50','50')">50</div>
+              </div>
+            </div>
+          </div>
+          <div class="page-controls">
+            <span class="page-range">1–4 of 4</span>
+            <button class="page-btn" disabled><i class="bi bi-chevron-left"></i></button>
+            <button class="page-btn" disabled><i class="bi bi-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-side">
+        <div class="stats-card">
+          <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+          <div class="stat-row"><span class="stat-label">Total Classes</span><span class="stat-value">4</span></div>
+          <div class="stat-row"><span class="stat-label">Sections Created</span><span class="stat-value">6</span></div>
+          <div class="stat-row accent"><span class="stat-label">Streams Configured</span><span class="stat-value">2</span></div>
+          <div class="stat-row"><span class="stat-label">Students Enrolled</span><span class="stat-value">0</span></div>
+        </div>
+        <div class="status-card">
+          <div class="card-title-row">Good to know</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Streams only apply from 11th onward, where students choose a specialization.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Sections split a class into smaller teaching groups — click a class's section or stream tag to see the full breakdown.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a class removes all its streams, sections and section assignments.</div>
+        </div>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="modal-overlay" id="classModal">
-    <div class="modal-box">
-      <div class="modal-head"><span class="modal-title">Add Class</span><div class="modal-close" onclick="document.getElementById('classModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <div class="m-field"><label>Class Name</label><select><option>6th</option><option>7th</option><option>11th</option></select></div>
-
-        <div class="toggle-row"><div class="toggle-switch" id="streamToggle" onclick="toggleStream(this)"></div><span class="toggle-label">This class has streams (11th/12th)</span></div>
-        <p class="m-hint">Turn on for 11th/12th &mdash; sections are then set per stream, not directly on the class.</p>
-
-        <div id="directSections" class="sec-block">
-          <div class="sec-head"><span class="sec-title">Sections</span><button class="sec-add">+</button></div>
-          <div class="sec-row"><input value="A"><button class="sec-remove">&times;</button></div>
-          <div class="sec-row"><input value="B"><button class="sec-remove">&times;</button></div>
-        </div>
-
-        <div id="streamSections" style="display:none;">
-          <div class="sec-block">
-            <div class="sec-head"><span class="sec-title">Streams</span><button class="sec-add">+</button></div>
-            <div class="sec-row"><input value="Science"><button class="sec-remove">&times;</button></div>
-            <div class="sec-row"><input value="Commerce"><button class="sec-remove">&times;</button></div>
-          </div>
-          <div class="stream-block">
-            <div class="stream-block-title">Science &mdash; Sections</div>
-            <div class="sec-row"><input value="A"><button class="sec-remove">&times;</button></div>
-            <div class="sec-row"><input value="B"><button class="sec-remove">&times;</button></div>
-          </div>
-          <div class="stream-block">
-            <div class="stream-block-title">Commerce &mdash; Sections</div>
-            <p class="m-hint" style="margin:0;">None &mdash; add one if this stream needs sections.</p>
-          </div>
-        </div>
+<div class="modal-overlay" id="classModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="classModalTitle">Add Class</span>
+      <button class="modal-close" onclick="closeClassModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="m-field">
+        <label>Class Name <span class="req-star">*</span></label>
+        <input type="text" id="className" placeholder="9th" oninput="validateClassForm()">
       </div>
-      <div class="modal-foot">
-        <button class="btn-cancel" onclick="document.getElementById('classModal').classList.remove('open')">Cancel</button>
-        <button class="btn-submit">Submit</button>
+      <label class="toggle-row">
+        <input type="checkbox" id="hasStreamsToggle" onchange="onHasStreamsToggle()">
+        This class has streams (e.g. Science, Commerce)
+      </label>
+      <div class="m-hint" style="margin-top:-10px; margin-bottom:16px;">Streams are typically only used for 11th and 12th.</div>
+
+      <div id="noStreamFields" class="sec-block">
+        <div class="sec-head">
+          <span class="sec-title">Sections</span>
+          <button type="button" class="sec-add" onclick="addSectionRow()">+</button>
+        </div>
+        <div id="sectionRowList"></div>
       </div>
+
+      <div id="streamFields" style="display:none;">
+        <div class="sec-block">
+          <div class="sec-head">
+            <span class="sec-title">Streams</span>
+            <button type="button" class="sec-add" onclick="addStreamRow()">+</button>
+          </div>
+          <div id="streamRowList"></div>
+        </div>
+        <div id="streamSectionBlocks"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="closeClassModal()">Cancel</button>
+      <button class="btn-brand" id="classSubmitBtn" disabled onclick="closeClassModal()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailsModal">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-head">
+      <span class="modal-title" id="detailsModalTitle">Details</span>
+      <button class="modal-close" onclick="closeDetailsModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body" id="detailsModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn-plain" onclick="closeDetailsModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-modal">
+    <div class="confirm-head">
+      <div class="confirm-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div>
+        <div class="confirm-title">Delete <span id="confirmCount">1</span> class?</div>
+        <div class="confirm-body-text">This can't be undone. All sections and stream configuration under the selected class will be removed.</div>
+      </div>
+    </div>
+    <div class="confirm-body">
+      <input type="text" id="confirmInput" placeholder="Type DELETE to confirm" oninput="checkConfirmInput()">
+      <div class="confirm-hint">Type <b>DELETE</b> in the box above to enable the button.</div>
+    </div>
+    <div class="confirm-foot">
+      <button class="confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-delete" id="confirmDeleteBtn" disabled onclick="performDelete()">Delete</button>
     </div>
   </div>
 </div>
 
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+});
+function setDDValue(id, value, label){
+  const dd = document.getElementById(id);
+  dd.dataset.value = value;
+  dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
+}
+function selectFilter(optionEl, ddId, value, label){
+  setDDValue(ddId, value, label);
+  document.getElementById(ddId).classList.remove('open');
+}
+function selectSession(optionEl, label){
+  setDDValue('sessionDD', label, label);
+  document.getElementById('sessionDD').classList.remove('open');
 }
 
-function toggleStream(el) {
-  el.classList.toggle('on');
-  const on = el.classList.contains('on');
-  document.getElementById('directSections').style.display = on ? 'none' : 'block';
-  document.getElementById('streamSections').style.display = on ? 'block' : 'none';
+function toggleAll(master){
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = master.checked);
+  onRowCheck();
 }
-function togglePop(el) {
-  el.querySelector('.count-pop').classList.toggle('open');
+function onRowCheck(){
+  const checked = document.querySelectorAll('.row-check:checked').length;
+  const total = document.querySelectorAll('.row-check').length;
+  document.getElementById('selectAll').checked = total > 0 && checked === total;
+  document.getElementById('deleteBtn').disabled = checked === 0;
+}
+
+let pendingDeleteRows = [];
+function confirmDelete(singleRow){
+  pendingDeleteRows = singleRow ? [singleRow] : Array.from(document.querySelectorAll('.row-check:checked')).map(cb => cb.closest('tr'));
+  if (pendingDeleteRows.length === 0) return;
+  document.getElementById('confirmCount').textContent = pendingDeleteRows.length;
+  document.getElementById('confirmInput').value = '';
+  document.getElementById('confirmDeleteBtn').disabled = true;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function checkConfirmInput(){
+  const val = document.getElementById('confirmInput').value.trim().toUpperCase();
+  document.getElementById('confirmDeleteBtn').disabled = (val !== 'DELETE');
+}
+function closeConfirm(){
+  document.getElementById('confirmOverlay').classList.remove('open');
+  pendingDeleteRows = [];
+}
+function performDelete(){
+  pendingDeleteRows.forEach(tr => tr.remove());
+  pendingDeleteRows = [];
+  onRowCheck();
+  closeConfirm();
+}
+
+/* ---------- Add / Edit Class modal ---------- */
+/* ---------- Add / Edit Class modal: sections & streams built row-by-row, "+" appends ---------- */
+let formSections = [];
+let formStreams = [];
+
+function renderSectionRows(){
+  const list = document.getElementById('sectionRowList');
+  list.innerHTML = formSections.map((val, i) => `
+    <div class="sec-row">
+      <input type="text" placeholder="A" value="${val}" oninput="formSections[${i}]=this.value">
+      <button type="button" class="sec-remove" onclick="removeSectionRow(${i})">×</button>
+    </div>`).join('') || '<div class="m-hint" style="margin:0;">No sections yet — add one.</div>';
+}
+function addSectionRow(){
+  formSections.push('');
+  renderSectionRows();
+}
+function removeSectionRow(i){
+  formSections.splice(i, 1);
+  renderSectionRows();
+}
+
+function renderStreamRows(){
+  const list = document.getElementById('streamRowList');
+  list.innerHTML = formStreams.map((s, i) => `
+    <div class="sec-row">
+      <input type="text" placeholder="Science" value="${s.name}" oninput="updateStreamName(${i}, this.value)">
+      <button type="button" class="sec-remove" onclick="removeStreamRow(${i})">×</button>
+    </div>`).join('') || '<div class="m-hint" style="margin:0;">No streams yet — add one.</div>';
+}
+function updateStreamName(i, val){
+  formStreams[i].name = val;
+  const titleEl = document.getElementById('streamTitle' + i);
+  if (titleEl) titleEl.textContent = (val || ('Stream ' + (i + 1))) + ' — Sections';
+}
+function addStreamRow(){
+  formStreams.push({ name: '', sections: [] });
+  renderStreamRows();
+  renderStreamSectionBlocks();
+}
+function removeStreamRow(i){
+  formStreams.splice(i, 1);
+  renderStreamRows();
+  renderStreamSectionBlocks();
+}
+
+function renderStreamSectionBlocks(){
+  const wrap = document.getElementById('streamSectionBlocks');
+  wrap.innerHTML = formStreams.map((s, i) => `
+    <div class="stream-block">
+      <div class="sec-head">
+        <span class="stream-block-title" id="streamTitle${i}">${s.name || ('Stream ' + (i + 1))} — Sections</span>
+        <button type="button" class="sec-add" onclick="addStreamSection(${i})">+</button>
+      </div>
+      ${s.sections.map((sec, j) => `
+        <div class="sec-row">
+          <input type="text" placeholder="A" value="${sec}" oninput="formStreams[${i}].sections[${j}]=this.value">
+          <button type="button" class="sec-remove" onclick="removeStreamSection(${i},${j})">×</button>
+        </div>`).join('') || '<div class="m-hint" style="margin:0;">None — add one if this stream needs sections.</div>'}
+    </div>`).join('');
+}
+function addStreamSection(i){
+  formStreams[i].sections.push('');
+  renderStreamSectionBlocks();
+}
+function removeStreamSection(i, j){
+  formStreams[i].sections.splice(j, 1);
+  renderStreamSectionBlocks();
+}
+
+function onHasStreamsToggle(){
+  const on = document.getElementById('hasStreamsToggle').checked;
+  document.getElementById('noStreamFields').style.display = on ? 'none' : 'block';
+  document.getElementById('streamFields').style.display = on ? 'block' : 'none';
+  if (on && formStreams.length === 0) addStreamRow();
+  if (!on && formSections.length === 0) addSectionRow();
+}
+function openClassModal(rowEl){
+  document.getElementById('classModalTitle').textContent = rowEl ? 'Edit Class' : 'Add Class';
+  const hasStreams = rowEl ? rowEl.dataset.hasStreams === 'true' : false;
+  document.getElementById('className').value = rowEl ? rowEl.dataset.class : '';
+  document.getElementById('hasStreamsToggle').checked = hasStreams;
+  document.getElementById('noStreamFields').style.display = hasStreams ? 'none' : 'block';
+  document.getElementById('streamFields').style.display = hasStreams ? 'block' : 'none';
+
+  if (hasStreams){
+    formStreams = rowEl ? JSON.parse(rowEl.dataset.streams) : [{ name: '', sections: [] }];
+    formSections = [];
+  } else {
+    formSections = rowEl ? JSON.parse(rowEl.dataset.sections) : ['', ''];
+    formStreams = [];
+  }
+  renderSectionRows();
+  renderStreamRows();
+  renderStreamSectionBlocks();
+  validateClassForm();
+  document.getElementById('classModal').classList.add('open');
+}
+function validateClassForm(){
+  const name = document.getElementById('className').value.trim();
+  document.getElementById('classSubmitBtn').disabled = name.length === 0;
+}
+function closeClassModal(){
+  document.getElementById('classModal').classList.remove('open');
+}
+
+/* ---------- Streams & Sections details modal ---------- */
+function showDetails(rowEl){
+  const className = rowEl.dataset.class;
+  const hasStreams = rowEl.dataset.hasStreams === 'true';
+  const body = document.getElementById('detailsModalBody');
+  body.innerHTML = '';
+  if (hasStreams){
+    document.getElementById('detailsModalTitle').textContent = `Streams & Sections — ${className}`;
+    const streams = JSON.parse(rowEl.dataset.streams);
+    streams.forEach(s => {
+      const group = document.createElement('div');
+      group.className = 'detail-stream-group';
+      group.innerHTML = `
+        <div class="detail-stream-name">${s.name}</div>
+        <div class="detail-section-list">${s.sections.map(sec => `<span class="detail-section-chip">Section ${sec}</span>`).join('')}</div>`;
+      body.appendChild(group);
+    });
+  } else {
+    document.getElementById('detailsModalTitle').textContent = `Sections — ${className}`;
+    const sections = JSON.parse(rowEl.dataset.sections);
+    body.innerHTML = `<div class="detail-section-list">${sections.map(sec => `<span class="detail-section-chip">Section ${sec}</span>`).join('')}</div>`;
+  }
+  document.getElementById('detailsModal').classList.add('open');
+}
+function closeDetailsModal(){
+  document.getElementById('detailsModal').classList.remove('open');
 }
 </script>
 </body>

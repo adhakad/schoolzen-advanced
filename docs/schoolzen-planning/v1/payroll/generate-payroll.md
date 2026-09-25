@@ -1,71 +1,25 @@
-# Payroll — Generate payroll page (finalized design)
+# Payroll — Generate Payroll
 
-Status: **FINAL** — v1 — this page is also the REFERENCE
-implementation the shared component library (in `_core/`) was extracted
-from. If in doubt about how a shared component should look, this page is
-the source of truth.
+Status: **FINAL**
+Reference: `generate-payroll.html`
 
-Depends on: `../_core/refactor-plan-and-design-system.md`
-
-Reference files:
-- `../_core/schoolzen-design-system-reference.html` — pixel-accurate HTML
-  of this exact page
+Run payroll for the month, then lock it once correct — locked rows feed Salary Payouts.
 
 ---
 
-## Toolbar
+## Frontend
 
-Search box (grows to fill space) + Staff filter + **Department filter**
-+ **Designation filter** (adjacent pair, Designation disabled until a
-Department is chosen — global rule) + Status filter + Month/Year
-(each with a visible dropdown chevron) + a primary "Generate for
-selected" button, all wrapping together as one group when space is
-tight.
+**Toolbar**: row1 (search + "Generate for Selected", disabled until rows checked) + row2 (Department→Designation cascade, Status `.dd` (All/Locked/Draft/Pending), month-nav).
 
-The primary button is **disabled by default** and only enables once ≥1
-row checkbox is selected; its label reflects the selected count once
-active (e.g. "Generate for selected (2)").
+**Table**: checkbox, Employee, Attendance (3 colored dot-counts: present/late/absent, feeding the calculation), Gross, Deductions, Net Salary, Status (tag), Action — **action set depends on status**:
+- **Pending** (no run yet, e.g. no Salary Group assigned): Gross/Deductions/Net show "—"/"Not generated"; single Generate (play icon) action.
+- **Draft** (generated, editable): Regenerate + Lock actions.
+- **Locked** (final): "View slip" (opens in new context) + Unlock (danger — this is a real un-doing of a finalized state and should confirm before proceeding).
 
-## Table columns (in order)
+## Backend
 
-Checkbox (header = select-all) → Employee (avatar+name+role) →
-Attendance (P/L/A dot-counts) → Gross → Deductions → Net salary →
-Status (fixed-width chip) → Action.
+Schema — `PayrollRun`: `adminId`, `staffId`, `month`, `year`, `attendanceSummary{present,late,absent}`, `gross`, `deductions`, `net`, `status:'pending'|'draft'|'locked'`. Generating reads that staff's `SalaryGroup` (Basic/HRA/etc.) and the month's `AttendanceRecord`s to compute gross/deductions — a staff member with no `SalaryGroup` assigned stays `pending` regardless of attendance. Locking is the gate that makes a run visible to Salary Payouts — a `draft` run must never appear there. Unlocking reverts to `draft` and should be logged (who unlocked, when) since it undoes a finalized state.
 
-- Deduction amounts use the same neutral secondary-text color as other
-  numeric columns (`#6b6b85`) — NOT red. The leading minus sign already
-  communicates "subtracted"; a loud color on top reads as an alarm
-  rather than a routine, correctly-computed value.
-- Status chips are fixed-width (80px), text centered.
-- Action column is a fixed-width slot (100px), icons right-aligned AND
-  vertically centered — a row with one action icon occupies the exact
-  same box position as a row with two.
+**"Generate for Selected" is a BullMQ background job** when the selection is large (`additional-technical-considerations.md` names this exact action) — computing gross/deductions against a month's attendance for many staff at once should never run inline inside the HTTP request. The job reads all selected staff's `SalaryGroup`+`AttendanceRecord` data with a batched query (not one query per staff member) and writes results via `bulkWrite`, never a loop of per-staff `.save()` calls.
 
-## Three row states (the reusable generate-and-lock pattern)
-
-1. **Pending** (not yet generated): Gross/Deductions show "—", Net shows
-   muted "Not generated" text, status chip reads "Pending". Single
-   action: a solid-purple "Generate" icon button.
-2. **Draft** (generated, not locked): normal Gross/Deductions/Net
-   numbers, status chip "Draft". Two actions: "Regenerate" (for
-   correcting a mistake — e.g. something generated mid-month before
-   attendance was final) + "Lock".
-3. **Locked**: status chip "Locked". Two actions: "View" (slip) +
-   "Unlock" (soft red/warning icon) — Unlock is gated behind a
-   confirmation modal explaining that any linked payment record stays
-   intact but amounts can change until re-locked.
-
-## Table overflow handling
-
-Outer wrapper: `overflow-x: auto` with small negative-margin + matching
-padding (lets the scrollbar span the card's full width without changing
-the card's edges). Inner wrapper: real `min-width` sized to the full
-column set (~880px). Both layers are required — min-width alone, with no
-dedicated scrolling parent, lets content spill past the card's edge
-instead of scrolling within it.
-
-## Sub-pages (reached via sidebar sub-items under Payroll)
-
-Payment history, Salary groups, Assign salary — each shows a
-"← Back to Payroll" link (accent-purple, left-arrow icon) as the first
-element in its content area, linking back to this page.
+**Mid-month generation correctness**: `totalWorkingDays` is always computed for the FULL month (1st to last date, minus weekly-offs and any Holiday dates for that person), never truncated to "days elapsed so far" — that truncation is a real calculation bug, not a style choice. For a month still in progress, remaining future dates are resolved against the existing approved-Leave map first (a future date already covered by an approved Leave counts toward `leaveDays` using that leave type's paid/unpaid flag); a future date with no leave and no holiday stays uncounted (neither present nor absent) since attendance for it hasn't happened yet. When generation runs mid-month, the response/UI carries an explicit warning: "This month is still in progress — N day(s) remain, of which M are already covered by approved leave. Attendance for the remaining days is not yet final." The run still saves as `Draft` (never blocked), with a recommendation to regenerate once the month ends and attendance is final.

@@ -7,9 +7,10 @@ const AppError = require('./AppError');
  * of a bare "try again" toast.
  */
 class RateLimitError extends AppError {
-  constructor(message = 'Too many requests. Please wait a moment and try again.', { module, retryAfter, context } = {}) {
+  constructor(message = 'Too many requests. Please wait a moment and try again.', { module, code = 'RATE_LIMITED', retryAfter, context } = {}) {
     super(message, {
       category: 'RateLimitError',
+      code,
       statusCode: 429,
       module,
       context,

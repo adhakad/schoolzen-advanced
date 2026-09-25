@@ -3,7 +3,7 @@
  * Row actions are always this same shape; only the glyph and colour vary by state.
  *
  * Inputs:
- *   icon      — Tabler icon name without the `ti-` prefix, e.g. 'lock-open'
+ *   icon      — Bootstrap Icon name without the `bi-` prefix, e.g. 'lock-open'
  *   variant   — 'neutral' (View/Lock/Regenerate) | 'primary' (the row's primary action)
  *               | 'warning' (a reversing action such as Unlock)
  *   ariaLabel — required for screen readers; there is no visible text
@@ -39,9 +39,9 @@ export class IconActionComponent {
   constructor(private cdr: ChangeDetectorRef) {}
 
   get buttonClass(): string {
-    if (this.variant === 'primary') return 'sw-icon primary';
-    if (this.variant === 'warning') return 'sw-icon warn';
-    return 'sw-icon';
+    if (this.variant === 'warning') return 'icon-btn danger';
+    if (this.variant === 'primary') return 'icon-btn primary';
+    return 'icon-btn';
   }
 
   onClick(): void {
