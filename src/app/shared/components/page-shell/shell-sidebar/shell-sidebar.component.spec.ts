@@ -41,6 +41,18 @@ describe('ShellSidebarComponent', () => {
     component = fixture.componentInstance;
   });
 
+  /**
+   * Expands a group the way a user does. A real DOM click also marks the OnPush view
+   * dirty, which calling toggleGroup() directly does not — and the sub-items are now
+   * behind an *ngIf rather than merely collapsed by CSS, so the render has to happen.
+   */
+  const openGroup = (label: string): void => {
+    const button = Array.from(fixture.nativeElement.querySelectorAll('button.nav-item'))
+      .find((element) => (element as HTMLElement).textContent!.trim().startsWith(label)) as HTMLButtonElement;
+    button.click();
+    fixture.detectChanges();
+  };
+
   const labels = (selector: string): string[] =>
     Array.from(fixture.nativeElement.querySelectorAll(selector))
       .map((element) => (element as HTMLElement).textContent!.trim());
@@ -78,13 +90,13 @@ describe('ShellSidebarComponent', () => {
     expect(admission.locked).toBeTrue();
     expect(student.items.find((item) => item.label === 'Manage Students')!.locked).toBeFalse();
 
-    component.toggleGroup('student');
-    sync();
+    openGroup('Student');
 
-    // The locked entry is rendered, but as a non-navigating span with a lock icon.
-    expect(labels('.sb-sub-item.locked')).toContain('Admission');
-    expect(fixture.nativeElement.querySelector('.sb-sub-item.locked i').className).toContain('ti-lock');
-    expect(fixture.nativeElement.querySelector('a.sb-sub-item.locked')).toBeNull();
+    // The locked entry is rendered, but as a non-navigating link with a lock icon.
+    expect(labels('.nav-sub a.locked')).toContain('Admission');
+    expect(fixture.nativeElement.querySelector('.nav-sub a.locked i').className).toContain('bi-lock-fill');
+    // Visible, but not a link: no routerLink and no click handler.
+    expect(fixture.nativeElement.querySelector('.nav-sub a.locked').getAttribute('href')).toBeNull();
   });
 
   it('auto-expands the group owning the active route and matches the longest route', () => {
@@ -102,16 +114,14 @@ describe('ShellSidebarComponent', () => {
     component.activeUrl = '/v2/payroll/salary-groups';
     sync();
 
-    // A click is not an input change, so only change detection runs — calling ngOnChanges
-    // here would re-run the auto-expand and undo the click.
-    component.toggleGroup('fees');
-    fixture.componentRef.changeDetectorRef.markForCheck();
-    fixture.detectChanges();
+    // A click is not an input change: calling ngOnChanges here would re-run the
+    // auto-expand and undo it.
+    openGroup('Fees');
 
     // Opening Fees expands it, but Payroll is still the page you are on.
     expect(component.openGroupKey).toBe('fees');
     expect(component.activeGroupKey).toBe('payroll');
-    const active = fixture.nativeElement.querySelectorAll('.sb-item.parent-active');
+    const active = fixture.nativeElement.querySelectorAll('.nav-item.active');
     expect(active.length).toBe(1);
     expect((active[0] as HTMLElement).textContent).toContain('Payroll');
   });
@@ -126,5 +136,33 @@ describe('ShellSidebarComponent', () => {
     expect(component.openGroupKey).toBe('fees');
     component.toggleGroup('fees');
     expect(component.openGroupKey).toBeNull();
+  });
+
+  /**
+   * The reference's sub-items are plain text — no leading icon, no dot. The ONLY icon a
+   * sub-item ever carries is the lock on a permission-gated one, which is the next test.
+   */
+  it('renders sub-items as plain text, with no icon of their own', () => {
+    component.context = context({ role: 'admin' });
+    sync();
+    openGroup('Student');
+
+    const subItems = fixture.nativeElement.querySelectorAll('.nav-sub a');
+    expect(subItems.length).toBeGreaterThan(0);
+
+    subItems.forEach((subItem: HTMLElement) => {
+      expect(subItem.querySelector('i')).withContext(subItem.textContent || '').toBeNull();
+    });
+  });
+
+  it('shows a lock on a permission-gated item, leaving it visible', () => {
+    component.context = context({ role: 'teacher', permissions: permissions(true, { admission: false }) });
+    sync();
+    openGroup('Student');
+
+    const locked = fixture.nativeElement.querySelector('.nav-sub a.locked i') as HTMLElement;
+    expect(locked.className).toContain('bi-lock-fill');
+    // The item stays VISIBLE — a teacher should see the feature exists and ask for access.
+    expect(getComputedStyle(locked).display).not.toBe('none');
   });
 });

@@ -6,9 +6,10 @@ const AppError = require('./AppError');
  * message is rarely shown since the redirect itself is the feedback.
  */
 class AuthenticationError extends AppError {
-  constructor(message = 'Your session has expired. Please log in again.', { module, context } = {}) {
+  constructor(message = 'Your session has expired. Please log in again.', { module, code = 'SESSION_EXPIRED', context } = {}) {
     super(message, {
       category: 'AuthenticationError',
+      code,
       statusCode: 401,
       module,
       context,
@@ -24,9 +25,10 @@ class AuthenticationError extends AppError {
  * AuthenticationError (who are you) vs. this (you, but not allowed).
  */
 class PermissionError extends AppError {
-  constructor(message = "You don't have permission to do this.", { module, context } = {}) {
+  constructor(message = "You don't have permission to do this.", { module, code = 'PERMISSION_DENIED', context } = {}) {
     super(message, {
       category: 'PermissionError',
+      code,
       statusCode: 403,
       module,
       context,

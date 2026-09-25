@@ -30,12 +30,12 @@ describe('ConfirmModalComponent', () => {
 
   it('renders nothing until it is opened', () => {
     sync();
-    expect(fixture.nativeElement.querySelector('.sw-modal')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.confirm-modal')).toBeNull();
 
     component.open = true;
     component.config = { title: 'Unlock?', message: 'Reopens it.', confirmLabel: 'Unlock' };
     sync();
-    expect(fixture.nativeElement.querySelector('.sw-modal')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.confirm-modal')).not.toBeNull();
   });
 
   it('keeps confirm disabled until the exact word is typed', () => {

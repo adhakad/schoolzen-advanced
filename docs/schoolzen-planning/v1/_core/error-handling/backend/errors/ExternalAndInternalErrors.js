@@ -8,9 +8,10 @@ const AppError = require('./AppError');
  * ../README.md's scalability notes).
  */
 class ExternalServiceError extends AppError {
-  constructor(message = 'A required external service is unavailable right now. Please try again shortly.', { module, context } = {}) {
+  constructor(message = 'A required external service is unavailable right now. Please try again shortly.', { module, code = 'EXTERNAL_SERVICE_UNAVAILABLE', context } = {}) {
     super(message, {
       category: 'ExternalServiceError',
+      code,
       statusCode: 502,
       module,
       context,
@@ -29,9 +30,10 @@ class ExternalServiceError extends AppError {
  * category (see ../frontend/error.interceptor.ts).
  */
 class InternalError extends AppError {
-  constructor(message, { module, context } = {}) {
+  constructor(message, { module, code = 'INTERNAL_ERROR', context } = {}) {
     super(message || 'Something went wrong.', {
       category: 'InternalError',
+      code,
       statusCode: 500,
       module,
       context,

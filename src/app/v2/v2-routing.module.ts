@@ -16,6 +16,13 @@ const routes: Routes = [
       // Alias: the gallery was first reachable at /v2/components. Both paths resolve to it
       // so a bookmarked or half-remembered URL never lands on the "not built" placeholder.
       { path: 'components', redirectTo: 'components-gallery', pathMatch: 'full' },
+      // Module 1. Feature-flagged: legacy /admin/class stays reachable and unchanged
+      // until this page has been checked against its design reference.
+      {
+        path: 'academic-setup',
+        loadChildren: () => import('src/app/academic-setup/academic-setup.module')
+          .then((m) => m.AcademicSetupModule)
+      },
       // Sidebar entries whose pages don't exist yet land here rather than 404-ing.
       { path: '**', component: NotBuiltComponent }
     ]

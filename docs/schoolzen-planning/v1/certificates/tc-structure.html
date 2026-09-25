@@ -2,261 +2,263 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Certificates - Transfer Certificate Structure - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>Schoolzen — Transfer Certificate Structure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 1000px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1000px; margin: 0 auto; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 12px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-profile-drop { display: none; position: absolute; top: 60px; right: 20px; width: 260px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(20,20,60,0.14); padding: 14px; z-index: 10; }
-  .sw-profile-drop.open { display: block; }
-  .sw-drop-school { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #f0eeff; margin-bottom: 10px; }
-  .sw-school-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg,#2f8fd8,#1f6fad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
-  .sw-school-name { font-weight: 700; font-size: 13px; color: #1a1a2e; }
-  .sw-school-meta { font-size: 10.5px; color: #9494ac; margin-top: 1px; }
-  .sw-drop-item { display: flex; align-items: center; gap: 9px; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; color: #6b6b85; cursor: pointer; }
-  .sw-drop-item:hover { background: #f6f5ff; }
-  .sw-drop-item i { font-size: 15px; color: #9494ac; }
-  .sw-spacer { height: 24px; }
-  .sw-body { display: flex; gap: 16px; align-items: stretch; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
-  .sw-main { flex: 1; min-width: 0; }
+  :root{
+    --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
 
-  .ls-strip { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(20,20,60,0.04); flex-wrap: wrap; }
-  .ls-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #e8f9f0; color: #0c8a52; }
-  .ls-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.6s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
-  .ls-sep { width: 1px; height: 16px; background: #ececf7; }
-  .ls-count { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: #6b6b85; }
-  .ls-count b { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
 
-  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
-  .sw-subtitle { font-size: 12px; color: #9494ac; margin-bottom: 18px; }
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;}
+  nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
 
-  .field-check-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
-  .field-check { display: flex; align-items: center; gap: 8px; background: #f9f8ff; border-radius: 9px; padding: 8px 10px; font-size: 12.5px; color: #3d3d5c; font-weight: 500; }
-  .field-check.locked { background: #fff; border: 1px dashed #e5e3f5; color: #9494ac; }
-  .field-check input { width: 15px; height: 15px; accent-color: #7b6ef6; }
-  .group-title { font-size: 12px; font-weight: 700; color: #7b6ef6; margin: 18px 0 8px; }
-  .group-title:first-of-type { margin-top: 0; }
-  .m-field { margin-bottom: 12px; max-width: 360px; }
-  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
-  .m-field input, .m-field textarea { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; font-family: inherit; }
-  .m-hint { font-size: 10.5px; color: #9494ac; margin-top: 4px; }
-  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 10px 20px; font-size: 12.5px; font-weight: 600; cursor: pointer; margin-top: 20px; }
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;}
+  .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .year-pill{ font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; }
+  .year-pill .bi{color:var(--brand);}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+
+  .dd{position:relative;}
+  .dd-trigger{cursor:pointer; user-select:none;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:240px; width:max-content; max-width:300px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;}
+  .dd-menu.align-left{right:auto; left:0;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option .bi{width:15px; text-align:center; flex-shrink:0;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;}
+  .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);}
+  .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;}
+
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+
+  .content{padding:28px 32px;}
+  .page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+
+  .group-title{font-family:'Fraunces',serif; font-size:14px; font-weight:500; color:var(--ink); margin:20px 0 4px; padding-top:18px; border-top:1px solid var(--line);}
+  .group-title:first-child{margin-top:0; padding-top:0; border-top:none;}
+
+  .field-check-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;}
+  .field-check{ display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; font-size:12.5px; color:var(--ink-soft); font-weight:500; }
+  .field-check.locked{background:var(--paper); color:var(--ink-faint);}
+  .field-check:not(.locked){cursor:pointer;}
+  .field-check:not(.locked):hover{border-color:var(--slate);}
+  .field-check input{width:15px; height:15px; accent-color:var(--brand); cursor:pointer; flex-shrink:0;}
+  .field-check.locked input{cursor:not-allowed;}
+  .field-check.locked .bi-lock-fill{margin-left:auto; font-size:11px; color:var(--ink-faint);}
+
+  .m-field{margin-bottom:16px; max-width:360px;}
+  .m-field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);}
+  .m-hint{font-size:11px; color:var(--ink-faint); margin-top:6px; line-height:1.4;}
+
+  .btn-primary{ height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; margin-top:6px; }
+  .btn-primary:hover{background:#2A3242;}
+  .btn-primary .bi{color:#ae86ff;}
+
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;}
+  .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);}
+  .stat-row.accent .stat-value{color:var(--brand);}
+
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;}
+  .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
 </style>
 </head>
 <body>
 
-<div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  Certificates &rarr; Transfer Certificate Structure. Unlike Marksheet/
-  Admit Card Structure, this is NOT per-class — a TC's content is the
-  same regardless of which class the leaving student was in, so there
-  is exactly one school-wide structure, not a per-class list. Fields
-  split into a locked always-on group (what every TC legally needs -
-  Name, Father's Name, DOB, Class Left From, Date of Leaving, Reason)
-  and an optional group a school can toggle (Conduct Remark, Subjects
-  Studied, Attendance %, Fee Dues Cleared, Games/Extra-Curricular).
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a class="current" href="#">TC Structure</a>
+      <a href="#">Generate TC</a>
+    </div>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-right chevron"></i></a>
+  </nav>
 </div>
 
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
-      <div class="sw-profile" onclick="document.getElementById('profileDrop').classList.toggle('open')">
-        <div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Certificates / <b>TC Structure</b></div>
+    <div class="top-actions">
+      <div class="dd" id="sessionDD">
+        <div class="year-pill dd-trigger" onclick="toggleDD(event,'sessionDD')"><i class="bi bi-calendar-event"></i> <span class="dd-label">2026–2027</span></div>
+        <div class="dd-menu align-left">
+          <div class="dd-option selected" onclick="selectSession(this,'2026–2027')">2026–2027</div>
+          <div class="dd-option" onclick="selectSession(this,'2025–2026')">2025–2026</div>
+          <div class="dd-option" onclick="selectSession(this,'2024–2025')">2024–2025</div>
+        </div>
+      </div>
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')">
+          <div class="avatar">A</div>
+          <span class="profile-name">Admin</span>
+          <i class="bi bi-chevron-down chevron"></i>
+        </div>
+        <div class="dd-menu">
+          <div class="drop-school">
+            <div class="drop-school-logo">GV</div>
+            <div>
+              <div class="drop-school-name">Green Valley Public School</div>
+              <div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div>
+            </div>
+          </div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div>
+          <div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div>
+          <div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="sw-profile-drop" id="profileDrop">
-    <div class="sw-drop-school">
-      <div class="sw-school-logo">GV</div>
-      <div><div class="sw-school-name">Green Valley Public School</div><div class="sw-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div>
-    </div>
-    <div class="sw-drop-item"><i class="ti ti-user"></i>My Profile</div>
-    <div class="sw-drop-item"><i class="ti ti-settings"></i>School Settings</div>
-    <div class="sw-drop-item"><i class="ti ti-logout"></i>Logout</div>
-  </div>
-  <div class="sw-spacer"></div>
-  <div class="sw-body">
-    <div class="sb-wrap">
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="staff">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="academic">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="holiday">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="fees">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="examination">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-      <div class="sb-group open" data-group="certificates">
-        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-      <div class="sb-group" data-group="settings">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
-        </div>
-      </div>
-    </div>
-    <div class="sw-main">
-      <div class="ls-strip">
-        <span class="ls-badge"><span class="ls-dot"></span>Structure active</span>
-        <div class="ls-sep"></div>
-        <span class="ls-count"><b>9</b> fields shown</span>
-        <span class="ls-count"><b>4</b> optional fields on</span>
-      </div>
 
+  <div class="content">
+    <div class="page-head">
+      <div>
+        <h1>Transfer Certificate Structure</h1>
+        <div class="subtitle">One school-wide structure — a TC's content doesn't vary by class.</div>
+      </div>
+    </div>
+
+    <div class="layout-row">
       <div class="sw-card-main">
-        <div class="sw-title">Transfer Certificate Structure</div>
-        <div class="sw-subtitle">One school-wide structure — a TC's content doesn't vary by class.</div>
-
-        <div class="group-title">Always Included</div>
-        <div class="field-check-grid">
-          <div class="field-check locked"><input type="checkbox" checked disabled>Student Name</div>
-          <div class="field-check locked"><input type="checkbox" checked disabled>Father's Name</div>
-          <div class="field-check locked"><input type="checkbox" checked disabled>Date of Birth</div>
-          <div class="field-check locked"><input type="checkbox" checked disabled>Admission No.</div>
-          <div class="field-check locked"><input type="checkbox" checked disabled>Class Left From</div>
-          <div class="field-check locked"><input type="checkbox" checked disabled>Date of Leaving</div>
-          <div class="field-check locked"><input type="checkbox" checked disabled>Reason for Leaving</div>
-          <div class="field-check locked"><input type="checkbox" checked disabled>Date of Admission</div>
-          <div class="field-check locked"><input type="checkbox" checked disabled>School Serial No.</div>
-        </div>
-
-        <div class="group-title">Optional Fields</div>
-        <div class="field-check-grid">
-          <label class="field-check"><input type="checkbox" checked>Conduct Remark</label>
-          <label class="field-check"><input type="checkbox" checked>Subjects Studied</label>
-          <label class="field-check"><input type="checkbox" checked>Attendance %</label>
-          <label class="field-check"><input type="checkbox" checked>Fee Dues Cleared</label>
-          <label class="field-check"><input type="checkbox">Games / Extra-Curricular</label>
-          <label class="field-check"><input type="checkbox">Qualified for Promotion</label>
+        <div class="group-title">Certificate Fields — Board-mandated Format</div>
+        <p class="m-hint" style="margin:-6px 0 12px;">These 19 fields are the standard transfer certificate format and appear on every TC exactly as numbered below — this isn't a per-school choice.</p>
+        <div class="field-check-grid" style="grid-template-columns:1fr 1fr;">
+          <label class="field-check locked"><input type="checkbox" checked disabled>1. Name of the Pupil<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>2. Mother's Name<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>3. Father's/Guardian's Name<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>4. Date of Birth (Admission Register)<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>5. Aadhar Number<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>6. Samagra ID<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>7. Nationality<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>8. Category (SC/ST/OBC/General)<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>9. Date of First Admission<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>10. Class Last Studied (+ Section)<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>11. Last Annual Exam &amp; Result<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>12. Subjects Studied (+ Stream)<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>13. Qualified for Promotion<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>14. Total Working Days<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>15. Total Days Present<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>16. Date of Issue<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>17. Reason for Leaving<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>18. General Conduct<i class="bi bi-lock-fill"></i></label>
+          <label class="field-check locked"><input type="checkbox" checked disabled>19. Any Other Remarks<i class="bi bi-lock-fill"></i></label>
         </div>
 
         <div class="group-title">Certificate Numbering</div>
-        <div class="m-field"><label>Next TC Serial Number</label><input type="text" value="TC-2026-0048"><div class="m-hint">Auto-increments with every certificate generated — editable here only to correct a gap.</div></div>
+        <div class="m-field">
+          <label>Next TC Serial Number</label>
+          <input type="text" value="TC-2026-0048">
+          <div class="m-hint">Auto-increments with every certificate generated — editable here only to correct a gap.</div>
+        </div>
 
-        <button class="btn-submit">Save Structure</button>
+        <button class="btn-primary"><i class="bi bi-check-lg"></i> Save Structure</button>
+      </div>
+
+      <div class="col-side">
+        <div class="stats-card">
+          <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+          <div class="stat-row"><span class="stat-label">Fields on Certificate</span><span class="stat-value">19</span></div>
+          <div class="stat-row accent"><span class="stat-label">Next Serial No.</span><span class="stat-value" style="font-size:13px;">TC-2026-0048</span></div>
+          <div class="stat-row"><span class="stat-label">TCs Issued This Session</span><span class="stat-value">7</span></div>
+        </div>
+        <div class="status-card">
+          <div class="card-title-row">Good to know</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Unlike Marksheet or Admit Card, this is one structure for the whole school — it doesn't vary by class.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>All 19 fields are required by the board-recognized TC format and can't be turned off.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Stream and Section print alongside Class where the student had one.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Changing the serial number only affects certificates generated after this point.</div>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+});
+function setDDValue(id, value, label){
+  const dd = document.getElementById(id);
+  dd.dataset.value = value;
+  dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
+}
+function selectSession(optionEl, label){
+  setDDValue('sessionDD', label, label);
+  document.getElementById('sessionDD').classList.remove('open');
 }
 </script>
 </body>

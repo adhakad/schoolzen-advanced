@@ -8,17 +8,21 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 @Component({
   selector: 'app-not-built',
   template: `
-    <div class="sw-card-main" style="text-align:center;padding:48px 20px;">
-      <div class="sw-title" style="margin-bottom:6px;">This page isn't built yet</div>
-      <div style="font-size:13px;color:#9494ac;">
+    <div class="sw-card-main not-built">
+      <div class="sw-title">This page isn't built yet</div>
+      <div class="subtitle">
         The module is listed in the sidebar so the navigation is complete; its page arrives
         with that module's own build step.
       </div>
-      <a class="sw-backlink" routerLink="/v2/components-gallery" style="margin-top:16px;">
-        <i class="ti ti-arrow-left"></i>Component gallery
+      <a class="back-link" routerLink="/v2/components-gallery">
+        <i class="bi bi-arrow-left"></i>Component gallery
       </a>
     </div>
   `,
+  styles: [`
+    .not-built { text-align: center; padding: 48px 20px; }
+    .not-built .back-link { margin-top: 16px; }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NotBuiltComponent {}

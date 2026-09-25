@@ -38,6 +38,22 @@ module.exports = function (config) {
     logLevel: config.LOG_INFO,
     autoWatch: true,
     browsers: ['Chrome'],
+    // A desktop-sized headless window. The shell's layout is breakpoint-dependent (the
+    // sidebar is persistent from 992px and an off-canvas drawer below it), and headless
+    // Chrome's default 800x600 window sits on the wrong side of that line — so a layout
+    // spec would silently measure the mobile shell. Run with:
+    //   ng test --browsers=ChromeHeadlessDesktop
+    customLaunchers: {
+      ChromeHeadlessDesktop: {
+        base: 'ChromeHeadless',
+        flags: ['--window-size=1400,900']
+      },
+      // The other side of the same line, for the off-canvas drawer's own layout contract.
+      ChromeHeadlessMobile: {
+        base: 'ChromeHeadless',
+        flags: ['--window-size=600,900']
+      }
+    },
     singleRun: false,
     restartOnFileChange: true
   });

@@ -2,349 +2,339 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Examination - Marksheet Structure - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>Schoolzen — Marksheet Structure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 1050px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1050px; margin: 0 auto; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 12px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-profile-drop { display: none; position: absolute; top: 60px; right: 20px; width: 260px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(20,20,60,0.14); padding: 14px; z-index: 10; }
-  .sw-profile-drop.open { display: block; }
-  .sw-drop-school { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #f0eeff; margin-bottom: 10px; }
-  .sw-school-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg,#2f8fd8,#1f6fad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
-  .sw-school-name { font-weight: 700; font-size: 13px; color: #1a1a2e; }
-  .sw-school-meta { font-size: 10.5px; color: #9494ac; margin-top: 1px; }
-  .sw-drop-item { display: flex; align-items: center; gap: 9px; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; color: #6b6b85; cursor: pointer; }
-  .sw-drop-item:hover { background: #f6f5ff; }
-  .sw-drop-item i { font-size: 15px; color: #9494ac; }
-  .sw-spacer { height: 24px; }
-  .sw-body { display: flex; gap: 16px; align-items: stretch; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
-  .sw-main { flex: 1; min-width: 0; }
-  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-  .ls-strip { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 14px; padding: 12px 18px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(20,20,60,0.04); flex-wrap: wrap; }
-  .ls-count { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: #6b6b85; }
-  .ls-count b { font-size: 14px; font-weight: 700; color: #1a1a2e; }
-  .ls-sep { width: 1px; height: 16px; background: #ececf7; }
-  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
-  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-  .sw-select-pill { display: flex; align-items: center; gap: 6px; background: #f6f5ff; border-radius: 12px; padding: 9px 12px; width: 128px; flex-shrink: 0; }
-  .sw-select-pill select { border: none; background: transparent; font-size: 12px; color: #6b6b85; outline: none; flex: 1; appearance: none; font-weight: 500; }
-  .sw-select-pill.disabled { background: #f2f2f6; opacity: 0.5; }
-  .sw-select-pill.disabled select { cursor: not-allowed; color: #b0b0c9; }
-  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; margin-left: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 0 8px 8px; text-align: left; }
-  td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; }
-  .cls-tag { font-size: 10.5px; color: #7b6ef6; background: #f0eeff; padding: 3px 9px; border-radius: 999px; font-weight: 600; }
-  .not-set { color: #b0b0c9; font-style: italic; font-size: 11.5px; }
-  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; margin-right: 4px; cursor: pointer; }
-  .icon-btn.warn { background: #fde8ef; color: #b8265a; }
-
-  .empty-hint { background: #fff8ea; border-radius: 10px; padding: 12px 16px; font-size: 12.5px; color: #8a6d1f; text-align: center; margin: 20px 0; }
-
-  .template-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 8px; }
-  .template-card { border: 1.5px solid #e5e3f5; border-radius: 12px; padding: 12px; cursor: pointer; text-align: center; }
-  .template-card:hover { border-color: #7b6ef6; }
-  .template-card img { width: 100%; border-radius: 8px; margin-bottom: 8px; background: #f6f5ff; height: 140px; object-fit: cover; }
-  .template-card .t-name { font-size: 11.5px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
-  .template-select-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 9px; padding: 7px 16px; font-size: 11.5px; font-weight: 600; cursor: pointer; }
-
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
-  .modal-overlay.open { display: flex; }
-  .modal-box { background: #fff; border-radius: 16px; width: 460px; max-height: 86vh; display: flex; flex-direction: column; overflow: hidden; }
-  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
-  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
-  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
-  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
-  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: flex-end; gap: 8px; }
-  .warn-box { background: #fde8ef; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #8a1f42; line-height: 1.6; margin-bottom: 14px; }
-  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-danger { background: #b8265a; color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  :root{ --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;} nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;} .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .year-pill{ font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; }
+  .year-pill .bi{color:var(--brand);}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+  .dd{position:relative;} .dd-trigger{cursor:pointer; user-select:none;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:max(100%,165px); width:max-content; max-width:260px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;} .dd-menu.align-left{right:auto; left:0;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;} .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);} .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd.disabled{pointer-events:none; opacity:1;} .dd.disabled .dd-trigger{color:#B7B0C9; cursor:not-allowed;} .dd.disabled .chevron{color:#D3CEE0;}
+  .dd-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;}
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+  .content{padding:28px 32px;} .page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+  .sw-toolbar{display:flex; align-items:center; gap:8px; margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .sw-select-pill{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; width:150px; flex-shrink:0; box-sizing:border-box; }
+  .sw-select-pill-full{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; box-sizing:border-box; }
+  .btn-primary{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; margin-left:auto; }
+  .btn-primary:hover{background:#2A3242;} .btn-primary .bi{color:#ae86ff;}
+  .empty-hint{background:var(--warning-soft); border-radius:var(--radius); padding:24px 16px; font-size:13px; color:#8A6D1F; text-align:center; margin:8px 0;}
+  table{width:100%; border-collapse:collapse;}
+  thead th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-faint); letter-spacing:0.06em; padding:0 16px 12px 16px; border-bottom:1px solid var(--line); }
+  thead th.act, td.act{text-align:right;}
+  tbody tr{border-bottom:1px solid var(--line-soft);} tbody tr:hover{background:#F7F4FC;} tbody tr:last-child{border-bottom:none;}
+  td{padding:14px 16px; vertical-align:middle;}
+  .lm-name{font-weight:600; color:var(--ink); font-size:13.5px;}
+  .cls-tag{font-size:10.5px; color:var(--brand); background:var(--brand-soft); padding:3px 9px; border-radius:20px; font-weight:600;}
+  .not-set{color:var(--ink-faint); font-style:italic; font-size:11.5px;}
+  .actions{display:flex; gap:6px; justify-content:flex-end;}
+  .icon-btn{ width:30px; height:30px; border-radius:6px; border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:13px; }
+  .icon-btn:hover{border-color:var(--slate); color:var(--slate);} .icon-btn.danger:hover{border-color:var(--danger); color:var(--danger);}
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;} .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);} .stat-row.accent .stat-value{color:var(--brand);}
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;} .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:60; align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); border-radius:var(--radius); width:680px; max-width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .modal-box.narrow{width:420px;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .modal-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink);}
+  .modal-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+  .modal-body{padding:20px 24px; flex:1; overflow-y:auto; min-height:0;}
+  .modal-foot{padding:16px 24px; border-top:1px solid var(--line); flex-shrink:0; display:flex; justify-content:flex-end; gap:10px;}
+  .m-row{display:flex; gap:12px;} .m-row .m-field{flex:1;}
+  .m-field{margin-bottom:14px;}
+  .m-field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);} .m-hint{font-size:11px; color:var(--ink-faint); margin-top:6px; line-height:1.4;}
+  .req-star{color:var(--danger);}
+  .tpl-preview-strip{display:flex; align-items:center; gap:12px; background:var(--brand-soft); border:1px solid #E0CFFF; border-radius:var(--radius); padding:12px 14px; margin-bottom:16px; font-size:12.5px; color:var(--brand-deep);}
+  .tpl-preview-strip b{font-family:'Fraunces',serif; font-size:14px;}
+  .tpl-preview-strip a{margin-left:auto; color:var(--brand-deep); font-weight:600; text-decoration:underline; font-size:11.5px; white-space:nowrap;}
+  .group-title{font-family:'Fraunces',serif; font-size:13.5px; font-weight:500; color:var(--ink); margin:18px 0 10px; padding-top:14px; border-top:1px solid var(--line-soft);}
+  .group-title:first-child{margin-top:0; padding-top:0; border-top:none;}
+  .subj-check-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .subj-check{display:flex; align-items:center; gap:8px; background:var(--paper); border-radius:var(--radius); padding:9px 10px; font-size:12.5px; color:var(--ink); font-weight:500; cursor:pointer;}
+  .subj-check input{width:15px; height:15px; accent-color:var(--brand); cursor:pointer;}
+  .marks-table{width:100%; border-collapse:collapse; margin-top:8px;}
+  .marks-table th{text-align:left; font-size:10px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; padding:0 8px 6px 0;}
+  .marks-table td{padding:4px 8px 4px 0;}
+  .marks-table td.subj-name{font-size:12.5px; font-weight:600; color:var(--ink);}
+  .marks-table input{width:100%; height:32px; padding:0 8px; border:1px solid var(--line); border-radius:var(--radius); font-size:12px; font-family:inherit; outline:none; box-sizing:border-box;}
+  .marks-table input:focus{border-color:var(--brand);}
+  .auto-note{background:var(--brand-soft); border-radius:var(--radius); padding:10px 14px; font-size:12px; color:var(--brand-deep); line-height:1.6; margin-top:16px;}
+  .btn-plain{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand{height:38px; padding:0 18px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand:disabled{background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed;}
+  .warn-box{background:var(--danger-soft); border-radius:var(--radius); padding:12px 14px; font-size:12px; color:#8A3A2E; line-height:1.6; margin-bottom:14px;} .warn-box b{color:var(--danger);}
+  .confirm-input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; outline:none; box-sizing:border-box; font-family:monospace; margin-bottom:6px; }
+  .confirm-input:focus{border-color:var(--danger);} .confirm-input.match{border-color:var(--success);} .confirm-hint{font-size:11px; color:var(--ink-faint);}
+  .btn-danger{height:38px; padding:0 16px; border-radius:var(--radius); border:none; background:var(--danger); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-danger:disabled{background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed;}
 </style>
 </head>
 <body>
-
-<div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  Examination &rarr; Marksheet Structure page. One structure per
-  Class(+Stream) — existence+dependency filter pair as everywhere
-  else. Starting a NEW structure shows a template-picker grid instead
-  of a blank form (matches the legacy component's carousel), since a
-  marksheet's whole visual layout comes from the chosen template; the
-  configuration (subjects/terms/marks) is entered on the
-  Subject &amp; Marks Setup page (marksheet-structure-setup.html) once
-  a template is picked.
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a href="#">Admit Card Structure</a>
+      <a href="#">Generate Admit Card</a>
+      <a class="current" href="#">Marksheet Structure</a>
+      <a href="#">Generate Marksheet</a>
+    </div>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-right chevron"></i></a>
+  </nav>
 </div>
-
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
-      <div class="sw-profile" onclick="document.getElementById('profileDrop').classList.toggle('open')"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Examination / <b>Marksheet Structure</b></div>
+    <div class="top-actions">
+      <div class="dd" id="sessionDD">
+        <div class="year-pill dd-trigger" onclick="toggleDD(event,'sessionDD')"><i class="bi bi-calendar-event"></i> <span class="dd-label">2026–2027</span></div>
+        <div class="dd-menu align-left"><div class="dd-option selected" onclick="selectSession(this,'2026–2027')">2026–2027</div><div class="dd-option" onclick="selectSession(this,'2025–2026')">2025–2026</div></div>
+      </div>
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')"><div class="avatar">A</div><span class="profile-name">Admin</span><i class="bi bi-chevron-down chevron"></i></div>
+        <div class="dd-menu">
+          <div class="drop-school"><div class="drop-school-logo">GV</div><div><div class="drop-school-name">Green Valley Public School</div><div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div></div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div><div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div><div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="sw-profile-drop" id="profileDrop">
-    <div class="sw-drop-school">
-      <div class="sw-school-logo">GV</div>
-      <div><div class="sw-school-name">Green Valley Public School</div><div class="sw-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div>
-    </div>
-    <div class="sw-drop-item"><i class="ti ti-user"></i>My Profile</div>
-    <div class="sw-drop-item"><i class="ti ti-settings"></i>School Settings</div>
-    <div class="sw-drop-item"><i class="ti ti-logout"></i>Logout</div>
-  </div>
-  <div class="sw-spacer"></div>
-  <div class="sw-body">
-    <div class="sb-wrap">
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="staff">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="academic">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="holiday">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="fees">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-      <div class="sb-group open" data-group="examination">
-        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="certificates">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-      <div class="sb-group" data-group="settings">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
-        </div>
-      </div>
-    </div>
-    <div class="sw-main">
-      <div class="ls-strip">
-        <span class="ls-count"><b>10</b> classes total</span>
-        <div class="ls-sep"></div>
-        <span class="ls-count"><b>6</b> structures set</span>
-        <span class="ls-count"><b>4</b> not set yet</span>
-      </div>
-
+  <div class="content">
+    <div class="page-head"><div><h1>Marksheet Structure</h1><div class="subtitle">Every class(+stream) with its assigned template and subjects — every class shown, set up the ones still empty.</div></div></div>
+    <div class="layout-row">
       <div class="sw-card-main">
-        <div class="sw-title">Marksheet Structure</div>
-
         <div class="sw-toolbar">
-          <div class="sw-select-pill" id="classPill"><select id="cls" onchange="onClassChange()"><option value="">-- Select Class --</option><option value="8">8th</option><option value="11">11th</option></select></div>
-          <div class="sw-select-pill disabled" id="streamPill" style="display:none;"><select id="stream" disabled onchange="onStreamChange()"><option value="">-- Select --</option><option>Science</option><option>Commerce</option></select></div>
-        </div>
-
-        <!-- State 1: no class chosen yet -->
-        <div class="empty-hint" id="chooseHint">Choose a Class (and Stream, for 11th/12th) to see or set its marksheet structure.</div>
-
-        <!-- State 2: class chosen, structure already exists -->
-        <div id="existingStructure" style="display:none;">
-          <table>
-            <thead><tr><th>S.No.</th><th>Template Name</th><th>Class</th><th>Stream</th><th>Created By</th><th>Edit</th><th>Remove</th></tr></thead>
-            <tbody>
-              <tr>
-                <td>1</td>
-                <td>CBSE Term Format</td>
-                <td><span class="cls-tag">8th</span></td>
-                <td><span class="not-set">N/A</span></td>
-                <td>Abhishek</td>
-                <td><div class="icon-btn"><i class="ti ti-external-link"></i></div></td>
-                <td><div class="icon-btn warn" onclick="document.getElementById('deleteModal').classList.add('open')"><i class="ti ti-trash"></i></div></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- State 3: class chosen, no structure yet - show template picker -->
-        <div id="templatePicker" style="display:none;">
-          <p style="font-size:12.5px;color:#6b6b85;margin:0 0 4px;">No marksheet structure set for this class yet. Pick a template to start.</p>
-          <div class="template-grid">
-            <div class="template-card">
-              <img src="https://placehold.co/240x160/f6f5ff/7b6ef6?text=Template+1" alt="">
-              <div class="t-name">Template 1 — Two Term</div>
-              <button class="template-select-btn" onclick="location.href='marksheet-structure-setup.html'">Select</button>
-            </div>
-            <div class="template-card">
-              <img src="https://placehold.co/240x160/f6f5ff/7b6ef6?text=Template+2" alt="">
-              <div class="t-name">Template 2 — Yearly</div>
-              <button class="template-select-btn" onclick="location.href='marksheet-structure-setup.html'">Select</button>
-            </div>
-            <div class="template-card">
-              <img src="https://placehold.co/240x160/f6f5ff/7b6ef6?text=Template+3" alt="">
-              <div class="t-name">Template 3 — CBSE Co-Scholastic</div>
-              <button class="template-select-btn" onclick="location.href='marksheet-structure-setup.html'">Select</button>
-            </div>
+          <div class="dd sw-select-pill" id="classPill" data-value="">
+            <div class="dd-trigger" onclick="toggleDD(event,'classPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">All classes</span><i class="bi bi-chevron-down chevron"></i></div>
+            <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectFilter(this,'classPill','','All classes')">All classes</div><div class="dd-option" onclick="selectFilter(this,'classPill','8','8th')">8th</div><div class="dd-option" onclick="selectFilter(this,'classPill','11','11th')">11th</div></div>
+          </div>
+          <div class="dd sw-select-pill disabled" id="streamPill" data-value="">
+            <div class="dd-trigger" onclick="toggleDD(event,'streamPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">All streams</span><i class="bi bi-chevron-down chevron"></i></div>
+            <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectFilter(this,'streamPill','','All streams')">All streams</div><div class="dd-option" onclick="selectFilter(this,'streamPill','Science','Science')">Science</div><div class="dd-option" onclick="selectFilter(this,'streamPill','Commerce','Commerce')">Commerce</div></div>
           </div>
         </div>
+
+        <table>
+          <thead><tr><th>Class</th><th>Stream</th><th>Template</th><th>Subjects Set</th><th class="act">Action</th></tr></thead>
+          <tbody id="structRows">
+            <tr data-class="8" data-stream="">
+              <td><div class="lm-name">8th</div></td>
+              <td><span class="not-set">N/A</span></td>
+              <td><span class="cls-tag">T1</span></td>
+              <td>5 of 5 subjects</td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openStructModal(this.closest('tr'))" title="Edit"><i class="bi bi-pencil"></i></button><button class="icon-btn danger" onclick="confirmRemove(this.closest('tr'))" title="Remove"><i class="bi bi-trash"></i></button></div></td>
+            </tr>
+            <tr data-class="11" data-stream="Science">
+              <td><div class="lm-name">11th</div></td>
+              <td>Science</td>
+              <td><span class="not-set">Not set</span></td>
+              <td><span class="not-set">—</span></td>
+              <td class="act"><div class="actions"><button class="icon-btn" onclick="openStructModal(this.closest('tr'))" title="Set up"><i class="bi bi-plus-lg"></i></button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="col-side">
+        <div class="stats-card">
+          <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+          <div class="stat-row"><span class="stat-label">Classes Total</span><span class="stat-value">10</span></div>
+          <div class="stat-row accent"><span class="stat-label">Set Up</span><span class="stat-value">1</span></div>
+        </div>
+        <div class="status-card">
+          <div class="card-title-row">Good to know</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>The template itself (grading, marks caps) is picked once in Settings — here you just choose which subjects apply per class.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>As soon as this is submitted, marksheets for every matching student are generated automatically, ready for marks entry.</div>
+        </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- DELETE - cascade type-to-confirm -->
-  <div class="modal-overlay" id="deleteModal">
-    <div class="modal-box" style="width:420px;">
-      <div class="modal-head"><span class="modal-title">Delete Marksheet Structure</span><div class="modal-close" onclick="document.getElementById('deleteModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <div class="warn-box">Deleting this structure also deletes every 8th-class student's exam result entered against it. This cannot be undone.</div>
+<div class="modal-overlay" id="structureModal">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title" id="structModalTitle">Set Up Marksheet — 8th</span><button class="modal-close" onclick="document.getElementById('structureModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="tpl-preview-strip"><i class="bi bi-info-circle"></i> Using template <b>T1</b> · Half-Yearly · A+ to F grading <a href="#">Change template in Settings</a></div>
+      <div class="group-title">Theory Subjects</div>
+      <div class="subj-check-grid" id="theorySubjects">
+        <label class="subj-check"><input type="checkbox" checked onchange="renderMarksTable()"> English</label>
+        <label class="subj-check"><input type="checkbox" checked onchange="renderMarksTable()"> Hindi</label>
+        <label class="subj-check"><input type="checkbox" checked onchange="renderMarksTable()"> Mathematics</label>
+        <label class="subj-check"><input type="checkbox" checked onchange="renderMarksTable()"> Science</label>
+        <label class="subj-check"><input type="checkbox" checked onchange="renderMarksTable()"> Social Science</label>
       </div>
-      <div class="modal-foot">
-        <button class="btn-cancel" onclick="document.getElementById('deleteModal').classList.remove('open')">Cancel</button>
-        <button class="btn-danger">Delete</button>
+      <div class="group-title">Practical Subjects <span style="font-size:11px; color:var(--ink-faint); font-weight:400;">(optional)</span></div>
+      <div class="subj-check-grid" id="practicalSubjects">
+        <label class="subj-check"><input type="checkbox" onchange="renderMarksTable()"> Science</label>
+        <label class="subj-check"><input type="checkbox" onchange="renderMarksTable()"> Computer</label>
       </div>
+      <div class="group-title">Max Marks per Subject</div>
+      <table class="marks-table" id="marksTable"><thead><tr><th>Subject</th><th>Theory Max</th><th>Practical Max</th></tr></thead><tbody id="marksRows"></tbody></table>
+      <div class="auto-note">As soon as this is submitted, marksheets for every student in this class(+stream) will be generated automatically.</div>
     </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('structureModal').classList.remove('open')">Cancel</button><button class="btn-brand" onclick="submitStruct()">Submit</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box narrow">
+    <div class="modal-head"><span class="modal-title">Remove Marksheet Setup</span><button class="modal-close" onclick="closeConfirm()"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="warn-box" id="confirmBody"></div>
+      <input type="text" class="confirm-input" id="delConfirmInput" placeholder="Type DELETE to confirm" oninput="checkDelConfirm()">
+      <div class="confirm-hint">Type <b>DELETE</b> in the box above to enable the button.</div>
+    </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="closeConfirm()">Cancel</button><button class="btn-danger" id="confirmDelBtn" disabled onclick="performDelete()">Delete</button></div>
   </div>
 </div>
 
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  if (dd.classList.contains('disabled')) return;
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+document.addEventListener('click', () => document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open')));
+function setDDValue(id, value, label){
+  const dd = document.getElementById(id);
+  dd.dataset.value = value; dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
+}
+function disableDD(id, resetLabel){ const dd = document.getElementById(id); dd.classList.add('disabled'); if (resetLabel) setDDValue(id, '', resetLabel); }
+function enableDD(id){ document.getElementById(id).classList.remove('disabled'); }
+function selectFilter(optionEl, ddId, value, label){
+  setDDValue(ddId, value, label); document.getElementById(ddId).classList.remove('open');
+  if (ddId === 'classPill') onClassChange();
+  filterRows();
+}
+function selectSession(optionEl, label){ setDDValue('sessionDD', label, label); document.getElementById('sessionDD').classList.remove('open'); }
+function onClassChange(){
+  const val = document.getElementById('classPill').dataset.value;
+  if (val === '11' || val === '12') enableDD('streamPill'); else disableDD('streamPill', 'All streams');
+}
+function filterRows(){
+  const cls = document.getElementById('classPill').dataset.value;
+  const stream = document.getElementById('streamPill').dataset.value;
+  document.querySelectorAll('#structRows tr').forEach(tr => {
+    const match = (!cls || tr.dataset.class === cls) && (!stream || tr.dataset.stream === stream);
+    tr.style.display = match ? '' : 'none';
+  });
 }
 
-function onClassChange() {
-  const val = document.getElementById('cls').value;
-  const streamPill = document.getElementById('streamPill');
-  const streamSel = document.getElementById('stream');
-  streamPill.style.display = 'none'; streamSel.disabled = true;
+function renderMarksTable(){
+  const checked = Array.from(document.querySelectorAll('#theorySubjects input:checked, #practicalSubjects input:checked')).map(cb => cb.parentElement.textContent.trim());
+  const theoryChecked = new Set(Array.from(document.querySelectorAll('#theorySubjects input:checked')).map(cb => cb.parentElement.textContent.trim()));
+  const practicalChecked = new Set(Array.from(document.querySelectorAll('#practicalSubjects input:checked')).map(cb => cb.parentElement.textContent.trim()));
+  const allSubjects = [...new Set([...theoryChecked, ...practicalChecked])];
+  document.getElementById('marksRows').innerHTML = allSubjects.map(s => `
+    <tr>
+      <td class="subj-name">${s}</td>
+      <td>${theoryChecked.has(s) ? '<input type="number" value="80">' : '<input type="text" value="—" disabled style="color:var(--ink-faint);">'}</td>
+      <td>${practicalChecked.has(s) ? '<input type="number" value="20">' : '<input type="text" value="—" disabled style="color:var(--ink-faint);">'}</td>
+    </tr>`).join('') || '<tr><td colspan="3" style="color:var(--ink-faint); font-style:italic; padding:12px 0;">Select at least one subject above.</td></tr>';
+}
+renderMarksTable();
 
-  if (val === '11' || val === '12') {
-    streamPill.style.display = 'flex';
-    streamSel.disabled = false;
-    resetState();
-    return;
-  }
-  updateState(!!val);
+function openStructModal(row){
+  const cls = row.querySelector('.lm-name').textContent;
+  document.getElementById('structModalTitle').textContent = `Set Up Marksheet — ${cls}`;
+  document.getElementById('structureModal').classList.add('open');
+  renderMarksTable();
 }
-function onStreamChange() {
-  updateState(!!document.getElementById('stream').value);
+function submitStruct(){ document.getElementById('structureModal').classList.remove('open'); }
+
+let pendingRow = null;
+function confirmRemove(row){
+  pendingRow = row;
+  const cls = row.querySelector('.lm-name').textContent;
+  document.getElementById('confirmBody').innerHTML = `Removing this setup deletes marksheets already generated for <b>${cls}</b>'s students. <b>This can't be undone.</b>`;
+  document.getElementById('delConfirmInput').value = ''; document.getElementById('delConfirmInput').classList.remove('match');
+  document.getElementById('confirmDelBtn').disabled = true;
+  document.getElementById('confirmModal').classList.add('open');
 }
-function resetState() {
-  document.getElementById('chooseHint').style.display = 'block';
-  document.getElementById('existingStructure').style.display = 'none';
-  document.getElementById('templatePicker').style.display = 'none';
+function checkDelConfirm(){
+  const input = document.getElementById('delConfirmInput');
+  const match = input.value.trim().toUpperCase() === 'DELETE';
+  input.classList.toggle('match', match);
+  document.getElementById('confirmDelBtn').disabled = !match;
 }
-function updateState(ready) {
-  document.getElementById('chooseHint').style.display = ready ? 'none' : 'block';
-  // Demo: 8th already has a structure, everything else doesn't yet.
-  const val = document.getElementById('cls').value;
-  if (ready && val === '8') {
-    document.getElementById('existingStructure').style.display = 'block';
-    document.getElementById('templatePicker').style.display = 'none';
-  } else if (ready) {
-    document.getElementById('existingStructure').style.display = 'none';
-    document.getElementById('templatePicker').style.display = 'block';
-  } else {
-    document.getElementById('existingStructure').style.display = 'none';
-    document.getElementById('templatePicker').style.display = 'none';
-  }
-}
+function closeConfirm(){ document.getElementById('confirmModal').classList.remove('open'); pendingRow = null; }
+function performDelete(){ if (pendingRow) pendingRow.remove(); closeConfirm(); }
 </script>
 </body>
 </html>

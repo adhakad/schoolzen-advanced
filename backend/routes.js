@@ -49,4 +49,16 @@ module.exports = app => {
     app.use('/v1/plans', require('./modules/routes/plans'));
     app.use('/v1/board', require('./modules/routes/board'));
     app.use('/v1/id-card', require('./modules/routes/id-card'));
+
+    // --- v2 (new stack) ---
+    // Rebuilt modules stand up their routes here alongside the v1 ones rather than
+    // replacing them, so the legacy app keeps working untouched while a module is verified
+    // against its design reference. Nothing is cut over until that check passes.
+    // Every v2 route sits under /api/v2/<module>, never sharing a base path with a legacy
+    // route (frontend-backend-folder-structure.md) — so legacy-vs-new is unambiguous at the
+    // routing layer itself and a v1 route can never be accidentally shadowed by a new one.
+    // The three Academic Setup pages share one base path and bring their own sub-paths.
+    app.use('/api/v2/academic-setup', require('./modules/routes/academic-setup/classes-sections.routes'));
+    app.use('/api/v2/academic-setup', require('./modules/routes/academic-setup/subjects.routes'));
+    app.use('/api/v2/academic-setup', require('./modules/routes/academic-setup/subject-groups.routes'));
 };

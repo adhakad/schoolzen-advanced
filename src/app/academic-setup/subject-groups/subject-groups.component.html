@@ -1,0 +1,199 @@
+<!-- Subject Groups.
+     Reference: docs/schoolzen-planning/v1/academic-setup/subject-groups.html
+
+     The reference file's own markup, with Angular bindings layered on. TWO toolbar rows —
+     row1 search + buttons, row2 the Class and Stream filters — which is THIS page's shape,
+     taken from its own .html and never copied from a sibling. -->
+
+<div class="page-head">
+  <div>
+    <h1>Subject Groups</h1>
+    <div class="subtitle">
+      Bundle subjects into a single named choice &mdash; one group per class, or per stream where streams
+      apply.
+    </div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search subject groups" aria-label="Search subject groups"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-danger-outline"
+                  [disabled]="!selectedCount" (click)="onDeleteSelected()">
+            <i class="bi bi-trash"></i> Delete Selected
+          </button>
+          <button type="button" class="btn-primary" (click)="onAddGroup()">
+            <i class="bi bi-plus-lg"></i> Add Group
+          </button>
+        </div>
+      </div>
+
+      <div class="toolbar-row2">
+        <app-dd class="toolbar-pill" [options]="classFilterOptions" [value]="filterClassId"
+                ariaLabel="Filter by class" (valueChange)="onFilterClassChange($event)"></app-dd>
+        <!-- Always present, merely disabled until a class is chosen: a pill that disappears
+             changes the toolbar's shape. -->
+        <app-dd class="toolbar-pill" [options]="streamFilterOptions" [value]="filterStreamId"
+                [disabled]="filterStreamDisabled" [disabledHint]="filterStreamHint"
+                ariaLabel="Filter by stream" (valueChange)="onFilterStreamChange($event)"></app-dd>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="check-col">
+              <input type="checkbox" class="select-all" aria-label="Select all groups"
+                     [checked]="allSelected" (change)="toggleAll()" />
+            </th>
+            <th>Class</th>
+            <th>Stream</th>
+            <th>Group Name</th>
+            <th>Subjects</th>
+            <th class="act">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td class="check-col">
+              <input type="checkbox" class="row-check" [attr.aria-label]="'Select ' + row.name"
+                     [checked]="isSelected(row._id)" (change)="toggleRow(row._id)" />
+            </td>
+
+            <td class="cls-cell">{{ row.className }}</td>
+
+            <td class="cls-cell">
+              <span *ngIf="row.streamName; else noStream">{{ row.streamName }}</span>
+              <ng-template #noStream><span class="na">&mdash; not applicable</span></ng-template>
+            </td>
+
+            <td><div class="grp-name">{{ row.name }}</div></td>
+
+            <!-- Names resolved server-side from the referenced Subjects, so a rename shows
+                 through here with no migration and no stale copy. -->
+            <td>
+              <div class="subj-tags">
+                <span class="tag tag-slate" *ngFor="let subject of row.subjects; trackBy: trackBySubject">
+                  {{ subject.name }}
+                </span>
+                <span class="na" *ngIf="!row.subjects.length">&mdash; none yet</span>
+              </div>
+            </td>
+
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name"
+                        (click)="onEditGroup(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        (click)="onDeleteGroup(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+      {{ search || filterClassId ? 'No groups match those filters.' : 'No subject groups created yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row">
+        <span class="stat-label">Total Groups</span><span class="stat-value">{{ summary.total }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Classes Covered</span><span class="stat-value">{{ summary.classesCovered }}</span>
+      </div>
+      <div class="stat-row accent">
+        <span class="stat-label">Streams Configured</span><span class="stat-value">{{ summary.streamsCovered }}</span>
+      </div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>A student picks one group; it decides their full subject set for
+        the year.
+      </div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>Streams only apply from 11th onward, so classes below it show
+        &ldquo;not applicable&rdquo;.
+      </div>
+      <div class="tip-item">
+        <i class="bi bi-info-circle"></i>Subjects are referenced, not copied &mdash; renaming one on the
+        Subjects page updates every group that uses it.
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+
+  <div class="m-row">
+    <div class="m-field">
+      <label for="group-class">Class <span class="req-star">*</span></label>
+      <app-dd id="group-class" [options]="formClassOptions" [value]="form.classId"
+              ariaLabel="Class" (valueChange)="onFormClassChange($event)"></app-dd>
+      <p class="m-error" *ngIf="fieldErrors['classId']">{{ fieldErrors['classId'] }}</p>
+    </div>
+
+    <div class="m-field">
+      <label for="group-stream">Stream</label>
+      <app-dd id="group-stream" [options]="formStreamOptions" [value]="form.streamId"
+              [disabled]="formStreamDisabled" [disabledHint]="formStreamHint"
+              ariaLabel="Stream" (valueChange)="onFormStreamChange($event)"></app-dd>
+      <p class="m-error" *ngIf="fieldErrors['streamId']">{{ fieldErrors['streamId'] }}</p>
+    </div>
+  </div>
+
+  <div class="m-field">
+    <label for="group-name">Group Name <span class="req-star">*</span></label>
+    <input id="group-name" type="text" placeholder="Mathematics Group" maxlength="60"
+           [value]="form.name" (input)="onFormNameChange($any($event.target).value)" />
+    <div class="m-hint">A student picks one group; it decides their full subject set.</div>
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+
+  <div class="m-field">
+    <label>Subjects in this group</label>
+    <!-- Re-read from the server every time this modal opens, so it always reflects the
+         current Subjects list rather than a copy taken when the page loaded. -->
+    <div class="subj-check-grid">
+      <label class="subj-check" [class.checked]="isChecked(subject._id)"
+             *ngFor="let subject of subjectChecklist; trackBy: trackBySubject">
+        <input type="checkbox" [checked]="isChecked(subject._id)"
+               (change)="toggleSubject(subject._id)" />
+        <span>{{ subject.name }}</span>
+      </label>
+      <p class="m-hint no-gap" *ngIf="!subjectChecklist.length">
+        No active subjects yet &mdash; add them on the Subjects page first.
+      </p>
+    </div>
+    <p class="m-error" *ngIf="fieldErrors['subjectIds']">{{ fieldErrors['subjectIds'] }}</p>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

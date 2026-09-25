@@ -1,10 +1,11 @@
+import { ChangeDetectionStrategy } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { DataToolbarComponent } from './data-toolbar.component';
+import { DdComponent } from '../dd/dd.component';
 import { ToolbarFilter } from 'src/app/shared/models/shared-components.model';
 
 describe('DataToolbarComponent', () => {
@@ -28,10 +29,18 @@ describe('DataToolbarComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         CommonModule, NoopAnimationsModule,
-        MatSelectModule, MatDatepickerModule, MatNativeDateModule
+        MatDatepickerModule, MatNativeDateModule
       ],
-      declarations: [DataToolbarComponent]
-    }).compileComponents();
+      // app-dd is declared too: every select-like control in the toolbar IS that
+      // component now, so a shallow render would assert nothing about them.
+      declarations: [DataToolbarComponent, DdComponent]
+    })
+      // The component ships OnPush; these tests set @Input()s straight on the instance
+      // (no host binding to mark the view dirty), so DOM assertions need Default here.
+      .overrideComponent(DataToolbarComponent, {
+        set: { changeDetection: ChangeDetectionStrategy.Default }
+      })
+      .compileComponents();
     fixture = TestBed.createComponent(DataToolbarComponent);
     component = fixture.componentInstance;
     component.filters = filters;
@@ -51,7 +60,7 @@ describe('DataToolbarComponent', () => {
   }));
 
   it('renders a disabled mutual-dependency pill instead of hiding it', () => {
-    const pills = fixture.nativeElement.querySelectorAll('.sw-select-pill');
+    const pills = fixture.nativeElement.querySelectorAll('app-dd');
     // department + designation render; the existence-based section filter does not.
     expect(pills.length).toBe(2);
 
@@ -59,12 +68,14 @@ describe('DataToolbarComponent', () => {
     expect(designationPill.classList).toContain('disabled');
     // The bug this guards against: a dependent pill hidden with display:none never came back.
     expect(designationPill.style.display).toBe('');
-    expect(designationPill.querySelector('.mat-select-disabled')).not.toBeNull();
+    expect(designationPill.querySelector('.dd-trigger')!.getAttribute('aria-disabled')).toBe('true');
   });
 
-  it('uses Material controls, never a native select', () => {
-    expect(fixture.nativeElement.querySelector('mat-select')).not.toBeNull();
+  /** design-system.md bans native selects — and a re-themed mat-select is not `.dd` either. */
+  it('uses the .dd component, never a native select and never a mat-select', () => {
+    expect(fixture.nativeElement.querySelector('app-dd .dd-trigger')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('select')).toBeNull();
+    expect(fixture.nativeElement.querySelector('mat-select')).toBeNull();
   });
 
   it('emits the filter key and value on change', () => {
@@ -79,10 +90,11 @@ describe('DataToolbarComponent', () => {
     sync();
 
     const pill = fixture.nativeElement.querySelector('.sw-select-pill') as HTMLElement;
-    expect(pill.querySelector('mat-select')).toBeNull();
+    // A date filter is the one control that is NOT an app-dd: `.dd` has no calendar.
+    expect(pill.tagName.toLowerCase()).toBe('div');
     expect(pill.querySelector('.sw-pill-date-input')).not.toBeNull();
     // Parsed off the string, so August is August regardless of the runner's timezone.
-    expect((pill.querySelector('.sw-pill-text') as HTMLElement).textContent).toContain('August 2026');
+    expect((pill.querySelector('.dd-label') as HTMLElement).textContent).toContain('August 2026');
   });
 
   it('emits YYYY-MM for a month pick and YYYY-MM-DD for a day pick', () => {

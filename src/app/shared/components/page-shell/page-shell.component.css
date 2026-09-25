@@ -1,1 +1,3 @@
+/* Everything visual comes from the global design-system sheet, scoped under `.sz`. */
+
 :host { display: block; }

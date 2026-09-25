@@ -90,6 +90,14 @@ export interface ConfirmConfig {
   scopeNote?: string;
 }
 
+/* --- app-count-pill --- */
+/**
+ * Which colour the pill wears. Two only, because the pill exists to distinguish two
+ * columns that sit next to each other (amber Streams, purple Sections) — it is not a
+ * general-purpose badge, and adding a third variant means someone is using it as one.
+ */
+export type CountPillVariant = 'stream' | 'section';
+
 /* --- app-data-table --- */
 export interface DataTableColumn {
   /** Matches the key used in the row cell template. */
@@ -98,4 +106,26 @@ export interface DataTableColumn {
   /** CSS width, e.g. '180px'. Column widths are fixed, per the design system. */
   width: string;
   align?: 'left' | 'right';
+}
+
+/* --- app-dd --- */
+/**
+ * One row of a `.dd` menu. `value` is the stable identity emitted on selection; '' is a
+ * real value (the "All classes" / "— Select —" row), never a synonym for "no option".
+ */
+export interface DdOption {
+  value: string;
+  label: string;
+  /** Bootstrap Icon name without the `bi-` prefix, e.g. 'person'. */
+  icon?: string;
+  /** Renders in the danger colour — Logout, and nothing else so far. */
+  danger?: boolean;
+}
+
+/* --- app-pagination-bar --- */
+export interface PageState {
+  /** 1-based. */
+  page: number;
+  limit: number;
+  total: number;
 }

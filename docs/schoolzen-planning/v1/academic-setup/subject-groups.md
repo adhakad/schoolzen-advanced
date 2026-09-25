@@ -1,41 +1,22 @@
-# Academic Setup — Subject Groups page (finalized design)
+# Academic Setup — Subject Groups
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `subject-groups.html` (same folder)
+Status: **FINAL**
+Reference: `subject-groups.html`
 
-A Subject Group is a named bundle of subjects a student picks as one
-unit (e.g. "Mathematics Group" = Hindi + English + Maths + Science) —
-relevant mainly for 11th/12th, where students choose between
-combinations within a stream rather than each subject being picked
-individually.
+Bundles subjects into one named choice — a student picks one group, which decides their full subject set for the year.
 
 ---
 
-## Toolbar
+## Frontend
 
-Search → Class filter → Stream filter (dependency-gated: disabled
-until a Class is chosen — same mutual-dependency pattern used
-everywhere) → "Add Group".
+**Toolbar**: row1 (search + Delete Selected outline-danger + Add Group primary) + row2 (Class `.dd` filter, Stream `.dd` filter — Stream disabled/reset until a Class is picked, and only meaningfully populated for streamed classes like 11th/12th).
 
-## Table
+**Table**: checkbox, Class, Stream (muted italic "— not applicable" for non-streamed classes), Group Name, Subjects (a row of small slate tags, one per subject), Action.
 
-Class → Stream → Group Name → Subjects (tags — this list is naturally
-short, 4-6 subjects per group, so inline tags are fine here unlike the
-Streams/Sections count-pill case) → Action.
+**Add/Edit modal**: Class `.dd` (required) → Stream `.dd` (disabled with hint "Select a class first" until Class chosen; if the chosen class has no streams, disabled with hint "This class has no streams — leave as-is") → Group Name (required) → a **live checklist of every Subject from the Subjects master list** (checkbox grid, pre-checked for existing members when editing) — this checklist must always reflect the current Subjects list, never a stale copy.
 
-## Add/Edit modal
+**Delete**: type-to-confirm, warning notes "Students currently on this group will need to be reassigned."
 
-Class → Stream (disabled until Class is chosen, options depend on the
-selected Class per Classes & Sections' data) → Group Name (with a
-hint: "A student picks one group; it decides their full subject set")
-→ a **checklist of every subject from the Subjects master list**
-(checkbox grid) — ticking builds the group's subject set live from
-that shared pool, so a subject added or renamed in Subjects
-automatically reflects here.
+## Backend
 
-## Delete confirmation
-
-Standard single-row confirm (per the global cascade-delete rule, this
-upgrades to type-to-confirm only if students are currently assigned to
-this specific group).
+Schema — `SubjectGroup`: `adminId`, `classId` (or class value matching Class doc), `streamId` (matches a specific entry in that class's `streams[]` when applicable, else null), `name`, `subjectIds` (array of refs to Subject — never copy subject names in). Index `(adminId, classId, streamId)` to support the toolbar's filter query.

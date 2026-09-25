@@ -2,339 +2,456 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Staff - Manage Staff - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>Schoolzen — Manage Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 1100px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1100px; margin: 0 auto; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 12px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-spacer { height: 24px; }
-  .sw-body { display: flex; gap: 16px; align-items: stretch; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
-  .sw-main { flex: 1; min-width: 0; }
-  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; }
-  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-  .sw-search { display: flex; align-items: center; gap: 8px; background: #f6f5ff; border-radius: 12px; padding: 9px 14px; flex: 1; min-width: 160px; }
-  .sw-search input { border: none; background: transparent; font-size: 13px; outline: none; width: 100%; }
-  .sw-search i { color: #a6a6c9; font-size: 15px; }
-  .sw-select-pill { display: flex; align-items: center; gap: 6px; background: #f6f5ff; border-radius: 12px; padding: 9px 12px; width: 128px; flex-shrink: 0; }
-  .sw-select-pill select { border: none; background: transparent; font-size: 12px; color: #6b6b85; outline: none; flex: 1; appearance: none; font-weight: 500; }
-  .sw-select-pill.disabled { background: #f2f2f6; opacity: 0.5; }
-  .sw-select-pill.disabled select { cursor: not-allowed; color: #b0b0c9; }
-  .sw-secondary-btn { background: #f6f5ff; color: #7b6ef6; border: none; border-radius: 12px; padding: 10px 16px; font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
-  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(123,110,246,0.4); display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
-
-  .grid-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
-  .table-inner { min-width: 1020px; }
-  .st-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-  .st-table th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .3px; padding: 0 8px 8px; text-align: left; white-space: nowrap; }
-  .st-table td { padding: 12px 8px; border-top: 1px solid #f2f1fa; vertical-align: middle; white-space: nowrap; }
-  .st-avatar { width: 32px; height: 32px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 11px; margin-right: 10px; vertical-align: middle; }
-  .st-name { font-weight: 600; color: #1a1a2e; font-size: 13px; }
-  .status-chip { display: inline-flex; align-items: center; justify-content: center; width: 76px; font-size: 10.5px; font-weight: 700; padding: 5px 0; border-radius: 999px; }
-  .status-chip.active { background: #d9f7ea; color: #0c8a52; }
-  .status-chip.inactive { background: #f0eeff; color: #9494ac; }
-  .card-tag { font-size: 10.5px; color: #7b6ef6; background: #f0eeff; padding: 3px 8px; border-radius: 999px; font-weight: 600; }
-  .not-set { color: #b0b0c9; font-style: italic; font-size: 11.5px; }
-  .icon-btn { width: 28px; height: 28px; border-radius: 8px; background: #f6f5ff; display: inline-flex; align-items: center; justify-content: center; color: #7b6ef6; font-size: 13px; margin-right: 4px; cursor: pointer; }
-  .icon-btn.warn { background: #fde8ef; color: #b8265a; }
-
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
-  .modal-overlay.open { display: flex; }
-  .modal-box { background: #fff; border-radius: 16px; width: 440px; max-height: 84vh; display: flex; flex-direction: column; overflow: hidden; }
-  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; flex-shrink: 0; }
-  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
-  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
-  .modal-body-scroll { padding: 18px 22px; overflow-y: auto; flex: 1; }
-  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; flex-shrink: 0; display: flex; justify-content: space-between; gap: 8px; }
-  .m-row { display: flex; gap: 10px; }
-  .m-field { margin-bottom: 12px; flex: 1; }
-  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
-  .m-field input, .m-field select { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
-  .m-hint { font-size: 10.5px; color: #9494ac; margin-top: 3px; }
-  .confirm-title { font-size: 14.5px; font-weight: 700; color: #1a1a2e; margin: 0 0 8px; }
-  .confirm-note { font-size: 12.5px; color: #6b6b85; line-height: 1.6; margin: 0; }
-  .upload-box { border: 1.5px dashed #d9d6f5; border-radius: 12px; padding: 20px; text-align: center; color: #7b6ef6; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .upload-box i { font-size: 24px; display: block; margin-bottom: 6px; }
-  .result-summary { background: #f0eeff; border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: #5b4fd6; margin-bottom: 14px; }
-  .result-summary b { color: #3d2fa8; }
-  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-danger { background: #b8265a; color: #fff; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  :root{ --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;} nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;} .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .year-pill{ font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; }
+  .year-pill .bi{color:var(--brand);}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+  .dd{position:relative;} .dd-trigger{cursor:pointer; user-select:none;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:max(100%,165px); width:max-content; max-width:260px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;} .dd-menu.align-left{right:auto; left:0;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;} .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);} .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd.disabled{pointer-events:none; opacity:1;} .dd.disabled .dd-trigger{color:#B7B0C9; cursor:not-allowed;} .dd.disabled .chevron{color:#D3CEE0;}
+  .dd-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;}
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+  .content{padding:28px 32px;} .page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+  .sw-toolbar{display:flex; flex-direction:column; gap:14px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line);}
+  .toolbar-row1{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .toolbar-row2{display:flex; align-items:center; gap:8px;}
+  .search{position:relative; flex:0 0 260px; width:260px;}
+  .search input{ width:100%; height:38px; padding:0 14px 0 34px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .search input:focus{border-color:var(--brand);} .search .bi-search{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:14px;}
+  .sw-select-pill{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; width:150px; flex-shrink:0; box-sizing:border-box; }
+  .sw-select-pill-full{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; box-sizing:border-box; }
+  .toolbar-btn-group{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+  .btn-primary{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-primary:hover{background:#2A3242;} .btn-primary .bi{color:#ae86ff;}
+  .btn-secondary{ flex-shrink:0; height:38px; background:var(--surface); color:var(--slate); border:1px solid var(--line); border-radius:var(--radius); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-assign{ flex-shrink:0; height:38px; background:var(--surface); color:var(--brand); border:1px solid var(--brand); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--radius); display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-assign:hover:not(:disabled){background:var(--brand-soft);} .btn-assign:disabled{color:var(--ink-faint); border-color:var(--line); cursor:not-allowed;}
+  .btn-secondary:hover{border-color:var(--slate);}
+  .btn-warn{ flex-shrink:0; height:38px; background:var(--surface); color:var(--danger); border:1px solid var(--danger); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--radius); display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-warn:hover:not(:disabled){background:var(--danger-soft);} .btn-warn:disabled{color:var(--ink-faint); border-color:var(--line); cursor:not-allowed;}
+  table{width:100%; border-collapse:collapse;}
+  thead th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-faint); letter-spacing:0.06em; padding:0 14px 12px 14px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  thead th.act, td.act{text-align:right;}
+  tbody tr{border-bottom:1px solid var(--line-soft);} tbody tr:hover{background:#F7F4FC;} tbody tr:last-child{border-bottom:none;}
+  td{padding:12px 14px; vertical-align:middle;}
+  .st-avatar{width:32px; height:32px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:11px; margin-right:10px; vertical-align:middle;}
+  .st-name{font-weight:600; color:var(--ink); font-size:13.5px;}
+  .emp-code{font-family:monospace; font-size:11.5px; color:var(--ink-soft);}
+  th.chk, td.chk{width:34px; text-align:center;} th.chk input, td.chk input{width:16px; height:16px; accent-color:var(--brand); cursor:pointer;}
+  .not-set{color:var(--ink-faint); font-style:italic; font-size:11.5px;}
+  .card-tag{font-size:10.5px; color:var(--brand); background:var(--brand-soft); padding:3px 9px; border-radius:20px; font-weight:600;}
+  .tag{ display:inline-flex; align-items:center; justify-content:center; width:78px; font-size:12px; font-weight:500; padding:4px 0; border-radius:20px; border:1px solid; }
+  .tag-active{color:var(--success); border-color:#BFE0CC;} .tag-inactive{color:var(--ink-faint); border-color:var(--line);}
+  .actions{display:flex; gap:5px; justify-content:flex-end;}
+  .icon-btn{ width:28px; height:28px; border-radius:6px; border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:12.5px; }
+  .icon-btn:hover{border-color:var(--slate); color:var(--slate);} .icon-btn.danger:hover{border-color:var(--danger); color:var(--danger);}
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;} .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);} .stat-row.accent .stat-value{color:var(--brand);}
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;} .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:60; align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); border-radius:var(--radius); width:440px; max-width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .modal-box.narrow{width:400px;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .modal-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink);}
+  .modal-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+  .modal-body{padding:20px 24px; flex:1; overflow-y:auto; min-height:0;}
+  .modal-foot{padding:16px 24px; border-top:1px solid var(--line); flex-shrink:0; display:flex; justify-content:flex-end; gap:10px;}
+  .m-row{display:flex; gap:12px;} .m-row .m-field{flex:1;}
+  .m-field{margin-bottom:14px;}
+  .m-field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);} .m-hint{font-size:11px; color:var(--ink-faint); margin-top:6px; line-height:1.4;}
+  .req-star{color:var(--danger);}
+  .btn-plain{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand{height:38px; padding:0 18px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .upload-box{ border:1.5px dashed var(--line); border-radius:var(--radius); padding:20px; text-align:center; color:var(--brand); font-size:12.5px; font-weight:600; cursor:pointer; }
+  .card-row{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .card-row .cr-name{flex:0 0 190px; font-size:12.5px; font-weight:600; color:var(--ink); line-height:1.5;}
+  .card-row .cr-meta{font-size:10.5px; color:var(--ink-faint); font-weight:400;}
+  .card-row input{flex:1; height:36px; border:1px solid var(--line); border-radius:var(--radius); padding:0 10px; font-size:12.5px; font-family:inherit; outline:none; box-sizing:border-box;}
 </style>
 </head>
 <body>
-
-<div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  Staff &rarr; Manage Staff page. Add/Edit/Delete all live on this ONE
-  page (no separate "Add Staff" screen), same convention as Salary
-  Groups. Department+Designation filter pair (Designation disabled
-  until Department chosen). Card assignment and bulk CSV upload are
-  their own distinct modals, not folded into the staff edit form.
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a class="current" href="#">Manage Staff</a>
+      <a href="#">Departments</a>
+      <a href="#">Designations</a>
+    </div>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-right chevron"></i></a>
+  </nav>
 </div>
-
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
-      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Staff / <b>Manage Staff</b></div>
+    <div class="top-actions">
+      <div class="dd" id="sessionDD">
+        <div class="year-pill dd-trigger" onclick="toggleDD(event,'sessionDD')"><i class="bi bi-calendar-event"></i> <span class="dd-label">2026–2027</span></div>
+        <div class="dd-menu align-left"><div class="dd-option selected" onclick="selectSession(this,'2026–2027')">2026–2027</div><div class="dd-option" onclick="selectSession(this,'2025–2026')">2025–2026</div></div>
+      </div>
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')"><div class="avatar">A</div><span class="profile-name">Admin</span><i class="bi bi-chevron-down chevron"></i></div>
+        <div class="dd-menu">
+          <div class="drop-school"><div class="drop-school-logo">GV</div><div><div class="drop-school-name">Green Valley Public School</div><div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div></div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div><div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div><div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="sw-spacer"></div>
-  <div class="sw-body">
-    <div class="sb-wrap">
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
+  <div class="content">
+    <div class="page-head"><div><h1>Manage Staff</h1><div class="subtitle">Everyone on payroll — teaching and non-teaching alike.</div></div></div>
+    <div class="layout-row">
+      <div class="sw-card-main">
+        <div class="sw-toolbar">
+          <div class="toolbar-row1">
+            <div class="search"><i class="bi bi-search"></i><input type="text" placeholder="Search by name or employee code"></div>
+            <div class="toolbar-btn-group">
+              <button class="btn-warn" id="deleteSelBtn" disabled onclick="confirmDelete(null, true)" title="Delete Selected"><i class="bi bi-trash"></i> Delete Selected</button>
+              <button class="btn-assign" id="assignCardSelBtn" disabled onclick="openCardModal(true)" title="Assign Card to Selected"><i class="bi bi-credit-card"></i> Assign Card to Selected</button>
+              <button class="btn-primary" onclick="openStaffModal()" title="Create"><i class="bi bi-plus-lg"></i> Create</button>
+            </div>
+          </div>
+          <div class="toolbar-row2">
+            <div class="dd sw-select-pill" id="deptPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'deptPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">All departments</span><i class="bi bi-chevron-down chevron"></i></div>
+              <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectFilter(this,'deptPill','','All departments')">All departments</div><div class="dd-option" onclick="selectFilter(this,'deptPill','Teaching','Teaching')">Teaching</div><div class="dd-option" onclick="selectFilter(this,'deptPill','Admin','Admin')">Admin</div></div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="desigPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'desigPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">All designations</span><i class="bi bi-chevron-down chevron"></i></div>
+              <div class="dd-menu full-width" id="desigMenu"><div class="dd-option selected" onclick="selectFilter(this,'desigPill','','All designations')">All designations</div></div>
+            </div>
+            <div class="dd sw-select-pill" id="statusPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'statusPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">Any status</span><i class="bi bi-chevron-down chevron"></i></div>
+              <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectFilter(this,'statusPill','','Any status')">Any status</div><div class="dd-option" onclick="selectFilter(this,'statusPill','Active','Active')">Active</div><div class="dd-option" onclick="selectFilter(this,'statusPill','Inactive','Inactive')">Inactive</div></div>
+            </div>
+          </div>
         </div>
+        <table>
+          <thead><tr><th class="chk"><input type="checkbox" onclick="toggleAll(this)"></th><th>Name</th><th>Emp Code</th><th>Department</th><th>Designation</th><th>Joining Date</th><th>Status</th><th>Card</th><th class="act">Action</th></tr></thead>
+          <tbody id="staffRows">
+            <tr data-dept="Teaching" data-desig="Primary Teacher" data-status="Active">
+              <td class="chk"><input type="checkbox" class="rowcb" onclick="updateSel()"></td>
+              <td><span class="st-avatar" style="background:linear-gradient(135deg,var(--brand),var(--brand-deep));">PS</span><span class="st-name">Priya Sharma</span></td>
+              <td><span class="emp-code">STF-0142</span></td>
+              <td>Teaching</td><td>Primary Teacher</td><td>12 Jun 2022</td>
+              <td><span class="tag tag-active">Active</span></td>
+              <td><span class="card-tag">•• 8821</span></td>
+              <td class="act"><div class="actions">
+                <button class="icon-btn" onclick="openCardModal(false,this.closest('tr'))"><i class="bi bi-credit-card"></i></button>
+                <button class="icon-btn" onclick="openStaffModal(this.closest('tr'))"><i class="bi bi-pencil"></i></button>
+                <button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))"><i class="bi bi-trash"></i></button>
+              </div></td>
+            </tr>
+            <tr data-dept="Admin" data-desig="Accountant" data-status="Active">
+              <td class="chk"><input type="checkbox" class="rowcb" onclick="updateSel()"></td>
+              <td><span class="st-avatar" style="background:linear-gradient(135deg,#FF9A76,#FF7676);">RV</span><span class="st-name">Rahul Verma</span></td>
+              <td><span class="emp-code">STF-0087</span></td>
+              <td>Admin</td><td>Accountant</td><td>03 Jan 2021</td>
+              <td><span class="tag tag-active">Active</span></td>
+              <td><span class="not-set">Not assigned</span></td>
+              <td class="act"><div class="actions">
+                <button class="icon-btn" onclick="openCardModal(false,this.closest('tr'))"><i class="bi bi-credit-card"></i></button>
+                <button class="icon-btn" onclick="openStaffModal(this.closest('tr'))"><i class="bi bi-pencil"></i></button>
+                <button class="icon-btn danger" onclick="confirmDelete(this.closest('tr'))"><i class="bi bi-trash"></i></button>
+              </div></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="sb-group open" data-group="staff">
-        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
+      <div class="col-side">
+        <div class="stats-card">
+          <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+          <div class="stat-row"><span class="stat-label">Total Staff</span><span class="stat-value">48</span></div>
+          <div class="stat-row accent"><span class="stat-label">Cards Assigned</span><span class="stat-value">41</span></div>
         </div>
-      </div>
-      <div class="sb-group" data-group="academic">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="holiday">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="fees">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="examination">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="certificates">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-      <div class="sb-group" data-group="settings">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles & Permissions</div>
+        <div class="status-card">
+          <div class="card-title-row">Good to know</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Employee Code is used to match staff in bulk card-upload CSVs — set it if you plan to use that.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a staff member also removes their login access and attendance history.</div>
         </div>
       </div>
     </div>
-    <div class="sw-main">
-      <div class="sw-card-main">
-        <div class="sw-title">Manage Staff</div>
+  </div>
+</div>
 
-        <div class="sw-toolbar">
-          <div class="sw-search"><i class="ti ti-search"></i><input placeholder="Search by name or code"/></div>
-          <div class="sw-select-pill" id="deptPill"><select id="dept" onchange="onDeptChange()"><option value="">All depts</option><option value="teaching">Teaching</option><option value="admin">Admin</option></select></div>
-          <div class="sw-select-pill disabled" id="desigPill"><select id="desig" disabled><option>All designations</option></select></div>
-          <div class="sw-select-pill"><select><option>Any status</option></select></div>
-          <button class="sw-secondary-btn" onclick="document.getElementById('bulkCardModal').classList.add('open')"><i class="ti ti-upload" style="font-size:13px;"></i> Bulk Cards</button>
-          <button class="sw-add-btn" onclick="document.getElementById('staffModal').classList.add('open')"><i class="ti ti-plus" style="font-size:13px;"></i> Create</button>
+<div class="modal-overlay" id="staffModal">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title" id="staffModalTitle">Create Staff</span><button class="modal-close" onclick="document.getElementById('staffModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="m-field"><label>Name <span class="req-star">*</span></label><input type="text" id="staffNameInput" placeholder="Priya Sharma"></div>
+      <div class="m-field"><label>Employee Code (optional)</label><input type="text" id="staffCodeInput" placeholder="STF-0142"><div class="m-hint">Used to match this staff in bulk card-upload CSVs.</div></div>
+      <div class="m-field">
+        <label>Department</label>
+        <div class="dd sw-select-pill-full" id="formDeptPill" data-value="" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'formDeptPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">-- Select --</span><i class="bi bi-chevron-down chevron"></i></div>
+          <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectFilter(this,'formDeptPill','','-- Select --')">-- Select --</div><div class="dd-option" onclick="selectFilter(this,'formDeptPill','teaching','Teaching')">Teaching</div><div class="dd-option" onclick="selectFilter(this,'formDeptPill','admin','Admin')">Admin</div></div>
         </div>
-
-        <div class="grid-scroll">
-          <div class="table-inner">
-            <table class="st-table">
-              <thead><tr><th>Name</th><th>Emp Code</th><th>Department</th><th>Designation</th><th>Joining Date</th><th>Status</th><th>Card</th><th>Action</th></tr></thead>
-              <tbody>
-                <tr>
-                  <td><div class="st-avatar" style="background:linear-gradient(135deg,#7b6ef6,#5b4fd6);">PS</div><span class="st-name">Priya Sharma</span></td>
-                  <td>STF-0142</td>
-                  <td>Teaching</td>
-                  <td>Primary Teacher</td>
-                  <td>12 Jun 2022</td>
-                  <td><span class="status-chip active">Active</span></td>
-                  <td><span class="card-tag">•• 4417</span></td>
-                  <td>
-                    <div class="icon-btn" onclick="document.getElementById('cardModal').classList.add('open')"><i class="ti ti-credit-card"></i></div>
-                    <div class="icon-btn"><i class="ti ti-refresh"></i></div>
-                    <div class="icon-btn" onclick="document.getElementById('staffModal').classList.add('open')"><i class="ti ti-edit"></i></div>
-                    <div class="icon-btn warn"><i class="ti ti-trash"></i></div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><div class="st-avatar" style="background:linear-gradient(135deg,#ff9a76,#ff7676);">RV</div><span class="st-name">Rahul Verma</span></td>
-                  <td>STF-0087</td>
-                  <td>Admin</td>
-                  <td>Accountant</td>
-                  <td>03 Jan 2021</td>
-                  <td><span class="status-chip active">Active</span></td>
-                  <td><span class="not-set">Not assigned</span></td>
-                  <td>
-                    <div class="icon-btn"><i class="ti ti-credit-card"></i></div>
-                    <div class="icon-btn"><i class="ti ti-refresh"></i></div>
-                    <div class="icon-btn"><i class="ti ti-edit"></i></div>
-                    <div class="icon-btn warn"><i class="ti ti-trash"></i></div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+      </div>
+      <div class="m-field">
+        <label>Designation</label>
+        <div class="dd sw-select-pill-full disabled" id="formDesigPill" data-value="" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'formDesigPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">-- Select a department first --</span><i class="bi bi-chevron-down chevron"></i></div>
+          <div class="dd-menu full-width" id="formDesigMenu"><div class="dd-option selected" onclick="selectFilter(this,'formDesigPill','','-- Select a department first --')">-- Select a department first --</div></div>
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-field"><label>Joining Date</label><input type="text" id="staffJoinInput" placeholder="dd/mm/yyyy"></div>
+        <div class="m-field" style="margin-bottom:0;">
+          <label>Status</label>
+          <div class="dd sw-select-pill-full" id="formStatusPill" data-value="Active" style="width:100%;">
+            <div class="dd-trigger" onclick="toggleDD(event,'formStatusPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">Active</span><i class="bi bi-chevron-down chevron"></i></div>
+            <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectFilter(this,'formStatusPill','Active')">Active</div><div class="dd-option" onclick="selectFilter(this,'formStatusPill','Inactive')">Inactive</div></div>
           </div>
         </div>
       </div>
     </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('staffModal').classList.remove('open')">Cancel</button><button class="btn-brand" onclick="submitStaff()">Submit</button></div>
   </div>
+</div>
 
-  <!-- CREATE/EDIT STAFF -->
-  <div class="modal-overlay" id="staffModal">
-    <div class="modal-box">
-      <div class="modal-head"><span class="modal-title">Create Staff</span><div class="modal-close" onclick="document.getElementById('staffModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <div class="m-field"><label>Name</label><input type="text" placeholder="Priya Sharma"></div>
-        <div class="m-field"><label>Employee Code (optional)</label><input type="text" placeholder="STF-0142"><div class="m-hint">Used to match this staff in bulk card-upload CSVs</div></div>
-        <div class="m-field"><label>Department</label><select onchange="onFormDeptChange()"><option value="">-- Select --</option><option value="teaching">Teaching</option><option value="admin">Admin</option></select></div>
-        <div class="m-field"><label>Designation</label><select disabled id="formDesig"><option value="">-- Select a department first --</option></select></div>
-        <div class="m-row">
-          <div class="m-field"><label>Joining Date</label><input type="text" placeholder="dd/mm/yyyy"></div>
-          <div class="m-field"><label>Status</label><select><option>Active</option><option>Inactive</option></select></div>
+<div class="modal-overlay" id="cardModal">
+  <div class="modal-box narrow">
+    <div class="modal-head"><span class="modal-title" id="cardModalTitle">Assign Card</span><button class="modal-close" onclick="document.getElementById('cardModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="m-field" id="cardStaffInfo" style="background:var(--paper); border-radius:var(--radius); padding:10px 12px; font-size:12.5px; color:var(--ink-soft);"></div>
+      <div id="cardSingleField" class="m-field"><label>Card Number</label><input type="text" id="cardSingleInput" placeholder="Scan or type card number"></div>
+      <div id="cardBulkList"></div>
+      <div class="m-field" style="margin-bottom:0;">
+        <label>Verify Mode</label>
+        <div class="dd sw-select-pill-full" id="cardModePill" data-value="Card only" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'cardModePill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">Card only</span><i class="bi bi-chevron-down chevron"></i></div>
+          <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectFilter(this,'cardModePill','Card only')">Card only</div><div class="dd-option" onclick="selectFilter(this,'cardModePill','Card + PIN')">Card + PIN</div><div class="dd-option" onclick="selectFilter(this,'cardModePill','Card + Fingerprint')">Card + Fingerprint</div></div>
         </div>
-      </div>
-      <div class="modal-foot" style="justify-content:flex-end;">
-        <button class="btn-cancel" onclick="document.getElementById('staffModal').classList.remove('open')">Cancel</button>
-        <button class="btn-submit">Submit</button>
+        <div class="m-hint">Applies to everyone here. Submitting pushes this straight to every biometric device — no separate resync needed.</div>
       </div>
     </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('cardModal').classList.remove('open')">Cancel</button><button class="btn-brand" onclick="submitCard()"><i class="bi bi-arrow-repeat"></i> Assign &amp; Sync</button></div>
   </div>
+</div>
 
-  <!-- ASSIGN CARD -->
-  <div class="modal-overlay" id="cardModal">
-    <div class="modal-box">
-      <div class="modal-head"><span class="modal-title">Assign Card</span><div class="modal-close" onclick="document.getElementById('cardModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <div class="m-field"><label>Card Number</label><input type="text" placeholder="Scan or type card number"></div>
-        <div class="m-field"><label>Verify Mode</label><select><option>Card only</option><option>Card + PIN</option><option>Card + Fingerprint</option></select><div class="m-hint">How the device is allowed to identify this person</div></div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn-danger">Resync to Device</button>
-        <button class="btn-submit">Submit</button>
-      </div>
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box narrow">
+    <div class="modal-head"><span class="modal-title">Delete Staff</span><button class="modal-close" onclick="closeConfirm()"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="warn-box">This also removes their login access, attendance history, leave records, and salary assignment. <b>This can't be undone.</b></div>
+      <input type="text" class="confirm-input" id="delConfirmInput" placeholder="Type DELETE to confirm" oninput="checkDelConfirm()">
+      <div class="confirm-hint">Type <b>DELETE</b> in the box above to enable the button.</div>
     </div>
-  </div>
-
-  <!-- BULK ASSIGN CARDS -->
-  <div class="modal-overlay" id="bulkCardModal">
-    <div class="modal-box">
-      <div class="modal-head"><span class="modal-title">Bulk Assign Cards</span><div class="modal-close" onclick="document.getElementById('bulkCardModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <p class="confirm-note" style="margin-bottom:12px;">Upload a CSV with two columns: <b>empCode, cardNo</b> (header row required). Rows are matched to staff by Employee Code.</p>
-        <div class="upload-box"><i class="ti ti-file-upload"></i>Click to choose a CSV file</div>
-      </div>
-      <div class="modal-foot" style="justify-content:flex-end;">
-        <button class="btn-submit">Upload</button>
-      </div>
-    </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="closeConfirm()">Cancel</button><button class="btn-danger" id="confirmDelBtn" disabled onclick="performDelete()">Delete</button></div>
   </div>
 </div>
 
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  if (dd.classList.contains('disabled')) return;
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+document.addEventListener('click', () => document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open')));
+function setDDValue(id, value, label){
+  const dd = document.getElementById(id);
+  if (label === undefined) label = value;
+  dd.dataset.value = value; dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
+}
+function disableDD(id, resetLabel){ const dd = document.getElementById(id); dd.classList.add('disabled'); if (resetLabel) setDDValue(id, '', resetLabel); }
+function enableDD(id){ document.getElementById(id).classList.remove('disabled'); }
+function selectFilter(optionEl, ddId, value, label){
+  setDDValue(ddId, value, label); document.getElementById(ddId).classList.remove('open');
+  if (ddId === 'deptPill') onDeptChange();
+  if (ddId === 'formDeptPill') onFormDeptChange();
+}
+function selectSession(optionEl, label){ setDDValue('sessionDD', label, label); document.getElementById('sessionDD').classList.remove('open'); }
+
+const desigByDept = { Teaching: ['Primary Teacher','Secondary Teacher'], Admin: ['Accountant','Clerk'] };
+function onDeptChange(){
+  const val = document.getElementById('deptPill').dataset.value;
+  if (val && desigByDept[val]) {
+    enableDD('desigPill');
+    document.getElementById('desigMenu').innerHTML = '<div class="dd-option selected" onclick="selectFilter(this,\'desigPill\',\'\',\'All designations\')">All designations</div>' + desigByDept[val].map(d => `<div class="dd-option" onclick="selectFilter(this,'desigPill','${d}','${d}')">${d}</div>`).join('');
+  } else { disableDD('desigPill', 'All designations'); }
+}
+const desigByDeptForm = { teaching: ['Primary Teacher','Secondary Teacher'], admin: ['Accountant','Clerk'] };
+function onFormDeptChange(){
+  const val = document.getElementById('formDeptPill').dataset.value;
+  if (val && desigByDeptForm[val]) {
+    enableDD('formDesigPill');
+    document.getElementById('formDesigMenu').innerHTML = desigByDeptForm[val].map((d,i) => `<div class="dd-option${i===0?' selected':''}" onclick="selectFilter(this,'formDesigPill','${d}','${d}')">${d}</div>`).join('');
+    setDDValue('formDesigPill', desigByDeptForm[val][0]);
+  } else {
+    disableDD('formDesigPill', '-- Select a department first --');
+  }
 }
 
-function onDeptChange() {
-  const val = document.getElementById('dept').value;
-  const desigPill = document.getElementById('desigPill'), desigSel = document.getElementById('desig');
-  if (val) { desigPill.classList.remove('disabled'); desigSel.disabled = false; }
-  else { desigPill.classList.add('disabled'); desigSel.disabled = true; }
+let editingStaffRow = null;
+function openStaffModal(row){
+  editingStaffRow = row || null;
+  document.getElementById('staffModalTitle').textContent = row ? 'Edit Staff' : 'Create Staff';
+  document.getElementById('staffNameInput').value = row ? row.querySelector('.st-name').textContent : '';
+  document.getElementById('staffCodeInput').value = row ? row.querySelector('.emp-code').textContent : '';
+  document.getElementById('staffJoinInput').value = row ? row.children[4].textContent : '';
+  setDDValue('formStatusPill', row ? row.dataset.status : 'Active');
+  if (row) {
+    setDDValue('formDeptPill', row.dataset.dept, row.dataset.dept);
+    onFormDeptChange();
+    setDDValue('formDesigPill', row.dataset.desig, row.dataset.desig);
+  } else {
+    setDDValue('formDeptPill', '', '-- Select --');
+    disableDD('formDesigPill', '-- Select a department first --');
+  }
+  document.getElementById('staffModal').classList.add('open');
 }
-function onFormDeptChange() {
-  document.getElementById('formDesig').disabled = false;
-  document.getElementById('formDesig').innerHTML = '<option value="">-- Select --</option><option>Primary Teacher</option><option>Senior Teacher</option>';
+function submitStaff(){
+  const name = document.getElementById('staffNameInput').value.trim();
+  if (!name) return;
+  document.getElementById('staffModal').classList.remove('open');
+}
+
+function toggleAll(master){ document.querySelectorAll('.rowcb').forEach(cb => cb.checked = master.checked); updateSel(); }
+function updateSel(){
+  const n = document.querySelectorAll('.rowcb:checked').length;
+  document.getElementById('assignCardSelBtn').disabled = n === 0;
+  document.getElementById('deleteSelBtn').disabled = n === 0;
+}
+function openCardModal(bulk, row){
+  const infoBox = document.getElementById('cardStaffInfo');
+  const singleField = document.getElementById('cardSingleField');
+  const bulkList = document.getElementById('cardBulkList');
+  if (bulk) {
+    const rows = Array.from(document.querySelectorAll('.rowcb:checked')).map(cb => cb.closest('tr'));
+    document.getElementById('cardModalTitle').textContent = `Assign Card — ${rows.length} selected`;
+    infoBox.innerHTML = `Each staff member below needs their own card number.`;
+    singleField.style.display = 'none';
+    bulkList.innerHTML = rows.map(r => {
+      const name = r.querySelector('.st-name').textContent;
+      const code = r.querySelector('.emp-code').textContent;
+      return `<div class="card-row"><span class="cr-name" title="${name}">${name}<br><span class="cr-meta">${code} · ${r.dataset.desig}, ${r.dataset.dept}</span></span><input type="text" placeholder="Card no. for ${code}"></div>`;
+    }).join('');
+  } else {
+    const name = row.querySelector('.st-name').textContent;
+    const code = row.querySelector('.emp-code').textContent;
+    document.getElementById('cardModalTitle').textContent = `Assign Card — ${name}`;
+    infoBox.innerHTML = `<b>${name}</b> &middot; ${code} &middot; ${row.dataset.desig}, ${row.dataset.dept}`;
+    singleField.style.display = 'block';
+    bulkList.innerHTML = '';
+  }
+  document.getElementById('cardModal').classList.add('open');
+}
+function submitCard(){
+  const btn = event.target.closest('button');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Syncing to device…';
+  setTimeout(() => {
+    btn.disabled = false; btn.innerHTML = original;
+    document.getElementById('cardModal').classList.remove('open');
+  }, 700);
+}
+
+let pendingDeleteRow = null, bulkDelete = false;
+function confirmDelete(row, bulk){
+  bulkDelete = !!bulk;
+  pendingDeleteRow = row || null;
+  document.getElementById('delConfirmInput').value = ''; document.getElementById('delConfirmInput').classList.remove('match');
+  document.getElementById('confirmDelBtn').disabled = true;
+  const body = document.querySelector('#confirmModal .warn-box');
+  if (bulkDelete) {
+    const n = document.querySelectorAll('.rowcb:checked').length;
+    document.querySelector('#confirmModal .modal-title').textContent = `Delete ${n} Staff`;
+    body.innerHTML = `This removes login access, attendance history, leave records, and salary assignment for all <b>${n}</b> selected staff. <b>This can't be undone.</b>`;
+  } else {
+    const name = row.querySelector('.st-name').textContent;
+    document.querySelector('#confirmModal .modal-title').textContent = `Delete Staff — ${name}`;
+    body.innerHTML = `Deleting <b>${name}</b> also removes their login access, attendance history, leave records, and salary assignment. <b>This can't be undone.</b>`;
+  }
+  document.getElementById('confirmModal').classList.add('open');
+}
+function checkDelConfirm(){
+  const input = document.getElementById('delConfirmInput');
+  const match = input.value.trim().toUpperCase() === 'DELETE';
+  input.classList.toggle('match', match);
+  document.getElementById('confirmDelBtn').disabled = !match;
+}
+function closeConfirm(){ document.getElementById('confirmModal').classList.remove('open'); pendingDeleteRow = null; bulkDelete = false; }
+function performDelete(){
+  if (bulkDelete) { document.querySelectorAll('.rowcb:checked').forEach(cb => cb.closest('tr').remove()); updateSel(); }
+  else if (pendingDeleteRow) { pendingDeleteRow.remove(); }
+  closeConfirm();
 }
 </script>
 </body>

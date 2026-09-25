@@ -1,42 +1,22 @@
-# Attendance — Manage Shifts page (finalized design)
+# Attendance — Manage Shifts
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `manage-shifts.html` (same folder)
+Status: **FINAL**
+Reference: `manage-shifts.html`
 
-Reached via sidebar sub-item "Manage shifts" under Attendance. Shows the
-standard "← Back to Attendance" link.
+Define punch windows, grace periods, half-day/late rules that Overview and Roster both read from.
 
 ---
 
-## Toolbar
+## Frontend
 
-Search (mandatory) + "Create" primary button. No person-type or
-department filter — a shift definition isn't staff/student-scoped
-itself (it applies to whichever person-type is assigned to it later).
+**Toolbar**: single row — search + Create (this page has no filters worth a second row; a Status filter may be added if genuinely useful, check the actual reference for its current toolbar before assuming).
 
-## Table
+**Table**: No./Name/Start/End/Early In/Grace/Half Day After/Early Out/Late Out/Status(tag)/Action.
 
-No. → Name → Start → End → Early In → Grace → Half Day After → Early
-Out → Late Out → Status (fixed-width chip) → Action (Edit + Delete
-icon-buttons). 11 columns — uses the standard two-layer horizontal-
-scroll pattern.
+**Add/Edit modal**: grouped — "Punch-In Settings" (applies to staff AND students: Early Punch minutes, Grace minutes) then "Staff Only" (optional: Half Day After minutes, Early Checkout minutes, Late Checkout minutes — students' day is decided by arrival punch alone) then Status `.dd`.
 
-## Create/Edit modal — grouped sections, sticky header+footer
+**Delete**: blocked with a message naming the assigned-count if the shift is currently in use — reassign via Roster first.
 
-- Name, Start Time, End Time — apply to everyone.
-- **"Punch-In Settings" group** (Early Punch + Grace) — a light divider
-  + heading + note: "Applies to staff and students."
-- **"Staff Only" group** (Half Day After, Early Checkout, Late
-  Checkout) — divider + heading + note explaining these don't apply to
-  students (a student's day is decided by their arrival punch alone;
-  they're never marked Half Day and never checked out), and can be left
-  blank for a shift only a class will use.
+## Backend
 
-  Named "Staff Only", NOT "Staff / Teacher Only" — Teacher is unified
-  into Staff (R1), so there's no separate Teacher category left to name.
-- Status (Active/Inactive).
-
-Each numeric field carries its own inline hint explaining what the
-number controls, in plain language, directly under the field — not
-relying on the label alone to convey meaning.
+Schema — `Shift`: `adminId`, `name`, `startTime`, `endTime`, `earlyInMinutes`, `graceMinutes`, `halfDayAfterMinutes` (staff-only), `earlyOutMinutes` (staff-only), `lateOutMinutes` (staff-only), `status`. Unique `(adminId, name)`. Delete endpoint counts references in `StudentEnrollment`/`Staff` before allowing, returning a `ConflictError` with the count if any exist.

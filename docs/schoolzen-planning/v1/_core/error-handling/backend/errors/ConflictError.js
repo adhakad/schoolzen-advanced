@@ -11,14 +11,17 @@ const AppError = require('./AppError');
  * rule — use this instead of hand-writing the message every time.
  *
  * Usage:
- *   throw new ConflictError('Admission No. 2024142 is already in use', { module: 'student' });
+ *   throw new ConflictError('Admission No. 2024142 is already in use', {
+ *     module: 'student', code: 'ADMISSION_NO_DUPLICATE'
+ *   });
  *   // or, catching a raw Mongo error:
  *   catch (err) { throw ConflictError.fromMongoDuplicateKey(err, 'student'); }
  */
 class ConflictError extends AppError {
-  constructor(message, { module, context } = {}) {
+  constructor(message, { module, code, context } = {}) {
     super(message, {
       category: 'ConflictError',
+      code,
       statusCode: 409,
       module,
       context,
@@ -33,7 +36,12 @@ class ConflictError extends AppError {
     const message = value
       ? `This ${friendlyField} (${value}) is already in use.`
       : `This ${friendlyField} is already in use.`;
-    return new ConflictError(message, { module, context: { mongoKeyPattern: mongoErr.keyPattern } });
+    // A generic, stable code derived from the field name — e.g.
+    // "admissionNo" -> "ADMISSION_NO_DUPLICATE" — so the frontend can
+    // add a translation for this specific field's duplicate without
+    // needing a bespoke ConflictError subclass per field.
+    const code = `${field.replace(/([A-Z])/g, '_$1').toUpperCase()}_DUPLICATE`;
+    return new ConflictError(message, { module, code, context: { mongoKeyPattern: mongoErr.keyPattern } });
   }
 }
 

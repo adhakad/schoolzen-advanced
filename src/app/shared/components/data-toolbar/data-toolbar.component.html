@@ -1,36 +1,45 @@
+<!-- `.sw-toolbar` from the approved references. Row 1 is search + the primary action; row 2
+     only exists when the page actually has filters — design-system.md is explicit that the
+     toolbar's shape follows each page's OWN needs, and that forcing one page's row-split
+     onto another is a mistake that has already been made once. -->
 <div class="sw-toolbar">
-  <div class="sw-search">
-    <i class="ti ti-search"></i>
-    <input type="text" [placeholder]="searchPlaceholder" [value]="searchValue"
-           (input)="onSearchInput($any($event.target).value)" />
+  <div class="toolbar-row1">
+    <div class="search">
+      <i class="bi bi-search"></i>
+      <input type="text" [placeholder]="searchPlaceholder" [value]="searchValue"
+             [attr.aria-label]="searchPlaceholder"
+             (input)="onSearchInput($any($event.target).value)" />
+    </div>
+
+    <div class="toolbar-btn-group" *ngIf="primaryAction">
+      <button type="button" class="btn-primary"
+              [disabled]="!!primaryAction.disabled" (click)="primaryActionClick.emit()">
+        <i class="bi bi-{{ primaryAction.icon }}" *ngIf="primaryAction.icon"></i>
+        {{ primaryAction.label }}
+      </button>
+    </div>
   </div>
 
-  <ng-container *ngFor="let filter of views; trackBy: trackByKey">
-    <div class="sw-select-pill" [class.disabled]="filter.disabled">
-      <i class="ti ti-{{ filter.icon }}" *ngIf="filter.icon"></i>
+  <div class="toolbar-row2" *ngIf="views.length">
+    <ng-container *ngFor="let filter of views; trackBy: trackByKey">
+      <!-- Dropdown: the `.dd` component, never a native select and never a mat-select. -->
+      <app-dd *ngIf="filter.isSelect"
+              class="toolbar-pill"
+              [options]="filter.options"
+              [value]="filter.value"
+              [disabled]="filter.disabled"
+              [ariaLabel]="filter.key"
+              (valueChange)="onFilterChange(filter.key, $event)"></app-dd>
 
-      <!-- Dropdown. Material's own field chrome is never used: a bare mat-select inside
-           the pill, re-themed in the design system, plus our own Tabler chevron. -->
-      <mat-select *ngIf="filter.isSelect"
-                  class="sw-pill-control"
-                  panelClass="sw-select-panel"
-                  disableRipple
-                  [value]="filter.value"
-                  [disabled]="filter.disabled"
-                  [attr.aria-label]="filter.key"
-                  (selectionChange)="onFilterChange(filter.key, $event.value)">
-        <mat-option *ngFor="let option of filter.options; trackBy: trackByValue" [value]="option.value">
-          {{ option.label }}
-        </mat-option>
-      </mat-select>
-
-      <!-- Date / month. The label is ours (a month filter must read "August 2026", not a
-           day), so the datepicker's own input sits transparently over the whole pill: it
-           stays the overlay's anchor and keeps the picker's keyboard behaviour. -->
-      <ng-container *ngIf="!filter.isSelect">
-        <span class="sw-pill-control sw-pill-text" [class.empty]="!filter.dateLabel">
-          {{ filter.dateLabel || 'Any' }}
-        </span>
+      <!-- Date / month. Material's datepicker stays — the design system bans native
+           selects, not calendars, and `.dd` has no date equivalent. The label is ours (a
+           month filter must read "August 2026", not a day), so the datepicker's own input
+           sits transparently over the pill: it stays the overlay's anchor and keeps the
+           picker's keyboard behaviour. -->
+      <div class="sw-select-pill toolbar-pill" *ngIf="!filter.isSelect"
+           [class.disabled]="filter.disabled">
+        <i class="bi bi-{{ filter.icon }}" *ngIf="filter.icon"></i>
+        <span class="dd-label" [class.empty]="!filter.dateLabel">{{ filter.dateLabel || 'Any' }}</span>
         <input class="sw-pill-date-input" readonly
                [matDatepicker]="picker"
                [value]="filter.dateValue"
@@ -42,15 +51,8 @@
                         panelClass="sw-datepicker-panel"
                         [startView]="filter.startView"
                         (monthSelected)="onMonthSelected(filter, $event, picker)"></mat-datepicker>
-      </ng-container>
-
-      <i class="ti ti-chevron-down"></i>
-    </div>
-  </ng-container>
-
-  <button type="button" class="sw-gen-btn" *ngIf="primaryAction"
-          [disabled]="!!primaryAction.disabled" (click)="primaryActionClick.emit()">
-    <i class="ti ti-{{ primaryAction.icon }}" *ngIf="primaryAction.icon" style="font-size:13px;"></i>
-    {{ primaryAction.label }}
-  </button>
+        <i class="bi bi-chevron-down chevron"></i>
+      </div>
+    </ng-container>
+  </div>
 </div>

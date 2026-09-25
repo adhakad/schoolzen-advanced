@@ -30,7 +30,7 @@ export interface ShellNavGroup {
   /** Stable key used for accordion state and active-group detection. */
   key: string;
   label: string;
-  /** Tabler icon name without the `ti-` prefix. */
+  /** Bootstrap Icon name without the `bi-` prefix, exactly as the page references use it. */
   icon: string;
   /** A single item with no children (Dashboard, Approvals). */
   route?: string;
@@ -40,10 +40,10 @@ export interface ShellNavGroup {
 }
 
 export const SHELL_NAV: readonly ShellNavGroup[] = [
-  { key: 'dashboard', label: 'Dashboard', icon: 'home', route: '/v2/dashboard' },
+  { key: 'dashboard', label: 'Dashboard', icon: 'house', route: '/v2/dashboard' },
 
   {
-    key: 'student', label: 'Student', icon: 'school',
+    key: 'student', label: 'Student', icon: 'mortarboard',
     items: [
       { label: 'Manage Students', route: '/v2/student/manage-students', permission: 'student' },
       { label: 'Admission', route: '/v2/student/admission', permission: 'admission' },
@@ -52,7 +52,7 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   },
 
   {
-    key: 'staff', label: 'Staff', icon: 'users',
+    key: 'staff', label: 'Staff', icon: 'people',
     items: [
       { label: 'Manage Staff', route: '/v2/staff/manage-staff', adminOnly: true },
       { label: 'Departments', route: '/v2/staff/departments', adminOnly: true },
@@ -61,7 +61,7 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   },
 
   {
-    key: 'academic', label: 'Academic Setup', icon: 'books', adminOnly: true,
+    key: 'academic', label: 'Academic Setup', icon: 'diagram-3', adminOnly: true,
     items: [
       { label: 'Classes & Sections', route: '/v2/academic-setup/classes-sections' },
       { label: 'Subjects', route: '/v2/academic-setup/subjects' },
@@ -70,7 +70,7 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   },
 
   {
-    key: 'attendance', label: 'Attendance', icon: 'calendar',
+    key: 'attendance', label: 'Attendance', icon: 'calendar-check',
     items: [
       { label: 'Overview', route: '/v2/attendance/overview', permission: 'attendance' },
       { label: 'Manage Shifts', route: '/v2/attendance/shifts', adminOnly: true },
@@ -97,7 +97,7 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   },
 
   {
-    key: 'payroll', label: 'Payroll', icon: 'cash',
+    key: 'payroll', label: 'Payroll', icon: 'cash-stack',
     items: [
       { label: 'Generate Payroll', route: '/v2/payroll/generate-payroll', permission: 'salary' },
       { label: 'Salary Payouts', route: '/v2/payroll/salary-payouts', permission: 'salary' },
@@ -107,7 +107,7 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   },
 
   {
-    key: 'fees', label: 'Fees', icon: 'cash-banknote',
+    key: 'fees', label: 'Fees', icon: 'wallet2',
     items: [
       { label: 'Fees', route: '/v2/fees/fees', permission: 'fee' },
       { label: 'Fee Structure', route: '/v2/fees/fee-structure', adminOnly: true },
@@ -117,7 +117,7 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   },
 
   {
-    key: 'examination', label: 'Examination', icon: 'certificate',
+    key: 'examination', label: 'Examination', icon: 'journal-text',
     items: [
       { label: 'Marksheet Structure', route: '/v2/examination/marksheet-structure', adminOnly: true },
       { label: 'Generate Marksheet', route: '/v2/examination/generate-marksheet', permission: 'marksheet' },
@@ -127,17 +127,17 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   },
 
   {
-    key: 'certificates', label: 'Certificates', icon: 'file-certificate',
+    key: 'certificates', label: 'Certificates', icon: 'award',
     items: [
       { label: 'TC Structure', route: '/v2/certificates/tc-structure', adminOnly: true },
       { label: 'Generate TC', route: '/v2/certificates/generate-tc', permission: 'transferCertificate' }
     ]
   },
 
-  { key: 'approvals', label: 'Approvals', icon: 'checkbox', route: '/v2/approvals' },
+  { key: 'approvals', label: 'Approvals', icon: 'check-circle', route: '/v2/approvals' },
 
   {
-    key: 'settings', label: 'Settings', icon: 'settings', adminOnly: true,
+    key: 'settings', label: 'Settings', icon: 'gear', adminOnly: true,
     items: [
       { label: 'Academic Sessions', route: '/v2/settings/academic-sessions' },
       { label: 'Admission Form Fields', route: '/v2/settings/admission-form-fields' },

@@ -2,358 +2,755 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Settings - Roles &amp; Permissions - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>Schoolzen — Roles &amp; Permissions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 1100px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .sw { font-family: inherit; background: #f4f4fb; padding: 20px; border-radius: 20px; position: relative; max-width: 1100px; margin: 0 auto; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 16px; border-bottom: 1px solid #e8e6f5; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 12px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-spacer { height: 24px; }
-  .sw-body { display: flex; gap: 16px; align-items: stretch; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-wrap { background: #fff; border-radius: 18px; padding: 14px 8px; width: 224px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); flex-shrink: 0; overflow-y: auto; max-height: 700px; }
-  .sw-main { flex: 1; min-width: 0; }
-  .sw-card-main { background: #fff; border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-  .sw-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
-  .sw-subtitle { font-size: 12px; color: #9494ac; margin-bottom: 18px; }
-  .sw-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
-  .role-tabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-  .role-tab { padding: 8px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #6b6b85; background: #f6f5ff; cursor: pointer; display: flex; align-items: center; gap: 6px; }
-  .role-tab.active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; }
-  .role-tab .role-count { font-size: 10px; opacity: .8; }
-  .sw-add-btn { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; }
+  :root{ --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; }
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-item.locked{color:#6E7480;}
+  .nav-item.locked .chevron{display:none;}
+  .nav-item.locked .bi-lock-fill{margin-left:auto; font-size:11px; color:#6E7480; flex-shrink:0;}
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;} .crumb b{color:var(--ink); font-weight:600;}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+  .dd{position:relative;} .dd-trigger{cursor:pointer; user-select:none; display:flex; align-items:center; justify-content:space-between; width:100%; gap:6px;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:165px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; }
+  .dd.open .dd-menu{display:block;}
+  .dd-menu.full-width{width:100%; right:auto; left:0;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; display:flex; align-items:center; gap:10px;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;}
+  .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);} .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;}
+  .dd.disabled{pointer-events:none; opacity:1;} .dd.disabled .dd-trigger{color:#B7B0C9; cursor:not-allowed;} .dd.disabled .chevron{color:#D3CEE0;}
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink);}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px;}
+  .content{padding:28px 32px;}
+  .page-head{margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+  .layout-row{display:flex; gap:16px; align-items:flex-start; margin-bottom:16px;}
+  .main-col{flex:1; min-width:0;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:270px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+  .sw-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink); margin-bottom:2px;}
+  .sw-sub{font-size:12px; color:var(--ink-soft); margin-bottom:16px;}
 
-  .locked-role-note { display: flex; align-items: center; gap: 8px; background: #f0eeff; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #5b4fd6; margin-bottom: 16px; }
+  .role-pills{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;}
+  .role-pill{padding:8px 16px; border-radius:20px; border:1.5px solid var(--line); font-size:13px; font-weight:600; color:var(--ink-soft); cursor:pointer;}
+  .role-pill.active{border-color:var(--brand); background:var(--brand-soft); color:var(--brand);}
+  .role-pill.locked{background:var(--paper); color:var(--ink-faint); cursor:default;}
+  .role-pill-add{padding:8px 14px; border-radius:20px; border:1.5px dashed var(--line); font-size:13px; font-weight:600; color:var(--brand); cursor:pointer; display:flex; align-items:center; gap:6px;}
+  .role-pill-add:hover{background:var(--brand-soft);}
+  .locked-note{display:flex; align-items:center; gap:10px; background:var(--brand-soft); border:1px solid #E0CFFF; border-radius:var(--radius); padding:12px 14px; font-size:12px; color:var(--brand-deep); margin-bottom:16px; line-height:1.5;}
 
-  .matrix-scroll { overflow-x: auto; margin: 0 -20px; padding: 0 20px; }
-  .matrix-table { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 640px; }
-  .matrix-table th { color: #b0b0c9; font-weight: 700; font-size: 10px; text-transform: uppercase; padding: 8px; text-align: center; letter-spacing: .3px; }
-  .matrix-table th.module-col { text-align: left; width: 220px; }
-  .matrix-table td { padding: 10px 8px; border-top: 1px solid #f2f1fa; text-align: center; }
-  .matrix-table td.module-col { text-align: left; }
-  .module-name { font-weight: 600; color: #1a1a2e; font-size: 13px; }
-  .module-row.sub td.module-col { padding-left: 24px; color: #6b6b85; font-size: 12px; font-weight: 500; }
-  .perm-check { width: 18px; height: 18px; accent-color: #7b6ef6; cursor: pointer; }
-  .perm-check:disabled { accent-color: #d9d6f5; cursor: not-allowed; }
-  .scope-tag { font-size: 9.5px; color: #7b6ef6; background: #f0eeff; padding: 2px 6px; border-radius: 999px; font-weight: 600; margin-top: 3px; display: inline-block; cursor: pointer; }
+  .perm-simple-list{display:flex; flex-direction:column;}
+  .perm-simple-row{display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--line-soft);}
+  .perm-simple-row:last-child{border-bottom:none;}
+  .perm-simple-name{flex:0 0 110px; font-size:13.5px; font-weight:600; color:var(--ink);}
+  .perm-actions{display:flex; align-items:center; gap:16px; flex:1;}
+  .perm-action{display:flex; align-items:center; gap:6px; cursor:pointer;}
+  .perm-action-label{font-size:10.5px; font-weight:600; color:var(--ink-faint); width:34px;}
+  .perm-action.on .perm-action-label{color:var(--success);}
+  .mini-switch{width:30px; height:18px; border-radius:20px; background:var(--line); position:relative; flex-shrink:0;}
+  .mini-switch::after{content:''; position:absolute; width:13px; height:13px; border-radius:50%; background:#fff; top:2.5px; left:2.5px; transition:left .15s;}
+  .mini-switch.on{background:var(--success);} .mini-switch.on::after{left:14.5px;}
+  .mini-switch.locked{opacity:.5;}
+  .row-scope-note{font-size:10.5px; color:var(--brand); background:var(--brand-soft); padding:3px 9px; border-radius:20px; font-weight:600;}
+  .save-row{display:flex; justify-content:space-between; align-items:center; margin-top:18px;}
+  .btn-brand{height:38px; padding:0 20px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand:disabled{background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed;}
+  .del-role-link{font-size:12px; color:var(--danger); font-weight:600; cursor:pointer;}
+  .del-role-link:hover{text-decoration:underline;}
 
-  .sw-footer-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #f0eeff; }
-  .btn-cancel { background: #f6f5ff; color: #6b6b85; border: none; border-radius: 10px; padding: 9px 18px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-  .btn-submit { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; border: none; border-radius: 10px; padding: 9px 20px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;} .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);} .stat-row.accent .stat-value{color:var(--brand);}
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;} .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
 
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(20,20,60,0.35); align-items: center; justify-content: center; z-index: 50; }
-  .modal-overlay.open { display: flex; }
-  .modal-box { background: #fff; border-radius: 16px; width: 420px; }
-  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #f0eeff; }
-  .modal-title { font-size: 15px; font-weight: 700; color: #1a1a2e; }
-  .modal-close { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #9494ac; cursor: pointer; }
-  .modal-body-scroll { padding: 18px 22px; }
-  .modal-foot { padding: 14px 22px; border-top: 1px solid #f0eeff; display: flex; justify-content: flex-end; gap: 8px; }
-  .m-field { margin-bottom: 12px; }
-  .m-field label { display: block; font-size: 11px; color: #9494ac; margin-bottom: 4px; font-weight: 600; }
-  .m-field input, .m-field select { width: 100%; border: 1px solid #e5e3f5; border-radius: 10px; padding: 9px 12px; font-size: 13px; color: #3d3d5c; outline: none; box-sizing: border-box; }
-  .m-hint { font-size: 10.5px; color: #9494ac; margin-top: 4px; }
+  .role-col-scroll{overflow-x:auto;}
+  .staff-toolbar{display:flex; flex-direction:column; gap:12px;}
+  .toolbar-row1{display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .toolbar-row2{display:flex; align-items:center; gap:8px;}
+  .toolbar-btn-group{display:flex; align-items:center; gap:10px;}
+  .btn-secondary.danger{color:var(--danger);} .btn-secondary.danger:hover:not(:disabled){border-color:var(--danger); background:var(--danger-soft);}
+  .btn-secondary{ height:38px; background:var(--surface); color:var(--slate); border:1px solid var(--line); border-radius:var(--radius); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; white-space:nowrap; }
+  .btn-secondary:hover:not(:disabled){border-color:var(--slate);} .btn-secondary:disabled{color:var(--ink-faint); cursor:not-allowed;}
+  th.chk, td.chk{width:30px; text-align:center;} th.chk input, td.chk input{width:15px; height:15px; accent-color:var(--brand); cursor:pointer;}
+  .search{position:relative; flex:0 0 280px; width:280px;}
+  .sw-select-pill{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; width:170px; flex-shrink:0; box-sizing:border-box; }
+  .search input{ width:100%; height:38px; padding:0 14px 0 34px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; outline:none; box-sizing:border-box; }
+  .search .bi-search{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:14px;}
+  .staff-role-table{border-collapse:collapse; min-width:100%;}
+  .staff-role-table th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-faint); letter-spacing:0.06em; padding:0 14px 12px 0; border-bottom:1px solid var(--line); white-space:nowrap; }
+  .staff-role-table th.staff-col-head{position:sticky; left:0; background:var(--surface); z-index:2; min-width:210px;}
+  .staff-role-table td{padding:12px 14px 12px 0; border-bottom:1px solid var(--line-soft); vertical-align:middle;}
+  .staff-role-table tr:last-child td{border-bottom:none;}
+  .staff-role-table tr:hover td{background:#F7F4FC;}
+  .staff-role-table td.staff-col{position:sticky; left:0; background:var(--surface); min-width:210px;}
+  .st-avatar{width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:10px; margin-right:9px; vertical-align:middle;}
+  .staff-name{font-weight:600; color:var(--ink); font-size:13.5px;}
+  .staff-sub{font-size:11px; color:var(--ink-faint); margin-top:2px; margin-left:37px;}
+  .staff-role-table tr:hover td.staff-col{background:#F7F4FC;}
+  .role-cell{min-width:150px;}
+  .role-perm-chip{display:inline-flex; align-items:center; gap:6px; background:var(--brand-soft); color:var(--brand-deep); border-radius:20px; padding:5px 6px 5px 11px; font-size:11.5px; font-weight:600; cursor:pointer; max-width:100%;}
+  .role-perm-chip.whole{background:var(--line-soft); color:var(--ink-soft);}
+  .role-perm-chip .remove{cursor:pointer; width:15px; height:15px; border-radius:50%; background:rgba(255,255,255,0.65); display:flex; align-items:center; justify-content:center; font-size:10px; flex-shrink:0;}
+  .role-perm-chips-wrap{display:flex; flex-direction:column; gap:5px; align-items:flex-start;}
+  .no-access-lock{display:inline-flex; align-items:center; gap:5px; font-size:10.5px; color:var(--ink-faint); font-style:italic;}
+  .no-access-lock .bi-lock-fill{font-size:10px;}
+  .add-perm-cell{width:26px; height:26px; border-radius:6px; border:1px dashed var(--line); background:var(--surface); color:var(--brand); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px;}
+  .add-perm-cell:hover{background:var(--brand-soft); border-color:var(--brand);}
+  .role-col-wrap{display:flex; gap:14px; align-items:flex-start;}
+  .role-col{width:250px; flex-shrink:0; background:var(--paper); border-radius:var(--radius); padding:14px;}
+  .role-col-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .role-col-title{font-family:'Fraunces',serif; font-size:14.5px; font-weight:600; color:var(--ink);}
+  .role-col-count{font-size:10.5px; color:var(--ink-faint); font-weight:600;}
+  .role-col-add-btn{width:250px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+  .add-role-col-btn{background:none; border:1.5px dashed var(--line); border-radius:var(--radius); color:var(--brand); font-size:12px; font-weight:600; padding:10px 16px; cursor:pointer; display:flex; align-items:center; gap:6px; width:100%; justify-content:center; height:44px;}
+  .add-role-col-btn:hover{background:var(--brand-soft);}
+  .scope-entry{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; margin-bottom:8px;}
+  .scope-entry-class{font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;}
+  .scope-entry-staff{font-size:11.5px; color:var(--ink-soft); display:flex; align-items:center; justify-content:space-between;}
+  .scope-entry-staff.unassigned{color:var(--ink-faint); font-style:italic;}
+  .scope-entry-action{font-size:11px; color:var(--brand); font-weight:600; cursor:pointer;}
+  .whole-school-entry{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:10px 12px; margin-bottom:8px; font-size:12px; color:var(--ink);}
+  .add-scope-inline{background:none; border:1.5px dashed var(--brand); border-radius:var(--radius); color:var(--brand); font-size:11.5px; font-weight:600; padding:8px 10px; cursor:pointer; width:100%; text-align:center;}
+  .add-scope-inline:hover{background:var(--brand-soft);}
+
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:60; align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); border-radius:var(--radius); width:460px; max-width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .modal-box.narrow{width:400px;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .modal-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink);}
+  .modal-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft);}
+  .modal-body{padding:20px 24px; flex:1; overflow-y:auto; min-height:0;}
+  .modal-foot{padding:16px 24px; border-top:1px solid var(--line); flex-shrink:0; display:flex; justify-content:flex-end; gap:10px;}
+  .m-row{display:flex; gap:12px;} .m-row .m-field{flex:1; margin-bottom:14px;}
+  .m-field{margin-bottom:14px;}
+  .m-field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);}
+  .m-hint{font-size:11.5px; color:var(--ink-faint); margin-top:6px; line-height:1.5;}
+  .sw-select-pill-full{ display:flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); height:38px; padding:0 12px; box-sizing:border-box; }
+  .btn-plain{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
+  .warn-box{background:var(--danger-soft); border-radius:var(--radius); padding:12px 14px; font-size:12px; color:#8A3A2E; line-height:1.6; margin-bottom:14px;} .warn-box b{color:var(--danger);}
+  .confirm-field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px;}
+  .confirm-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; outline:none; box-sizing:border-box; font-family:monospace; }
+  .confirm-field input:focus{border-color:var(--danger);} .confirm-field input.match{border-color:var(--success);}
 </style>
 </head>
 <body>
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" data-module="Student" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" data-module="Attendance" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" data-module="Leave" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" data-module="Payroll" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" data-module="Fees" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" data-module="Marksheet" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a href="#">Academic Sessions</a>
+      <a href="#">Admission Form Fields</a>
+      <a class="current" href="#">Roles &amp; Permissions</a>
+      <a href="#">Marksheet Templates</a>
+    </div>
+  </nav>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Settings / <b>Roles &amp; Permissions</b></div>
+    <div class="dd" id="profileDD">
+      <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')"><div class="avatar">A</div><span class="profile-name">Admin</span><i class="bi bi-chevron-down chevron"></i></div>
+      <div class="dd-menu" style="right:0;">
+        <div class="drop-school"><div class="drop-school-logo">GV</div><div><div class="drop-school-name">Green Valley Public School</div><div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div></div>
+        <div class="dd-option"><i class="bi bi-person"></i>My Profile</div><div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+        <div class="dd-divider"></div><div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-head"><h1>Roles &amp; Permissions</h1><div class="subtitle">Two steps: set up what each role can do, then say who holds it for which class.</div></div>
 
-<div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  Settings &rarr; Roles &amp; Permissions. Implements R3's permission
-  system as an actual UI: a role tab strip + a module&times;action
-  matrix of checkboxes. "Class Teacher" is scoped (its checkbox row
-  shows a clickable "Scoped" tag opening a small picker for WHICH
-  class+section this grant applies to) rather than a blanket module
-  permission, matching R3's specific "Class Teacher = permission
-  scoped to a Class+Section, not the whole school" rule. Admin/Super
-  Admin are locked, uneditable roles (the school always needs at least
-  one role with full access that can't be misconfigured into a
-  lockout).
+    <div class="layout-row">
+    <div class="main-col">
+    <div class="sw-card-main" style="margin-bottom:16px;">
+      <div class="sw-title">Step 1 — What can each role do?</div>
+      <div class="sw-sub">Pick a role, then switch on whatever it should be allowed to do. The sidebar on the left previews what that role would see — locked items are modules it has no View access to.</div>
+      <div class="role-pills" id="rolePills"></div>
+      <div class="locked-note" id="lockedNote" style="display:none;"><i class="bi bi-lock-fill"></i> Super Admin always has full access to everything and can't be changed — every school needs one role that can never be locked out.</div>
+      <div class="locked-note" id="scopedRoleNote" style="display:none;"><i class="bi bi-info-circle"></i> This role can be limited to specific classes — set per staff member in Step 2 below, since different people with this role may teach different classes.</div>
+      <div class="perm-simple-list" id="permSimpleList"></div>
+      <div class="save-row">
+        <span class="del-role-link" id="delRoleLink" onclick="confirmDeleteRole()">Remove this role</span>
+        <button class="btn-brand" onclick="saveRolePerms()">Save Changes to <span id="saveRoleLabel"></span></button>
+      </div>
+    </div>
+
+    <div class="sw-card-main">
+        <div class="sw-title">Step 2 — Who covers which class?</div>
+        <div class="sw-sub">Every staff member as a row, every role as its own column — click a chip to edit it, or the + to add one.</div>
+        <div class="staff-toolbar">
+          <div class="toolbar-row1">
+            <div class="search"><i class="bi bi-search"></i><input type="text" placeholder="Search staff" oninput="renderStaffRoleTable()"></div>
+            <button class="btn-secondary danger" id="bulkDelBtn2" disabled onclick="confirmBulkDeleteStaffRoles()"><i class="bi bi-trash"></i> Selected Delete (<span id="bulkSelCount2">0</span>)</button>
+          </div>
+          <div class="toolbar-row2">
+            <div class="dd sw-select-pill" id="deptFilterPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'deptFilterPill')"><span class="dd-label">All departments</span><i class="bi bi-chevron-down chevron"></i></div>
+              <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectDeptFilter('','All departments')">All departments</div><div class="dd-option" onclick="selectDeptFilter('Teaching','Teaching')">Teaching</div><div class="dd-option" onclick="selectDeptFilter('Admin','Admin')">Admin</div></div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="desigFilterPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'desigFilterPill')"><span class="dd-label">All designations</span><i class="bi bi-chevron-down chevron"></i></div>
+              <div class="dd-menu full-width" id="desigFilterMenu"><div class="dd-option selected" onclick="selectDesigFilter('','All designations')">All designations</div></div>
+            </div>
+            <div class="dd sw-select-pill" id="roleTypeFilterPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'roleTypeFilterPill')"><span class="dd-label">All roles</span><i class="bi bi-chevron-down chevron"></i></div>
+              <div class="dd-menu full-width" id="roleTypeFilterMenu"></div>
+            </div>
+            <div class="dd sw-select-pill" id="assignedFilterPill" data-value="" style="width:200px;">
+              <div class="dd-trigger" onclick="toggleDD(event,'assignedFilterPill')"><span class="dd-label">Assigned + Unassigned</span><i class="bi bi-chevron-down chevron"></i></div>
+              <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectAssignedFilter('','Assigned + Unassigned')">Assigned + Unassigned</div><div class="dd-option" onclick="selectAssignedFilter('assigned','Assigned only')">Assigned only</div><div class="dd-option" onclick="selectAssignedFilter('unassigned','Unassigned only')">Unassigned only</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="role-col-scroll" style="margin-top:14px;">
+          <table class="staff-role-table" id="staffRoleTable"></table>
+        </div>
+      </div>
+    </div>
+    <div class="col-side">
+        <div class="stats-card">
+          <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+          <div class="stat-row"><span class="stat-label">Roles</span><span class="stat-value" id="roleCountStat">4</span></div>
+          <div class="stat-row"><span class="stat-label">Total Staff</span><span class="stat-value" id="totalStaffStat2">4</span></div>
+          <div class="stat-row accent"><span class="stat-label">Fully Assigned</span><span class="stat-value" id="assignedStat2">0</span></div>
+          <div class="stat-row"><span class="stat-label">No Role Yet</span><span class="stat-value" id="unassignedStat2">0</span></div>
+        </div>
+        <div class="status-card">
+          <div class="card-title-row">Good to know</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Step 1 sets what a role can do. Step 2 sets which class each person with that role actually covers.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>The same class + section can't be given to two people for the same role.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>A role can't be removed while staff still hold it — reassign them first.</div>
+          <div class="tip-item"><i class="bi bi-info-circle"></i>Click any chip to edit its class, or the × to remove it. The dotted + adds another role without disturbing what they already hold.</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell"><i class="ti ti-bell"></i><span class="bell-badge"></span></div>
-      <div class="sw-profile"><div class="sw-avatar">AD</div><span class="sw-profile-name">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i></div>
-    </div>
+<div class="modal-overlay" id="newRoleModal">
+  <div class="modal-box narrow">
+    <div class="modal-head"><span class="modal-title">New Role</span><button class="modal-close" onclick="document.getElementById('newRoleModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body"><div class="m-field" style="margin-bottom:0;"><label>Role Name</label><input type="text" id="newRoleInput" placeholder="Librarian"></div></div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('newRoleModal').classList.remove('open')">Cancel</button><button class="btn-brand" onclick="createNewRole()">Create Role</button></div>
   </div>
-  <div class="sw-spacer"></div>
-  <div class="sw-body">
-    <div class="sb-wrap">
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Class Promotion</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="staff">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Designations</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="academic">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes & Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="holiday">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="fees">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="examination">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-      <div class="sb-group" data-group="certificates">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-      <div class="sb-item single"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-      <div class="sb-group open" data-group="settings">
-        <div class="sb-item parent-active" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item active-sub"><i class="ti ti-point"></i>Roles & Permissions</div>
+</div>
+
+<div class="modal-overlay" id="deleteRoleModal">
+  <div class="modal-box narrow">
+    <div class="modal-head"><span class="modal-title" id="deleteRoleTitle">Remove Role</span><button class="modal-close" onclick="document.getElementById('deleteRoleModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body"><p id="deleteRoleBody" style="font-size:12.5px; color:var(--ink-soft); line-height:1.6;"></p></div>
+    <div class="modal-foot" id="deleteRoleFoot"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="assignSlotModal">
+  <div class="modal-box narrow">
+    <div class="modal-head"><span class="modal-title" id="assignSlotTitle">Assign 8th · Section A</span><button class="modal-close" onclick="document.getElementById('assignSlotModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="m-field" style="margin-bottom:0;">
+        <label>Staff Member</label>
+        <div class="dd sw-select-pill-full" id="slotStaffPill" data-value="" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'slotStaffPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">-- Unassigned --</span><i class="bi bi-chevron-down chevron"></i></div>
+          <div class="dd-menu full-width" id="slotStaffMenu"></div>
         </div>
       </div>
     </div>
-    <div class="sw-main">
-      <div class="sw-card-main">
-        <div class="sw-title">Roles &amp; Permissions</div>
-        <div class="sw-subtitle">Control exactly which modules and actions each role can access.</div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('assignSlotModal').classList.remove('open')">Cancel</button><button class="btn-brand" onclick="saveSlotAssign()">Save</button></div>
+  </div>
+</div>
 
-        <div class="sw-toolbar">
-          <div class="role-tabs">
-            <div class="role-tab active">Super Admin <span class="role-count">(locked)</span></div>
-            <div class="role-tab">Admin</div>
-            <div class="role-tab">Accountant</div>
-            <div class="role-tab">Class Teacher <span class="role-count">(scoped)</span></div>
-            <div class="role-tab">Subject Teacher</div>
+<div class="modal-overlay" id="bulkDeleteModal2">
+  <div class="modal-box narrow">
+    <div class="modal-head"><span class="modal-title">Selected Delete</span><button class="modal-close" onclick="document.getElementById('bulkDeleteModal2').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="warn-box"><p id="bulkDeleteBody2" style="margin:0;"></p></div>
+      <div class="confirm-field">
+        <label>Type <b>DELETE</b> to confirm</label>
+        <input type="text" id="bulkDeleteConfirmInput" placeholder="DELETE" oninput="checkBulkDeleteConfirm()">
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('bulkDeleteModal2').classList.remove('open')">Cancel</button><button class="btn-brand" id="bulkDeleteConfirmBtn" style="background:var(--danger);" disabled onclick="performBulkDeleteStaffRoles()">Remove All</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addClassModal">
+  <div class="modal-box">
+    <div class="modal-head"><span class="modal-title" id="addClassTitle">Add a Class — Class Teacher</span><button class="modal-close" onclick="document.getElementById('addClassModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button></div>
+    <div class="modal-body">
+      <div class="m-row">
+        <div class="m-field">
+          <label>Class</label>
+          <div class="dd sw-select-pill-full" id="scopeClassPill" data-value="" style="width:100%;">
+            <div class="dd-trigger" onclick="toggleDD(event,'scopeClassPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">-- Select --</span><i class="bi bi-chevron-down chevron"></i></div>
+            <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectScopeClass('','-- Select --')">-- Select --</div><div class="dd-option" onclick="selectScopeClass('8th','8th')">8th</div><div class="dd-option" onclick="selectScopeClass('9th','9th')">9th</div><div class="dd-option" onclick="selectScopeClass('11th','11th')">11th</div><div class="dd-option" onclick="selectScopeClass('12th','12th')">12th</div></div>
           </div>
-          <button class="sw-add-btn" onclick="document.getElementById('createRoleModal').classList.add('open')"><i class="ti ti-plus" style="font-size:13px;"></i> Create Role</button>
         </div>
-
-        <div class="locked-role-note"><i class="ti ti-lock"></i> Super Admin has full access to every module and cannot be edited — every school always keeps one role that can never be locked out of its own system.</div>
-
-        <div class="matrix-scroll">
-          <table class="matrix-table">
-            <thead>
-              <tr>
-                <th class="module-col">Module</th>
-                <th>View</th>
-                <th>Create</th>
-                <th>Edit</th>
-                <th>Delete</th>
-                <th>Approve</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="module-row">
-                <td class="module-col"><span class="module-name">Student</span></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td>&mdash;</td>
-              </tr>
-              <tr class="module-row">
-                <td class="module-col"><span class="module-name">Staff</span></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td>&mdash;</td>
-              </tr>
-              <tr class="module-row">
-                <td class="module-col"><span class="module-name">Attendance</span></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td>&mdash;</td>
-              </tr>
-              <tr class="module-row">
-                <td class="module-col"><span class="module-name">Leave</span></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-              </tr>
-              <tr class="module-row">
-                <td class="module-col"><span class="module-name">Payroll</span></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td>&mdash;</td>
-              </tr>
-              <tr class="module-row">
-                <td class="module-col"><span class="module-name">Fees</span></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td>&mdash;</td>
-              </tr>
-              <tr class="module-row">
-                <td class="module-col"><span class="module-name">Examination</span></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td>&mdash;</td>
-              </tr>
-              <tr class="module-row">
-                <td class="module-col"><span class="module-name">Settings</span></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td><input type="checkbox" class="perm-check" checked disabled></td>
-                <td>&mdash;</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="m-field">
+          <label>Stream</label>
+          <div class="dd sw-select-pill-full disabled" id="scopeStreamPill" data-value="N/A" style="width:100%;">
+            <div class="dd-trigger" onclick="toggleDD(event,'scopeStreamPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">N/A</span><i class="bi bi-chevron-down chevron"></i></div>
+            <div class="dd-menu full-width"><div class="dd-option selected" onclick="selectScopeSimple('scopeStreamPill','N/A')">N/A</div><div class="dd-option" onclick="selectScopeSimple('scopeStreamPill','Science')">Science</div><div class="dd-option" onclick="selectScopeSimple('scopeStreamPill','Commerce')">Commerce</div></div>
+          </div>
         </div>
       </div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Stream Group</label>
+          <div class="dd sw-select-pill-full disabled" id="scopeGroupPill" data-value="All groups" style="width:100%;">
+            <div class="dd-trigger" onclick="toggleDD(event,'scopeGroupPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">All groups</span><i class="bi bi-chevron-down chevron"></i></div>
+            <div class="dd-menu full-width" id="scopeGroupMenu"><div class="dd-option selected" onclick="selectScopeSimple('scopeGroupPill','All groups')">All groups</div></div>
+          </div>
+        </div>
+        <div class="m-field">
+          <label>Section</label>
+          <div class="dd sw-select-pill-full disabled" id="scopeSectionPill" data-value="All sections" style="width:100%;">
+            <div class="dd-trigger" onclick="toggleDD(event,'scopeSectionPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">All sections</span><i class="bi bi-chevron-down chevron"></i></div>
+            <div class="dd-menu full-width" id="scopeSectionMenu"><div class="dd-option selected" onclick="selectScopeSimple('scopeSectionPill','All sections')">All sections</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="m-field" style="margin-bottom:0;">
+        <label>Assign to (optional)</label>
+        <div class="dd sw-select-pill-full" id="newSlotStaffPill" data-value="" style="width:100%;">
+          <div class="dd-trigger" onclick="toggleDD(event,'newSlotStaffPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;"><span class="dd-label">-- Unassigned --</span><i class="bi bi-chevron-down chevron"></i></div>
+          <div class="dd-menu full-width" id="newSlotStaffMenu"></div>
+        </div>
+      </div>
+      <div class="m-hint" id="addClassWarning" style="color:var(--danger); display:none;"></div>
     </div>
-  </div>
-
-  <!-- CREATE ROLE -->
-  <div class="modal-overlay" id="createRoleModal">
-    <div class="modal-box">
-      <div class="modal-head"><span class="modal-title">Create Role</span><div class="modal-close" onclick="document.getElementById('createRoleModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <div class="m-field"><label>Role Name</label><input type="text" placeholder="Librarian"></div>
-        <div class="m-field"><label>Scope</label><select><option>Whole school (like Admin/Accountant)</option><option>Scoped to a Class + Section (like Class Teacher)</option></select><div class="m-hint">Scoped roles show a "Scoped" tag on each permission row instead of applying school-wide — pick this for any role that should only ever act on specific classes.</div></div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn-cancel" onclick="document.getElementById('createRoleModal').classList.remove('open')">Cancel</button>
-        <button class="btn-submit">Create &amp; Configure Permissions</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCOPE PICKER (for Class Teacher-style scoped roles) -->
-  <div class="modal-overlay" id="scopeModal">
-    <div class="modal-box" style="width:380px;">
-      <div class="modal-head"><span class="modal-title">Scope — Attendance</span><div class="modal-close" onclick="document.getElementById('scopeModal').classList.remove('open')"><i class="ti ti-x"></i></div></div>
-      <div class="modal-body-scroll">
-        <p style="font-size:12px;color:#6b6b85;margin:0 0 12px;">This permission only applies to the class(es) assigned below — not the whole school.</p>
-        <div class="m-field"><label>Class</label><select><option>8th</option><option>9th</option></select></div>
-        <div class="m-field"><label>Section</label><select><option>A</option><option>B</option></select></div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn-cancel" onclick="document.getElementById('scopeModal').classList.remove('open')">Cancel</button>
-        <button class="btn-submit">Save Scope</button>
-      </div>
-    </div>
+    <div class="modal-foot"><button class="btn-plain" onclick="document.getElementById('addClassModal').classList.remove('open')">Cancel</button><button class="btn-brand" onclick="saveNewClassEntry()">Add</button></div>
   </div>
 </div>
 
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  if (dd.classList.contains('disabled')) return;
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+document.addEventListener('click', () => document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open')));
+function setDDValue(id, value, label){
+  const dd = document.getElementById(id);
+  dd.dataset.value = value; dd.querySelector('.dd-label').textContent = label;
+  dd.querySelectorAll('.dd-option').forEach(o => o.classList.remove('selected'));
+  const match = Array.from(dd.querySelectorAll('.dd-option')).find(o => o.textContent === label);
+  if (match) match.classList.add('selected');
 }
 
-document.querySelectorAll('.role-tab').forEach(tab => {
-  tab.addEventListener('click', function() {
-    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
-    this.classList.add('active');
+// ---------------- Data ----------------
+const modules = ['Student', 'Attendance', 'Marksheet', 'Leave', 'Fees', 'Payroll', 'Settings'];
+const actions = ['View', 'Create', 'Update', 'Delete'];
+const scopedModules = ['Attendance', 'Marksheet', 'Leave'];
+function fullPerm(on){ return { View:on, Create:on, Update:on, Delete:on }; }
+const roleOrder = ['Super Admin', 'Accountant', 'Class Teacher', 'Subject Teacher'];
+const rolePerms = {
+  'Super Admin': modules.reduce((o,m) => (o[m]=fullPerm(true), o), {}),
+  'Accountant': { Student:fullPerm(true), Attendance:fullPerm(false), Marksheet:fullPerm(false), Leave:fullPerm(false), Fees:fullPerm(true), Payroll:fullPerm(true), Settings:fullPerm(false) },
+  'Class Teacher': { Student:{View:true,Create:false,Update:true,Delete:false}, Attendance:fullPerm(true), Marksheet:{View:true,Create:true,Update:true,Delete:false}, Leave:{View:true,Create:false,Update:false,Delete:false}, Fees:fullPerm(false), Payroll:fullPerm(false), Settings:fullPerm(false) },
+  'Subject Teacher': { Student:{View:true,Create:false,Update:false,Delete:false}, Attendance:fullPerm(false), Marksheet:{View:true,Create:true,Update:false,Delete:false}, Leave:fullPerm(false), Fees:fullPerm(false), Payroll:fullPerm(false), Settings:fullPerm(false) }
+};
+const roleIsScoped = { 'Super Admin': false, 'Accountant': false, 'Class Teacher': true, 'Subject Teacher': true };
+const roleIsLocked = { 'Super Admin': true };
+
+// role -> array of { classLabel, staff|null }. Non-scoped roles use a single 'Whole school' virtual slot with a staff list.
+const roleSlots = {
+  'Class Teacher': [ { classLabel: '8th · Section A', staff: 'Priya Sharma' }, { classLabel: '9th · Section B', staff: null } ],
+  'Subject Teacher': [ { classLabel: '11th · Science · Section B', staff: 'Rahul Verma' } ]
+};
+const wholeSchoolStaff = { 'Super Admin': [], 'Accountant': ['Meena Iyer'] };
+const allStaff = ['Priya Sharma', 'Rahul Verma', 'Meena Iyer', 'Arjun Mehta'];
+const staffDetails = {
+  'Priya Sharma': { code: 'STF-0142', desig: 'Primary Teacher', dept: 'Teaching', color: 'linear-gradient(135deg,var(--brand),var(--brand-deep))' },
+  'Rahul Verma': { code: 'STF-0098', desig: 'Secondary Teacher', dept: 'Teaching', color: 'linear-gradient(135deg,#FF9A76,#FF7676)' },
+  'Meena Iyer': { code: 'STF-0071', desig: 'Accountant', dept: 'Admin', color: 'linear-gradient(135deg,#4FD6C4,#2FB6A4)' },
+  'Arjun Mehta': { code: 'STF-0132', desig: 'Peon', dept: 'Admin', color: 'linear-gradient(135deg,#B79CED,#8C6FE0)' }
+};
+
+let currentRole = 'Accountant';
+
+// ---------------- Step 1 ----------------
+function renderRolePills(){
+  document.getElementById('rolePills').innerHTML = roleOrder.map(r =>
+    `<div class="role-pill${roleIsLocked[r]?' locked':''}${r===currentRole && !roleIsLocked[r] ?' active':''}" onclick="selectRole('${r}', this)">${r}</div>`
+  ).join('') + `<div class="role-pill-add" onclick="openNewRoleModal()"><i class="bi bi-plus-lg"></i> New Role</div>`;
+  document.getElementById('roleCountStat').textContent = roleOrder.length;
+}
+function selectRole(role, el){
+  currentRole = role;
+  renderRolePills();
+  if (roleIsLocked[role]) { document.getElementById('lockedNote').style.display = 'flex'; document.getElementById('scopedRoleNote').style.display = 'none'; }
+  else { document.getElementById('lockedNote').style.display = 'none'; document.getElementById('scopedRoleNote').style.display = roleIsScoped[role] ? 'flex' : 'none'; }
+  document.getElementById('saveRoleLabel').textContent = role;
+  document.getElementById('delRoleLink').style.display = roleIsLocked[role] ? 'none' : 'inline';
+  renderPermList(role, roleIsLocked[role]);
+  updateSidebarLocks(role);
+}
+function updateSidebarLocks(role){
+  const perms = rolePerms[role];
+  document.querySelectorAll('.nav-item[data-module]').forEach(item => {
+    const mod = item.dataset.module;
+    const hasView = roleIsLocked[role] || (perms[mod] && perms[mod].View);
+    item.classList.toggle('locked', !hasView);
+    const existingLock = item.querySelector('.bi-lock-fill');
+    if (!hasView && !existingLock) item.querySelector('span').insertAdjacentHTML('afterend', '<i class="bi bi-lock-fill"></i>');
+    if (hasView && existingLock) existingLock.remove();
   });
-});
+}
+function renderPermList(role, locked){
+  const perms = rolePerms[role];
+  document.getElementById('permSimpleList').innerHTML = modules.map(m => {
+    const modPerm = perms[m];
+    const actionsHTML = actions.map(a => `
+      <div class="perm-action${modPerm[a] ? ' on' : ''}" onclick="${locked ? '' : `toggleAction('${m}','${a}',this)`}">
+        <div class="mini-switch${modPerm[a] ? ' on' : ''}${locked ? ' locked' : ''}"></div>
+        <span class="perm-action-label">${a}</span>
+      </div>`).join('');
+    return `<div class="perm-simple-row"><span class="perm-simple-name">${m}</span><div class="perm-actions">${actionsHTML}</div></div>`;
+  }).join('');
+  document.querySelector('.sw-card-main .btn-brand').disabled = locked;
+}
+function toggleAction(module, action, el){
+  el.classList.toggle('on');
+  el.querySelector('.mini-switch').classList.toggle('on');
+  const isOn = el.classList.contains('on');
+  rolePerms[currentRole][module][action] = isOn;
+  updateSidebarLocks(currentRole);
+}
+function saveRolePerms(){
+  document.querySelectorAll('#permSimpleList .perm-simple-row').forEach((row, i) => {
+    const m = modules[i];
+    actions.forEach((a, ai) => {
+      rolePerms[currentRole][m][a] = row.querySelectorAll('.perm-action')[ai].classList.contains('on');
+    });
+  });
+}
+function openNewRoleModal(){ document.getElementById('newRoleInput').value = ''; document.getElementById('newRoleModal').classList.add('open'); }
+function createNewRole(){
+  const name = document.getElementById('newRoleInput').value.trim();
+  if (!name || roleOrder.includes(name)) return;
+  rolePerms[name] = modules.reduce((o,m) => (o[m]=fullPerm(false), o), {});
+  roleIsScoped[name] = false;
+  wholeSchoolStaff[name] = [];
+  roleOrder.push(name);
+  renderRolePills();
+  populateRoleTypeFilter();
+  renderStaffRoleTable();
+  document.getElementById('newRoleModal').classList.remove('open');
+  selectRole(name);
+}
+function confirmDeleteRole(){
+  const role = currentRole;
+  const holders = roleHolders(role);
+  document.getElementById('deleteRoleTitle').textContent = `Remove ${role}`;
+  if (holders.length) {
+    document.getElementById('deleteRoleBody').innerHTML = `<b>${holders.join(', ')}</b> still hold${holders.length===1?'s':''} this role — reassign them first, then this can be removed.`;
+    document.getElementById('deleteRoleFoot').innerHTML = `<button class="btn-plain" onclick="document.getElementById('deleteRoleModal').classList.remove('open')" style="margin-left:auto;">Close</button>`;
+  } else {
+    document.getElementById('deleteRoleBody').innerHTML = `Remove <b>${role}</b>? This can't be undone.`;
+    document.getElementById('deleteRoleFoot').innerHTML = `<button class="btn-plain" onclick="document.getElementById('deleteRoleModal').classList.remove('open')">Cancel</button><button class="btn-brand" style="background:var(--danger);" onclick="performDeleteRole()">Remove</button>`;
+  }
+  document.getElementById('deleteRoleModal').classList.add('open');
+}
+function roleHolders(role){
+  if (roleIsScoped[role]) return (roleSlots[role] || []).filter(s => s.staff).map(s => s.staff);
+  return wholeSchoolStaff[role] || [];
+}
+function performDeleteRole(){
+  const role = currentRole;
+  const idx = roleOrder.indexOf(role);
+  if (idx > -1) roleOrder.splice(idx, 1);
+  delete rolePerms[role]; delete roleIsScoped[role]; delete roleSlots[role]; delete wholeSchoolStaff[role];
+  document.getElementById('deleteRoleModal').classList.remove('open');
+  currentRole = roleOrder[0];
+  renderRolePills();
+  selectRole(currentRole);
+  populateRoleTypeFilter();
+  renderStaffRoleTable();
+}
+
+// ---------------- Step 2: staff x role table ----------------
+function chipForSlot(role, index){
+  const slot = roleSlots[role][index];
+  if (!slot.staff) return '';
+  return `<span class="role-perm-chip" onclick="openAssignSlot('${role}',${index})">${slot.classLabel}<span class="remove" onclick="event.stopPropagation(); roleSlots['${role}'][${index}].staff=null; renderStaffRoleTable();">×</span></span>`;
+}
+function staffHasAnyRole(staffName){
+  if (roleOrder.some(r => !roleIsLocked[r] && !roleIsScoped[r] && (wholeSchoolStaff[r]||[]).includes(staffName))) return true;
+  if (roleOrder.some(r => roleIsScoped[r] && (roleSlots[r]||[]).some(s => s.staff === staffName))) return true;
+  return false;
+}
+function staffHasRole(staffName, role){
+  if (!roleIsScoped[role]) return (wholeSchoolStaff[role]||[]).includes(staffName);
+  return (roleSlots[role]||[]).some(s => s.staff === staffName);
+}
+function populateRoleTypeFilter(){
+  document.getElementById('roleTypeFilterMenu').innerHTML = '<div class="dd-option selected" onclick="selectRoleTypeFilter(\'\',\'All roles\')">All roles</div>' + roleOrder.map(r => `<div class="dd-option" onclick="selectRoleTypeFilter('${r}','${r}')">${r}</div>`).join('');
+}
+function selectRoleTypeFilter(value, label){ setDDValue('roleTypeFilterPill', value, label); document.getElementById('roleTypeFilterPill').classList.remove('open'); renderStaffRoleTable(); }
+function selectAssignedFilter(value, label){ setDDValue('assignedFilterPill', value, label); document.getElementById('assignedFilterPill').classList.remove('open'); renderStaffRoleTable(); }
+const desigByDept = { Teaching: ['Primary Teacher', 'Secondary Teacher'], Admin: ['Accountant', 'Clerk', 'Peon'] };
+function selectDeptFilter(value, label){
+  setDDValue('deptFilterPill', value, label);
+  document.getElementById('deptFilterPill').classList.remove('open');
+  const desigDD = document.getElementById('desigFilterPill');
+  if (value && desigByDept[value]) {
+    desigDD.classList.remove('disabled');
+    document.getElementById('desigFilterMenu').innerHTML = '<div class="dd-option selected" onclick="selectDesigFilter(\'\',\'All designations\')">All designations</div>' + desigByDept[value].map(d => `<div class="dd-option" onclick="selectDesigFilter('${d}','${d}')">${d}</div>`).join('');
+  } else {
+    desigDD.classList.add('disabled');
+    setDDValue('desigFilterPill', '', 'All designations');
+  }
+  renderStaffRoleTable();
+}
+function selectDesigFilter(value, label){
+  setDDValue('desigFilterPill', value, label);
+  document.getElementById('desigFilterPill').classList.remove('open');
+  renderStaffRoleTable();
+}
+function toggleAllStaffRows(master){ document.querySelectorAll('.staffcb2').forEach(cb => cb.checked = master.checked); updateStaffBulkSel2(); }
+function updateStaffBulkSel2(){
+  const n = document.querySelectorAll('.staffcb2:checked').length;
+  document.getElementById('bulkSelCount2').textContent = n;
+  document.getElementById('bulkDelBtn2').disabled = n < 1;
+}
+let bulkDeleteNames = [];
+function confirmBulkDeleteStaffRoles(){
+  bulkDeleteNames = Array.from(document.querySelectorAll('.staffcb2:checked')).map(cb => cb.closest('tr').dataset.staff);
+  document.getElementById('bulkDeleteBody2').innerHTML = `Removing every role currently held by <b>${bulkDeleteNames.join(', ')}</b> can't be undone.`;
+  document.getElementById('bulkDeleteConfirmInput').value = '';
+  document.getElementById('bulkDeleteConfirmInput').classList.remove('match');
+  document.getElementById('bulkDeleteConfirmBtn').disabled = true;
+  document.getElementById('bulkDeleteModal2').classList.add('open');
+}
+function checkBulkDeleteConfirm(){
+  const input = document.getElementById('bulkDeleteConfirmInput');
+  const match = input.value.trim().toUpperCase() === 'DELETE';
+  input.classList.toggle('match', match);
+  document.getElementById('bulkDeleteConfirmBtn').disabled = !match;
+}
+function performBulkDeleteStaffRoles(){
+  bulkDeleteNames.forEach(staffName => {
+    roleOrder.forEach(role => {
+      if (!roleIsScoped[role] && wholeSchoolStaff[role]) wholeSchoolStaff[role] = wholeSchoolStaff[role].filter(s => s !== staffName);
+      if (roleIsScoped[role] && roleSlots[role]) roleSlots[role].forEach(slot => { if (slot.staff === staffName) slot.staff = null; });
+    });
+  });
+  document.getElementById('bulkDeleteModal2').classList.remove('open');
+  document.querySelectorAll('.staffcb2').forEach(cb => cb.checked = false);
+  updateStaffBulkSel2();
+  renderStaffRoleTable();
+}
+
+function renderStaffRoleTable(){
+  const search = (document.querySelector('.staff-toolbar input')?.value || '').trim().toLowerCase();
+  const dept = document.getElementById('deptFilterPill').dataset.value;
+  const desig = document.getElementById('desigFilterPill').dataset.value;
+  const roleType = document.getElementById('roleTypeFilterPill').dataset.value;
+  const assignedMode = document.getElementById('assignedFilterPill').dataset.value;
+  const rows = allStaff.filter(s => {
+    const d = staffDetails[s] || {};
+    if (!s.toLowerCase().includes(search)) return false;
+    if (dept && d.dept !== dept) return false;
+    if (desig && d.desig !== desig) return false;
+    if (roleType && !staffHasRole(s, roleType)) return false;
+    const has = staffHasAnyRole(s);
+    if (assignedMode === 'assigned' && !has) return false;
+    if (assignedMode === 'unassigned' && has) return false;
+    return true;
+  });
+  const head = `<thead><tr><th class="chk"><input type="checkbox" onclick="toggleAllStaffRows(this)"></th><th class="staff-col-head">Staff</th>${roleOrder.map(r => `<th>${r}</th>`).join('')}<th></th></tr></thead>`;
+  const body = rows.map(staffName => {
+    const d = staffDetails[staffName] || {};
+    const staffCell = `<td class="staff-col"><span class="st-avatar" style="background:${d.color||'var(--brand)'};">${staffName.split(' ').map(w=>w[0]).join('')}</span><span class="staff-name">${staffName}</span><div class="staff-sub">${d.code||''} · ${d.desig||''}, ${d.dept||''}</div></td>`;
+    const roleCells = roleOrder.map(role => {
+      if (roleIsLocked[role]) return `<td class="role-cell"><span style="color:var(--ink-faint); font-size:12px;">—</span></td>`;
+      if (!roleIsScoped[role]) {
+        const has = (wholeSchoolStaff[role]||[]).includes(staffName);
+        if (has) return `<td class="role-cell"><span class="role-perm-chip whole">${role} · Whole school<span class="remove" onclick="wholeSchoolStaff['${role}']=wholeSchoolStaff['${role}'].filter(s=>s!=='${staffName}'); renderStaffRoleTable();">×</span></span></td>`;
+        return `<td class="role-cell"><div class="role-perm-chips-wrap"><span class="no-access-lock" title="No ${role} access yet"><i class="bi bi-lock-fill"></i> No access</span><div class="add-perm-cell" onclick="wholeSchoolStaff['${role}']=wholeSchoolStaff['${role}']||[]; wholeSchoolStaff['${role}'].push('${staffName}'); renderStaffRoleTable();" title="Add ${role}"><i class="bi bi-plus-lg"></i></div></div></td>`;
+      }
+      const slots = roleSlots[role] || [];
+      const mine = slots.map((s,i) => ({s,i})).filter(x => x.s.staff === staffName);
+      const chips = mine.map(x => chipForSlot(role, x.i)).join('');
+      const lockIcon = mine.length === 0 ? `<span class="no-access-lock" title="No ${role} access yet"><i class="bi bi-lock-fill"></i> No access</span>` : '';
+      return `<td class="role-cell"><div class="role-perm-chips-wrap">${lockIcon}${chips}<div class="add-perm-cell" onclick="openAddClassModal('${role}','${staffName}')" title="Add ${role} class"><i class="bi bi-plus-lg"></i></div></div></td>`;
+    }).join('');
+    return `<tr data-staff="${staffName}"><td class="chk"><input type="checkbox" class="staffcb2" onclick="updateStaffBulkSel2()"></td>${staffCell}${roleCells}<td></td></tr>`;
+  }).join('');
+  document.getElementById('staffRoleTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+  document.getElementById('totalStaffStat2').textContent = allStaff.length;
+  document.getElementById('assignedStat2').textContent = allStaff.filter(staffHasAnyRole).length;
+  document.getElementById('unassignedStat2').textContent = allStaff.filter(s => !staffHasAnyRole(s)).length;
+}
+
+let slotTarget = { role: '', index: -1 };
+function openAssignSlot(role, index){
+  slotTarget = { role, index };
+  const slot = roleSlots[role][index];
+  document.getElementById('assignSlotTitle').textContent = `Assign ${slot.classLabel} — ${role}`;
+  document.getElementById('slotStaffMenu').innerHTML = '<div class="dd-option" onclick="selectSlotStaff(\'\',\'-- Unassigned --\')">-- Unassigned --</div>' + allStaff.map(s => `<div class="dd-option" onclick="selectSlotStaff('${s}','${s}')">${s}</div>`).join('');
+  setDDValue('slotStaffPill', slot.staff || '', slot.staff || '-- Unassigned --');
+  document.getElementById('assignSlotModal').classList.add('open');
+}
+function selectSlotStaff(value, label){ setDDValue('slotStaffPill', value, label); document.getElementById('slotStaffPill').classList.remove('open'); }
+function saveSlotAssign(){
+  const staff = document.getElementById('slotStaffPill').dataset.value;
+  roleSlots[slotTarget.role][slotTarget.index].staff = staff || null;
+  renderStaffRoleTable();
+  document.getElementById('assignSlotModal').classList.remove('open');
+}
+function openWholeSchoolAssign(role){
+  slotTarget = { role, index: -1 };
+  document.getElementById('assignSlotTitle').textContent = `Assign Staff — ${role}`;
+  const available = allStaff.filter(s => !(wholeSchoolStaff[role]||[]).includes(s));
+  document.getElementById('slotStaffMenu').innerHTML = available.length ? available.map(s => `<div class="dd-option" onclick="selectSlotStaff('${s}','${s}')">${s}</div>`).join('') : '<div class="dd-option" style="color:var(--ink-faint); cursor:default;">No staff left to add</div>';
+  setDDValue('slotStaffPill', '', '-- Select --');
+  document.getElementById('assignSlotModal').classList.add('open');
+  document.getElementById('assignSlotModal').dataset.wholeschool = '1';
+}
+const origSaveSlot = saveSlotAssign;
+saveSlotAssign = function(){
+  if (document.getElementById('assignSlotModal').dataset.wholeschool === '1') {
+    const staff = document.getElementById('slotStaffPill').dataset.value;
+    if (staff) { if (!wholeSchoolStaff[slotTarget.role]) wholeSchoolStaff[slotTarget.role] = []; wholeSchoolStaff[slotTarget.role].push(staff); }
+    renderStaffRoleTable();
+    document.getElementById('assignSlotModal').classList.remove('open');
+    document.getElementById('assignSlotModal').dataset.wholeschool = '';
+  } else { origSaveSlot(); }
+};
+
+const groupsByStreamScope = { Science: ['Mathematics Group', 'Biology Group'], Commerce: ['Commerce Group'] };
+const sectionsByClassScope = { '8th': ['A','B'], '9th': ['A','B'], '11th': ['A','B'], '12th': ['A','B'] };
+function disableDDs(id, resetLabel){ const dd = document.getElementById(id); dd.classList.add('disabled'); setDDValue(id, resetLabel, resetLabel); }
+function enableDDs(id){ document.getElementById(id).classList.remove('disabled'); }
+function onScopeClassChange(){
+  const cls = document.getElementById('scopeClassPill').dataset.value;
+  disableDDs('scopeStreamPill', 'N/A'); disableDDs('scopeGroupPill', 'All groups'); disableDDs('scopeSectionPill', 'All sections');
+  if (cls === '11th' || cls === '12th') { enableDDs('scopeStreamPill'); }
+  else if (cls && sectionsByClassScope[cls]) {
+    enableDDs('scopeSectionPill');
+    document.getElementById('scopeSectionMenu').innerHTML = '<div class="dd-option selected" onclick="selectScopeSimple(\'scopeSectionPill\',\'All sections\')">All sections</div>' + sectionsByClassScope[cls].map(s => `<div class="dd-option" onclick="selectScopeSimple('scopeSectionPill','Section ${s}')">Section ${s}</div>`).join('');
+  }
+}
+function onScopeStreamChange(){
+  const stream = document.getElementById('scopeStreamPill').dataset.value;
+  if (stream && groupsByStreamScope[stream]) {
+    enableDDs('scopeGroupPill');
+    document.getElementById('scopeGroupMenu').innerHTML = '<div class="dd-option selected" onclick="selectScopeSimple(\'scopeGroupPill\',\'All groups\')">All groups</div>' + groupsByStreamScope[stream].map(g => `<div class="dd-option" onclick="selectScopeSimple('scopeGroupPill','${g}')">${g}</div>`).join('');
+    enableDDs('scopeSectionPill');
+    document.getElementById('scopeSectionMenu').innerHTML = '<div class="dd-option selected" onclick="selectScopeSimple(\'scopeSectionPill\',\'All sections\')">All sections</div><div class="dd-option" onclick="selectScopeSimple(\'scopeSectionPill\',\'Section A\')">Section A</div><div class="dd-option" onclick="selectScopeSimple(\'scopeSectionPill\',\'Section B\')">Section B</div>';
+  } else { disableDDs('scopeGroupPill', 'All groups'); }
+}
+function selectScopeClass(value, label){ setDDValue('scopeClassPill', value, label); document.getElementById('scopeClassPill').classList.remove('open'); onScopeClassChange(); }
+function selectScopeSimple(id, label){
+  setDDValue(id, label, label); document.getElementById(id).classList.remove('open');
+  if (id === 'scopeStreamPill') onScopeStreamChange();
+}
+
+let addClassRole = '';
+function openAddClassModal(role, presetStaff){
+  addClassRole = role;
+  document.getElementById('addClassTitle').textContent = `Add a Class — ${role}`;
+  selectScopeClass('', '-- Select --');
+  document.getElementById('newSlotStaffMenu').innerHTML = '<div class="dd-option selected" onclick="setDDValue(\'newSlotStaffPill\',\'\',\'-- Unassigned --\'); document.getElementById(\'newSlotStaffPill\').classList.remove(\'open\')">-- Unassigned --</div>' + allStaff.map(s => `<div class="dd-option" onclick="setDDValue('newSlotStaffPill','${s}','${s}'); document.getElementById('newSlotStaffPill').classList.remove('open')">${s}</div>`).join('');
+  setDDValue('newSlotStaffPill', presetStaff || '', presetStaff || '-- Unassigned --');
+  document.getElementById('addClassWarning').style.display = 'none';
+  document.getElementById('addClassModal').classList.add('open');
+}
+function saveNewClassEntry(){
+  const cls = document.getElementById('scopeClassPill').dataset.value;
+  if (!cls) return;
+  const stream = document.getElementById('scopeStreamPill').dataset.value;
+  const group = document.getElementById('scopeGroupPill').dataset.value;
+  const section = document.getElementById('scopeSectionPill').dataset.value;
+  const parts = [cls];
+  if (stream && stream !== 'N/A') parts.push(stream);
+  if (group && group !== 'All groups') parts.push(group);
+  if (section && section !== 'All sections') parts.push(section);
+  const label = parts.join(' · ');
+  const existing = (roleSlots[addClassRole] || []).find(s => s.classLabel === label);
+  if (existing) {
+    document.getElementById('addClassWarning').textContent = `${label} is already a class under ${addClassRole}.`;
+    document.getElementById('addClassWarning').style.display = 'block';
+    return;
+  }
+  const staff = document.getElementById('newSlotStaffPill').dataset.value || null;
+  if (staff) {
+    const takenBy = Object.entries(roleSlots).flatMap(([r,list]) => list.filter(s => s.classLabel === label && s.staff === staff).map(() => r));
+    if (takenBy.length) {
+      document.getElementById('addClassWarning').textContent = `${staff} already covers ${label} as ${takenBy[0]}.`;
+      document.getElementById('addClassWarning').style.display = 'block';
+      return;
+    }
+  }
+  if (!roleSlots[addClassRole]) roleSlots[addClassRole] = [];
+  roleSlots[addClassRole].push({ classLabel: label, staff });
+  renderStaffRoleTable();
+  document.getElementById('addClassModal').classList.remove('open');
+}
+
+renderRolePills();
+selectRole('Accountant');
+populateRoleTypeFilter();
+renderStaffRoleTable();
 </script>
 </body>
 </html>

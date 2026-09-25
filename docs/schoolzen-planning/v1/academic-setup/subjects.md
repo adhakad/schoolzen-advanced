@@ -1,38 +1,22 @@
-# Academic Setup — Subjects page (finalized design)
+# Academic Setup — Subjects
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `subjects.html` (same folder)
+Status: **FINAL**
+Reference: `subjects.html`
 
-A flat master list of every subject the school teaches (Hindi,
-English, Maths, Biology, etc.) — this is the pool that Subject Groups
-picks from via checkboxes. Simple CRUD, same shell as Departments/
-Designations.
+Flat Core/Elective master list — the pool Subject Groups picks from.
 
 ---
 
-## Toolbar
+## Frontend
 
-Search + "Add Subject" — inside the toolbar.
+**Toolbar**: single row — search left, "+ Add Subject" primary + "Delete Selected" outline-danger right.
 
-## Table
+**Table**: checkbox, Name (Fraunces), Type (fixed-width tag: Core=brand color, Elective=warning color), Status (Active=success, Inactive=muted), Action.
 
-Name → Type (Core/Elective chip) → Status chip → Action.
+**Add/Edit modal**: Name (required) + Type `.dd` (Core/Elective) + Status `.dd` (Active/Inactive).
 
-**Core vs Elective**: Core subjects are ones everyone in a class takes
-regardless of group (Hindi, English); Electives are only relevant once
-picked into a Subject Group (Biology, Computer Science). This
-distinction exists so the Subject Groups checklist can be built from a
-meaningful pool rather than a flat undifferentiated list.
+**Delete**: same type-to-confirm pattern as Classes & Sections, warning text specifically notes "Any Subject Group that includes it will need to be updated."
 
-## Create/Edit modal
+## Backend
 
-Name → Type (Core/Elective, with a hint explaining the distinction) →
-Status (Active/Inactive, same convention as every other Active/
-Inactive toggle in the app).
-
-## Delete confirmation
-
-Per the global cascade-delete rule: a subject referenced by any
-Subject Group triggers type-to-confirm naming the dependent groups; an
-unreferenced subject uses the lighter single-confirm.
+Schema — `Subject`: `adminId`, `name`, `type: 'core'|'elective'`, `status: 'active'|'inactive'`. Unique index `(adminId, name)`. Referenced by ID from Subject Groups — never embedded/copied there, so renaming here updates everywhere it's used.

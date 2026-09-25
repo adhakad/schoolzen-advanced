@@ -3,337 +3,153 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>App Shell - Header + Sidebar - approved reference</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<title>App Shell v2 - Header + Sidebar - approved reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; background: #e8e8f2; margin: 0; padding: 24px; }
-  .doc-note { max-width: 1180px; margin: 0 auto 20px; background: #fff3cd; border: 1px solid #ffe69c; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #664d03; }
-  .doc-note b { display: block; margin-bottom: 4px; }
-  .demo-controls { max-width: 1180px; margin: 0 auto 16px; display: flex; gap: 10px; align-items: center; background: #fff; border-radius: 12px; padding: 10px 16px; font-size: 12.5px; color: #4a4a68; }
-  .demo-controls b { color: #1a1a2e; }
-  .role-toggle { display: flex; gap: 6px; }
-  .role-btn { padding: 6px 14px; border-radius: 8px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; background: #f6f5ff; color: #6b6b85; }
-  .role-btn.active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; }
-  .resize-hint { margin-left: auto; color: #9494ac; font-size: 11.5px; }
+:root{
+  --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+  --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+  --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+  --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+  --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px;}
+.doc-note{max-width:1180px; margin:0 auto 20px; background:#fff3cd; border:1px solid #ffe69c; border-radius:10px; padding:14px 18px; font-size:13px; color:#664d03;}
+.doc-note b{display:block; margin-bottom:4px;}
+.demo-wrap{max-width:1180px; margin:0 auto; display:flex; min-height:600px; box-shadow:0 2px 20px rgba(30,23,48,0.08); border-radius:10px; overflow:hidden;}
 
-  .sw { font-family: inherit; background: #f4f4fb; border-radius: 20px; position: relative; max-width: 1180px; margin: 0 auto; overflow: hidden; }
-  .sw-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e8e6f5; background: #f4f4fb; position: relative; z-index: 20; }
-  .sw-left { display: flex; align-items: center; gap: 14px; }
-  .hamburger-btn { display: none; width: 34px; height: 34px; border-radius: 9px; background: #fff; box-shadow: 0 1px 2px rgba(20,20,60,0.06); align-items: center; justify-content: center; cursor: pointer; color: #4a4a68; font-size: 17px; flex-shrink: 0; }
-  .sw-brand { display: flex; align-items: center; gap: 10px; }
-  .sw-brand-mark { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(135deg,#7b6ef6,#5b4fd6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; flex-shrink: 0; }
-  .sw-brand-name { font-weight: 700; font-size: 16px; color: #1a1a2e; }
-  .sw-right { display: flex; align-items: center; gap: 10px; }
-  .sw-session { display: flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 16px 7px 12px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); }
-  .sw-session i { font-size: 14px; color: #7b6ef6; }
-  .sw-session select { border: none; background: transparent; font-size: 12.5px; font-weight: 600; color: #3d3d5c; outline: none; appearance: none; }
+/* SIDEBAR - the shared component every page's own reference calls out as identical */
+.sidebar{width:248px; height:100%; position:relative; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden;}
+.brand{display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px;}
+.brand-mark{width:30px; height:30px; border-radius:8px; background:var(--brand); display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;}
+nav{padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent;}
+nav::-webkit-scrollbar{width:6px;}
+nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+.nav-item{display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none;}
+.nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+.nav-item .icon{width:16px; display:inline-flex; align-items:center; justify-content:center; margin-right:10px; opacity:0.85;}
+.nav-item .icon svg{width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round;}
+.nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+.nav-item.active::before{content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0;}
+.nav-item .chev{transition:transform .15s;}
+.nav-item.expanded .chev{transform:rotate(0deg);}
+.nav-sub{position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px;}
+.nav-sub::before{content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38);}
+.nav-sub a{padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;}
+.nav-sub a:hover{color:#fff;}
+.nav-sub a.current{color:#ae86ff; font-weight:600;}
+.lock{font-size:12px; opacity:0.55; display:inline-flex;}
+.lock svg{width:10px; height:10px; fill:currentColor;}
 
-  /* Notification bell */
-  .sw-bell { position: relative; width: 38px; height: 38px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; color: #4a4a68; font-size: 16px; flex-shrink: 0; }
-  .sw-bell .bell-badge { position: absolute; top: 6px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b8265a; border: 1.5px solid #fff; }
-  .sw-bell-drop { display: none; position: absolute; top: 60px; right: 168px; width: 300px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(20,20,60,0.14); padding: 8px; z-index: 30; }
-  .sw-bell-drop.open { display: block; }
-  .bell-drop-title { font-size: 12.5px; font-weight: 700; color: #1a1a2e; padding: 8px 10px 6px; }
-  .bell-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; border-radius: 10px; cursor: pointer; }
-  .bell-item:hover { background: #f6f5ff; }
-  .bell-item .bi-dot { width: 8px; height: 8px; border-radius: 50%; background: #7b6ef6; margin-top: 5px; flex-shrink: 0; }
-  .bell-item .bi-text { font-size: 12px; color: #3d3d5c; }
-  .bell-item .bi-time { font-size: 10.5px; color: #9494ac; margin-top: 2px; }
-  .bell-view-all { display: block; text-align: center; font-size: 11.5px; color: #7b6ef6; font-weight: 600; padding: 8px; cursor: pointer; }
+/* MAIN + TOPBAR */
+.main{flex:1; display:flex; flex-direction:column; min-width:0; background:var(--paper);}
+.topbar{display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface);}
+.crumb{color:var(--ink-faint); font-size:13px;}
+.crumb b{color:var(--ink); font-weight:600;}
+.top-actions{display:flex; align-items:center; gap:16px;}
+.year-pill{font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; cursor:pointer;}
+.profile{display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer;}
+.profile:hover{border-color:var(--slate);}
+.avatar{width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0;}
+.profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+.profile-caret{color:var(--ink-faint); font-size:10px; margin-left:2px;}
 
-  .sw-profile { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 5px 12px 5px 5px; box-shadow: 0 1px 2px rgba(20,20,60,0.06); cursor: pointer; flex-shrink: 0; }
-  .sw-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#ffb199,#ff7676); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
-  .sw-profile-name { font-size: 12.5px; font-weight: 600; color: #3d3d5c; }
-  .sw-profile-drop { display: none; position: absolute; top: 60px; right: 20px; width: 250px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(20,20,60,0.14); padding: 14px; z-index: 30; }
-  .sw-profile-drop.open { display: block; }
-  .sw-drop-school { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #f0eeff; margin-bottom: 10px; }
-  .sw-school-logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg,#2f8fd8,#1f6fad); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
-  .sw-school-name { font-weight: 700; font-size: 13px; color: #1a1a2e; }
-  .sw-school-meta { font-size: 10.5px; color: #9494ac; margin-top: 1px; }
-  .sw-drop-item { display: flex; align-items: center; gap: 9px; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; color: #6b6b85; cursor: pointer; }
-  .sw-drop-item:hover { background: #f6f5ff; }
-  .sw-drop-item i { font-size: 15px; color: #9494ac; }
+/* Generic dropdown component - used for the session/profile menus here, and for EVERY
+   filter/select control on every page (see classes-sections.html / attendance-overview.html) */
+.dd{position:relative;}
+.dd-trigger{cursor:pointer; user-select:none;}
+.dd-menu{display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:180px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px;}
+.dd.open .dd-menu{display:block;}
+.dd-menu.align-left{right:auto; left:0;}
+.dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:8px;}
+.dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+.dd-option.selected{color:var(--brand); font-weight:600;}
+.dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+.dd-option.danger{color:var(--danger);}
+.dd-option.danger:hover{background:var(--danger-soft);}
 
-  /* BODY LAYOUT */
-  .sw-body { display: flex; align-items: stretch; position: relative; min-height: 560px; }
-
-  /* SIDEBAR - desktop default: static, in-flow */
-  .sb-backdrop { display: none; }
-  .sb-wrap { background: #fff; width: 224px; flex-shrink: 0; padding: 14px 8px; overflow-y: auto; max-height: 700px; border-right: 1px solid #efeefa; transition: transform .25s ease; }
-  .sb-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: #4a4a68; cursor: pointer; margin-bottom: 2px; font-weight: 500; }
-  .sb-item-left { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .sb-item-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .sb-item i.ti { font-size: 16px; flex-shrink: 0; }
-  .sb-item.parent-active { background: linear-gradient(135deg,#7b6ef6,#5b4fd6); color: #fff; box-shadow: 0 3px 10px rgba(123,110,246,0.3); }
-  .sb-item.single:hover { background: #f6f5ff; }
-  .sb-item .chev { font-size: 13px; color: #c9c7db; transition: transform .15s; flex-shrink: 0; }
-  .sb-item.parent-active .chev { color: #fff; }
-  .sb-group.open > .sb-item .chev { transform: rotate(90deg); }
-  .sb-sub-wrap { max-height: 0; overflow: hidden; transition: max-height .2s ease; padding-left: 14px; position: relative; }
-  .sb-group.open .sb-sub-wrap { max-height: 400px; }
-  .sb-sub-line { position: absolute; left: 20px; top: 2px; bottom: 8px; width: 1px; background: #e2e2ee; }
-  .sb-sub-item { padding: 7px 10px 7px 20px; border-radius: 8px; font-size: 12px; color: #6b6b85; cursor: pointer; margin-bottom: 1px; display: flex; align-items: center; gap: 8px; }
-  .sb-sub-item:hover { background: #f9f8ff; }
-  .sb-sub-item.active-sub { color: #7b6ef6; font-weight: 600; background: #f6f5ff; }
-  .sb-sub-item.locked { color: #c9c7d9; cursor: not-allowed; }
-  .sb-sub-item.locked:hover { background: transparent; }
-  .sb-sub-item.locked i.ti-lock { color: #d9d6f5; font-size: 12px; }
-  .sb-item.locked-parent { color: #c9c7d9; cursor: not-allowed; }
-  .sb-item.locked-parent:hover { background: transparent; }
-
-  .sw-main { flex: 1; min-width: 0; padding: 18px 20px; }
-  .placeholder-card { background: #fff; border-radius: 18px; padding: 40px 20px; text-align: center; color: #9494ac; font-size: 13px; box-shadow: 0 2px 8px rgba(20,20,60,0.05); }
-
-  /* RESPONSIVE — real media query, resize the browser to test */
-  @media (max-width: 860px) {
-    .hamburger-btn { display: flex; }
-    .sb-wrap { position: fixed; top: 0; left: 0; bottom: 0; z-index: 40; transform: translateX(-100%); box-shadow: 4px 0 24px rgba(20,20,60,0.18); max-height: none; border-radius: 0 20px 20px 0; padding-top: 70px; }
-    .sw-body.mobile-open .sb-wrap { transform: translateX(0); }
-    .sw-body.mobile-open .sb-backdrop { display: block; position: fixed; inset: 0; background: rgba(20,20,60,0.35); z-index: 35; }
-    .sw-right .sw-session { display: none; }
-    .sw-profile-name { display: none; }
-    .sw-bell-drop { right: 20px; }
-  }
+.content{padding:28px 32px; flex:1; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:13px;}
 </style>
 </head>
 <body>
 
 <div class="doc-note">
-  <b>Reference file - this is the exact, approved render. Match it pixel-for-pixel.</b>
-  App Shell — the DEFINITIVE header + sidebar every page's static
-  reference has been copy-pasting a snapshot of. This is the real,
-  interactive component: role-aware (Admin sees everything; Teacher
-  sees a locked, greyed item with a lock icon — never a routerLink —
-  wherever a permission is missing, matching the legacy side-nav/
-  header-nav's exact pattern), grouped into one collapsible section
-  per module (13 groups, accordion — opening one closes the others,
-  the current page's group auto-expands), and GENUINELY responsive
-  via a real CSS media query at 860px — resize this browser window
-  narrower to see the sidebar collapse into an off-canvas drawer with
-  a backdrop, opened by the header's hamburger button. Try the role
-  toggle below to see Admin vs. Teacher; try the notification bell.
+  <b>Reference file - this is the exact, approved render (v2 design system). Match it pixel-for-pixel.</b>
+  App Shell v2 &mdash; the sidebar and topbar shared by Dashboard, Attendance Overview,
+  and Classes &amp; Sections (their own reference files each say "same component" for this
+  block). Dark sidebar (#181321), left accent bar on the active nav item (not a full
+  gradient fill), one sub-nav visible at a time (matching whichever section the current
+  page belongs to), Fraunces/Inter typography, and the shared `.dd` dropdown component
+  used for the session selector, profile menu, and every filter/select on every page.
+  This supersedes the earlier light-sidebar app-shell design entirely. The other 32 pages
+  in this package have NOT been migrated to this system yet &mdash; only Dashboard,
+  Attendance Overview, and Classes &amp; Sections currently reflect it.
 </div>
 
-<div class="demo-controls">
-  <b>Preview as:</b>
-  <div class="role-toggle">
-    <button class="role-btn active" onclick="setRole('admin', this)">Admin</button>
-    <button class="role-btn" onclick="setRole('teacher', this)">Teacher</button>
-  </div>
-  <span class="resize-hint">Resize the browser narrower than ~860px to see the mobile drawer.</span>
-</div>
-
-<div class="sw">
-  <div class="sw-header">
-    <div class="sw-left">
-      <div class="hamburger-btn" onclick="toggleMobileNav()"><i class="ti ti-menu-2"></i></div>
-      <div class="sw-brand"><div class="sw-brand-mark">S</div><span class="sw-brand-name">Schoolzen</span></div>
-    </div>
-    <div class="sw-right">
-      <div class="sw-session"><i class="ti ti-calendar-event"></i><select><option>2026-27</option></select></div>
-      <div class="sw-bell" onclick="document.getElementById('bellDrop').classList.toggle('open')">
-        <i class="ti ti-bell"></i><span class="bell-badge"></span>
+<div class="demo-wrap">
+  <div class="sidebar">
+    <div class="brand"><div class="brand-mark">S</div>Schoolzen</div>
+    <nav>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><path d="M3 11.5L12 4l9 7.5"/><path d="M5 10v8.5a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/></svg></span>Dashboard</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.3"/><path d="M5.3 20c0-3.6 3-6.2 6.7-6.2s6.7 2.6 6.7 6.2"/></svg></span>Student</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8.2" r="2.9"/><path d="M3.3 19.5c0-3.1 2.5-5.3 5.7-5.3s5.7 2.2 5.7 5.3"/></svg></span>Staff</span><span>&rsaquo;</span></a>
+      <a class="nav-item active"><span><span class="icon"><svg viewBox="0 0 24 24"><path d="M12 5L3 9l9 4 9-4-9-4z"/><path d="M6.5 11v4c0 1.4 2.6 2.5 5.5 2.5s5.5-1.1 5.5-2.5v-4"/></svg></span>Academic Setup</span><span>&or;</span></a>
+      <div class="nav-sub">
+        <a class="current">Classes &amp; Sections</a>
+        <a>Subjects</a>
+        <a>Subject Groups</a>
       </div>
-      <div class="sw-profile" onclick="document.getElementById('profileDrop').classList.toggle('open')">
-        <div class="sw-avatar" id="avatarInitials">AD</div><span class="sw-profile-name" id="profileNameText">Abhishek</span><i class="ti ti-chevron-down" style="font-size:12px;color:#b0b0c9;"></i>
-      </div>
-    </div>
-  </div>
-
-  <div class="sw-bell-drop" id="bellDrop">
-    <div class="bell-drop-title">Notifications</div>
-    <div class="bell-item"><span class="bi-dot"></span><div><div class="bi-text">Priya Sharma applied for 2 days leave</div><div class="bi-time">10 minutes ago</div></div></div>
-    <div class="bell-item"><span class="bi-dot"></span><div><div class="bi-text">Payroll for August generated — 42 staff</div><div class="bi-time">2 hours ago</div></div></div>
-    <div class="bell-item"><span class="bi-dot" style="background:#d9d6f5;"></span><div><div class="bi-text">Fee reminder sent to 14 students in 8th</div><div class="bi-time">Yesterday</div></div></div>
-    <div class="bell-view-all">View all notifications</div>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16"/></svg></span>Attendance</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="13" height="14" rx="2"/></svg></span>Leave</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg></span>Holiday</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12.5" rx="2"/></svg></span>Payroll</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.3L14 21l-2-1.3L10 21l-2-1.3L6 21V3z"/></svg></span>Fees</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/></svg></span>Examination</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/></svg></span>Certificates</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/></svg></span>Approvals</span><span>&rsaquo;</span></a>
+      <a class="nav-item"><span><span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg></span>Settings</span><span>&rsaquo;</span></a>
+    </nav>
   </div>
 
-  <div class="sw-profile-drop" id="profileDrop">
-    <div class="sw-drop-school">
-      <div class="sw-school-logo">GV</div>
-      <div><div class="sw-school-name">Green Valley Public School</div><div class="sw-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div>
-    </div>
-    <div class="sw-drop-item"><i class="ti ti-user"></i>My Profile</div>
-    <div class="sw-drop-item" id="schoolSettingsItem"><i class="ti ti-settings"></i>School Settings</div>
-    <div class="sw-drop-item"><i class="ti ti-logout"></i>Logout</div>
-  </div>
-
-  <div class="sw-body" id="swBody">
-    <div class="sb-backdrop" onclick="toggleMobileNav()"></div>
-
-    <div class="sb-wrap" id="sidebar">
-      <!-- Dashboard: single item, no group -->
-      <div class="sb-item single parent-active"><div class="sb-item-left"><i class="ti ti-home"></i><span>Dashboard</span></div></div>
-
-      <!-- Student -->
-      <div class="sb-group" data-group="student">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-school"></i><span>Student</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item perm" data-perm="student"><i class="ti ti-point"></i>Manage Students</div>
-          <div class="sb-sub-item perm" data-perm="admission"><i class="ti ti-point"></i>Admission</div>
-          <div class="sb-sub-item perm" data-perm="promoteFail"><i class="ti ti-point"></i>Class Promotion</div>
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb">Academic Setup / <b>Classes &amp; Sections</b></div>
+      <div class="top-actions">
+        <div class="dd" id="sessionDD">
+          <div class="year-pill dd-trigger" onclick="toggleDD(event,'sessionDD')">&#128197; <span class="dd-label">2026&ndash;2027</span></div>
+          <div class="dd-menu align-left">
+            <div class="dd-option selected">2026&ndash;2027</div>
+            <div class="dd-option">2025&ndash;2026</div>
+          </div>
         </div>
-      </div>
-
-      <!-- Staff -->
-      <div class="sb-group" data-group="staff">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-users"></i><span>Staff</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Manage Staff</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Departments</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Designations</div>
-        </div>
-      </div>
-
-      <!-- Academic Setup -->
-      <div class="sb-group admin-only-group" data-group="academic">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-books"></i><span>Academic Setup</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Classes &amp; Sections</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subjects</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Subject Groups</div>
-        </div>
-      </div>
-
-      <!-- Attendance -->
-      <div class="sb-group" data-group="attendance">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar"></i><span>Attendance</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item perm" data-perm="attendance"><i class="ti ti-point"></i>Overview</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Manage Shifts</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Roster</div>
-        </div>
-      </div>
-
-      <!-- Leave -->
-      <div class="sb-group" data-group="leave">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-calendar-plus"></i><span>Leave</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Requests</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Leave Create</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Leave Assign</div>
-        </div>
-      </div>
-
-      <!-- Holiday -->
-      <div class="sb-group admin-only-group" data-group="holiday">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-sun"></i><span>Holiday</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Holidays</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Templates</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Assign</div>
-        </div>
-      </div>
-
-      <!-- Payroll -->
-      <div class="sb-group" data-group="payroll">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash"></i><span>Payroll</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item perm" data-perm="salary"><i class="ti ti-point"></i>Generate Payroll</div>
-          <div class="sb-sub-item perm" data-perm="salary"><i class="ti ti-point"></i>Salary Payouts</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Salary Groups</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Assign Salary</div>
-        </div>
-      </div>
-
-      <!-- Fees -->
-      <div class="sb-group" data-group="fees">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-cash-banknote"></i><span>Fees</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item perm" data-perm="fee"><i class="ti ti-point"></i>Fees</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Fee Structure</div>
-          <div class="sb-sub-item perm" data-perm="fee"><i class="ti ti-point"></i>Fee Statement</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Fee Reminder</div>
-        </div>
-      </div>
-
-      <!-- Examination -->
-      <div class="sb-group" data-group="examination">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-certificate"></i><span>Examination</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Marksheet Structure</div>
-          <div class="sb-sub-item perm" data-perm="marksheet"><i class="ti ti-point"></i>Generate Marksheet</div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>Admit Card Structure</div>
-          <div class="sb-sub-item perm" data-perm="admitCard"><i class="ti ti-point"></i>Generate Admit Card</div>
-        </div>
-      </div>
-
-      <!-- Certificates -->
-      <div class="sb-group" data-group="certificates">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-file-certificate"></i><span>Certificates</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item admin-only"><i class="ti ti-point"></i>TC Structure</div>
-          <div class="sb-sub-item perm" data-perm="transferCertificate"><i class="ti ti-point"></i>Generate TC</div>
-        </div>
-      </div>
-
-      <!-- Approvals -->
-      <div class="sb-item single" onclick="location.hash=''"><div class="sb-item-left"><i class="ti ti-checkbox"></i><span>Approvals</span></div></div>
-
-      <!-- Settings -->
-      <div class="sb-group admin-only-group" data-group="settings">
-        <div class="sb-item" onclick="toggleGroup(this)"><div class="sb-item-left"><i class="ti ti-settings"></i><span>Settings</span></div><i class="ti ti-chevron-right chev"></i></div>
-        <div class="sb-sub-wrap"><div class="sb-sub-line"></div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Academic Sessions</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Admission Form Fields</div>
-          <div class="sb-sub-item"><i class="ti ti-point"></i>Roles &amp; Permissions</div>
+        <div class="dd" id="profileDD">
+          <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')">
+            <div class="avatar">A</div><span class="profile-name">Admin</span><span class="profile-caret">&#8964;</span>
+          </div>
+          <div class="dd-menu">
+            <div class="dd-option">My Profile</div>
+            <div class="dd-option">School Settings</div>
+            <div class="dd-divider"></div>
+            <div class="dd-option danger">Logout</div>
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="sw-main">
-      <div class="placeholder-card">Page content renders here — this file is the shell only.</div>
-    </div>
+    <div class="content">Page content renders here &mdash; this file is the shell only.</div>
   </div>
 </div>
 
 <script>
-function toggleGroup(el) {
-  const group = el.closest('.sb-group');
-  const wasOpen = group.classList.contains('open');
-  document.querySelectorAll('.sb-group.open').forEach(g => g.classList.remove('open'));
-  if (!wasOpen) group.classList.add('open');
+function toggleDD(e, id){
+  e.stopPropagation();
+  const dd = document.getElementById(id);
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
 }
-function toggleMobileNav() {
-  document.getElementById('swBody').classList.toggle('mobile-open');
-}
-
-// Role-aware permission demo. In the real app these booleans come from
-// the logged-in staff member's `permissions` array (R3), not a UI toggle -
-// this toggle exists only so this reference can show both states.
-const teacherPermissions = {
-  student: true, admission: false, promoteFail: false,
-  attendance: true, salary: true, fee: false,
-  marksheet: true, admitCard: false, transferCertificate: false
-};
-
-function setRole(role, btn) {
-  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-
-  const isTeacher = role === 'teacher';
-  document.getElementById('avatarInitials').textContent = isTeacher ? 'RV' : 'AD';
-  document.getElementById('profileNameText').textContent = isTeacher ? 'Rahul Verma' : 'Abhishek';
-  document.getElementById('schoolSettingsItem').style.display = isTeacher ? 'none' : 'flex';
-
-  // Admin-only groups/items disappear entirely for Teacher (not locked - simply
-  // not relevant to that role, same as legacy's teacher sidebar having fewer
-  // top-level entries than admin's).
-  document.querySelectorAll('.admin-only-group').forEach(g => g.style.display = isTeacher ? 'none' : 'block');
-  document.querySelectorAll('.admin-only').forEach(el => el.style.display = isTeacher ? 'none' : 'flex');
-
-  // Permission-gated items: shown for both roles, but LOCKED (grey, lock
-  // icon, no click) for Teacher when that specific permission is false -
-  // matches legacy side-nav.component.html's *ngIf pattern exactly.
-  document.querySelectorAll('.sb-sub-item.perm').forEach(el => {
-    const perm = el.dataset.perm;
-    const hasPerm = !isTeacher || teacherPermissions[perm];
-    el.classList.toggle('locked', !hasPerm);
-    const icon = el.querySelector('i');
-    icon.className = hasPerm ? 'ti ti-point' : 'ti ti-lock';
-  });
-}
+document.addEventListener('click', () => document.querySelectorAll('.dd.open').forEach(d => d.classList.remove('open')));
 </script>
 </body>
 </html>

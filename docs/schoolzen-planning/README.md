@@ -1,85 +1,54 @@
 # Schoolzen — UI/UX Planning Package
 
-**Status: FINAL.** All 12 modules below are locked and approved.
-Before writing any code, read
-`v1/_core/claude-code-implementation-strategy.md` — it explains the
-module-wise build order and the rules for not breaking the existing
-legacy app while implementing this.
-
-Complete, approved design reference for Schoolzen ERP's rebuilt UI —
-Angular 14 + Express/MongoDB, MEAN stack. Every page here is a
-pixel-accurate HTML/CSS reference (Tabler Icons, no framework) with a
-matching `.md` file explaining every design decision. Give both to
-Claude Code as-is when implementing.
+**Status: FINAL.** All 13 modules (38 pages) below are locked and approved. This package was rebuilt from scratch from the final design set — every `.html` is the exact approved reference, every `.md` was written by reading that exact file (not guessed or carried over from an older draft).
 
 ## How to use this package
 
-1. Start with `v1/_core/refactor-plan-and-design-system.md` — every
-   global rule (filters, modals, delete/cascade, tables, chips) is
-   locked there. Every module below follows it.
-2. Open a module folder. Each page has:
-   - `<page>.html` — exact approved render, drop into a browser to see it
-   - `<page>.md` — what it does and why, for implementation
-3. Build in this order (matches dependency): Academic Setup → Student
-   → Staff → Attendance → Leave → Holiday → Payroll → Fees →
-   Examination → Certificates → Approvals → Settings → Dashboard
-   (built last since it only aggregates data every other module
-   already produces).
+1. Read `v1/_core/design-system.md` once — the one, final design system every page follows.
+2. Pick a module from the table below, in dependency order.
+3. Run its prompt: `claude "$(cat prompts/<module>.md)"` — each prompt covers that module's schema, API, and frontend as one piece of work, and tells Claude Code which `.html`+`.md` pairs to read.
+4. Verify the built page against its `.html` reference side by side.
+5. If something doesn't match, write the correction as `prompts/fixes/<module>-vN.md` (see `prompts/fixes/README.md`) rather than a one-off unlogged fix.
 
-## Module map — all FINAL
+## Module map — build order
 
-| Module | Pages | Purpose |
-|---|---|---|
-| **Dashboard** | Dashboard | Home landing page — white-card hero with today's date badge, attendance/fee panels built from reused components, a calendar with today highlighted, upcoming holidays, pending approvals, quick actions |
-| **Academic Setup** | Classes & Sections, Subjects, Subject Groups | School's academic structure — source data for every Class/Section/Stream/Subject filter app-wide |
-| **Student** | Manage Students, Admission, Class Promotion | Student records — intake, ongoing management, year-end class promotion |
-| **Staff** | Manage Staff, Departments, Designations | Staff records and org structure |
-| **Attendance** | Overview, Manage Shifts, Roster | Biometric attendance, shift definitions, shift assignment |
-| **Leave** | Requests, Leave Create, Leave Assign | Leave application/approval, leave-type config, per-person limits |
-| **Holiday** | Holidays, Templates, Assign | Holiday calendar, reusable templates, per-person/class assignment |
-| **Payroll** | Generate Payroll, Salary Payouts, Salary Groups, Assign Salary | Monthly payroll run, payment history, pay-band config, per-staff assignment |
-| **Fees** | Fees, Fee Structure, Fee Statement, Fee Reminder | Fee collection (incl. arrears), annual fee config, per-student history, WhatsApp reminders |
-| **Examination** | Marksheet Structure, Marksheet Structure Setup, Generate Marksheet, Admit Card Structure, Generate Admit Card | Exam-linked printable documents — subject/marks/grading config and result entry, admit card config and issuance |
-| **Certificates** | TC Structure, Generate TC | Student-exit administrative documents (Transfer Certificate; room for Bonafide/Character certificates later) |
-| **Approvals** | Requests | Cross-module unified approval inbox |
-| **Settings** | Academic Sessions, Admission Form Fields, Roles & Permissions | Multi-year session lifecycle; dynamic field/validation config for Student forms; role-based permission matrix (R3) |
+| # | Module | Pages | Depends on |
+|---|---|---|---|
+| 1 | Academic Setup | Classes & Sections, Subjects, Subject Groups | none |
+| 2 | Student | Manage Students, Admission, Class Promotion | Academic Setup |
+| 3 | Staff | Manage Staff, Departments, Designations | none |
+| 4 | Attendance | Overview, Manage Shifts, Roster | Student, Staff |
+| 5 | Leave | Requests, Leave Create, Leave Assign | Staff, Student |
+| 6 | Holiday | Holidays, Templates, Assign | Academic Setup, Staff |
+| 7 | Payroll | Generate Payroll, Salary Payouts, Salary Groups, Assign Salary | Staff, Attendance |
+| 8 | Fees | Fees, Fee Structure, Fee Statement, Fee Reminder | Student, Academic Setup |
+| 9 | Examination | Marksheet Structure, Generate Marksheet, Admit Card Structure, Generate Admit Card | Academic Setup, Student |
+| 10 | Certificates | TC Structure, Generate TC | Student |
+| 11 | Approvals | Requests | Leave (must have real data) |
+| 12 | Settings | Academic Sessions, Admission Form Fields, Roles & Permissions, Marksheet Templates | Student, Staff, Examination |
+| 13 | Dashboard | Dashboard | almost everything — build last |
 
-## Locked global rules (see `_core` for full detail)
+## Locked global rules
 
-- Filter order: Search → scope filters → status filters → period picker (last)
-- Department/Designation/Class: disable via `classList`, never hide
-- Stream/Section: exist only if configured, hide via `display:none`
-- All modals: sticky header/footer, scrollable middle
-- Cascade delete: always allowed, type-to-confirm when dependents exist
-- Status chips: fixed-width, full-word label, colored pill — one
-  design used everywhere a status is shown (list-page "quick stat"
-  strips stay plain bold text, chips belong only where an actual
-  per-row/per-field status is being shown)
-- Every printable document (Admission Letter, Fee Receipt, Admit
-  Card, Marksheet, Transfer Certificate) shares one letterhead
-  language: bordered frame, serif school name, dotted-underline field
-  values, signature lines
-- List pages default to showing everything (filters narrow, they
-  don't gate) unless a page explicitly documents a scope requirement
-  (e.g. Excel Import/Export needing a chosen class)
+- **One design system, no versions.** See `v1/_core/design-system.md`. Never resurrect an older look, never invent v1/v2 labels for the design itself.
+- **`.dd` component for every dropdown/select** — never a native `<select>`.
+- **Bootstrap Icons (`bi bi-*`) everywhere** — never inline SVG. (Dashboard's reference file itself still has inline SVG in a few places — its own `.md` flags this explicitly as something to fix during build, not copy.)
+- **Match each page's own toolbar row structure** from its own `.html` — don't force one page's row-split (e.g. Attendance Overview's 6-column filter grid) onto a page with fewer filters that only needs one row.
+- **Any consequential action (sync, delete, activate-session) confirms first** — never fires on a single click. Heavy deletes require typing `DELETE`; some pages (Academic Sessions) require typing the specific value being changed.
+- **Existence-based vs. narrowing filters**: some pages show everything by default and filters only narrow (Manage Students, Admission, Generate TC); others gate on a required scope (Manage Shifts has no filter at all; Excel Import/Export requires a Class first). Check each page's own `.md` for which rule applies — don't assume.
+- **Reuse, don't duplicate**: the shared letterhead print template (Admission Letter → Admit Card → Marksheet → TC), the print-mode-choice pattern (illustrated cards, not a dropdown), the Person-Type→Dept/Class cascade filter logic (Attendance, Leave, Approvals all share it), and the FieldConfig-driven validator (Admission form + its bulk-import path) are each built ONCE and reused — never reimplemented per page.
 
 ## Files
 
-- `prompts/` — one ready-made Claude Code prompt per PAGE, grouped
-  into a folder per module (e.g. `prompts/07-payroll/01-generate-
-  payroll.md`) — see `prompts/README.md` for single-line usage and
-  the strict build order
-- `v1/_core/` — design system reference (read first), plus
-  `shell/app-shell.html` (the definitive, responsive, role-aware
-  header+sidebar every page renders inside — read this before
-  building any page's navigation),
-  `claude-code-implementation-strategy.md` for how to actually build
-  this against the legacy codebase without breaking it,
-  `frontend-backend-folder-structure.md` for how the generated code
-  should be organized on disk (module-first, page-subfolders inside),
-  `error-handling/` for the centralized backend+frontend error
-  handling architecture, and `additional-technical-considerations.md`
-  for cross-cutting concerns (notifications, i18n, print/PDF, file
-  upload, pagination, job queue, rate limiting, caching, search)
-- `v1/<module>/` — one folder per module, as mapped above
-- `CHANGELOG.md` — full history of every revision made during design review
+- `prompts/` — one prompt per module (13 total), plus `prompts/fixes/` for versioned corrections.
+- `v1/_core/design-system.md` — the design system (colors, components, layout rules).
+- `v1/_core/performance-principles.md` — scalability/resource/speed/readability/time-complexity rules every module inherits.
+- `v1/_core/frontend-backend-folder-structure.md` — the exact on-disk layout, both layers.
+- `v1/_core/error-handling/` — the full runnable error-handling foundation: 8 error classes, middleware, logger, message-builders (backend), interceptor + models (frontend), plus a `README.md` explaining the flow and `example-*-usage` files showing it wired into a real route/component.
+- `v1/_core/database-design-principles.md` — multi-tenancy, uniqueness, transactions, embed-vs-reference, soft/hard-delete, idempotency keys.
+- `v1/_core/state-management.md` — frontend state management (no NgRx, `ShellContextService` + per-module signals) and the SSR decision (not used).
+- `v1/_core/claude-code-implementation-strategy.md` — isolation rules, per-module build workflow.
+- `v1/_core/additional-technical-considerations.md` — notifications, i18n, print/PDF, pagination, job queues, rate limiting, caching, search-at-scale.
+- `v1/_core/shell/app-shell.html` + `.md` — the standalone shared header+sidebar reference (dark sidebar, matches every page's own inline shell).
+- `v1/<module>/<page>.html` — the exact approved visual/functional reference for every page.
+- `v1/<module>/<page>.md` — the rules behind what the `.html` shows: frontend behavior + backend schema/endpoint notes.

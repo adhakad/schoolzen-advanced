@@ -1,10 +1,8 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project overview
+# Schoolzen
 
 Schoolzen (package name `schooliya`, Angular project name `zoclass`) is a multi-tenant school-management SaaS: an Angular 14 frontend (`src/`) talking to a separate Express/MongoDB backend (`backend/`). There are two authenticated user types — **admin** (school owner/staff) and **teacher** — each with its own login, guard, interceptor, and JWT auth flow, plus public marketing pages (home, pricing, features, contact, etc.).
+
+**A new build (v2) is planned and fully specified separately — see "v2 — what's coming" below.** Everything in this README describes the current, existing codebase.
 
 ## Commands
 
@@ -29,7 +27,7 @@ The backend requires a `.env` file (see `backend/config/config.js`) with `PORT`,
 - **Routing**: all top-level routes are declared in `app-routing.module.ts` as lazy-loaded feature modules (`loadChildren`). Every `admin/*` route is protected by `AdminAuthGuard`, every `teacher/*` route by `TeacherAuthGuard`. Public/marketing routes live under `pages/main`.
 - **Feature module pattern**: each page under `pages/admin/*` and `pages/teacher/*` is its own self-contained Angular module with a matching `-routing.module.ts`, `.component.ts/html/css`. New features should follow this same one-module-per-page structure rather than adding to a shared module.
 - **Auth**: `guards/admin-auth.guard.ts` and `guards/teacher-auth.guard.ts` gate route access; `interceptors/admin-auth.interceptor.ts` and `teacher-auth.interceptor.ts` attach the `Authorization: Bearer <token>` header to outgoing requests and transparently refresh the access token on a `403` (single in-flight refresh guarded by a `refresh` flag, retries the failed request once). Tokens are managed through `services/auth/*` and persisted via `services/storage.service.ts`.
-- **Services** (`services/*.service.ts`): one HTTP service per backend resource, each built as `url = \`${environment.API_URL}/v1/<resource>\`` and thin wrapper methods around `HttpClient`. Follow this convention for new resources instead of calling `HttpClient` directly from components. Multipart requests (e.g. student photo upload) are built by switching to `FormData` when a file field is present, otherwise sending plain JSON — see `services/student.service.ts` for the pattern.
+- **Services** (`services/*.service.ts`): one HTTP service per backend resource, each built as `url = \`${environment.API_URL}/v1/<resource>\`` and thin wrapper methods around `HttpClient`. Multipart requests (e.g. student photo upload) are built by switching to `FormData` when a file field is present, otherwise sending plain JSON — see `services/student.service.ts` for the pattern.
 - **Environment config**: `src/environments/environment.ts` / `environment.prod.ts` hold `API_URL`, swapped at build time via `fileReplacements` in `angular.json`.
 - **UI stack**: Angular Material + Bootstrap 5 + jQuery/owl.carousel are all loaded globally via `angular.json` `styles`/`scripts` arrays (not per-module imports). Charting uses both ECharts and Highcharts depending on the page. PDF/Excel export uses `jspdf`/`pdf-lib`/`pdfmake`/`html2pdf.js` and `exceljs`/`xlsx` respectively — check existing usages in `services/excel` and `services/print-pdf` before adding a new export flow.
 
@@ -43,83 +41,45 @@ The backend requires a `.env` file (see `backend/config/config.js`) with `PORT`,
 - **File uploads**: handled by Multer configs in `modules/helpers/file-upload.js` (e.g. `fileUpload.studentImage.single(...)`), applied per-route before validation, with manual error handling for size/type/path errors (see `modules/routes/student.js` for the full pattern used across upload routes).
 - **Background jobs**: `cron-job.js` schedules daily jobs (via `node-cron`) for academic session rollover and expired-plan checks, implemented in `modules/services/cron-session-service.js` and `modules/services/cron-plan-service.js`.
 - **Third-party integrations**: Razorpay (payments), Twilio (SMS), Nodemailer (email), Cloudinary (media), all configured through env vars and used from the relevant controller/service files.
+- **Monthly-snapshot pattern for per-person, per-day data** (established by `Roster`, follow it for anything else with the same shape): instead of one document per `(person, day)`, store one document per `(adminId, personType, personId, year, month)` with a `days: Map<"YYYY-MM-DD", value>` field. `month` is stored 1-12 (never JS's 0-11) — parsed via `parseDateKey()` (`modules/helpers/date-only.js`), never through `Date` arithmetic. See `modules/services/roster-lookup.js` for the reference implementation.
 
 ## File & Folder Naming Conventions
 
-Traced from `class`/`student`/`class-subject` (backend) and `class`/`admin-student-fees-structure`/`teacher-student-fees`/`whatsapp-message` (frontend). Use these exactly when scaffolding a new module — the "New Module Checklist" below relies on them.
-
 ### Backend (`backend/modules/`)
 
-- **File names**: kebab-case, singular resource name, `.js` — `student.js`, `academic-session.js`, `fees-structure.js`, `admit-card-structure.js`, `issued-transfer-certificate.js`.
-- **Same base name across layers**: one resource reuses its exact filename in every layer it needs — `models/student.js`, `validators/student.js`, `controllers/student.js`, `routes/student.js`.
-- **Grouped/nested resources**: get a kebab-case (or plain lowercase) group subfolder mirrored across whichever of `models/`, `controllers/`, `routes/` apply — `users/admin-user.js`, `users/teacher-user.js`, `devices/attendance-device.js`, `whatsapp-message/message-wallet.js`. Not every layer needs a file in the group (e.g. `devices` currently has no `validators/devices/` entry) — only add what the resource actually needs.
-- **Mongoose model export**: PascalCase + `Model` suffix, e.g. `StudentModel`, `ClassModel`, `FeesCollectionModel` — this is the convention to follow for new models (a couple of older files export without the suffix, e.g. `AdminPlan`; don't copy that exception).
-- **Controller handler names**: PascalCase verb+resource for anything beyond a trivial counter — `CreateStudent`, `UpdateStudent`, `DeleteStudent`, `GetSingleStudent`, `GetAllStudentByClass`, `GetStudentPaginationByClass`; plain camelCase only for simple `count<Res>` handlers (`countStudent`, `countClass`).
-- **Validator exports**: `create<Res>Schema` and `update<Res>Schema` (camelCase verb, PascalCase resource, `Schema` suffix).
+- **File names**: kebab-case, singular resource name, `.js` — `student.js`, `academic-session.js`, `fees-structure.js`.
+- **Same base name across layers**: `models/student.js`, `validators/student.js`, `controllers/student.js`, `routes/student.js`.
+- **Grouped/nested resources**: a kebab-case group subfolder mirrored across whichever of `models/`, `controllers/`, `routes/` apply — `users/admin-user.js`, `devices/attendance-device.js`.
+- **Mongoose model export**: PascalCase + `Model` suffix — `StudentModel`, `ClassModel`.
+- **Controller handler names**: PascalCase verb+resource — `CreateStudent`, `UpdateStudent`, `DeleteStudent`; plain camelCase only for trivial `count<Res>` handlers.
+- **Validator exports**: `create<Res>Schema` and `update<Res>Schema`.
 
 ### Frontend (`src/app/`)
 
-- **Feature page folders** (`pages/admin/*`, `pages/teacher/*`): kebab-case. Bare top-level entities keep a short, unprefixed name on the admin side — `class`, `subject`, `teacher`, `student`, `school` — while the *same* entity on the teacher side is prefixed `teacher-` — `teacher-student`, `teacher-admission`, `teacher-dashboard`. This asymmetry is real and intentional-looking (admin relies on the `admin/...` route segment to disambiguate; teacher folder names spell the role out), not something to "fix" — match whichever side you're adding to. Compound/derived features use a longer descriptive kebab chain, generally role-prefixed: `admin-student-fees-structure`, `admin-student-marksheet-result-add`, `teacher-student-marksheet-structure-edit`.
-- **Inside a feature folder**: `<name>.component.ts` / `.html` / `.css`, `<name>-routing.module.ts` (hyphen before `routing`, not a dot), `<name>.module.ts`. Class suffixes: `<Name>Component`, `<Name>Module`, `<Name>RoutingModule` (PascalCase of the folder's kebab name). Selector: `app-<kebab-name>` (`app-class`, `app-student`), matching the Angular CLI `prefix: "app"` set in `angular.json`.
-- **Services** (`src/app/services/`): kebab-case resource name + `.service.ts` (`class.service.ts`, `class-subject.service.ts`, `fees-structure.service.ts`); class `<PascalName>Service`. Sub-domain groups of services live in a kebab-case subfolder: `auth/admin-auth.service.ts`, `auth/teacher-auth.service.ts`, `excel/excel.service.ts`, `print-pdf/print-pdf.service.ts`, `payment/*`, `whatsapp-message/message-wallet.service.ts`.
-- **Guards/interceptors**: `<role>-auth.guard.ts` → `<Role>AuthGuard`; `<role>-auth.interceptor.ts` → `<Role>AuthInterceptor`.
-- **Models** (`src/app/modal/`): kebab-case (or single-word) resource name + `.model.ts`, exporting a PascalCase `interface <Res>` — `class.model.ts` → `Class`, `class-subject.model.ts` → `ClassSubject`, `admin.model.ts`, `plans.model.ts`. This is the majority pattern (10 of 13 files) and the one to use for new models. **Known inconsistency, don't extend it**: `student.modal.ts` and `result.modal.ts` use a `.modal.ts` (typo'd) extension, and `classSubject.modal.ts` is a stray camelCase duplicate of `class-subject.model.ts` left over from an incomplete rename — leave these as-is, don't pattern-match new files off them.
-- **Nesting depth**: page folders are flat — one level under `pages/admin/` or `pages/teacher/`, not further nested per sub-feature (there's no `pages/admin/student/fees/...`; that's instead its own sibling folder `admin-student-fees`). The only folders that break this flatness are the shared-module folders (`admin-shared`, `teacher-shared`, `main-shared`) and the `common` folder (header/footer/side-nav).
+- **Feature page folders**: kebab-case. Admin side keeps a short unprefixed name (`class`, `student`); teacher side prefixes the same entity with `teacher-` (`teacher-student`).
+- **Inside a feature folder**: `<name>.component.ts/html/css`, `<name>-routing.module.ts`, `<name>.module.ts`.
+- **Services**: kebab-case + `.service.ts`, class `<PascalName>Service`.
+- **Guards/interceptors**: `<role>-auth.guard.ts` → `<Role>AuthGuard`.
+- **Models** (`src/app/modal/`): kebab-case + `.model.ts`, exporting a PascalCase `interface <Res>`.
+- **Nesting depth**: page folders are flat — one level under `pages/admin/` or `pages/teacher/`.
 
 ## New Module Checklist
 
-This is the exact file order used for existing resources (traced from `class` and `student`) to add a new resource end-to-end. Follow this order — later files depend on earlier ones existing.
+**Backend**, for a new resource `<res>`: Model → Validator → Controller → Route (mounted in `routes.js`) → (optional) file-upload config → (optional) cron service.
 
-### Backend (`backend/`), for a new resource `<res>`
+**Frontend**, for the same resource: Model → Service → Feature module (`component/routing/module`) → route wired into `app-routing.module.ts` → (optional) sidebar nav entry.
 
-1. **Model** — `modules/models/<res>.js`: `mongoose.model('<res>', { ...fields })` inline schema literal, manual `createdAt: { type: Date, default: Date.now }`, `module.exports = <Res>Model`. (Nested resources, e.g. a resource that belongs under `users` or `devices`, go in `modules/models/<group>/<res>.js` instead.)
-2. **Validator** — `modules/validators/<res>.js`: Joi object(s), typically `create<Res>Schema` and, for partial updates, `update<Res>Schema = create<Res>Schema.fork(Object.keys(create<Res>Schema.describe().keys), (schema) => schema.optional())`. Export both. Skip this file only if the resource is as trivial as `class` (no file upload, few fields) and validate inline in the controller instead — but prefer adding it for anything with >3 fields.
-3. **Controller** — `modules/controllers/<res>.js`: `'use strict'`, require the model (and any other models it touches, e.g. a fees/plan model for cross-resource checks), define each handler as `let`/`const` async `(req, res, next) => {...}` wrapped in try/catch (`catch` → `res.status(500).json('Internal Server Error!')`), then a single `module.exports = { HandlerOne, HandlerTwo, ... }` at the bottom. Standard handler set to include for a full CRUD resource: `count<Res>`, `Get<Res>Pagination`, `GetAll<Res>`, `GetSingle<Res>`, `Create<Res>`, `Update<Res>`, `Delete<Res>`.
-4. **Middleware wiring (route file)** — `modules/routes/<res>.js`: `'use strict'`, `const router = express.Router();`, destructure the needed controller functions from step 3, then declare routes in this conventional order: `GET /<res>-count`, `POST /<res>-pagination`, `GET /` (list all), `GET /:id`, `POST /` (create — wrap in the `fileUpload.<field>.single(...)` + `validate(create<Res>Schema)` middleware chain from `modules/routes/student.js` if the resource accepts a file), `PUT /:id` (update, same upload/validate wrapping with `update<Res>Schema`), `DELETE /:id`. End with `module.exports = router;`. If the resource needs admin/teacher auth, add `require('../middleware/admin-auth').isAdminAuth` (or `isTeacherAuth`) as a route-level middleware before the controller function.
-5. **Mount the route** — `backend/routes.js`: add one line, `app.use('/v1/<res>', require('./modules/routes/<res>'));`, in the same alphabetical/grouping-by-feature order as the surrounding entries. This is the only place a new resource's routes are wired into the running app — forgetting this step means the model/controller/routes exist but are unreachable.
-6. *(Optional, only if the resource needs a file upload)* — add a Multer config to `modules/helpers/file-upload.js` following the existing `studentImage` pattern (size/type limits, destination) and reference it from the route file in step 4.
-7. *(Optional, only if the resource needs a scheduled job)* — add a `modules/services/cron-<res>-service.js` and schedule it from `backend/cron-job.js`.
-
-### Frontend (`src/app/`), for the same resource `<res>`
-
-1. **Model** — `src/app/modal/<res>.model.ts` (or `.modal.ts` — both extensions exist in this codebase; match whichever the sibling resources use): a plain `export interface <Res> { _id: String, ...fields }` mirroring the Mongoose schema fields the frontend actually reads/writes.
-2. **Service** — `src/app/services/<res>.service.ts`: `@Injectable({ providedIn: 'root' })`, `url = \`${environment.API_URL}/v1/<res>\``, inject `HttpClient`, and add one thin method per backend route from step 4 above (`add<Res>`, `get<Res>List`, `get<Res>Count`, `<res>PaginationList`, `update<Res>`, `delete<Res>`), matching each method to its exact backend path/verb.
-3. **Feature module directory** — create `src/app/pages/admin/<res>/` (or `pages/teacher/<res>/` for a teacher-facing resource) containing:
-   - `<res>.component.ts` / `.html` / `.css` — the page component (form + list + modal state, following the conventions in the "Code Style & Conventions" section below).
-   - `<res>-routing.module.ts` — `RouterModule.forChild([{ path: '', component: <Res>Component }])`, `exports: [RouterModule]`.
-   - `<res>.module.ts` — `declarations: [<Res>Component]`, `imports: [CommonModule, <Res>RoutingModule, AdminSharedModule]` (or `TeacherSharedModule` under `pages/teacher`). `AdminSharedModule`/`TeacherSharedModule` supply Material, forms, pagination, and shared pipes — import it rather than re-importing those individually.
-4. **Wire the route** — `src/app/app-routing.module.ts`: add one lazy route entry in the appropriate admin/teacher section, e.g. `{ path: 'admin/<res>', loadChildren: () => import('src/app/pages/admin/<res>/<res>.module').then((m) => m.<Res>Module), canActivate: [AdminAuthGuard] }`. This is the single registration point that makes the page reachable — there is no central module list beyond this file (`AdminSharedModule`/`app.module.ts` are shared-dependency providers, not per-feature registries).
-5. *(Optional)* — if the page needs a nav entry, add it to the sidebar component under `pages/admin/common` (or the teacher equivalent) alongside the other menu items.
-
-### Quick sanity check after scaffolding
-
-- Backend reachable: resource appears under `backend/routes.js` → hits `modules/routes/<res>.js` → controller → model.
-- Frontend reachable: `app-routing.module.ts` entry → `<res>.module.ts` → `<res>-routing.module.ts` → component → service → matches the `/v1/<res>` URL mounted above.
-- If either registration point (`routes.js` on the backend, `app-routing.module.ts` on the frontend) is skipped, every other file can be correct and the module will still 404.
+**Sanity check**: backend reachable via `routes.js` → route → controller → model; frontend reachable via `app-routing.module.ts` → module → routing → component → service. Skipping either registration point means everything else can be correct and the module still 404s.
 
 ## Code Style & Conventions
 
-These reflect actual patterns in the codebase (not aspirational rules) — match them when editing nearby code rather than introducing a new style.
+- **Frontend**: explicit typed fields with inline defaults, not view-model objects; `showModal`/`updateMode`/`deleteMode` naming triad; `isClick` double-submit guard on every mutating action; legacy two-callback `.subscribe()` form; services are thin `HttpClient` wrappers, one per backend resource.
+- **Backend**: `'use strict'` + grouped requires; controllers export a `module.exports = {...}` object of individually-declared handlers; every handler wrapped in `try/catch` (`catch` → `500` "Internal Server Error!"); business-rule failures return a **plain string** message (`res.status(400).json('...')`) in older-style routes — check the specific resource before assuming the shape; Mongoose models use inline schema literals with manual `createdAt`, and string (not ObjectId) foreign keys.
 
-### Frontend (Angular components/services)
+See `CLAUDE.md` for the complete version of these conventions, including the exceptions/known-inconsistencies Claude Code should not pattern-match off.
 
-- **Component state**: all fields are declared at the top of the class with explicit types and inline defaults (`showModal: boolean = false;`), not grouped into view-model objects. Modal/mode flags follow a consistent naming triad: `showModal`, `updateMode`, `deleteMode`, `deleteById`, paired with `errorCheck: Boolean` + `errorMsg: String` for surfacing API errors instead of throwing.
-- **Double-submit guard**: mutating actions check/set an `isClick` boolean at the start and reset it in both the success and error callback (see `studentAddUpdate`, `studentDelete` in `student.component.ts`). Apply this to any new create/update/delete handler.
-- **CRUD method naming**: `add<Entity>Model()` / `update<Entity>Model()` / `delete<Entity>Model()` open the modal and seed state; a single `<entity>AddUpdate()` method branches on `updateMode` to call either the create or update service method; `<entity>Delete(id)` calls the delete service method. A shared `successDone()` closes the modal, clears messages, refetches the list, and shows a delayed (`setTimeout`, 500–1000ms) `ToastrService` success toast.
-- **Subscriptions**: `.subscribe((res) => {...}, err => {...})` using the legacy two-callback form (not the `{next, error}` observer object), with an `if (res) {...}` truthy check inside the success callback rather than branching on HTTP status.
-- **Pagination**: list-fetch methods (`getStudents`, `getClass`, etc.) wrap the `.subscribe` call in `new Promise((resolve) => {...})`, build a `params` object with `filters`/`page`/`limit`, and push `{ type: 'page-init', page, totalTableRecords }` through a `paginationValues: Subject<any>` consumed by the shared pagination component.
-- **Typing**: components and services use `any` liberally for API request/response payloads even though the project is TypeScript; only enum-like constants and form controls tend to be typed. Don't feel obligated to introduce strict interfaces where the surrounding code doesn't have them — but do type genuinely new, self-contained logic (e.g. pure helper functions) where it's cheap.
-- **Services**: one class per backend resource, injected `HttpClient`, a single `url` field built from `environment.API_URL`, thin methods that just shape the request (see `services/student.service.ts`). Requests with a possible file field build a `FormData` conditionally; otherwise send the raw object.
-- **Imports**: Angular/RxJS imports first, then absolute `src/app/...` imports for services/models (feature components use absolute paths; some older files use relative `../../../services/...` — prefer absolute `src/app/...` for new code to match the majority).
-- **Comments**: sparse overall; when present they're short, imperative, and mark intent or sections (`// Reset error state`, `// --- API Submission ---`), occasionally Hindi/English mixed ("IndexesToDelete ke hisab se..."). Avoid narrating obvious lines; comment only non-obvious business rules (e.g. fee/promotion logic) as the existing code does.
+---
 
-### Backend (Express/Mongoose)
+## v2 — what's coming
 
-- **File header**: every module starts with `'use strict';`, followed by `require`s (Node/npm packages first, then local `../models/...`, `../services/...`, `../helpers/...`).
-- **Controllers**: exported as a `module.exports = { ... }` object at the bottom of the file listing every handler; handlers are declared individually as `let`/`const` async arrow functions above it, not attached directly to `exports` inline. Simple CRUD/count handlers use PascalCase-ish action names (`CreateStudent`, `UpdateStudent`, `DeleteStudent`, `GetSingleStudent`) while trivial counters stay camelCase (`countStudent`, `countClass`) — follow whichever style matches sibling handlers in the same file.
-- **Error handling**: every handler wraps its body in `try { ... } catch (error) { return res.status(500).json('Internal Server Error!'); }` — errors are swallowed and never rethrown; the caught `error` is generally unused (occasionally logged with `console.log`/`console.error`, not a logger). Business-rule failures return `res.status(400/404).json('<message>!')` as a **plain string**, not a JSON object — match this in older-style routes. Some newer handlers (e.g. `StudentClassPromote`) instead return `{ errorMsg: '...' }` / `{ successMsg: '...' }` objects; check the specific resource's existing pattern before adding a new endpoint to it, since the two styles aren't interchangeable from the frontend's error-handling code.
-- **Validation-in-controller**: rather than centralizing all rules in Joi schemas, controllers re-check uniqueness/business constraints inline with sequential `findOne` existence checks (admission number, Aadhar, roll number, etc.), each returning early with a specific message on conflict. Follow this "fail fast with a specific message" style for new constraints rather than batching errors.
-- **Cleanup on failure**: routes that accept an uploaded file use a local `handleError(statusCode, message)` closure that deletes the temp file (`fs.unlinkSync`) before responding, so every early return in that handler goes through `handleError(...)` instead of a bare `res.status(...)`.
-- **Models**: defined with `mongoose.model('name', { ...inline schema literal... })` — not `new mongoose.Schema(...)` — with per-field `type`/`required`/`trim`/`lowercase`/`enum`/`default`, and a manual `createdAt: { type: Date, default: Date.now }` field instead of the `{ timestamps: true }` schema option. Foreign keys (`adminId`, `studentId`) are plain `String`/kept as the referenced document's `_id` string rather than `mongoose.Schema.Types.ObjectId` refs — match this when adding relations.
-- **Parallelism**: independent lookups/deletes are batched with `Promise.all([...])` (see `DeleteStudent`, `CreateBulkStudentRecord`); multi-document writes that must be atomic use an explicit Mongoose session/transaction (`startSession` → `startTransaction` → `commitTransaction`/`abortTransaction`), as in `CreateBulkStudentRecord`.
-- **Middleware factories**: cross-cutting concerns are implemented as functions returning an Express middleware, e.g. `validate(schema)` in `modules/middleware/validate.js` (Joi-validates `req.body`, strips unknown keys, responds `400` with a generic `"Validation failed"` string, logs `error.details` to console). Auth middleware (`isAdminAuth`/`isTeacherAuth`) reads the bearer token, calls the matching token service to verify it, and specifically distinguishes `jwt.TokenExpiredError` from other failures.
+A new build is planned under `/v2` (frontend) and `/api/v2/` (backend) — fully specified in `docs/schoolzen-planning/`. It's a deliberately different, from-scratch design (unified staff/RBAC login instead of separate admin/teacher auth, `adminId` instead of `schoolId`, a formal state-management and error-code contract, a documented design system with a responsive breakpoint spec, and more) — it does not touch or migrate the existing codebase described above. See `CLAUDE.md`'s "v2 — new build, planning package" section for the full comparison and where to start.

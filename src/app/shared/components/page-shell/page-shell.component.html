@@ -1,22 +1,24 @@
-<div class="sw">
-  <app-shell-header [context]="context"
-                    [notifications]="notifications"
-                    (menuToggled)="toggleMobileNav()"
-                    (sessionChanged)="onSessionChanged($event)"
-                    (loggedOut)="onLogout()"></app-shell-header>
+<!-- The reference's outer structure: the dark sidebar is a full-height sibling of .main,
+     and the topbar lives INSIDE .main above the routed page. `.sz` is the design system's
+     root scope — every global rule hangs off it so no legacy page is touched. -->
+<div class="sz" [class.nav-open]="mobileOpen">
+  <!-- Below 992px the sidebar becomes an off-canvas drawer and this backdrop appears. -->
+  <div class="sb-backdrop" (click)="closeMobileNav()"></div>
 
-  <div class="sw-body" [class.mobile-open]="mobileOpen">
-    <div class="sb-backdrop" (click)="closeMobileNav()"></div>
+  <app-shell-sidebar [context]="context"
+                     [activeUrl]="activeUrl"
+                     (navigated)="closeMobileNav()"></app-shell-sidebar>
 
-    <app-shell-sidebar [context]="context"
-                       [activeUrl]="activeUrl"
-                       (navigated)="closeMobileNav()"></app-shell-sidebar>
+  <div class="main">
+    <app-shell-header [context]="context"
+                      [notifications]="notifications"
+                      [crumb]="crumb"
+                      (menuToggled)="toggleMobileNav()"
+                      (sessionChanged)="onSessionChanged($event)"
+                      (loggedOut)="onLogout()"></app-shell-header>
 
-    <main class="sw-main">
-      <!-- Header zone and body zone read as two distinct areas: the header's border-bottom
-           plus this explicit spacer, not a margin. -->
-      <div class="sw-spacer"></div>
+    <div class="content">
       <ng-content></ng-content>
-    </main>
+    </div>
   </div>
 </div>

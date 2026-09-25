@@ -1,1 +1,4 @@
+/* `.sidebar`, `.brand`, `.nav-item`, `.nav-sub` and the drawer behaviour all come from the
+   global design-system sheet, so this component renders identically to the reference. */
+
 :host { display: contents; }

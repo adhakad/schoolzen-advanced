@@ -1,3 +1,42 @@
-/* Chip visuals live in the global design system (shared/styles/schoolzen-design-system.css)
-   so a module page can use .sw-chip in its own markup too. Only host layout lives here. */
+/* Outline only, never filled, and every chip in a set the same fixed width so a status
+   column's chips line up — design-system.md, "Cards / tables" and "Never do". The palette
+   is the design system's own semantic tokens; nothing here invents a colour. */
+
 :host { display: inline-flex; }
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  padding: 4px 11px;
+  border-radius: 20px;
+  border: 1px solid;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Good outcomes */
+.status-chip.present,
+.status-chip.approved,
+.status-chip.active { color: var(--success); border-color: #BFE0CC; }
+
+/* In progress / needs attention */
+.status-chip.late,
+.status-chip.halfday,
+.status-chip.pending,
+.status-chip.draft { color: var(--warning); border-color: #E7D3A8; }
+
+/* Bad outcomes */
+.status-chip.absent,
+.status-chip.rejected { color: var(--danger); border-color: #E6C8C0; }
+
+/* Neither good nor bad — a state the school chose */
+.status-chip.leave,
+.status-chip.holiday,
+.status-chip.locked { color: var(--slate); border-color: #D9CDEE; }
+
+.status-chip.inactive,
+.status-chip.neutral { color: var(--ink-faint); border-color: var(--line); }

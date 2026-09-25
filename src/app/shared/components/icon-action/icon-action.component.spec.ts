@@ -66,10 +66,10 @@ describe('IconActionComponent', () => {
 
   it('maps each variant to its established class', () => {
     component.variant = 'neutral';
-    expect(component.buttonClass).toBe('sw-icon');
+    expect(component.buttonClass).toBe('icon-btn');
     component.variant = 'primary';
-    expect(component.buttonClass).toBe('sw-icon primary');
+    expect(component.buttonClass).toBe('icon-btn primary');
     component.variant = 'warning';
-    expect(component.buttonClass).toBe('sw-icon warn');
+    expect(component.buttonClass).toBe('icon-btn danger');
   });
 });

@@ -53,6 +53,17 @@ const initialsOf = (text: string): string =>
     .map((word) => word.charAt(0).toUpperCase())
     .join('') || '?';
 
+/**
+ * "2026-27" for a year that starts in April, the convention every session string in this
+ * codebase already follows. Used only when the server has no academic-session document at
+ * all — a placeholder for the selector, never written anywhere.
+ */
+const currentSessionLabel = (): string => {
+  const now = new Date();
+  const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  return startYear + '-' + String((startYear + 1) % 100).padStart(2, '0');
+};
+
 const EMPTY_CONTEXT: ShellContext = {
   role: 'admin',
   displayName: '',
@@ -159,16 +170,28 @@ export class ShellContextService {
     };
   }
 
+  /**
+   * The header's session selector. It must always have something to show: it is how the
+   * user knows which year the numbers on screen belong to, so a database whose
+   * academic-session document is missing has to degrade to the current year rather than
+   * silently removing the control from every page.
+   */
   private loadSessions(): void {
+    const fallback = currentSessionLabel();
+    this.patch({ sessions: [fallback], activeSession: fallback });
+
     this.academicSessionService.getAcademicSession().subscribe((res: any) => {
       if (!res) return;
-      const sessions: string[] = (res.allSession?.length ? res.allSession : [res.academicSession])
-        .filter(Boolean);
+      const active: string = res.academicSession || '';
+      const sessions: string[] = Array.from(
+        new Set([...(res.allSession || []), active].filter(Boolean))
+      );
+      if (!sessions.length) return;
       this.patch({
         sessions,
-        activeSession: res.academicSession || sessions[0] || ''
+        activeSession: active || sessions[0]
       });
-    }, () => { /* selector renders empty rather than blocking the shell */ });
+    }, () => { /* the fallback session above stays, rather than blanking the selector */ });
   }
 
   private loadTeacherPermissions(user: any): void {

@@ -1,0 +1,46 @@
+/* A fixed-width count with its detail in a popover, so "2 streams" and "10 sections"
+   render at the same width and a column never ragged-edges.
+   Not used by Academic Setup — its references show a clickable `.tag` opening a real
+   Details modal instead. Kept for the modules whose references call for a popover. */
+
+:host { display: inline-flex; position: relative; }
+
+.count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 20px;
+  border: 1px solid #E7D3A8;
+  background: transparent;
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.count-pill.sec { border-color: #D9CDEE; color: var(--slate); }
+.count-pill:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+
+.count-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 100%;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 10px 26px rgba(30, 23, 48, 0.14);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 400;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.5;
+}

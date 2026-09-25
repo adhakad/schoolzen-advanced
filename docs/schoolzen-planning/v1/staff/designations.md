@@ -1,32 +1,19 @@
-# Staff — Designations page (finalized design)
+# Staff — Designations
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `designations.html` (same folder)
-
-Simple CRUD, same shell as Departments/Salary Groups.
+Status: **FINAL**
+Reference: `designations.html`
 
 ---
 
-## Toolbar
+## Frontend
 
-Search + Department filter (added beyond the legacy component — since
-Designations are the entities every other module's Designation filter
-draws its options from, scoping this list by Department first makes
-managing a long designation list practical) + "Create".
+**Toolbar**: search + Create (row1), Department `.dd` filter (its own row).
 
-## Table
+**Table**: Title, Department (or "Not set" muted — Department is genuinely optional here), Status (tag), Action.
 
-Title → Department (or a dash if none set) → Status chip → Action.
+**Add/Edit modal**: Title (required) + Department `.dd` (includes a "-- None --" option — a designation can stand alone) + Status `.dd`.
 
-## Create/Edit modal
+**Delete**: type-to-confirm when the designation is currently assigned to staff (`data-linked` flag on the row signals this).
 
-Title → Department (optional — "-- None --" is a valid choice, a
-designation doesn't strictly require one) → Status.
-
-## Delete confirmation
-
-Per the global cascade-delete rule: a Designation with no staff
-currently holding it uses the lighter single-confirm modal. One with
-staff attached upgrades to type-to-confirm, naming the count. "Set to
-Inactive" offered as the lighter alternative, never the only option.
+## Backend
+Schema — `Designation`: `adminId`, `title`, `departmentId` (nullable), `status`. Delete checks `Staff` for any reference before allowing without confirmation.

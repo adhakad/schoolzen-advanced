@@ -1,0 +1,6 @@
+<div class="toggle-row">
+  <button type="button" class="toggle-switch" [class.on]="checked"
+          role="switch" [attr.aria-checked]="checked" [attr.aria-label]="label"
+          [disabled]="disabled" (click)="toggle()"></button>
+  <span class="toggle-label">{{ label }}</span>
+</div>

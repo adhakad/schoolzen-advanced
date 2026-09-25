@@ -31,7 +31,7 @@ describe('StatusChipComponent', () => {
       component.variant = variant;
       applyInputs();
       const span: HTMLElement = fixture.nativeElement.querySelector('span');
-      expect(span.classList).toContain('sw-chip');
+      expect(span.classList).toContain('status-chip');
       expect(span.classList).toContain(variant);
       expect(span.textContent?.trim()).toBe(variant);
     });

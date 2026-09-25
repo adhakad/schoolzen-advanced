@@ -3,16 +3,19 @@
 .gal-grid { display: flex; flex-wrap: wrap; gap: 14px 18px; }
 .gal-cell { display: flex; align-items: center; gap: 8px; }
 .gal-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.gal-note { font-size: 11.5px; color: #9494ac; }
+.gal-note { font-size: var(--sw-fs-xs); color: var(--sw-text-soft); }
 
 /* Section headings — the gallery's own scaffolding, deliberately quieter than .sw-title
    so a section label never reads as part of the component it introduces. */
-.gal-heading { font-size: 13px; font-weight: 700; color: #1a1a2e; margin: 0 0 4px; }
-.gal-sub { font-size: 12px; color: #6b6b85; margin-bottom: 12px; max-width: 640px; line-height: 1.55; }
-.gal-state { font-size: 11.5px; font-weight: 600; color: #9494ac; margin: 20px 0 8px; }
-.gal-lead { font-size: 13px; color: #4a4a68; line-height: 1.6; max-width: 720px; }
+.gal-heading { font-size: var(--sw-fs-md); font-weight: 700; color: #1a1a2e; margin: 0 0 4px; }
+.gal-sub { font-size: var(--sw-fs-sm); color: var(--sw-text-muted); margin-bottom: 12px; max-width: 640px; line-height: 1.55; }
+.gal-state { font-size: var(--sw-fs-xs); font-weight: 600; color: var(--sw-text-soft); margin: 20px 0 8px; }
+.gal-lead { font-size: var(--sw-fs-base); color: #4a4a68; line-height: 1.6; max-width: 720px; }
 .gal-lead b { color: #1a1a2e; }
 .gal-intro { border-left: 3px solid #7b6ef6; }
 
 .gal-avatars { display: flex; flex-wrap: wrap; gap: 24px; }
 .gal-avatar-cell { width: 220px; max-width: 100%; }
+
+/* Vertical rhythm between gallery sections. Dev-only page, so it keeps its own class. */
+.gal-spacer { height: 24px; }

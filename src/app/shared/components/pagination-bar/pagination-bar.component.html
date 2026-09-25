@@ -1,0 +1,18 @@
+<div class="pagination-bar">
+  <div class="rows-per-page">
+    Rows per page
+    <app-dd class="rows-dd" [options]="limitOptions" [value]="limitValue"
+            ariaLabel="Rows per page" (valueChange)="onLimit($event)"></app-dd>
+  </div>
+  <div class="page-controls">
+    <span class="page-range">{{ firstRow }}&ndash;{{ lastRow }} of {{ total }}</span>
+    <button type="button" class="page-btn" aria-label="Previous page"
+            [disabled]="!hasPrev" (click)="prev()">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <button type="button" class="page-btn" aria-label="Next page"
+            [disabled]="!hasNext" (click)="next()">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+</div>

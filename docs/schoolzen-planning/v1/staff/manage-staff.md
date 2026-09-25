@@ -1,63 +1,26 @@
-# Staff — Manage Staff page (finalized design)
+# Staff — Manage Staff
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `manage-staff.html` (same folder)
-
-Top-level Staff sidebar item, sub-tab "Manage Staff" (default landing).
-Add/Edit/Delete all live on this ONE page (no separate "Add Staff"
-screen) — same convention as Salary Groups.
+Status: **FINAL**
+Reference: `manage-staff.html`
 
 ---
 
-## Toolbar
+## Frontend
 
-Search → Department+Designation (adjacent pair, Designation disabled
-until Department chosen) → Status filter → "Bulk Cards" (secondary,
-neutral-tint) → "Create" (primary) — both action buttons inside the
-toolbar row.
+**Toolbar**: single row — search + Department `.dd` filter → Designation `.dd` (dependency-disabled until a Department is picked) + Status `.dd` (Any/Active/Inactive) + Create button.
 
-## Table
+**Table**: checkbox, Name (avatar+name), Emp Code, Department, Designation, Joining Date, Status (tag), Card (masked or "Not assigned"), Action (assign/change card, edit, delete).
 
-Name(+avatar) → Emp Code → Department → Designation → Joining Date →
-Status chip → Card (a tag showing the card's last 4 digits, or muted
-"Not assigned") → Action.
+**Add/Edit modal**: Name (required), Employee Code (optional — hint: "used to match this staff in bulk card-upload CSVs"), Department `.dd` → Designation `.dd` (disabled with "Select a department first" until Department chosen), Joining Date, Status `.dd`.
 
-## Action column — four distinct icon-buttons
+**Assign Card modal**: same pattern as Student's — single/bulk, Card Number + Verify Mode `.dd` (Card only / Card + PIN / Card + Fingerprint — note Staff has 3 modes, one more than Student's 2), submitting pushes straight to biometric devices.
 
-Card (opens Assign Card modal) → Resync (pushes this person's data to
-the biometric device again) → Edit (opens the same Create/Edit modal)
-→ Delete. Four separate icons, never merged, since each does something
-meaningfully different.
+**Delete**: warning notes it also removes login access and attendance history.
 
-## Create/Edit Staff modal (sticky header+footer)
+## Backend
 
-Name → Employee Code (optional, hint: used to match this person in
-bulk card-upload CSVs) → Department → Designation (options filtered to
-the chosen Department, disabled until one is picked — the form's own
-version of the toolbar's Department→Designation dependency) → Joining
-Date → Status.
+Schema — `Staff`: `adminId`, `name`, `empCode` (optional, unique per school when present — used to match bulk CSV uploads), `departmentId`, `designationId`, `joiningDate`, `status: 'active'|'inactive'`, `cardNumber`, `verifyMode`. Delete cascades (login, attendance history) inside a transaction.
 
-## Assign Card modal
+Per the R1 Staff+Teacher unification principle from earlier planning: this Staff collection is the SINGLE source for both administrative and teaching staff — no separate `Teacher` collection.
 
-Separate from the staff edit form — assigning a biometric/access card
-is its own action, not a field buried in a general edit. Card Number +
-Verify Mode (hint: how the device is allowed to identify this person).
-Footer has two distinct actions: "Resync to Device" (re-push existing
-data, destructive-styled since it's a real device operation) and
-"Submit" (save the new card assignment).
-
-## Bulk Assign Cards modal
-
-Explains the expected CSV format up front (two columns: empCode,
-cardNo, header row required) before showing the upload control. After
-upload, shows a result summary (N mapped successfully, N failed) with
-a table of failures (code, card number, reason) so a partial success
-is clearly diagnosable — not just a generic "some rows failed."
-
-## Delete confirmation
-
-Per the global cascade-delete rule: deleting a staff member with
-attendance/payroll/leave history already recorded triggers the
-soft-delete-with-grace-period + type-to-confirm flow (this is
-"already-happened" data, per that rule) rather than a simple confirm.
+**Scale note**: compound index `(adminId, departmentId, designationId, status)` backs this page's own Department→Designation→Status filter chain. List query is `.lean()` + `.select()`'d to table columns only. A school's staff count stays in the hundreds even at large-school scale, so **offset pagination (page-number UI) is acceptable here** — unlike Manage Students, this is one of `performance-principles.md`'s named exceptions for a genuinely bounded list, not a case requiring keyset pagination.

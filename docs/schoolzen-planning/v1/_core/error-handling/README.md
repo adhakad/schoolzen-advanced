@@ -59,6 +59,11 @@ existing category classes with its own `module` tag and `context`.
 - **A single `HttpInterceptor`** — every HTTP call in the app passes
   through this one interceptor; no component's HTTP subscription
   needs its own error branch for the common cases.
+- **`@ngx-translate/core`** — resolves an error's `code` to a
+  localized string (`errors.<code>` key) inside the interceptor;
+  falls back to the server's English `message` when a locale is
+  missing that key. Same library used for the app's general i18n
+  (per `state-management.md`), not a separate one just for errors.
 - **A custom `ErrorHandler`** (Angular's built-in extension point) —
   catches uncaught runtime errors (a bug in a component) that never
   even reached an HTTP call.
@@ -108,8 +113,9 @@ guessing from timestamps.
 {
   "error": {
     "category": "ValidationError",
+    "code": "AADHAR_INVALID_FORMAT",
     "message": "Admission number must be a 12-digit number",
-    "fields": [{ "field": "aadharNumber", "message": "..." }],
+    "fields": [{ "field": "aadharNumber", "code": "AADHAR_INVALID_FORMAT", "message": "..." }],
     "requestId": "a1b2c3d4-..."
   }
 }
@@ -120,6 +126,48 @@ field-error convention directly, per the Settings module's
 established pattern). Every other category omits it. The frontend
 never needs to guess the shape — one interface, `ApiError`, covers
 every response.
+
+## Error codes vs. categories — and where translation actually happens
+
+`category` (8 values, see the table above) drives coarse, shared
+behavior — HTTP status and which generic UI treatment applies (toast
+vs. inline vs. redirect). `code` is a separate, fine-grained, STABLE
+string identity per specific failure (`AUTH_INVALID_CREDENTIALS`,
+`CLASS_HAS_STUDENTS`, `ADMISSION_NO_DUPLICATE`) — this is what makes
+i18n possible without touching the backend's error-throwing code.
+
+**The backend never translates `message` itself.** A reference
+i18next setup was reviewed while designing this (translating inside
+the controller via `i18next.t(...)`, detecting language only from a
+querystring) and rejected — its own EN/HI locale files didn't even
+have matching key sets, which is exactly the failure mode this design
+avoids structurally: real MNC-grade APIs (Stripe, Google Cloud, AWS)
+return a stable `code`, never backend-translated prose, precisely so
+one backend can serve every locale/client without knowing the caller's
+language. `message` stays English and is only ever a fallback.
+
+**Where translation DOES happen:**
+- **API responses (this system)** — the Angular `ErrorInterceptor`
+  (`../frontend/error.interceptor.ts`) looks up `errors.<code>` via
+  `ngx-translate`; if that key is missing in the active locale, it
+  falls back to rendering the server's English `message` rather than
+  a raw untranslated key. See `resolveMessage()` there.
+- **Outbound communications** (WhatsApp/Email/SMS — no frontend render
+  step exists for these) — translated on the BACKEND, inside the
+  Notification service, using the recipient's stored
+  `preferredLanguage`, never per-request headers. See
+  `additional-technical-considerations.md`'s Notifications section.
+
+A CI/startup check keeps every locale's `errors.*` (frontend) and
+notification-template (backend) key sets in parity — a language
+missing a key is a build failure, not a silent runtime fallback
+discovered by a user.
+
+Reuse an existing `code` for the same kind of failure across modules
+(e.g. every "duplicate unique field" case can share a derived
+`<FIELD>_DUPLICATE` pattern, per `ConflictError.fromMongoDuplicateKey`)
+rather than inventing a new one per call site — codes are meant to be
+as reusable as categories, just more specific.
 
 ## Frontend handling — category maps to UI treatment, once
 
@@ -160,6 +208,39 @@ do.
   "an expected, handled failure" from "an unexpected bug that may have
   left the process in a bad state" — only the latter should ever
   trigger a process restart/alert-the-on-call-engineer response.
+
+## Response messages — centralized constants, never hardcoded strings per controller
+
+The same "never scatter it inline" principle that governs errors
+applies to SUCCESS messages too — `res.status(200).json('Class deleted
+successfully.')` hardcoded inside a controller is the success-path
+version of the exact problem this whole error-handling architecture
+exists to avoid on the failure path.
+
+- A shared `backend/modules/helpers/messages/common.messages.js` holds
+  generic CRUD message BUILDERS (not one hardcoded string per entity)
+  — e.g. `success.created(entity)`, `success.updated(entity)`,
+  `success.deleted(entity)` each returning a consistently-formatted
+  string (`"${entity} deleted successfully."`) — so "Class deleted
+  successfully," "Subject deleted successfully," and every other
+  entity's delete message come from ONE function, not N duplicated
+  string literals across N controllers.
+- Use SHORT, consistent keys for anything that isn't a simple CRUD
+  builder (module-specific messages) — grouped per module the same
+  way everything else in the backend is
+  (`modules/helpers/messages/<module>.messages.js`), never inlined
+  directly in a controller.
+- Where a message needs dynamic data (a count, a name), build it by
+  passing the value into the message function/template — never by
+  concatenating ad hoc strings at the call site in a controller; the
+  concatenation logic lives in the messages file, the controller just
+  calls `success.deleted('Class')` or `messages.classHasStudents(count)`.
+
+This keeps wording consistent across the whole app (no "deleted
+successfully" in one controller and "has been removed" in another for
+the same action) and means a wording change happens in one file, not
+a grep-and-replace across every controller that ever returned a
+similar message.
 
 ## Files in this reference
 

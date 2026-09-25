@@ -1,0 +1,19 @@
+<!-- The reference's `.sec-block` rows. The add/remove affordances are the reference's own
+     glyphs (+ and ×), not icons — matching
+     docs/schoolzen-planning/v1/academic-setup/classes-sections.html. -->
+<div [class.sec-block]="!bare">
+  <div class="sec-head">
+    <span [class]="titleClass">{{ title }}</span>
+    <button type="button" class="sec-add" [attr.aria-label]="'Add ' + title" (click)="add()">+</button>
+  </div>
+
+  <div class="sec-row" *ngFor="let item of items; let i = index; trackBy: trackByIndex">
+    <input type="text" [value]="item" [placeholder]="placeholder" [attr.maxlength]="maxLength"
+           [attr.aria-label]="title + ' ' + (i + 1)"
+           (input)="update(i, $any($event.target).value)" />
+    <button type="button" class="sec-remove" [attr.aria-label]="'Remove ' + title + ' ' + (i + 1)"
+            (click)="remove(i)">&times;</button>
+  </div>
+
+  <p class="m-hint no-gap" *ngIf="!items.length">{{ emptyText }}</p>
+</div>

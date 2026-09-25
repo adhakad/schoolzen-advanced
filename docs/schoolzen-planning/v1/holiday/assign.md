@@ -1,57 +1,22 @@
-# Holiday — Assign page (finalized design)
+# Holiday — Assign
 
-Status: **FINAL** — v1
-Depends on: `../_core/refactor-plan-and-design-system.md`
-Reference: `assign.html` (same folder)
+Status: **FINAL**
+Reference: `assign.html`
 
-Third of three separate Holiday pages. Someone with no template gets
-no holidays — a day they don't come in still counts as Absent.
+Assigns a Holiday Template to staff or to a whole class of students.
 
 ---
 
-## Assignment granularity
+## Frontend
 
-**Staff** are assigned one at a time. **Students are assigned by
-CLASS** — one row covers every student in it, since assigning 40
-individual students to the same template per class would be pointless
-repetition.
+**Toolbar**: row1 (search + "Assign to Selected" + "Edit Selected", both disabled until rows checked) + row2 (Person Type→Dept/Class→Designation→Section cascade, same pattern as elsewhere).
 
-## Toolbar
+**Mixed-selection warning**: if the current selection mixes people who already have a template with people who don't, a warning banner appears and both action buttons should be treated as invalid for that mixed selection — Assign is for never-assigned people, Edit is for already-assigned people; selecting across both purposefully triggers this warning rather than silently doing the wrong thing.
 
-Search → Person-type (Staff / Students by class) → Department+
-Designation (Staff, adjacent pair) → Class+Section (Student,
-existence-check) → Holiday Template selector — same filter treatment
-as every other assign-type page (Assign Salary, Leave Assign).
+**Table**: checkbox, Name, Department, Assigned Template (or "Not set"), Action.
 
-## Selection + bulk action
+**Assign/Edit modal**: a single Template `.dd` — Assign creates the link, Edit changes it, for every selected person at once.
 
-Checkbox column + selection bar ("N selected" + "Assign" button,
-disabled until both a row is checked AND a template is chosen in the
-toolbar).
+## Backend
 
-## Table
-
-Name (or Class, when Student) → Department (or blank for Students) →
-Assigned Template (name, or muted "Not assigned") → Action ("Assign"
-if nothing set, "Edit" if a template is already active).
-
-## Edit-one-assignment modal — gated behind explicit confirmation
-
-Changing a LIVE assignment decides whether these people are marked
-Absent or Holiday going forward, so this is treated with more care than
-a routine field edit:
-- Shows current state: "Currently on **[Template name]**" (or "no
-  template").
-- An amber-tinted gate: "I confirm I want to change this assignment"
-  checkbox — the template dropdown AND both footer buttons (Remove
-  template / Save) stay disabled until this is ticked.
-- A note: "The change takes effect straight away — the attendance
-  register picks it up on its next run."
-- "Remove template" (unlink) sits as a distinct, separately-gated
-  action from changing to a different template — removing entirely is
-  a different decision than swapping one for another.
-
-## Empty state
-
-No holiday template exists yet: a note pointing to **Templates** to
-make one first (a link, since this page can't do anything without one).
+Schema — assignment lives as `templateId` on `Staff`/`StudentEnrollment` (session-scoped for students, matching the shift/class pattern elsewhere) rather than a separate join collection, since each person has at most one active template. Bulk assign/edit is one `bulkWrite`. The mixed-selection rule should also be enforced server-side (reject a batch that mixes intents), not just as a frontend warning.

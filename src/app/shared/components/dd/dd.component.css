@@ -1,0 +1,23 @@
+/* The `.dd` visual rules live in the global design-system sheet, because a page's own
+   hand-written `.dd` markup (the reference HTML uses it directly) must look identical to
+   this component's. Only what is specific to being an Angular host element is here. */
+
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+/* The trigger fills the host so the whole pill is the hit target, not just the text. */
+.dd-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  outline: none;
+}
+
+.dd-trigger:focus-visible { border-radius: var(--radius); box-shadow: 0 0 0 2px var(--brand-soft); }
