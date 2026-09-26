@@ -1,0 +1,33 @@
+<!-- The reference's .letter-frame markup (docs/schoolzen-planning/v1/student/admission.html),
+     class-for-class, driven by the shared document model. -->
+<div class="letter-frame print-target" *ngIf="document">
+  <div class="letter-header">
+    <div class="letter-logo">
+      <img *ngIf="document.header.logoUrl; else defaultLogo" [src]="document.header.logoUrl" alt="" />
+      <ng-template #defaultLogo><i class="bi bi-mortarboard-fill"></i></ng-template>
+    </div>
+    <div>
+      <div class="letter-school-name">{{ document.header.schoolName }}</div>
+      <div class="letter-meta">
+        <ng-container *ngFor="let line of document.header.metaLines; let last = last">
+          {{ line }}<br *ngIf="!last" />
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <div class="letter-title-band">
+    <div class="t1">{{ document.title }}</div>
+    <div class="t2" *ngIf="document.subtitle">{{ document.subtitle }}</div>
+  </div>
+
+  <div class="letter-section-label" *ngIf="document.sectionLabel">{{ document.sectionLabel }}</div>
+  <div class="letter-grid">
+    <div *ngFor="let field of document.fields; trackBy: trackByLabel">
+      <div class="letter-field-label">{{ field.label }}</div>
+      <div class="letter-field-value">{{ field.value }}</div>
+    </div>
+  </div>
+
+  <p class="letter-note" *ngIf="document.note">{{ document.note }}</p>
+</div>

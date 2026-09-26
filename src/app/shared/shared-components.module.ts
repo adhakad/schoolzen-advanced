@@ -13,7 +13,7 @@
  */
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
 // Angular Material supplies the DATE PICKER only. Every select-like control is app-dd:
@@ -41,6 +41,10 @@ import { ToggleSwitchComponent } from './components/toggle-switch/toggle-switch.
 import { InlineListEditorComponent } from './components/inline-list-editor/inline-list-editor.component';
 import { DdComponent } from './components/dd/dd.component';
 import { PaginationBarComponent } from './components/pagination-bar/pagination-bar.component';
+import { ClassCascadeFilterComponent } from './components/class-cascade-filter/class-cascade-filter.component';
+import { LetterheadDocumentComponent } from './components/letterhead-document/letterhead-document.component';
+import { StudentProfileViewComponent } from './components/student-profile-view/student-profile-view.component';
+import { StudentFormComponent } from './components/student-form/student-form.component';
 
 const COMPONENTS = [
   PageShellComponent,
@@ -59,17 +63,24 @@ const COMPONENTS = [
   ToggleSwitchComponent,
   InlineListEditorComponent,
   DdComponent,
-  PaginationBarComponent
+  PaginationBarComponent,
+  // Built for the Student module, reused by every later module that needs them: the class
+  // cascade filter (Fees, Examination, Certificates), the letterhead (every printable
+  // document), and the student form/profile view.
+  ClassCascadeFilterComponent,
+  LetterheadDocumentComponent,
+  StudentProfileViewComponent,
+  StudentFormComponent
 ];
 
 @NgModule({
   declarations: COMPONENTS,
   imports: [
-    CommonModule, FormsModule, RouterModule,
+    CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
     MatDatepickerModule, MatNativeDateModule
   ],
   // app-dd is exported with the rest: a module page's own form (the Add/Edit modal's
   // Class Name field) uses the same dropdown component the toolbar's filter pills do.
-  exports: [...COMPONENTS, CommonModule, FormsModule, RouterModule]
+  exports: [...COMPONENTS, CommonModule, FormsModule, ReactiveFormsModule, RouterModule]
 })
 export class SharedComponentsModule {}

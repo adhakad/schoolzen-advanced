@@ -1,0 +1,223 @@
+<!-- Manage Students.
+     Reference: docs/schoolzen-planning/v1/student/manage-students.html
+
+     The reference's own markup and class names with Angular bindings layered on. Toolbar is
+     THIS page's shape: row1 = search + four buttons, row2 = the four cascade pills. -->
+
+<div class="page-head">
+  <div>
+    <h1>Manage Students</h1>
+    <div class="subtitle">Every enrolled student — filter by class only when you need to narrow it down.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or admission no." aria-label="Search students"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-warn" [disabled]="!selectedCount" title="Delete Selected"
+                  (click)="onDeleteSelected()">
+            <i class="bi bi-trash"></i> <span class="btn-label">Delete Selected</span>
+          </button>
+          <button type="button" class="btn-assign" [disabled]="!selectedCount" title="Assign Card to Selected"
+                  (click)="onAssignCardSelected()">
+            <i class="bi bi-credit-card"></i> <span class="btn-label">Assign Card to Selected</span>
+          </button>
+          <!-- The one scope-gated action: disabled until a Class (+Stream for 11th/12th) is picked. -->
+          <button type="button" class="btn-secondary excel-btn" [disabled]="!excelEnabled"
+                  [title]="excelEnabled ? 'Excel Import/Export' : 'Pick a class first'"
+                  (click)="onOpenExcel()">
+            <i class="bi bi-file-earmark-spreadsheet"></i> <span class="btn-label">Excel Import/Export</span>
+          </button>
+          <button type="button" class="btn-primary" title="Create" (click)="onCreate()">
+            <i class="bi bi-plus-lg"></i> <span class="btn-label">Create</span>
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2">
+        <app-class-cascade-filter [options]="filterOptions" [value]="filter"
+                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <div class="table-inner">
+        <table>
+          <thead>
+            <tr>
+              <th class="check-col">
+                <input type="checkbox" aria-label="Select all students on this page"
+                       [checked]="allSelected" (change)="toggleAll()" />
+              </th>
+              <th>Photo</th><th>Admission No.</th><th>Student</th><th>Class</th><th>Father</th>
+              <th>Mother</th><th>Roll No.</th><th>Contact</th><th>Card</th><th class="act">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rows; trackBy: trackByRow">
+              <td class="check-col">
+                <input type="checkbox" [attr.aria-label]="'Select ' + row.name"
+                       [checked]="isSelected(row)" (change)="toggleRow(row)" />
+              </td>
+              <td>
+                <span class="st-avatar" [style.background]="row.photoUrl ? null : row.gradient">
+                  <img *ngIf="row.photoUrl; else initialsTpl" [src]="row.photoUrl" alt="" />
+                  <ng-template #initialsTpl>{{ row.initials }}</ng-template>
+                </span>
+              </td>
+              <td>
+                <span class="adm-no" *ngIf="row.admissionNo !== null; else notIssued">{{ row.admissionNo }}</span>
+                <ng-template #notIssued><span class="not-set">Not yet issued</span></ng-template>
+              </td>
+              <td><span class="st-name">{{ row.name }}</span></td>
+              <td>
+                <span class="cls-tag">{{ row.classTag }}</span>
+                <i class="bi bi-exclamation-circle incomplete" *ngIf="row.placementIncomplete"
+                   title="Stream / Subject Group still needs to be set"></i>
+              </td>
+              <td>{{ row.fatherName || '—' }}</td>
+              <td>{{ row.motherName || '—' }}</td>
+              <td>{{ row.rollNumber ?? '—' }}</td>
+              <td>{{ row.contact || '—' }}</td>
+              <td>
+                <span class="card-tag" *ngIf="row.card; else noCard">{{ row.card }}</span>
+                <ng-template #noCard><span class="not-set">Not assigned</span></ng-template>
+              </td>
+              <td class="act">
+                <div class="actions">
+                  <button type="button" class="icon-btn" [attr.aria-label]="'View ' + row.name" title="View profile"
+                          (click)="onView(row)"><i class="bi bi-eye"></i></button>
+                  <button type="button" class="icon-btn" [attr.aria-label]="'Assign card to ' + row.name"
+                          [title]="row.card ? 'Change card' : 'Assign card'"
+                          (click)="onAssignCard(row)"><i class="bi bi-credit-card"></i></button>
+                  <button type="button" class="icon-btn" [attr.aria-label]="'Resync ' + row.name" title="Resync to devices"
+                          (click)="onResync(row)"><i class="bi bi-arrow-repeat"></i></button>
+                  <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name" title="Edit"
+                          (click)="onEdit(row)"><i class="bi bi-pencil"></i></button>
+                  <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name" title="Delete"
+                          (click)="onDelete(row)"><i class="bi bi-trash"></i></button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+      {{ search || filter.classId ? 'No students match these filters.' : 'No students in this session yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Total Students</span><span class="stat-value">{{ overview.totalStudents }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Cards Assigned</span><span class="stat-value">{{ overview.cardsAssigned }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Excel Import/Export needs a Class picked first — it applies only to that class(+stream).</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a student also removes their login access, fee records, admit cards, and results.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Resync pushes this person's card and fingerprint back down to every biometric device.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Update — the shared student form. -->
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit" [width]="560"
+                [submitDisabled]="saving" (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <app-student-form *ngIf="formOpen" [mode]="formMode" [adminId]="adminId" [session]="session"
+                    [detail]="formDetail" [filterOptions]="filterOptions" [fieldConfig]="fieldConfig"
+                    [serverErrors]="formErrors"></app-student-form>
+</app-form-modal>
+
+<!-- View Profile — read-only. -->
+<app-form-modal [open]="viewOpen" title="Student Profile" [width]="560" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closeView()">
+  <app-student-profile-view [detail]="viewDetail" variant="profile"></app-student-profile-view>
+</app-form-modal>
+
+<!-- Assign Card — single or bulk. Submitting pushes to every device; no separate resync. -->
+<app-form-modal [open]="cardOpen" [title]="cardTitle" [width]="420"
+                [submitLabel]="cardSaving ? 'Syncing to device…' : 'Assign & Sync'"
+                [submitDisabled]="cardSubmitDisabled" (submitted)="onCardSubmit()" (cancelled)="cardOpen = false">
+  <div class="m-field card-info">
+    <ng-container *ngIf="cardTargets.length === 1; else bulkInfo">
+      <b>{{ cardTargets[0].name }}</b>
+      &middot; Admission No. {{ cardTargets[0].admissionNo ?? '—' }}
+      &middot; Roll No. {{ cardTargets[0].rollNumber ?? '—' }}
+      &middot; Class {{ cardTargets[0].classTag }}
+    </ng-container>
+    <ng-template #bulkInfo>Each student below needs their own card number.</ng-template>
+  </div>
+
+  <div class="m-field" *ngIf="cardTargets.length === 1">
+    <label for="card-single">Card Number</label>
+    <input id="card-single" type="text" inputmode="numeric" placeholder="Scan or type card number"
+           [value]="cardNumbers[cardTargets[0].studentId] || ''"
+           (input)="onCardInput(cardTargets[0].studentId, $any($event.target).value)" />
+    <p class="m-hint" *ngIf="cardTargets[0].card">Currently {{ cardTargets[0].card }} — a new number replaces it.</p>
+  </div>
+
+  <ng-container *ngIf="cardTargets.length > 1">
+    <div class="card-row" *ngFor="let target of cardTargets; trackBy: trackByTarget">
+      <span class="cr-name" [title]="target.name">{{ target.name }}<br />
+        <span class="cr-meta">Adm. {{ target.admissionNo ?? '—' }} · Roll {{ target.rollNumber ?? '—' }} · {{ target.classTag }}</span>
+      </span>
+      <input type="text" inputmode="numeric" [placeholder]="'Card no. for ' + (target.admissionNo ?? target.name)"
+             [value]="cardNumbers[target.studentId] || ''"
+             (input)="onCardInput(target.studentId, $any($event.target).value)" />
+    </div>
+  </ng-container>
+
+  <div class="m-field last">
+    <label>Verify Mode</label>
+    <app-dd [options]="verifyModeOptions" [value]="cardVerifyMode" ariaLabel="Verify mode"
+            (valueChange)="cardVerifyMode = $event"></app-dd>
+    <div class="m-hint">Applies to everyone here. Submitting pushes this straight to every biometric device — no separate resync needed.</div>
+  </div>
+  <p class="m-error" *ngIf="cardError">{{ cardError }}</p>
+</app-form-modal>
+
+<!-- Excel Import / Export — explicitly scoped to the filtered class(+stream). -->
+<app-form-modal [open]="excelOpen" title="Excel Import / Export" [width]="420" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closeExcel()">
+  <p class="m-hint scope-note">Scope: <b>{{ excelScopeLabel }}</b>, session <b>{{ session }}</b>. Both import and export apply only to this class(+stream) — switch the filter above to work with a different one.</p>
+
+  <div class="excel-title">Export</div>
+  <p class="m-hint">Download the current class(+stream)'s students as an Excel file.</p>
+  <button type="button" class="btn-secondary full" [disabled]="exporting" (click)="onExport()">
+    <i class="bi bi-download"></i> {{ exporting ? 'Preparing…' : 'Export Excel' }}
+  </button>
+
+  <div class="excel-title">Import</div>
+  <p class="m-hint">Upload a filled Excel sheet to add or update students in this class(+stream). Each row needs an Admission No.</p>
+  <label class="upload-box" [class.busy]="importing">
+    <i class="bi bi-cloud-upload"></i>{{ importStatus || 'Click to choose an Excel file' }}
+    <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden
+           [disabled]="importing" (change)="onImportFile($event)" />
+  </label>
+  <p class="m-error" *ngIf="importError">{{ importError }}</p>
+
+  <div class="import-result" *ngIf="importResult">
+    <div><b>{{ importResult.created }}</b> added · <b>{{ importResult.updated }}</b> updated · <b>{{ importResult.failedCount }}</b> skipped</div>
+    <ul *ngIf="importResult.failed.length">
+      <li *ngFor="let failure of importResult.failed">Row {{ failure.row }}: {{ failure.messages.join('; ') }}</li>
+    </ul>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

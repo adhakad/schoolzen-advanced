@@ -61,4 +61,8 @@ module.exports = app => {
     app.use('/api/v2/academic-setup', require('./modules/routes/academic-setup/classes-sections.routes'));
     app.use('/api/v2/academic-setup', require('./modules/routes/academic-setup/subjects.routes'));
     app.use('/api/v2/academic-setup', require('./modules/routes/academic-setup/subject-groups.routes'));
+    // Module 2 — Student. Same shared-base-path shape as Academic Setup.
+    app.use('/api/v2/student', require('./modules/routes/student/manage-students.routes'));
+    app.use('/api/v2/student', require('./modules/routes/student/admission.routes'));
+    app.use('/api/v2/student', require('./modules/routes/student/class-promotion.routes'));
 };

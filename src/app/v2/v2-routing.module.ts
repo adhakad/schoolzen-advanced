@@ -23,6 +23,13 @@ const routes: Routes = [
         loadChildren: () => import('src/app/academic-setup/academic-setup.module')
           .then((m) => m.AcademicSetupModule)
       },
+      // Module 2. Legacy /admin/student pages stay reachable and unchanged until these are
+      // verified against their references.
+      {
+        path: 'student',
+        loadChildren: () => import('src/app/student/student.module')
+          .then((m) => m.StudentModule)
+      },
       // Sidebar entries whose pages don't exist yet land here rather than 404-ing.
       { path: '**', component: NotBuiltComponent }
     ]

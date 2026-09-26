@@ -1,0 +1,304 @@
+<!-- The Student references' modal form (manage-students.html #studentModal, admission.html
+     #admissionModal): three .group-title sections of .m-row/.m-field pairs. Every
+     categorical field is app-dd. Fields the school hid in Settings are simply not rendered. -->
+
+<!-- ================= Academic / Admission Info ================= -->
+<div class="group-title">{{ mode === 'admission' ? 'Admission Info' : 'Academic Info' }}</div>
+
+<div class="m-row">
+  <div class="m-field">
+    <label>Session</label>
+    <input type="text" [value]="detail?.placement?.session || session" disabled />
+  </div>
+  <div class="m-field" *ngIf="show('medium')">
+    <label>{{ label('medium', 'Medium') }} <span class="req-star" *ngIf="required('medium')">*</span></label>
+    <app-dd [options]="enumOptions['medium'] || []" [value]="value('medium')" placeholder="Select medium"
+            ariaLabel="Medium" (valueChange)="set('medium', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('medium')">{{ error('medium') }}</p>
+  </div>
+</div>
+
+<!-- Placement: chosen here on create; read-only on edit (Class Promotion moves students). -->
+<ng-container *ngIf="!isEdit; else placementReadOnly">
+  <div class="m-row">
+    <div class="m-field">
+      <label>Class <span class="req-star">*</span></label>
+      <app-dd [options]="classOptions" [value]="value('classId')" placeholder="Select class"
+              ariaLabel="Class" (valueChange)="onClassChange($event)"></app-dd>
+      <p class="m-error" *ngIf="error('classId')">{{ error('classId') }}</p>
+    </div>
+    <div class="m-field">
+      <label>Stream <span class="req-star" *ngIf="selectedClass?.hasStreams">*</span></label>
+      <app-dd [options]="streamOptions" [value]="value('streamId')" placeholder="N/A"
+              ariaLabel="Stream" [disabled]="!selectedClass?.hasStreams" disabledHint="N/A"
+              (valueChange)="onStreamChange($event)"></app-dd>
+      <p class="m-error" *ngIf="error('streamId')">{{ error('streamId') }}</p>
+    </div>
+  </div>
+  <div class="m-row">
+    <div class="m-field">
+      <label>Subject Group</label>
+      <app-dd [options]="groupOptions" [value]="value('groupId')" placeholder="— None —"
+              ariaLabel="Subject group" [disabled]="groupOptions.length < 2" disabledHint="— None —"
+              (valueChange)="set('groupId', $event)"></app-dd>
+      <p class="m-error" *ngIf="error('groupId')">{{ error('groupId') }}</p>
+    </div>
+    <div class="m-field">
+      <label>Section</label>
+      <app-dd [options]="sectionOptions" [value]="value('sectionId')" placeholder="— None —"
+              ariaLabel="Section" [disabled]="sectionOptions.length < 2" disabledHint="— None —"
+              (valueChange)="set('sectionId', $event)"></app-dd>
+      <p class="m-error" *ngIf="error('sectionId')">{{ error('sectionId') }}</p>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #placementReadOnly>
+  <div class="m-row">
+    <div class="m-field">
+      <label>Class</label>
+      <input type="text" [value]="detail?.placement?.className || '—'" disabled />
+    </div>
+    <div class="m-field" *ngIf="!placementUnlocked">
+      <label>Stream</label>
+      <input type="text" [value]="detail?.placement?.streamName || 'N/A'" disabled />
+    </div>
+    <!-- An incomplete promotion into 11th/12th: the one case Stream becomes editable. -->
+    <div class="m-field" *ngIf="placementUnlocked">
+      <label>Stream</label>
+      <app-dd [options]="streamOptions" [value]="value('streamId')" placeholder="Select stream"
+              ariaLabel="Stream" (valueChange)="onStreamChange($event)"></app-dd>
+      <p class="m-error" *ngIf="error('streamId')">{{ error('streamId') }}</p>
+    </div>
+  </div>
+  <div class="m-row">
+    <div class="m-field" *ngIf="placementUnlocked">
+      <label>Subject Group</label>
+      <app-dd [options]="groupOptions" [value]="value('groupId')" placeholder="— None —"
+              ariaLabel="Subject group" (valueChange)="set('groupId', $event)"></app-dd>
+      <p class="m-error" *ngIf="error('groupId')">{{ error('groupId') }}</p>
+    </div>
+    <div class="m-field">
+      <label>Section</label>
+      <app-dd [options]="sectionOptions" [value]="value('sectionId')" placeholder="— None —"
+              ariaLabel="Section" [disabled]="sectionOptions.length < 2" disabledHint="— None —"
+              (valueChange)="set('sectionId', $event)"></app-dd>
+      <p class="m-error" *ngIf="error('sectionId')">{{ error('sectionId') }}</p>
+    </div>
+  </div>
+  <p class="m-hint" *ngIf="placementUnlocked">
+    This student was promoted into a streamed class — pick their Stream and Subject Group to complete it.
+  </p>
+</ng-template>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('admissionNo')">
+    <label>{{ label('admissionNo', 'Admission No.') }}</label>
+    <input type="text" inputmode="numeric" [value]="value('admissionNo')" [disabled]="admissionNoLocked"
+           placeholder="Leave blank to keep Pending" (input)="onInput('admissionNo', $event)" />
+    <p class="m-hint" *ngIf="!admissionNoLocked">Blank keeps the admission Pending until one is issued.</p>
+    <p class="m-error" *ngIf="error('admissionNo')">{{ error('admissionNo') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('doa')">
+    <label>{{ label('doa', 'Date of Admission') }} <span class="req-star" *ngIf="required('doa')">*</span></label>
+    <input type="text" placeholder="dd/mm/yyyy" [value]="value('doa')" (input)="onInput('doa', $event)" />
+    <p class="m-error" *ngIf="error('doa')">{{ error('doa') }}</p>
+  </div>
+</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="mode === 'admission' && show('admissionFee')">
+    <label>{{ label('admissionFee', 'Admission Fee (₹)') }}</label>
+    <input type="text" [value]="value('admissionFee')" placeholder="Set by Fee Structure" disabled />
+  </div>
+  <div class="m-field" *ngIf="mode !== 'admission' && show('admissionClass')">
+    <label>{{ label('admissionClass', 'First Enrolled Class') }}</label>
+    <app-dd [options]="admissionClassOptions" [value]="value('admissionClass')" placeholder="Select class"
+            ariaLabel="First enrolled class" (valueChange)="set('admissionClass', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('admissionClass')">{{ error('admissionClass') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('feesConcession')">
+    <label>{{ label('feesConcession', 'Fees Concession (₹)') }}</label>
+    <input type="text" inputmode="numeric" placeholder="0" [value]="value('feesConcession')"
+           (input)="onInput('feesConcession', $event)" />
+    <p class="m-error" *ngIf="error('feesConcession')">{{ error('feesConcession') }}</p>
+  </div>
+</div>
+
+<!-- ================= Student Info ================= -->
+<div class="group-title">Student Info</div>
+
+<div class="photo-upload">
+  <div class="photo-circle">
+    <img *ngIf="photoPreview || detail?.student?.photoUrl; else noPhoto"
+         [src]="photoPreview || detail?.student?.photoUrl" alt="" />
+    <ng-template #noPhoto><i class="bi bi-person"></i></ng-template>
+  </div>
+  <button type="button" class="btn-secondary" (click)="photoInput.click()">
+    {{ (photoPreview || detail?.student?.photoUrl) ? 'Change Photo' : 'Upload Photo' }} (up to 100KB)
+  </button>
+  <input #photoInput type="file" accept="image/png,image/jpeg" hidden (change)="onPhotoPicked($event)" />
+</div>
+<p class="m-error photo-error" *ngIf="error('photo')">{{ error('photo') }}</p>
+
+<div class="m-row">
+  <div class="m-field">
+    <label>{{ label('name', 'Name') }} <span class="req-star">*</span></label>
+    <input type="text" placeholder="Full name" [value]="value('name')" (input)="onInput('name', $event)" />
+    <p class="m-error" *ngIf="error('name')">{{ error('name') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('rollNumber')">
+    <label>{{ label('rollNumber', 'Roll Number') }}</label>
+    <input type="text" inputmode="numeric" placeholder="12" [value]="value('rollNumber')"
+           (input)="onInput('rollNumber', $event)" />
+    <p class="m-error" *ngIf="error('rollNumber')">{{ error('rollNumber') }}</p>
+  </div>
+</div>
+
+<div class="m-row">
+  <div class="m-field">
+    <label>{{ label('dob', 'Date of Birth') }} <span class="req-star">*</span></label>
+    <input type="text" placeholder="dd/mm/yyyy" [value]="value('dob')" (input)="onInput('dob', $event)" />
+    <p class="m-error" *ngIf="error('dob')">{{ error('dob') }}</p>
+  </div>
+  <div class="m-field">
+    <label>{{ label('gender', 'Gender') }} <span class="req-star">*</span></label>
+    <app-dd [options]="enumOptions['gender'] || []" [value]="value('gender')" placeholder="Select gender"
+            ariaLabel="Gender" (valueChange)="set('gender', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('gender')">{{ error('gender') }}</p>
+  </div>
+</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('aadharNumber')">
+    <label>{{ label('aadharNumber', 'Aadhar Number') }}{{ required('aadharNumber') ? '' : ' (optional)' }}</label>
+    <input type="text" inputmode="numeric" placeholder="12-digit number" [value]="value('aadharNumber')"
+           (input)="onInput('aadharNumber', $event)" />
+    <p class="m-error" *ngIf="error('aadharNumber')">{{ error('aadharNumber') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('samagraId')">
+    <label>{{ label('samagraId', 'Samagra ID') }}{{ required('samagraId') ? '' : ' (optional)' }}</label>
+    <input type="text" inputmode="numeric" placeholder="9-digit number" [value]="value('samagraId')"
+           (input)="onInput('samagraId', $event)" />
+    <p class="m-error" *ngIf="error('samagraId')">{{ error('samagraId') }}</p>
+  </div>
+</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('category')">
+    <label>{{ label('category', 'Category') }} <span class="req-star" *ngIf="required('category')">*</span></label>
+    <app-dd [options]="enumOptions['category'] || []" [value]="value('category')" placeholder="Select category"
+            ariaLabel="Category" (valueChange)="set('category', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('category')">{{ error('category') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('religion')">
+    <label>{{ label('religion', 'Religion') }} <span class="req-star" *ngIf="required('religion')">*</span></label>
+    <app-dd [options]="enumOptions['religion'] || []" [value]="value('religion')" placeholder="Select religion"
+            ariaLabel="Religion" (valueChange)="set('religion', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('religion')">{{ error('religion') }}</p>
+  </div>
+</div>
+
+<div class="m-field" *ngIf="show('nationality')">
+  <label>{{ label('nationality', 'Nationality') }} <span class="req-star" *ngIf="required('nationality')">*</span></label>
+  <app-dd [options]="enumOptions['nationality'] || []" [value]="value('nationality')" placeholder="Select nationality"
+          ariaLabel="Nationality" (valueChange)="set('nationality', $event)"></app-dd>
+  <p class="m-error" *ngIf="error('nationality')">{{ error('nationality') }}</p>
+</div>
+
+<div class="m-field" *ngIf="show('address')">
+  <label>{{ label('address', 'Address') }} <span class="req-star" *ngIf="required('address')">*</span></label>
+  <input type="text" placeholder="Street, City, State" [value]="value('address')" (input)="onInput('address', $event)" />
+  <p class="m-error" *ngIf="error('address')">{{ error('address') }}</p>
+</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('udiseNumber')">
+    <label>{{ label('udiseNumber', 'UDISE Number') }}{{ required('udiseNumber') ? '' : ' (optional)' }}</label>
+    <input type="text" inputmode="numeric" placeholder="11-digit number" [value]="value('udiseNumber')"
+           (input)="onInput('udiseNumber', $event)" />
+    <p class="m-error" *ngIf="error('udiseNumber')">{{ error('udiseNumber') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('lastSchool')">
+    <label>{{ label('lastSchool', 'Last School') }}{{ required('lastSchool') ? '' : ' (optional)' }}</label>
+    <input type="text" placeholder="Previous school name" [value]="value('lastSchool')"
+           (input)="onInput('lastSchool', $event)" />
+    <p class="m-error" *ngIf="error('lastSchool')">{{ error('lastSchool') }}</p>
+  </div>
+</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('bankAccountNo')">
+    <label>{{ label('bankAccountNo', 'Bank A/C Number') }}{{ required('bankAccountNo') ? '' : ' (optional)' }}</label>
+    <input type="text" inputmode="numeric" placeholder="Account number" [value]="value('bankAccountNo')"
+           (input)="onInput('bankAccountNo', $event)" />
+    <p class="m-error" *ngIf="error('bankAccountNo')">{{ error('bankAccountNo') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('bankIfscCode')">
+    <label>{{ label('bankIfscCode', 'Bank IFSC Code') }}{{ required('bankIfscCode') ? '' : ' (optional)' }}</label>
+    <input type="text" placeholder="11-character code" [value]="value('bankIfscCode')"
+           (input)="onInput('bankIfscCode', $event)" />
+    <p class="m-error" *ngIf="error('bankIfscCode')">{{ error('bankIfscCode') }}</p>
+  </div>
+</div>
+
+<!-- ================= Parents Info ================= -->
+<div class="group-title">Parents Info</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('fatherName')">
+    <label>{{ label('fatherName', 'Father Name') }} <span class="req-star" *ngIf="required('fatherName')">*</span></label>
+    <input type="text" placeholder="Father's full name" [value]="value('fatherName')" (input)="onInput('fatherName', $event)" />
+    <p class="m-error" *ngIf="error('fatherName')">{{ error('fatherName') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('motherName')">
+    <label>{{ label('motherName', 'Mother Name') }} <span class="req-star" *ngIf="required('motherName')">*</span></label>
+    <input type="text" placeholder="Mother's full name" [value]="value('motherName')" (input)="onInput('motherName', $event)" />
+    <p class="m-error" *ngIf="error('motherName')">{{ error('motherName') }}</p>
+  </div>
+</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('fatherQualification')">
+    <label>{{ label('fatherQualification', 'Father Qualification') }} <span class="req-star" *ngIf="required('fatherQualification')">*</span></label>
+    <app-dd [options]="enumOptions['qualification'] || []" [value]="value('fatherQualification')" placeholder="Select"
+            ariaLabel="Father qualification" (valueChange)="set('fatherQualification', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('fatherQualification')">{{ error('fatherQualification') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('motherQualification')">
+    <label>{{ label('motherQualification', 'Mother Qualification') }} <span class="req-star" *ngIf="required('motherQualification')">*</span></label>
+    <app-dd [options]="enumOptions['qualification'] || []" [value]="value('motherQualification')" placeholder="Select"
+            ariaLabel="Mother qualification" (valueChange)="set('motherQualification', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('motherQualification')">{{ error('motherQualification') }}</p>
+  </div>
+</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('fatherOccupation')">
+    <label>{{ label('fatherOccupation', 'Father Occupation') }} <span class="req-star" *ngIf="required('fatherOccupation')">*</span></label>
+    <app-dd [options]="enumOptions['occupation'] || []" [value]="value('fatherOccupation')" placeholder="Select"
+            ariaLabel="Father occupation" (valueChange)="set('fatherOccupation', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('fatherOccupation')">{{ error('fatherOccupation') }}</p>
+  </div>
+  <div class="m-field" *ngIf="show('motherOccupation')">
+    <label>{{ label('motherOccupation', 'Mother Occupation') }} <span class="req-star" *ngIf="required('motherOccupation')">*</span></label>
+    <app-dd [options]="enumOptions['occupation'] || []" [value]="value('motherOccupation')" placeholder="Select"
+            ariaLabel="Mother occupation" (valueChange)="set('motherOccupation', $event)"></app-dd>
+    <p class="m-error" *ngIf="error('motherOccupation')">{{ error('motherOccupation') }}</p>
+  </div>
+</div>
+
+<div class="m-row">
+  <div class="m-field" *ngIf="show('familyAnnualIncome')">
+    <label>{{ label('familyAnnualIncome', 'Family Annual Income (₹)') }} <span class="req-star" *ngIf="required('familyAnnualIncome')">*</span></label>
+    <input type="text" inputmode="numeric" placeholder="600000" [value]="value('familyAnnualIncome')"
+           (input)="onInput('familyAnnualIncome', $event)" />
+    <p class="m-error" *ngIf="error('familyAnnualIncome')">{{ error('familyAnnualIncome') }}</p>
+  </div>
+  <div class="m-field last" *ngIf="show('parentsContact')">
+    <label>{{ label('parentsContact', 'Parents Contact') }}{{ required('parentsContact') ? '' : ' (optional)' }}</label>
+    <input type="text" inputmode="tel" placeholder="+91 98765 43210" [value]="value('parentsContact')"
+           (input)="onInput('parentsContact', $event)" />
+    <p class="m-error" *ngIf="error('parentsContact')">{{ error('parentsContact') }}</p>
+  </div>
+</div>

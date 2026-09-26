@@ -1,0 +1,145 @@
+<!-- Class Promotion.
+     Reference: docs/schoolzen-planning/v1/student/class-promotion.html
+
+     Toolbar is THIS page's shape: row1 = search + Confirm Promotion, row2 = the cascade
+     pills (Class required — no "All classes"), then the promote strip under the toolbar. -->
+
+<div class="page-head">
+  <div>
+    <h1>Class Promotion</h1>
+    <div class="subtitle">Decide who moves up at year-end — this creates next session's placement, current records stay untouched.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or roll number" aria-label="Search students"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+        <button type="button" class="btn-primary" [disabled]="jobRunning" (click)="onOpenConfirm()">
+          <i class="bi bi-check-lg"></i> {{ jobRunning ? 'Promotion running…' : 'Confirm Promotion' }}
+        </button>
+      </div>
+      <div class="toolbar-row2">
+        <app-class-cascade-filter [options]="filterOptions" [value]="filter" [requireClass]="true"
+                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+    </div>
+
+    <div class="promote-strip" *ngIf="roster">
+      <label>Promote everyone marked <b>Promote</b> from {{ currentClassLabel }} to:</label>
+      <app-dd class="strip-dd" [options]="targetOptions" [value]="bulkTargetKey" placeholder="Select class"
+              ariaLabel="Promote everyone marked Promote to" (valueChange)="onBulkTarget($event)"></app-dd>
+      <span class="note">Can still be changed per student below.</span>
+    </div>
+
+    <div class="grid-scroll">
+      <div class="table-inner compact">
+        <table>
+          <thead>
+            <tr><th>Roll</th><th>Student</th><th>Exam Result</th><th>Promote To</th><th>Decision</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rows; trackBy: trackByRow" [class.detained]="row.decision === 'detain'">
+              <td>{{ row.rollNumber ?? '—' }}</td>
+              <td>
+                <div class="r-info">
+                  <span class="r-avatar" [style.background]="row.photoUrl ? null : row.gradient">
+                    <img *ngIf="row.photoUrl; else initialsTpl" [src]="row.photoUrl" alt="" />
+                    <ng-template #initialsTpl>{{ row.initials }}</ng-template>
+                  </span>
+                  <div>
+                    <div class="r-name">{{ row.name }}</div>
+                    <div class="r-sub">
+                      Adm. {{ row.admissionNo ?? '—' }}
+                      <span *ngIf="row.alreadyPlaced"> · already placed in {{ roster?.nextSession }}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="tag fixed" [ngClass]="row.resultClass">{{ row.resultLabel }}</span></td>
+              <td class="r-promoteto">
+                <!-- Detain: disabled and relabelled "<class> (repeats)". -->
+                <app-dd [options]="targetOptions" [value]="row.targetKey" placeholder="Select class"
+                        [disabled]="row.decision === 'detain' || row.alreadyPlaced"
+                        [disabledHint]="row.decision === 'detain' ? repeatsLabel : ''"
+                        [attr.data-row]="row.enrollmentId"
+                        [ariaLabel]="'Promote ' + row.name + ' to'"
+                        (valueChange)="setTarget(row, $event)"></app-dd>
+              </td>
+              <td class="decision-cell">
+                <button type="button" class="decision-btn promote" [class.active]="row.decision === 'promote'"
+                        [disabled]="row.alreadyPlaced" [attr.aria-pressed]="row.decision === 'promote'"
+                        (click)="setDecision(row, 'promote')">Promote</button>
+                <button type="button" class="decision-btn detain" [class.active]="row.decision === 'detain'"
+                        [disabled]="row.alreadyPlaced" [attr.aria-pressed]="row.decision === 'detain'"
+                        (click)="setDecision(row, 'detain')">Detain</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+      {{ filter.classId ? 'No students in this class for ' + session + '.' : 'Set up a class in Academic Setup first.' }}
+    </div>
+
+    <div class="sw-footer" *ngIf="roster">
+      <span>Showing {{ rows.length }} of {{ counts.promoting + counts.detaining + counts.notDecided }} students</span>
+      <span>{{ currentClassLabel }} · {{ session }} session</span>
+    </div>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">{{ currentClassLabel || 'Class' }}, This Session</span></div>
+      <div class="stat-row accent"><span class="stat-label">Promoting</span><span class="stat-value">{{ counts.promoting }}</span></div>
+      <div class="stat-row"><span class="stat-label">Detaining</span><span class="stat-value">{{ counts.detaining }}</span></div>
+      <div class="stat-row"><span class="stat-label">Not Decided</span><span class="stat-value">{{ counts.notDecided }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Confirming creates next session's placement — this class's current records are never changed or deleted.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Any unpaid fee balance carries forward as an arrear on the new session's fee record.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Roll Number is cleared on promotion — assign it fresh in the new class via Manage Students.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm — server-computed preview; warnings are shown but never block. -->
+<app-form-modal [open]="confirmOpen" [title]="'Confirm Class Promotion — ' + currentClassLabel" [width]="520"
+                [submitLabel]="confirming ? 'Starting…' : 'Confirm Promotion for ' + (preview?.summary?.total || 0)"
+                cancelLabel="Go Back" [submitDisabled]="confirming"
+                (submitted)="onConfirm()" (cancelled)="closeConfirm()">
+  <ng-container *ngIf="preview">
+    <div class="warn-box">
+      <b>This creates {{ preview.nextSession }} session placements</b> for every student below —
+      {{ currentClassLabel }}'s {{ session }} records are not changed or deleted, they remain exactly as they are now.
+    </div>
+
+    <div class="confirm-summary">
+      <div><div class="num promoting">{{ preview.summary.promoting }}</div><div class="lbl">Promoting</div></div>
+      <div><div class="num detaining">{{ preview.summary.detaining }}</div><div class="lbl">Detaining</div></div>
+      <div><div class="num undecided">{{ preview.summary.notDecided }}</div><div class="lbl">Not decided</div></div>
+    </div>
+
+    <div class="carryover-title">What happens automatically for each promoted student</div>
+    <div class="carryover-row"><i class="bi bi-check-circle ok"></i> New enrollment created for {{ preview.nextSession }} in the target class/section chosen above.</div>
+    <div class="carryover-row"><i class="bi bi-check-circle ok"></i> Any <b>unpaid fee balance</b> from {{ session }} carries forward as an arrear on their {{ preview.nextSession }} fee record (see Fee Statement's Previous Year Dues).</div>
+    <div class="carryover-row"><i class="bi bi-check-circle ok"></i> Roll Number is cleared — assign fresh in the new class via Manage Students.</div>
+    <div class="carryover-row"><i class="bi bi-check-circle ok"></i> Leave balances reset per {{ preview.nextSession }}'s own Leave Limit config.</div>
+    <div class="carryover-row warn" *ngFor="let warning of preview.warnings">
+      <i class="bi bi-exclamation-triangle"></i> {{ warning.message }}
+    </div>
+
+    <p class="skip-note" *ngIf="preview.summary.notDecided">
+      {{ preview.summary.notDecided }} student{{ preview.summary.notDecided === 1 ? ' has' : 's have' }} no decision yet and
+      will be skipped — go back and set Promote or Detain for them, or confirm now and handle them separately later.
+    </p>
+  </ng-container>
+</app-form-modal>

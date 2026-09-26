@@ -1,0 +1,122 @@
+<!-- Admission.
+     Reference: docs/schoolzen-planning/v1/student/admission.html
+
+     Toolbar is THIS page's shape: row1 = search + Create, row2 = the four cascade pills. -->
+
+<div class="page-head">
+  <div>
+    <h1>Admission</h1>
+    <div class="subtitle">New students entering the school this session.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or admission no." aria-label="Search admissions"
+                 (input)="onSearchInput($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-primary" title="Create" (click)="onCreate()">
+            <i class="bi bi-plus-lg"></i> <span class="btn-label">Create</span>
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2">
+        <app-class-cascade-filter [options]="filterOptions" [value]="filter"
+                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <div class="table-inner">
+        <table>
+          <thead>
+            <tr>
+              <th>Photo</th><th>Admission No.</th><th>Student</th><th>Father Name</th><th>Class</th>
+              <th>Stream</th><th>Roll No.</th><th>Session</th><th>Status</th><th>View</th><th>Letter</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rows; trackBy: trackByRow">
+              <td>
+                <span class="st-avatar" [style.background]="row.photoUrl ? null : row.gradient">
+                  <img *ngIf="row.photoUrl; else initialsTpl" [src]="row.photoUrl" alt="" />
+                  <ng-template #initialsTpl>{{ row.initials }}</ng-template>
+                </span>
+              </td>
+              <td>
+                <span class="adm-no" *ngIf="row.admissionNo !== null; else notIssued">{{ row.admissionNo }}</span>
+                <ng-template #notIssued><span class="not-set">Not yet issued</span></ng-template>
+              </td>
+              <td><span class="st-name">{{ row.name }}</span></td>
+              <td>{{ row.fatherName || '—' }}</td>
+              <td>{{ row.className }}{{ row.sectionName ? ' · ' + row.sectionName : '' }}</td>
+              <td>{{ row.streamName || 'N/A' }}</td>
+              <td>{{ row.rollNumber ?? '—' }}</td>
+              <td>{{ row.session }}</td>
+              <td>
+                <span class="tag fixed" [class.tag-success]="row.status === 'admitted'"
+                      [class.tag-warning]="row.status !== 'admitted'">
+                  {{ row.status === 'admitted' ? 'Admitted' : 'Pending' }}
+                </span>
+              </td>
+              <td>
+                <button type="button" class="icon-btn" [attr.aria-label]="'View ' + row.name" title="View profile"
+                        (click)="onView(row)"><i class="bi bi-eye"></i></button>
+              </td>
+              <td>
+                <button type="button" class="icon-btn" [attr.aria-label]="'Admission letter for ' + row.name"
+                        [disabled]="!canPrint(row)"
+                        [title]="canPrint(row) ? 'Admission Letter' : 'Issue an Admission No. first'"
+                        (click)="onLetter(row)"><i class="bi bi-printer"></i></button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+      {{ search || filter.classId ? 'No admissions match these filters.' : 'No admissions this session yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">This Session</span></div>
+      <div class="stat-row accent"><span class="stat-label">Admitted</span><span class="stat-value">{{ overview.admitted }}</span></div>
+      <div class="stat-row"><span class="stat-label">Pending</span><span class="stat-value">{{ overview.pending }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>An admission stays Pending until it's given an Admission Number — the letter can't print until then.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" title="New Admission" submitLabel="Submit" [width]="560"
+                [submitDisabled]="saving" (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <app-student-form *ngIf="formOpen" mode="admission" [adminId]="adminId" [session]="session"
+                    [filterOptions]="filterOptions" [fieldConfig]="fieldConfig"
+                    [serverErrors]="formErrors"></app-student-form>
+</app-form-modal>
+
+<app-form-modal [open]="viewOpen" title="Admission Profile" [width]="560" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closeView()">
+  <app-student-profile-view [detail]="viewDetail" variant="admission"></app-student-profile-view>
+</app-form-modal>
+
+<!-- The formal letter, rendered by the shared letterhead template. -->
+<app-form-modal [open]="letterOpen" title="Admission Letter" [width]="700" submitLabel="Print"
+                cancelLabel="Close" (submitted)="onPrint()" (cancelled)="closeLetter()">
+  <app-letterhead-document [document]="letter"></app-letterhead-document>
+</app-form-modal>

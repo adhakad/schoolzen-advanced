@@ -9,6 +9,7 @@ const { DbConnect } = require('./modules/helpers/database');
 const { connection } = require('./modules/queues/connection');
 const startAttendanceSyncWorker = require('./modules/workers/attendance-sync-worker');
 const startAttendanceReconcileWorker = require('./modules/workers/attendance-reconcile-worker');
+const startStudentWorker = require('./modules/workers/student-worker');
 const { stopHeartbeats } = require('./modules/workers/heartbeat');
 const logger = require('./modules/helpers/logger');
 
@@ -24,6 +25,8 @@ DbConnect();
 const workers = [
     startAttendanceSyncWorker(),
     startAttendanceReconcileWorker(),
+    // v2 Student module: Excel import, card device-sync, Class Promotion.
+    startStudentWorker(),
 ];
 
 logger.info('worker.started', { pid: process.pid, workers: workers.length });

@@ -1,0 +1,14 @@
+<!-- The four pills from the Student references' .toolbar-row2, in their order. Disabled
+     pills show their default "All …" label (the value is reset by the parent change). -->
+<app-dd [options]="classOptions" [value]="value.classId"
+        [placeholder]="requireClass ? 'Select class' : 'All classes'" ariaLabel="Class"
+        (valueChange)="onClassChange($event)"></app-dd>
+<app-dd [options]="streamOptions" [value]="streamDisabled ? '' : value.streamId"
+        placeholder="All streams" ariaLabel="Stream" [disabled]="streamDisabled"
+        (valueChange)="onStreamChange($event)"></app-dd>
+<app-dd [options]="groupOptions" [value]="groupDisabled ? '' : value.groupId"
+        placeholder="All groups" ariaLabel="Subject group" [disabled]="groupDisabled"
+        (valueChange)="onGroupChange($event)"></app-dd>
+<app-dd [options]="sectionOptions" [value]="sectionDisabled ? '' : value.sectionId"
+        placeholder="All sections" ariaLabel="Section" [disabled]="sectionDisabled"
+        (valueChange)="onSectionChange($event)"></app-dd>

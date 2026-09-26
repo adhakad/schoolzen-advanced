@@ -1,0 +1,11 @@
+/* Admission owns almost no CSS: its table, row helpers and chips are the shared
+   design-system rules, and the letter is the shared app-letterhead-document. */
+
+/* This page's own toolbar shape (admission.html): 300px search, wrapping row1. */
+.toolbar-row1 { flex-wrap: wrap; }
+.toolbar-btn-group { flex-wrap: wrap; justify-content: flex-end; }
+@media (min-width: 768px) { .search { flex: 0 0 300px; width: 300px; } }
+
+
+.st-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.icon-btn:disabled { opacity: .4; cursor: not-allowed; }

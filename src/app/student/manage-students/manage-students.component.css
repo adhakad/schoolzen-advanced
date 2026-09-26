@@ -1,0 +1,48 @@
+/* Manage Students' own pieces from its reference (manage-students.html). The table, the
+   row helpers (.st-avatar, .cls-tag, .card-tag, .not-set) and the toolbar buttons are the
+   global design-system rules shared with Admission and Class Promotion. */
+
+/* This page's own toolbar shape (manage-students.html): row1 wraps, so the four buttons
+   drop under a 260px search instead of overflowing the card. */
+.toolbar-row1 { flex-wrap: wrap; }
+.toolbar-btn-group { flex-wrap: wrap; justify-content: flex-end; }
+@media (min-width: 768px) { .search { flex: 0 0 260px; width: 260px; } }
+
+
+.st-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.incomplete { color: var(--warning); margin-left: 6px; font-size: 13px; vertical-align: middle; }
+
+.card-info {
+  background: var(--paper); border-radius: var(--radius); padding: 10px 12px;
+  font-size: 12.5px; color: var(--ink-soft);
+}
+.card-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.card-row .cr-name { flex: 0 0 190px; font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.5; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.card-row .cr-meta { font-size: 10.5px; color: var(--ink-faint); font-weight: 400; }
+.card-row input {
+  flex: 1; height: 36px; border: 1px solid var(--line); border-radius: var(--radius); padding: 0 10px;
+  font-size: 12.5px; font-family: inherit; outline: none; box-sizing: border-box; min-width: 0;
+}
+.card-row input:focus { border-color: var(--brand); }
+.m-field.last { margin-bottom: 0; }
+
+.scope-note { margin-bottom: 14px; }
+.excel-title {
+  font-family: 'Fraunces', serif; font-size: 13.5px; font-weight: 500; color: var(--ink);
+  margin: 18px 0 10px; padding-top: 14px; border-top: 1px solid var(--line-soft);
+}
+.excel-title:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+.btn-secondary.full { width: 100%; }
+.upload-box {
+  display: block; border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 20px;
+  text-align: center; color: var(--brand); font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.upload-box .bi { font-size: 22px; display: block; margin-bottom: 6px; }
+.upload-box.busy { color: var(--ink-faint); cursor: progress; }
+.import-result { margin-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
+.import-result ul { margin: 8px 0 0; padding-left: 18px; max-height: 160px; overflow-y: auto; font-size: 11.5px; color: var(--danger); }
+
+@media (max-width: 767px) {
+  .card-row { flex-direction: column; align-items: stretch; }
+  .card-row .cr-name { flex: none; }
+}

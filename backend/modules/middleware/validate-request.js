@@ -12,9 +12,12 @@ const { ValidationError } = require('../errors');
 //
 // Usage (in a routes file):
 //   router.post('/classes', validateRequest(createClassSchema, 'academic-setup'), CreateClass);
-const validateRequest = (schema, module) => {
+//   router.get('/students', validateRequest(listSchema, 'student', 'query'), ListStudents);
+//
+// `source` defaults to 'body'; pass 'query' to validate (and normalize) a GET's query string.
+const validateRequest = (schema, module, source = 'body') => {
     return (req, res, next) => {
-        const { error, value } = schema.validate(req.body, {
+        const { error, value } = schema.validate(req[source], {
             abortEarly: false,   // report every bad field at once, not just the first
             stripUnknown: true,
         });
@@ -31,7 +34,14 @@ const validateRequest = (schema, module) => {
             return next(new ValidationError('Please fix the highlighted fields', { module, fields }));
         }
 
-        req.body = value;
+        // req.query is a getter in newer Express versions; assigning the normalized copy
+        // property-by-property works on both.
+        if (source === 'query') {
+            Object.keys(req.query).forEach((key) => delete req.query[key]);
+            Object.assign(req.query, value);
+        } else {
+            req[source] = value;
+        }
         return next();
     };
 };

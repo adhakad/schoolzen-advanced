@@ -13,15 +13,8 @@
  * </app-row-avatar>
  */
 import { ChangeDetectionStrategy, Component, Input, OnChanges } from '@angular/core';
+import { AVATAR_GRADIENTS, avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 
-const GRADIENTS: readonly string[] = [
-  'linear-gradient(135deg,#7b6ef6,#5b4fd6)',
-  'linear-gradient(135deg,#ff9a76,#ff7676)',
-  'linear-gradient(135deg,#4fd6c4,#2fb6a4)',
-  'linear-gradient(135deg,#5aa9f0,#2f79d8)',
-  'linear-gradient(135deg,#f6a5d0,#e06ea9)',
-  'linear-gradient(135deg,#ffc46b,#f39c12)'
-];
 
 @Component({
   selector: 'app-row-avatar',
@@ -35,21 +28,10 @@ export class RowAvatarComponent implements OnChanges {
   @Input() colorSeed = '';
 
   initials = '?';
-  gradient: string = GRADIENTS[0];
+  gradient: string = AVATAR_GRADIENTS[0];
 
   ngOnChanges(): void {
-    this.initials = this.name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((word) => word.charAt(0).toUpperCase())
-      .join('') || '?';
-
-    const seed = this.colorSeed || this.name;
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = (hash * 31 + seed.charCodeAt(i)) % 100000;
-    }
-    this.gradient = GRADIENTS[hash % GRADIENTS.length];
+    this.initials = initialsOf(this.name);
+    this.gradient = avatarGradient(this.colorSeed || this.name);
   }
 }

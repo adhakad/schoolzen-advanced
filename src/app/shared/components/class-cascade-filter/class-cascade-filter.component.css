@@ -1,0 +1,8 @@
+/* Styled by the global `.dd` / `.sw-select-pill` rules; the host is display:contents so the
+   pills sit directly in the page's .toolbar-row2 flex row. Every Student reference fixes
+   these four pills at 150px, so they never resize as their labels change. */
+app-dd { width: 150px; flex-shrink: 0; }
+
+@media (max-width: 767px) {
+  app-dd { width: 100%; }
+}
