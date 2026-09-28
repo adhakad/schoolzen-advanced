@@ -37,6 +37,7 @@
 - **Any consequential action (sync, delete, activate-session) confirms first** — never fires on a single click. Heavy deletes require typing `DELETE`; some pages (Academic Sessions) require typing the specific value being changed.
 - **Existence-based vs. narrowing filters**: some pages show everything by default and filters only narrow (Manage Students, Admission, Generate TC); others gate on a required scope (Manage Shifts has no filter at all; Excel Import/Export requires a Class first). Check each page's own `.md` for which rule applies — don't assume.
 - **Reuse, don't duplicate**: the shared letterhead print template (Admission Letter → Admit Card → Marksheet → TC), the print-mode-choice pattern (illustrated cards, not a dropdown), the Person-Type→Dept/Class cascade filter logic (Attendance, Leave, Approvals all share it), and the FieldConfig-driven validator (Admission form + its bulk-import path) are each built ONCE and reused — never reimplemented per page.
+- **Every module's `errors.md` is read alongside its page `.md`/`.html` files, not skipped.** It's the concrete error/validation catalog for that module (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency) — `v1/_core/error-catalog-conventions.md` explains the shapes it's organized into and how each maps onto the existing category/code/`fields[]` contract in `error-handling/`. A module's build isn't done until its `errors.md` cases are implemented, not just its happy path.
 
 ## Files
 
@@ -49,6 +50,8 @@
 - `v1/_core/state-management.md` — frontend state management (no NgRx, `ShellContextService` + per-module signals) and the SSR decision (not used).
 - `v1/_core/claude-code-implementation-strategy.md` — isolation rules, per-module build workflow.
 - `v1/_core/additional-technical-considerations.md` — notifications, i18n, print/PDF, pagination, job queues, rate limiting, caching, search-at-scale.
+- `v1/_core/error-catalog-conventions.md` — the 9 error "shapes" (field, uniqueness, cross-field, dependency, state-transition, cascade, bulk row-level, external-service, concurrency) every module's `errors.md` is organized into, plus the bulk row-level response shape and the concurrency-defense order (prevent → DB-guard → report).
 - `v1/_core/shell/app-shell.html` + `.md` — the standalone shared header+sidebar reference (dark sidebar, matches every page's own inline shell).
 - `v1/<module>/<page>.html` — the exact approved visual/functional reference for every page.
 - `v1/<module>/<page>.md` — the rules behind what the `.html` shows: frontend behavior + backend schema/endpoint notes.
+- `v1/<module>/errors.md` — that module's concrete error/validation catalog, one file per module (13 total), per `error-catalog-conventions.md`'s shapes.

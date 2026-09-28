@@ -20,13 +20,17 @@
           <input type="text" placeholder="Search by name or roll number" aria-label="Search students"
                  (input)="onSearchInput($any($event.target).value)" />
         </div>
-        <button type="button" class="btn-primary" [disabled]="jobRunning" (click)="onOpenConfirm()">
-          <i class="bi bi-check-lg"></i> {{ jobRunning ? 'Promotion running…' : 'Confirm Promotion' }}
+        <button type="button" class="btn-primary" [disabled]="jobRunning || previewing" (click)="onOpenConfirm()">
+          <i class="bi bi-check-lg"></i> {{ jobRunning ? 'Promotion running…' : (previewing ? 'Checking…' : 'Confirm Promotion') }}
         </button>
       </div>
       <div class="toolbar-row2">
         <app-class-cascade-filter [options]="filterOptions" [value]="filter" [requireClass]="true"
                                   (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="retryOptions()">Retry</button>
       </div>
     </div>
 
@@ -85,7 +89,12 @@
       </div>
     </div>
 
-    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+    <!-- A failed load and a genuinely empty class are two different states. -->
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="retryRoster()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError && !optionsError">
       {{ filter.classId ? 'No students in this class for ' + session + '.' : 'Set up a class in Academic Setup first.' }}
     </div>
 
@@ -133,8 +142,9 @@
     <div class="carryover-row"><i class="bi bi-check-circle ok"></i> Any <b>unpaid fee balance</b> from {{ session }} carries forward as an arrear on their {{ preview.nextSession }} fee record (see Fee Statement's Previous Year Dues).</div>
     <div class="carryover-row"><i class="bi bi-check-circle ok"></i> Roll Number is cleared — assign fresh in the new class via Manage Students.</div>
     <div class="carryover-row"><i class="bi bi-check-circle ok"></i> Leave balances reset per {{ preview.nextSession }}'s own Leave Limit config.</div>
-    <div class="carryover-row warn" *ngFor="let warning of preview.warnings">
-      <i class="bi bi-exclamation-triangle"></i> {{ warning.message }}
+    <!-- One row per warning, each with its type's own icon — never one collapsed banner. -->
+    <div class="carryover-row warn" *ngFor="let warning of preview.warnings" [attr.data-warning]="warning.type">
+      <i class="bi" [ngClass]="'bi-' + warningIcon(warning.type)"></i> {{ warning.message }}
     </div>
 
     <p class="skip-note" *ngIf="preview.summary.notDecided">

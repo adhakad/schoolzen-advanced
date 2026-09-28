@@ -18,8 +18,10 @@ const AppError = require('./AppError');
  *   });
  */
 class ValidationError extends AppError {
-  constructor(message, { module, fields, context } = {}) {
+  constructor(message, { module, fields, context, code, rows } = {}) {
     super(message, {
+      code,
+      rows,
       category: 'ValidationError',
       statusCode: 400,
       module,

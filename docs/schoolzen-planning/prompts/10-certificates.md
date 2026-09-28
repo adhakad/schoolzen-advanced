@@ -7,6 +7,8 @@ Depends on Student module.
 2. `docs/schoolzen-planning/v1/certificates/tc-structure.{html,md}`
 3. `docs/schoolzen-planning/v1/certificates/generate-tc.{html,md}`
 
+Also read `docs/schoolzen-planning/v1/certificates/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
+
 ## Build
 **Backend**: `models/certificates/tc-structure.js`, `transfer-certificate.js`; `controllers/certificates/*.controller.js`; matching routes.
 **Frontend**: `certificates/tc-structure/`, `certificates/generate-tc/`; `shared/services/certificates/*.service.ts`; `shared/models/certificates/*.model.ts`.

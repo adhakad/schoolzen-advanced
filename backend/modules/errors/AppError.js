@@ -14,7 +14,13 @@ class AppError extends Error {
    * @param {number} opts.statusCode - HTTP status to send
    * @param {string} opts.module - which module raised this, e.g. "fees", "student"
    * @param {object} [opts.context] - extra structured data for LOGS ONLY, never sent to the client
-   * @param {Array<{field:string,message:string}>} [opts.fields] - only for ValidationError
+   * @param {Array<{field:string,message:string,code?:string}>} [opts.fields] - the field(s) the
+   *   failure traces to (ValidationError always; ConflictError when a duplicate traces to one
+   *   form field, so the form can show it inline instead of a toast)
+   * @param {string} [opts.code] - stable machine code from the module's errors.md catalog
+   *   (e.g. "ADMISSION_NO_DUPLICATE") — what the frontend keys its locale string on
+   * @param {Array<{row:number, code?:string, message?:string, fields?:Array}>} [opts.rows] -
+   *   bulk sibling of `fields` (error-catalog-conventions.md, shape #7)
    * @param {boolean} [opts.isOperational=true] - false marks this as an unexpected bug, not an expected failure
    */
   constructor(message, opts) {
@@ -25,6 +31,8 @@ class AppError extends Error {
     this.module = opts.module || 'unknown';
     this.context = opts.context || {};
     this.fields = opts.fields;
+    this.code = opts.code;
+    this.rows = opts.rows;
     this.isOperational = opts.isOperational !== false;
     Error.captureStackTrace(this, this.constructor);
   }
@@ -36,7 +44,9 @@ class AppError extends Error {
       message: this.message,
       requestId
     };
+    if (this.code) body.code = this.code;
     if (this.fields) body.fields = this.fields;
+    if (this.rows) body.rows = this.rows;
     return { error: body };
   }
 }

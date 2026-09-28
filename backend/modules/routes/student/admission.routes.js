@@ -5,6 +5,7 @@ const router = express.Router();
 const { isAdminAuth } = require('../../middleware/admin-auth');
 const assertAdminScope = require('../../middleware/assert-admin-scope');
 const validateRequest = require('../../middleware/validate-request');
+const idempotency = require('../../middleware/idempotency');
 const { singleUpload } = require('../../middleware/single-upload');
 const fileUpload = require('../../helpers/file-upload');
 const {
@@ -25,7 +26,7 @@ const photo = singleUpload(fileUpload.studentImage, 'photo', MODULE);
 
 router.get('/admissions', isAdminAuth, scope, validateRequest(listAdmissionsQuerySchema, MODULE, 'query'), ListAdmissions);
 router.get('/admissions/overview', isAdminAuth, scope, validateRequest(admissionOverviewQuerySchema, MODULE, 'query'), GetAdmissionOverview);
-router.post('/admissions', isAdminAuth, photo, scope, CreateAdmission);
+router.post('/admissions', isAdminAuth, photo, scope, idempotency(MODULE), CreateAdmission);
 router.get('/admissions/:id/letter', isAdminAuth, scope, GetAdmissionLetter);
 
 module.exports = router;

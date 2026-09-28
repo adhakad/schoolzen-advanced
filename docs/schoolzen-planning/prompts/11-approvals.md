@@ -7,6 +7,8 @@ Depends on Leave module (must be built and have real request data first — this
 2. `docs/schoolzen-planning/v1/approvals/approvals.{html,md}`
 3. Leave module's built controller for `LeaveRequest` — this page must call through to the SAME approve/reject logic, not duplicate it.
 
+Also read `docs/schoolzen-planning/v1/approvals/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
+
 ## Build
 **Backend**: `controllers/approvals/approvals.controller.js` (no own model — reads/aggregates other modules' request collections) + routes.
 **Frontend**: `approvals/requests/` component; `shared/services/approvals/requests.service.ts`.

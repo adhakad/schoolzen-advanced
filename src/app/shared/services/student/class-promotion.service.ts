@@ -9,6 +9,7 @@ import {
   PromotionConfirmResponse, PromotionPreview, PromotionRequest, PromotionRoster
 } from 'src/app/shared/models/student/class-promotion.model';
 import { toParams } from './manage-students.service';
+import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 
 @Injectable({ providedIn: 'root' })
 export class ClassPromotionService {
@@ -30,7 +31,7 @@ export class ClassPromotionService {
   }
 
   /** Enqueues the promotion (202 + jobId); it is never processed inside the request. */
-  confirm(payload: PromotionRequest): Observable<PromotionConfirmResponse> {
-    return this.http.post<PromotionConfirmResponse>(`${this.url}/confirm`, payload);
+  confirm(payload: PromotionRequest, key?: string): Observable<PromotionConfirmResponse> {
+    return this.http.post<PromotionConfirmResponse>(`${this.url}/confirm`, payload, { headers: idempotencyHeaders(key) });
   }
 }

@@ -6,6 +6,8 @@ Depends on Student, Staff, Attendance, Fees, Leave, Holiday, Approvals — build
 1. `docs/schoolzen-planning/v1/_core/design-system.md`
 2. `docs/schoolzen-planning/v1/dashboard/dashboard.{html,md}` — **read the `.md`'s "Known inconsistency" section carefully before writing any icon markup.**
 
+Also read `docs/schoolzen-planning/v1/dashboard/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
+
 ## Build
 **Backend**: `controllers/dashboard/dashboard.controller.js` (no own model) + routes.
 **Frontend**: `dashboard/dashboard/` component; `shared/services/dashboard/dashboard.service.ts`.

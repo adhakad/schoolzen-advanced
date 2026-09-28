@@ -9,8 +9,9 @@ const BiometricMappingModel = require('../models/biometric-mapping');
 const { createWdmsEmployee, updateWdmsEmployee, resyncWdmsDevices } = require('../services/wdms-employee');
 const { getStudentFieldConfig, validateStudentRecord } = require('../validators/student/field-config.validator');
 const {
-    loadClassIndex, toObjectId, withTransaction, runPromotionSteps,
+    loadClassIndex, toObjectId, withTransaction, runPromotionSteps, DUPLICATE_RULES,
 } = require('../helpers/student/student.utils');
+const studentMessages = require('../helpers/messages/student.messages');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 
@@ -39,8 +40,22 @@ const chunk = (items, size) => {
     return out;
 };
 
+// A duplicate-key write error names its index ("index: adminId_1_aadharNumber_1 dup key")
+// but not always a keyPattern; read the field off either, so each failed row gets its own
+// catalog code (AADHAR_DUPLICATE, ROLL_NUMBER_DUPLICATE, …) rather than one vague message.
+const duplicateFieldOf = (writeError) => {
+    const pattern = (writeError.err && writeError.err.keyPattern) || writeError.keyPattern;
+    const fromPattern = pattern && Object.keys(pattern).find((key) => DUPLICATE_RULES[key]);
+    if (fromPattern) return fromPattern;
+    const indexName = (/index: (\S+)/.exec(writeError.errmsg || (writeError.err && writeError.err.errmsg) || '') || [])[1] || '';
+    return Object.keys(DUPLICATE_RULES).find((key) => indexName.includes(key)) || null;
+};
+
+/** One catalog `rows[]` entry's field error. */
+const fieldError = (field, code, message) => ({ field, ...(code ? { code } : {}), message });
+
 // bulkWrite with ordered:false writes every valid op and reports the rest; turn that into
-// a per-op-index Map instead of losing the whole batch to one duplicate.
+// a per-op-index Map of field errors instead of losing the whole batch to one duplicate.
 const bulkWriteCollectingErrors = async (model, ops) => {
     if (ops.length === 0) return new Map();
     try {
@@ -51,12 +66,23 @@ const bulkWriteCollectingErrors = async (model, ops) => {
         const failed = new Map();
         [].concat(error.writeErrors).forEach((writeError) => {
             const index = writeError.index != null ? writeError.index : writeError.err && writeError.err.index;
-            const duplicate = writeError.code === 11000 || /E11000/.test(writeError.errmsg || '');
-            failed.set(index, duplicate ? 'Duplicate value (Admission No. or Roll Number already in use)' : 'Could not be saved');
+            const isDuplicate = writeError.code === 11000 || /E11000/.test(writeError.errmsg || '');
+            const field = isDuplicate ? duplicateFieldOf(writeError) : null;
+            const rule = field && DUPLICATE_RULES[field];
+            failed.set(index, rule
+                ? fieldError(rule.field, rule.code, studentMessages.duplicate[rule.code]())
+                : fieldError('row', 'ROW_NOT_SAVED', 'This row could not be saved.'));
         });
         return failed;
     }
 };
+
+// The unique fields a sheet can repeat within itself (student/errors.md, Bulk Import):
+// a duplicate between row 5 and row 40 is caught before either is written.
+const IN_FILE_UNIQUE = ['admissionNo', 'rollNumber', 'aadharNumber', 'samagraId', 'udiseNumber'];
+
+// "8th", "8", "8TH", "LKG" → one comparable token.
+const classToken = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^(\d+)(st|nd|rd|th)$/, '$1');
 
 // ---------------------------------------------------------------------------------------
 // import
@@ -79,36 +105,70 @@ const processImport = async (job) => {
         : [];
     const groupByName = new Map(groups.map((group) => [group.name.toLowerCase(), group._id]));
 
+    // Every failing row, in the catalog's shape #7: { row, fields:[{field, code?, message}] }.
+    // ALL rows are validated before anything is written, and one bad row never stops the
+    // rest — rows that pass are still committed.
     const rowErrors = [];
     const valid = [];
-    const seenAdmissionNos = new Set();
+    const labelOf = new Map(config.map((field) => [field.fieldKey, field.label]));
+    // value → first row it appeared on, per unique field.
+    const seen = new Map(IN_FILE_UNIQUE.map((key) => [key, new Map()]));
+
+    // The scoped class, and every configured class, by comparable token.
+    const scopeToken = classToken(classEntry.label);
+    const classTokens = new Set();
+    classIndex.forEach((entry) => {
+        classTokens.add(classToken(entry.label));
+        classTokens.add(classToken(String(entry.doc.class)));
+    });
 
     for (const { rowNumber, values } of rows) {
         const { value, errors } = validateStudentRecord(values, config);
-        const messages = errors.map((error) => error.message);
+        const fields = [];
 
-        if (value.admissionNo == null && !messages.some((m) => m.startsWith('Admission No.'))) {
-            messages.push('Admission No. is required for import');
+        // Missing required fields become ONE line naming every one of them (legacy
+        // behaviour, kept): "Missing: Father Name, Mother Occupation, Date of Birth."
+        const missing = errors.filter((error) => /is required$/.test(error.message)).map((error) => labelOf.get(error.field) || error.field);
+        if (missing.length) fields.push(fieldError('row', 'FIELDS_REQUIRED', `Missing: ${missing.join(', ')}.`));
+        errors.filter((error) => !/is required$/.test(error.message))
+            .forEach((error) => fields.push(fieldError(error.field, error.code, error.message)));
+
+        if (value.admissionNo == null && !missing.includes(labelOf.get('admissionNo'))) {
+            fields.push(fieldError('admissionNo', 'ADMISSION_NO_REQUIRED', 'Admission No. is required for import.'));
         }
-        if (value.admissionNo != null) {
-            if (seenAdmissionNos.has(value.admissionNo)) messages.push(`Admission No. ${value.admissionNo} appears twice in this sheet`);
-            seenAdmissionNos.add(value.admissionNo);
+
+        IN_FILE_UNIQUE.forEach((key) => {
+            if (value[key] == null || value[key] === '') return;
+            const firstRow = seen.get(key).get(String(value[key]));
+            if (firstRow) {
+                const rule = DUPLICATE_RULES[key];
+                fields.push(fieldError(key, rule.code, studentMessages.duplicateInFile(labelOf.get(key) || key, firstRow)));
+            } else {
+                seen.get(key).set(String(value[key]), rowNumber);
+            }
+        });
+
+        const classText = String(values.className || '').trim();
+        if (classText && classToken(classText) !== scopeToken) {
+            fields.push(classTokens.has(classToken(classText))
+                ? fieldError('className', 'CLASS_OUT_OF_SCOPE', studentMessages.classOutOfScope(classText, classEntry.label))
+                : fieldError('className', 'CLASS_NAME_UNRECOGNIZED', studentMessages.classNameUnrecognized(classText)));
         }
 
         let sectionId = null;
         const sectionName = String(values.sectionName || '').trim().toUpperCase();
         if (sectionName) {
             sectionId = sectionByName.get(sectionName) || null;
-            if (!sectionId) messages.push(`Section "${sectionName}" is not set up for this class`);
+            if (!sectionId) fields.push(fieldError('sectionName', 'SECTION_NOT_FOUND', `Section "${sectionName}" is not set up for this class.`));
         }
         let groupId = null;
         const groupName = String(values.groupName || '').trim().toLowerCase();
         if (groupName) {
             groupId = groupByName.get(groupName) || null;
-            if (!groupId) messages.push(`Subject Group "${values.groupName}" is not set up for this class`);
+            if (!groupId) fields.push(fieldError('groupName', 'SUBJECT_GROUP_NOT_FOUND', `Subject Group "${values.groupName}" is not set up for this class.`));
         }
 
-        if (messages.length) rowErrors.push({ row: rowNumber, messages });
+        if (fields.length) rowErrors.push({ row: rowNumber, fields });
         else valid.push({ rowNumber, value, sectionId, groupId });
     }
 
@@ -129,7 +189,11 @@ const processImport = async (job) => {
         const moved = enrollment && (String(enrollment.classId) !== String(placement.classId)
             || String(enrollment.streamId || '') !== String(placement.streamId || ''));
         if (moved) {
-            rowErrors.push({ row: item.rowNumber, messages: [`Admission No. ${item.value.admissionNo} is already placed in another class this session`] });
+            rowErrors.push({
+                row: item.rowNumber,
+                fields: [fieldError('admissionNo', 'STUDENT_IN_OTHER_CLASS',
+                    `Admission No. ${item.value.admissionNo} is already placed in another class this session.`)],
+            });
         }
         return !moved;
     });
@@ -154,7 +218,7 @@ const processImport = async (job) => {
 
     const savedRows = writable.filter((item, index) => {
         if (!studentFailures.has(index)) return true;
-        rowErrors.push({ row: item.rowNumber, messages: [studentFailures.get(index)] });
+        rowErrors.push({ row: item.rowNumber, fields: [studentFailures.get(index)] });
         return false;
     });
 
@@ -183,19 +247,23 @@ const processImport = async (job) => {
         },
     }));
     const enrollmentFailures = await bulkWriteCollectingErrors(StudentEnrollmentModel, enrollmentOps);
-    enrollmentFailures.forEach((message, index) => {
-        rowErrors.push({ row: savedRows[index].rowNumber, messages: [message] });
+    enrollmentFailures.forEach((error, index) => {
+        rowErrors.push({ row: savedRows[index].rowNumber, fields: [error] });
     });
 
     rowErrors.sort((a, b) => a.row - b.row);
     const succeeded = savedRows.filter((item, index) => !enrollmentFailures.has(index));
     const created = succeeded.filter((item) => !existingIdByNo.has(item.value.admissionNo)).length;
+    // Rows that passed are summarized as counts; only failures are listed (design-system.md,
+    // bulk/import result panel).
     return {
         total: rows.length,
         created,
         updated: succeeded.length - created,
         failedCount: rowErrors.length,
-        failed: rowErrors.slice(0, MAX_REPORTED_ROW_ERRORS),
+        code: rowErrors.length ? 'BULK_ROWS_FAILED' : null,
+        message: rowErrors.length ? studentMessages.bulkRowsFailed(rowErrors.length, rows.length) : null,
+        rows: rowErrors.slice(0, MAX_REPORTED_ROW_ERRORS),
     };
 };
 

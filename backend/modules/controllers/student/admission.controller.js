@@ -39,13 +39,13 @@ let GetAdmissionOverview = async (req, res) => {
 };
 
 let CreateAdmission = async (req, res) => {
-    const id = await createStudentRecord({
-        adminId: req.body.adminId,
+    const { id, warning } = await createStudentRecord({
+        adminId: req.adminId,
         body: req.body,
         file: req.file,
         entryType: 'admission',
     });
-    return res.status(200).json({ message: success.created('Admission'), id });
+    return res.status(200).json({ message: success.created('Admission'), id, warning });
 };
 
 const formatDate = (date) => (date

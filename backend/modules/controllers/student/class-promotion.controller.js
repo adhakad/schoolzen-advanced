@@ -22,14 +22,21 @@ const MAX_ROSTER = 3000;
 // Nursery/LKG/UKG (200/201/202) come BEFORE 1st — the sentinel numbers sort after 12.
 const classOrder = (classNumber) => (classNumber >= 200 ? classNumber - 300 : classNumber);
 
+// The last class a student can be promoted out of — nothing comes after 12th
+// (student/errors.md, PROMOTION_LIMIT).
+const FINAL_CLASS = 12;
+
 /**
- * Every placement a student could be promoted INTO: each configured class other than the
- * current one, per section (or per stream × section for a streamed class, plus a bare
- * "stream later" option that surfaces the Stream + Subject Group warning).
+ * Every placement a student could be promoted INTO: each configured class HIGHER than the
+ * current one — promotion never moves a student down or sideways (Detain is the "stay"
+ * choice) — per section, or per stream × section for a streamed class, plus a bare "stream
+ * later" option that surfaces the Stream + Subject Group warning. Empty past 12th.
  */
 const buildTargetOptions = (classIndex, currentClassId) => {
+    const current = classIndex.get(String(currentClassId));
+    const currentOrder = current ? classOrder(current.doc.class) : -Infinity;
     const entries = [...classIndex.values()]
-        .filter((entry) => String(entry.doc._id) !== String(currentClassId))
+        .filter((entry) => classOrder(entry.doc.class) > currentOrder)
         .sort((a, b) => classOrder(a.doc.class) - classOrder(b.doc.class));
 
     const options = [];
@@ -205,7 +212,21 @@ const buildPromotionPlan = async (body) => {
             };
             detaining += 1;
         } else {
+            // Re-validated server-side on every preview AND confirm — a preview can be
+            // minutes old, and the API must hold these rules without the UI.
+            if (current.doc.class === FINAL_CLASS) {
+                throw new ValidationError(messages.promotionLimit(), {
+                    module: MODULE, code: 'PROMOTION_LIMIT',
+                    fields: [{ field: 'decisions', code: 'PROMOTION_LIMIT', message: messages.promotionLimit() }],
+                });
+            }
             const resolved = await resolveTarget(decision.target);
+            if (classOrder(resolved.class) <= classOrder(current.doc.class)) {
+                throw new ValidationError(messages.promotionTargetNotHigher(), {
+                    module: MODULE, code: 'PROMOTION_TARGET_NOT_HIGHER',
+                    fields: [{ field: 'decisions', code: 'PROMOTION_TARGET_NOT_HIGHER', message: messages.promotionTargetNotHigher() }],
+                });
+            }
             target = {
                 classId: String(resolved.classId), class: resolved.class,
                 streamId: resolved.streamId ? String(resolved.streamId) : null,

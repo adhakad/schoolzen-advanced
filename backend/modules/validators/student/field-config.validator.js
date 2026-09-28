@@ -181,6 +181,12 @@ const validateStudentRecord = (record, config, opts = {}) => {
         else value[field.fieldKey] = normalized;
     }
 
+    // Cross-field (student/errors.md, shape #3): a student can't be admitted before they
+    // were born — catches a fat-fingered year the per-field rules can't see.
+    if (value.dob instanceof Date && value.doa instanceof Date && value.doa < value.dob) {
+        errors.push({ field: 'doa', code: 'DOA_BEFORE_DOB', message: "Admission date can't be before date of birth." });
+    }
+
     return { value, errors };
 };
 

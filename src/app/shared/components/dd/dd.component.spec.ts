@@ -8,7 +8,7 @@ import { DdOption } from 'src/app/shared/models/shared-components.model';
   template: `
     <app-dd [options]="options" [value]="value" [disabled]="disabled"
             [disabledHint]="disabledHint" [placeholder]="placeholder"
-            (valueChange)="value = $event; changes = changes + 1"></app-dd>
+            (valueChange)="value = $event; changes = changes + 1" (closed)="closes = closes + 1"></app-dd>
     <button type="button" class="outside">outside</button>`
 })
 class HostComponent {
@@ -22,6 +22,7 @@ class HostComponent {
   disabledHint = '';
   placeholder = '— Select —';
   changes = 0;
+  closes = 0;
 }
 
 describe('DdComponent', () => {
@@ -180,5 +181,31 @@ describe('DdComponent', () => {
     fixture.detectChanges();
 
     expect(ddHost().classList).not.toContain('open');
+  });
+
+  // design-system.md, Form validation state: a .dd has no native blur, so the form marks its
+  // control touched from 'closed' — which must fire on EVERY close of an open menu.
+  it('emits closed on pick, outside click and Escape — never while it was not open', () => {
+    trigger().click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelectorAll('.dd-option')[1] as HTMLElement).click();
+    fixture.detectChanges();
+    expect(host.closes).toBe(1);
+
+    trigger().click();
+    fixture.detectChanges();
+    query('.outside').click();
+    fixture.detectChanges();
+    expect(host.closes).toBe(2);
+
+    trigger().click();
+    fixture.detectChanges();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    expect(host.closes).toBe(3);
+
+    query('.outside').click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(host.closes).toBe(3);
   });
 });

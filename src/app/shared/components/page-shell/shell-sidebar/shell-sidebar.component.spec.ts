@@ -15,8 +15,8 @@ const context = (partial: Partial<ShellContext>): ShellContext => ({
   displayName: 'Abhishek',
   initials: 'AD',
   school: null,
-  sessions: ['2026-27'],
-  activeSession: '2026-27',
+  sessions: ['2026-2027'],
+  activeSession: '2026-2027',
   permissions: permissions(true),
   ...partial
 });

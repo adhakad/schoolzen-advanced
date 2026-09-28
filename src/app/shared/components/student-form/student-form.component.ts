@@ -8,7 +8,12 @@
  * convenience derived from that config, never a second rule set: the server re-validates
  * everything and its field errors are bound back through `serverErrors`.
  *
- * Every categorical field is an app-dd (never a native select). The host page owns the
+ * Every categorical field is an app-dd (never a native select) and every date an app-dp
+ * (never a native date input). Errors follow design-system.md's Form validation state: a
+ * field shows its error once touched (blurred, or its dd/dp closed), re-validates live
+ * after that, Submit touches everything, and a server field error lands in the same slot.
+ *
+ * The host page owns the
  * modal (app-form-modal) and calls `buildPayload()` on Submit; this component owns the
  * fields.
  *
@@ -37,13 +42,18 @@ const PLACEMENT_KEYS = ['classId', 'streamId', 'groupId', 'sectionId'] as const;
 const titleCase = (text: string): string => (text || '').replace(/\b\w/g, (c) => c.toUpperCase());
 const pad = (n: number): string => String(n).padStart(2, '0');
 
-/** ISO date from the API → the dd/mm/yyyy the inputs (and the validator) use. */
-const toInputDate = (value: unknown): string => {
+/** A stored date (ISO timestamp at UTC midnight) → the 'YYYY-MM-DD' app-dp works in. */
+const toIsoDate = (value: unknown): string => {
   if (!value) return '';
   const date = new Date(String(value));
   return Number.isNaN(date.getTime())
     ? ''
-    : `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()}`;
+    : `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+};
+
+const localToday = (): string => {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 };
 
 @Component({
@@ -63,8 +73,13 @@ export class StudentFormComponent implements OnChanges {
   @Input() serverErrors: Record<string, string> = {};
 
   form = new FormGroup<Record<string, FormControl<string>>>({});
-  /** Client-side messages, shown until the user edits the field. */
+  /**
+   * Messages for things that are not a config field's own control: the photo, and the
+   * placement pickers' required checks on submit.
+   */
   clientErrors: Record<string, string> = {};
+  /** Dates can't be in the future (DOB) — the dp greys out later days. */
+  readonly today = localToday();
 
   photoFile: File | null = null;
   photoPreview: string | null = null;
@@ -126,8 +141,26 @@ export class StudentFormComponent implements OnChanges {
     return this.fields.get(key)?.label || fallback;
   }
 
+  /**
+   * The one message a field shows, in priority order: a server error for it, a client-only
+   * check (photo/placement), then — once the control is touched — its own validator result.
+   * Never shown for an untouched field, so nothing flashes red before it's been visited.
+   */
   error(key: string): string {
-    return this.clientErrors[key] || this.serverErrors[key] || '';
+    if (this.serverErrors[key]) return this.serverErrors[key];
+    if (this.clientErrors[key]) return this.clientErrors[key];
+    const control = this.form.controls[key];
+    if (!control || !control.touched || control.valid) return '';
+    const field = this.fields.get(key);
+    const label = field?.label || 'This field';
+    if (control.hasError('required')) return `${label} is required`;
+    return field?.validationRule?.patternMessage || `Enter a valid ${label.toLowerCase()}`;
+  }
+
+  /** Marks a control touched — bound to inputs' blur and to every dd/dp `closed`. */
+  touch(key: string): void {
+    this.form.controls[key]?.markAsTouched();
+    this.cdr.markForCheck();
   }
 
   value(key: string): string {
@@ -137,6 +170,9 @@ export class StudentFormComponent implements OnChanges {
   set(key: string, value: string): void {
     this.form.controls[key]?.setValue(value);
     delete this.clientErrors[key];
+    // Editing a field the server rejected clears that rejection — its new value hasn't been
+    // judged yet, and a stale red message would contradict what the person just typed.
+    if (this.serverErrors[key]) this.serverErrors = { ...this.serverErrors, [key]: '' };
   }
 
   onInput(key: string, event: Event): void {
@@ -210,7 +246,7 @@ export class StudentFormComponent implements OnChanges {
       let initial = '';
       const raw = student ? student[field.fieldKey] : undefined;
       if (field.fieldKey === 'rollNumber') initial = placement?.rollNumber != null ? String(placement.rollNumber) : '';
-      else if (field.type === 'date') initial = toInputDate(raw);
+      else if (field.type === 'date') initial = toIsoDate(raw);
       else if (raw !== undefined && raw !== null) initial = String(raw);
       controls[field.fieldKey] = new FormControl<string>(initial, { nonNullable: true, validators: this.validatorsFor(field) });
     });
@@ -254,15 +290,15 @@ export class StudentFormComponent implements OnChanges {
    */
   buildPayload(): FormData | null {
     const errors: Record<string, string> = {};
+    // Submit touches every field at once, so one never visited still shows its error.
+    this.form.markAllAsTouched();
 
-    this.fields.forEach((field, key) => {
+    let invalid = false;
+    this.fields.forEach((_field, key) => {
       if (!this.show(key)) return;
       if (key === 'admissionNo' && this.admissionNoLocked) return;
       const control = this.form.controls[key];
-      if (!control || control.valid) return;
-      errors[key] = control.hasError('required')
-        ? `${field.label} is required`
-        : field.validationRule?.patternMessage || 'Invalid format';
+      if (control && control.invalid) invalid = true;
     });
 
     if (!this.isEdit) {
@@ -272,7 +308,7 @@ export class StudentFormComponent implements OnChanges {
 
     this.clientErrors = errors;
     this.cdr.markForCheck();
-    if (Object.keys(errors).length) return null;
+    if (invalid || Object.keys(errors).length) return null;
 
     const body = new FormData();
     body.append('adminId', this.adminId);

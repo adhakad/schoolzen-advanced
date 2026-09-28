@@ -18,8 +18,11 @@ const AppError = require('./AppError');
  *   catch (err) { throw ConflictError.fromMongoDuplicateKey(err, 'student'); }
  */
 class ConflictError extends AppError {
-  constructor(message, { module, context } = {}) {
+  constructor(message, { module, context, code, fields, rows } = {}) {
     super(message, {
+      code,
+      fields,
+      rows,
       category: 'ConflictError',
       statusCode: 409,
       module,

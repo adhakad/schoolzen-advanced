@@ -44,8 +44,46 @@ Dark sticky sidebar (248px) → topbar (crumb left, session-pill + profile-dropd
 ```
 `.dd-label` MUST have `white-space:nowrap;overflow:hidden;text-overflow:ellipsis` — never let it wrap to 2 lines (this broke row alignment once already). Disabled state resets value+label to the default option. Profile dropdown starts with a `.drop-school` block (logo+name+meta) above the menu items — don't drop this.
 
+## Date picker component — `.dp` — never a native `<input type="date">`
+A native date input renders the browser's own calendar chrome, which is
+inconsistent across browsers and breaks the design system's look on any
+page with a date field (Student's DOB/DOA, and every other page with a
+date filter or date input). Build one shared popover component, reused
+everywhere a date is entered:
+```html
+<div class="dp" id="x">
+  <div class="dp-trigger field-input" onclick="toggleDP(event,'x')">
+    <span class="dp-label">Select date</span><i class="bi bi-calendar3"></i>
+  </div>
+  <div class="dp-panel">
+    <div class="dp-nav"><i class="bi bi-chevron-left" onclick="dpPrevMonth('x')"></i><span class="dp-month-label">September 2026</span><i class="bi bi-chevron-right" onclick="dpNextMonth('x')"></i></div>
+    <div class="dp-grid"><!-- day cells --></div>
+  </div>
+</div>
+```
+Opens below the field, same positioning rule as `.dd-menu`. Today's date
+gets a hairline ring; the selected date is filled `var(--brand)` purple
+with white text. Month/year navigation via chevrons, no native `<select>`
+inside it. Hairline border (`1px solid var(--line)`), `border-radius:6px`,
+Fraunces/Inter fonts per the rest of the system — no native browser
+calendar chrome anywhere. Closing the panel (select, outside click, or
+Escape) must call the bound control's touch/validation handler exactly
+like `.dd`'s own close handler does (see Form validation state below) —
+a `.dp` gets no native `blur` event either.
+
+## Checkboxes
+Every checkbox on every page shares one fixed size and one theme — never
+the browser default appearance. Unchecked: hairline border
+(`1px solid var(--line)`), transparent fill. Checked: filled
+`var(--brand)` purple with a white check glyph. Same size across a whole
+table's row-select column and any standalone checkbox elsewhere on the
+page — a mix of native-sized and custom-sized checkboxes on the same
+page is the exact regression to avoid.
+
 ## Buttons
 Primary: `background:var(--ink);color:#fff`. Any consequential action (sync, delete) opens a confirm modal first — never fires on click. Destructive deletes require typing `DELETE` before the confirm button enables.
+
+**Width rule**: the page's ONE main/primary action button (e.g. "Create", "Save") is padding-based, auto-width to its own label — it never shares a width with the other toolbar buttons. Every OTHER (secondary/utility) button on the same toolbar — Export, Import, Filter, Assign Card, etc. — shares one common fixed width with each other, regardless of each one's own label length, so the row reads as one consistent set; only the main button is the exception, sized to itself.
 
 ## Cards / tables
 Hairline border only (`1px solid var(--line)`), `border-radius:6px`, no box-shadow. Sticky leading columns via `position:sticky` with cumulative left offsets. Status chips: outline only, all chips in a set the same fixed width, never filled/solid.
@@ -87,5 +125,53 @@ In practice only **3 `@media` rules** are needed — several of the above share 
 
 That's the whole responsive spec — the standard 5-tier scale for reference, 3 real breakpoints in code, 6 patterns. If a future page needs something this doesn't cover, extend this section — don't invent a one-off rule buried in that page's own file.
 
+## Form validation state — every input, one pattern
+
+Matches `_core/error-catalog-conventions.md`'s shapes #1/#3/#7 (field,
+cross-field, and per-row bulk errors) — this is the ONE visual/markup
+pattern every form in the app uses to show them, never a per-page
+invention.
+
+**Markup**: each field is wrapped `.field { }` containing the
+label, the input/`.dd`, and an `.field-error` span directly beneath it
+(empty and `display:none` when valid). On error: the input/`.dd`
+trigger gets `.is-invalid` (`border-color:var(--danger)`, no red glow/
+box-shadow — matches the flat, hairline aesthetic, never a heavy
+Bootstrap-style focus ring), and `.field-error` shows the message in
+`var(--danger)`, small text, with a small `bi bi-exclamation-circle`
+icon inline before it — never just colored text with no icon, and
+never a tooltip-only error (must be visible without hovering).
+
+**Trigger timing** — never on every keystroke from the start, never
+only on submit:
+1. A field shows its error the first time it's blurred (`touched`)
+   while invalid.
+2. Once touched, it re-validates live on every change (so fixing it
+   clears the error immediately — this is the payoff of not waiting
+   for submit).
+3. Submitting the form marks every field touched at once, so a field
+   the person never visited (e.g. skipped a required dropdown) still
+   surfaces its error on submit attempt.
+4. A server-side error that traces to a field (backend `fields[]`,
+   shape #1/#3 — e.g. a duplicate Admission No. only the backend can
+   know) is rendered through the exact same `.field-error` slot as a
+   client-side one, marking that field touched+invalid on response —
+   never a separate toast for something that already has a field to
+   point at.
+
+**Submit button**: stays enabled even with known client-side errors
+present (per the legacy `isClick`-guard convention, clicking submits
+and triggers rule 3 above rather than a silently-disabled button the
+person can't figure out why is greyed out) — the one exception is
+while a submit request is already in flight (double-submit guard,
+disable + spinner until the response lands).
+
+**Bulk/import result panel** (shape #7): not a form, so not the
+`.field-error` pattern — a dedicated results list, one row per failed
+record, each showing its row number and its own field-level messages
+nested underneath (reusing `.field-error`'s icon+color for each nested
+line). Rows that succeeded are summarized as a count, not listed
+individually.
+
 ## Never do
-Warm/tan borders. Filled chips. Heavy box-shadow "SaaS card" look. Mixed icon systems. Native selects. Unconfirmed destructive actions. Wrapping dropdown labels. Inventing version labels (v1/v2) for this design — there is only one. Introducing Bootstrap's CSS framework (grid/utility classes) alongside this custom system — Bootstrap here is icons only, per the top of this file.
+Warm/tan borders. Filled chips. Heavy box-shadow "SaaS card" look. Mixed icon systems. Native selects. Unconfirmed destructive actions. Wrapping dropdown labels. Inventing version labels (v1/v2) for this design — there is only one. Introducing Bootstrap's CSS framework (grid/utility classes) alongside this custom system — Bootstrap here is icons only, per the top of this file. A validation error shown only as a toast/alert with no field indicator. A field silently going invalid-on-every-keystroke before it's ever been touched. A disabled submit button as the only feedback for why a form won't go through. A native `<input type="date">` anywhere — use `.dp`. A default-appearance browser checkbox anywhere — use the shared checkbox style. Forcing every button on a toolbar to one shared fixed width regardless of label length.

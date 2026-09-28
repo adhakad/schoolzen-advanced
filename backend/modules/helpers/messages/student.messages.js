@@ -53,7 +53,41 @@ const warnFeeStructureMissing = (className, session) =>
 
 const jobNotFound = () => 'That background job was not found — it may have expired.';
 
+// Uniqueness (student/errors.md, shape #2) — one message per catalog code.
+const duplicate = {
+    ADMISSION_NO_DUPLICATE: () => 'This admission number is already in use.',
+    ROLL_NUMBER_DUPLICATE: () => 'This roll number is already taken in this class.',
+    AADHAR_DUPLICATE: () => 'This Aadhar number is already registered.',
+    SAMAGRA_ID_DUPLICATE: () => 'This Samagra ID is already registered.',
+    UDISE_DUPLICATE: () => 'This UDISE number is already registered.',
+    CARD_ALREADY_ASSIGNED: () => 'This card is already assigned to someone else.',
+};
+
+// External-service failure (shape #8) — safe wording, never the provider's own error.
+const imageUploadFailed = () =>
+    "Couldn't upload the photo — the record was saved without it, try adding it again.";
+
+const doaBeforeDob = () => "Admission date can't be before date of birth.";
+const promotionLimit = () => "Students can't be promoted past the 12th class.";
+const promotionTargetNotHigher = () => 'Promote To must be a higher class than the current one.';
+const classNameUnrecognized = (text) => `'${text}' doesn't match any class.`;
+const classOutOfScope = (text, scope) =>
+    `'${text}' is a different class — this import is for ${scope}; import it with that class selected.`;
+const duplicateInFile = (label, otherRow) => `${label} is repeated in row ${otherRow} of this file.`;
+const bulkRowsFailed = (failed, total) => `${failed} of ${total} rows could not be imported`;
+const duplicateSubmit = () => 'This request is already being processed.';
+
 module.exports = {
+    duplicate,
+    imageUploadFailed,
+    doaBeforeDob,
+    promotionLimit,
+    promotionTargetNotHigher,
+    classNameUnrecognized,
+    classOutOfScope,
+    duplicateInFile,
+    bulkRowsFailed,
+    duplicateSubmit,
     studentNotFound,
     studentsNotFound,
     deleteNeedsConfirmation,

@@ -31,10 +31,18 @@ import {
 } from 'src/app/shared/models/student/student.model';
 import {
   ExamResult, PromotionDecision, PromotionPreview, PromotionRequest, PromotionResult, PromotionRoster,
-  PromotionRosterRow, PromotionTargetOption
+  PromotionRosterRow, PromotionTargetOption, PromotionWarning
 } from 'src/app/shared/models/student/class-promotion.model';
 import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
-import { errorMessageOf } from 'src/app/shared/utils/api-error.util';
+import { errorMessageOf, validationErrorsOf } from 'src/app/shared/utils/api-error.util';
+import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
+
+/** Each warning type keeps its own icon, so three different warnings never read as one. */
+const WARNING_ICON: Record<PromotionWarning['type'], string> = {
+  'stream-missing': 'diagram-3',
+  'fee-structure-missing': 'wallet2',
+  'already-placed': 'person-check'
+};
 
 /** One row's view model — decision state lives here, keyed by enrollmentId. */
 interface PromotionRow extends PromotionRosterRow {
@@ -63,6 +71,10 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
   adminId = '';
   session = '';
   loading = false;
+  /** A failed roster fetch — distinct from a class with no students. */
+  loadError = '';
+  /** A failed class-list fetch — never a silently empty class dropdown. */
+  optionsError = '';
 
   filterOptions: StudentFilterOptions | null = null;
   filter: CascadeFilterValue = { ...EMPTY_CASCADE };
@@ -81,8 +93,12 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
 
   confirmOpen = false;
   preview: PromotionPreview | null = null;
+  /** Double-submit guards: one preview and one confirm in flight at a time. */
+  previewing = false;
   confirming = false;
   jobRunning = false;
+  /** One Idempotency-Key per opening of the confirm modal. */
+  private confirmKey = '';
 
   private destroyed$ = new Subject<void>();
 
@@ -100,16 +116,7 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
     this.adminId = this.adminAuthService.getLoggedInAdminInfo()?.id || '';
     if (!this.adminId) return;
 
-    this.optionsService.getFilterOptions(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((options) => {
-      this.filterOptions = options;
-      // The page works on ONE class at a time; start on the first configured one, like the
-      // reference's pre-selected class.
-      if (!this.filter.classId && options.classes.length) {
-        this.filter = { ...EMPTY_CASCADE, classId: options.classes[0]._id };
-      }
-      this.fetchRoster();
-      this.cdr.markForCheck();
-    });
+    this.loadOptions();
 
     this.shellContext.context.pipe(
       map((context) => context.activeSession),
@@ -141,9 +148,36 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
 
   // --- roster -----------------------------------------------------------------------------
 
+  loadOptions(): void {
+    this.optionsError = '';
+    this.optionsService.getFilterOptions(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((options) => {
+      this.filterOptions = options;
+      // The page works on ONE class at a time; start on the first configured one, like the
+      // reference's pre-selected class.
+      if (!this.filter.classId && options.classes.length) {
+        this.filter = { ...EMPTY_CASCADE, classId: options.classes[0]._id };
+      }
+      this.fetchRoster();
+      this.cdr.markForCheck();
+    }, () => {
+      this.optionsError = "Couldn't load classes.";
+      this.cdr.markForCheck();
+    });
+  }
+
+  retryOptions(): void {
+    this.optionsService.refresh();
+    this.loadOptions();
+  }
+
+  retryRoster(): void {
+    this.fetchRoster();
+  }
+
   private fetchRoster(): void {
     if (!this.session || !this.filter.classId) return;
     this.loading = true;
+    this.loadError = '';
     this.api.getRoster(this.adminId, { session: this.session, ...this.filter })
       .pipe(takeUntil(this.destroyed$))
       .subscribe((roster) => {
@@ -167,6 +201,11 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       }, () => {
         this.loading = false;
+        this.roster = null;
+        this.allRows = [];
+        this.rows = [];
+        this.recount();
+        this.loadError = "Couldn't load this class's students.";
         this.cdr.markForCheck();
       });
   }
@@ -265,11 +304,28 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
       this.snackBar.open(`Choose a Promote To class for ${this.missingTargets} student(s) first.`, 'Close', { duration: 3000 });
       return;
     }
+    if (this.previewing) return;
+    this.previewing = true;
     this.api.preview(this.buildRequest()).pipe(takeUntil(this.destroyed$)).subscribe((preview) => {
+      this.previewing = false;
       this.preview = preview;
+      this.confirmKey = newIdempotencyKey();
       this.confirmOpen = true;
       this.cdr.markForCheck();
+    }, (error: unknown) => {
+      this.previewing = false;
+      // A rule only the server can apply (PROMOTION_LIMIT, a target that isn't higher) comes
+      // back as a ValidationError, which the interceptor leaves to the page.
+      if (validationErrorsOf(error)) {
+        this.snackBar.open(errorMessageOf(error, 'This promotion plan could not be checked.'), 'Close', { duration: 5000 });
+      }
+      this.cdr.markForCheck();
     });
+  }
+
+  /** Distinct treatment per warning type — never collapsed into one generic banner. */
+  warningIcon(type: PromotionWarning['type']): string {
+    return WARNING_ICON[type] || 'exclamation-triangle';
   }
 
   closeConfirm(): void {
@@ -280,7 +336,7 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
   onConfirm(): void {
     if (this.confirming) return;
     this.confirming = true;
-    this.api.confirm(this.buildRequest()).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+    this.api.confirm(this.buildRequest(), this.confirmKey).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.confirming = false;
       this.confirmOpen = false;
       this.jobRunning = true;

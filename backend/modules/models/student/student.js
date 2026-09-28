@@ -115,6 +115,23 @@ StudentSchema.index(
     { unique: true, partialFilterExpression: { cardNumber: { $type: 'string' } } }
 );
 
+// Government IDs are unique per school when present (student/errors.md, uniqueness table):
+// AADHAR_DUPLICATE / SAMAGRA_ID_DUPLICATE / UDISE_DUPLICATE. Partial on a string value, so
+// the many students who don't have one never collide on "missing". The index — not a
+// findOne pre-check — is the guard: two concurrent saves can't both pass it.
+StudentSchema.index(
+    { adminId: 1, aadharNumber: 1 },
+    { unique: true, partialFilterExpression: { aadharNumber: { $type: 'string' } } }
+);
+StudentSchema.index(
+    { adminId: 1, samagraId: 1 },
+    { unique: true, partialFilterExpression: { samagraId: { $type: 'string' } } }
+);
+StudentSchema.index(
+    { adminId: 1, udiseNumber: 1 },
+    { unique: true, partialFilterExpression: { udiseNumber: { $type: 'string' } } }
+);
+
 // Name-prefix search ("Search by name or admission no.") — an anchored, case-folded regex
 // on this field is an index range scan, not a collection scan.
 StudentSchema.index({ adminId: 1, nameLower: 1 });

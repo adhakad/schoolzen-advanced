@@ -2,11 +2,21 @@
    row helpers (.st-avatar, .cls-tag, .card-tag, .not-set) and the toolbar buttons are the
    global design-system rules shared with Admission and Class Promotion. */
 
-/* This page's own toolbar shape (manage-students.html): row1 wraps, so the four buttons
-   drop under a 260px search instead of overflowing the card. */
-.toolbar-row1 { flex-wrap: wrap; }
-.toolbar-btn-group { flex-wrap: wrap; justify-content: flex-end; }
+/* This page's own toolbar shape (manage-students.html): ONE row1 line — the 260px search
+   on the left, the buttons beside it on the right, like Academic Setup's toolbars.
+
+   Button sizing is NOT set here: the design system's Width rule (global sheet) gives the
+   three secondary buttons one shared width and lets Create auto-width to its own label.
+   This file only keeps the row on one line and lets the group shrink instead of wrapping. */
+.toolbar-row1 { flex-wrap: nowrap; }
+.toolbar-btn-group { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; justify-content: flex-end; }
 @media (min-width: 768px) { .search { flex: 0 0 260px; width: 260px; } }
+/* Below 992px the buttons take their own full line under the search (the group could
+   otherwise shrink to nothing beside it and push the buttons off the card). */
+@media (max-width: 991px) {
+  .toolbar-row1 { flex-wrap: wrap; }
+  .toolbar-btn-group { flex: 1 1 100%; flex-wrap: wrap; justify-content: flex-start; }
+}
 
 
 .st-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -24,6 +34,9 @@
   font-size: 12.5px; font-family: inherit; outline: none; box-sizing: border-box; min-width: 0;
 }
 .card-row input:focus { border-color: var(--brand); }
+.card-row input.is-invalid { border-color: var(--danger); }
+.card-row-error { margin: -4px 0 10px 200px; }
+@media (max-width: 767px) { .card-row-error { margin-left: 0; } }
 .m-field.last { margin-bottom: 0; }
 
 .scope-note { margin-bottom: 14px; }
@@ -40,7 +53,7 @@
 .upload-box .bi { font-size: 22px; display: block; margin-bottom: 6px; }
 .upload-box.busy { color: var(--ink-faint); cursor: progress; }
 .import-result { margin-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
-.import-result ul { margin: 8px 0 0; padding-left: 18px; max-height: 160px; overflow-y: auto; font-size: 11.5px; color: var(--danger); }
+/* The failed-row list itself is the shared .result-rows panel (global sheet). */
 
 @media (max-width: 767px) {
   .card-row { flex-direction: column; align-items: stretch; }

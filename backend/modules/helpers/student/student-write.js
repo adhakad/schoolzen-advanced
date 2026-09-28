@@ -5,7 +5,9 @@ const { ValidationError, NotFoundError, ConflictError } = require('../../errors'
 const { getStudentFieldConfig, validateStudentRecord } = require('../../validators/student/field-config.validator');
 const { uploadImage, destroyImages } = require('../../services/media/cloudinary.service');
 const messages = require('../messages/student.messages');
-const { MODULE, resolvePlacement, withTransaction, toObjectId } = require('./student.utils');
+const { MODULE, resolvePlacement, withTransaction, toObjectId, rethrowAsDuplicate } = require('./student.utils');
+const logger = require('../logger');
+const { isValidSession, SESSION_EXAMPLE } = require('../academic-session-format');
 
 // The student write paths, shared by Manage Students (Create/Update) and Admission
 // (New Admission) — one implementation, so both forms create exactly the same documents.
@@ -29,14 +31,36 @@ const failFields = (fields) => {
     throw new ValidationError('Please fix the highlighted fields', { module: MODULE, fields });
 };
 
-// Roll No. and Admission No. collide on real unique indexes; name the field that did.
-const rethrowDuplicate = (error) => {
-    if (error && error.code === 11000) {
-        const key = Object.keys(error.keyPattern || {});
-        if (key.includes('rollNumber')) failFields([{ field: 'rollNumber', message: 'This roll number is already taken in this class/section' }]);
-        if (key.includes('admissionNo')) failFields([{ field: 'admissionNo', message: 'This admission number is already in use' }]);
+// Multipart bodies skip the Joi request schemas, so the session label is checked here —
+// a session is a join key, and a second spelling of one year would split its data.
+const assertSession = (session) => {
+    if (!isValidSession(session)) failFields([{ field: 'session', message: `Session must look like ${SESSION_EXAMPLE}` }]);
+};
+
+/**
+ * Upload a photo AFTER the record has committed. An external call can't be rolled back, so
+ * it never runs inside the transaction — and a failed upload must not turn a saved student
+ * into a 500: the record stands, and the caller gets the IMAGE_UPLOAD_FAILED warning to show
+ * (student/errors.md, shape #8).
+ * @returns {Promise<{code:String,message:String}|null>} a warning, or null on success
+ */
+const attachPhoto = async (adminId, studentId, file, previousPublicId) => {
+    if (!file || !file.path) return null;
+    try {
+        const photo = await uploadImage(file.path, adminId, 'students');
+        await StudentProfileModel.updateOne({ _id: studentId, adminId }, { $set: { photoUrl: photo.url, photoPublicId: photo.publicId } });
+        if (previousPublicId) destroyImages([previousPublicId]);
+        return null;
+    } catch (error) {
+        logger.warn('student.photoUploadFailed', { adminId, studentId: String(studentId), reason: error.message });
+        return { code: 'IMAGE_UPLOAD_FAILED', message: messages.imageUploadFailed() };
     }
-    throw error;
+};
+
+// Today at UTC midnight — the date-only value `doa` is stored as.
+const todayUtc = () => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 };
 
 /**
@@ -47,15 +71,20 @@ const rethrowDuplicate = (error) => {
  * @param {Object} args.body       raw form body (profile fields + session + placement ids)
  * @param {Object} [args.file]     Multer photo file
  * @param {String} args.entryType  'admission' (Admission page) or 'manual' (Manage Students)
- * @returns {Promise<String>} the new student's id
+ * @returns {Promise<{ id: String, warning: Object|null }>} the new student's id, plus the
+ *          photo-upload warning when the record saved but its photo didn't
  */
 const createStudentRecord = async ({ adminId, body, file, entryType }) => {
+    assertSession(body.session);
     const config = await getStudentFieldConfig(adminId);
     const { value, errors } = validateStudentRecord(body, config);
     if (errors.length) failFields(errors);
 
     const placement = await resolvePlacement(adminId, body);
     const { profile, enrollment } = splitProfile(value);
+    // A new admission's date is today unless the form gave a real one — never left empty
+    // for the letter/records to guess at (legacy 'new' admission behaviour, errors.md).
+    if (profile.doa == null) profile.doa = todayUtc();
 
     const studentId = await withTransaction(async (dbSession) => {
         const [student] = await StudentProfileModel.create([{
@@ -80,16 +109,10 @@ const createStudentRecord = async ({ adminId, body, file, entryType }) => {
         }], { session: dbSession });
 
         return student._id;
-    }).catch(rethrowDuplicate);
+    }).catch(rethrowAsDuplicate);
 
-    // After commit: an external upload can't be rolled back, so it never runs inside the
-    // transaction. A failed upload leaves a student without a photo, never a half-student.
-    if (file && file.path) {
-        const photo = await uploadImage(file.path, adminId, 'students');
-        await StudentProfileModel.updateOne({ _id: studentId }, { $set: { photoUrl: photo.url, photoPublicId: photo.publicId } });
-    }
-
-    return String(studentId);
+    const warning = await attachPhoto(adminId, studentId, file, null);
+    return { id: String(studentId), warning };
 };
 
 /**
@@ -156,13 +179,11 @@ const updateStudentRecord = async ({ adminId, studentId, body, file }) => {
             enrollmentSet.updatedAt = new Date();
             await StudentEnrollmentModel.updateOne({ _id: enrollment._id }, { $set: enrollmentSet }, { session: dbSession });
         }
-    }).catch(rethrowDuplicate);
+    }).catch(rethrowAsDuplicate);
 
-    if (file && file.path) {
-        const photo = await uploadImage(file.path, adminId, 'students');
-        await StudentProfileModel.updateOne({ _id: student._id }, { $set: { photoUrl: photo.url, photoPublicId: photo.publicId } });
-        if (student.photoPublicId) destroyImages([student.photoPublicId]);
-    }
+    // @returns {Promise<{ warning: Object|null }>}
+    const warning = await attachPhoto(adminId, student._id, file, student.photoPublicId);
+    return { warning };
 };
 
 /** Throws a ConflictError naming the first card already held by a student NOT in the set. */
@@ -172,7 +193,15 @@ const assertCardsFree = async (adminId, items) => {
         cardNumber: { $in: items.map((item) => item.cardNumber) },
         _id: { $nin: items.map((item) => toObjectId(item.studentId)) },
     }, 'cardNumber').lean();
-    if (taken) throw new ConflictError(messages.cardInUse(taken.cardNumber), { module: MODULE, context: { cardNumber: taken.cardNumber } });
+    if (taken) {
+        const message = `Card ${taken.cardNumber}: ${messages.duplicate.CARD_ALREADY_ASSIGNED()}`;
+        throw new ConflictError(message, {
+            module: MODULE,
+            code: 'CARD_ALREADY_ASSIGNED',
+            fields: [{ field: 'cardNumber', code: 'CARD_ALREADY_ASSIGNED', message }],
+            context: { cardNumber: taken.cardNumber },
+        });
+    }
 };
 
 module.exports = {

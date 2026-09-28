@@ -6,9 +6,13 @@
 // The profile columns come straight from the FieldConfig, so a school's custom
 // visibility/required settings shape the sheet the same way they shape the form.
 
-// Placement columns: the scope (class/stream) is fixed by the modal, so only what varies
-// inside it is a column.
+// Placement columns. The scope (class/stream) is fixed by the modal; `Class` is written on
+// export so the sheet says which class it holds, and on import a row naming a different
+// class — or text matching no class at all — is reported (CLASS_OUT_OF_SCOPE /
+// CLASS_NAME_UNRECOGNIZED) instead of being silently filed under the selected one.
+// Optional: a blank Class cell means "the selected class".
 const placementColumns = (hasStreams) => [
+    { key: 'className', header: 'Class', width: 10 },
     { key: 'sectionName', header: 'Section', width: 10 },
     ...(hasStreams ? [{ key: 'groupName', header: 'Subject Group', width: 22 }] : []),
 ];

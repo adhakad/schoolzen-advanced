@@ -12,6 +12,8 @@ Read anything else you genuinely need as you go (other docs, existing code) — 
 
 **If Classes & Sections was already attempted before**: treat it as a rough draft only — read the current `classes-sections.html` fully and rebuild to match it exactly rather than patching the old attempt. Multiple earlier fix rounds on this specific page went wrong because fixes were guessed instead of read from the actual reference — don't repeat that; read fully before touching code.
 
+Also read `docs/schoolzen-planning/v1/academic-setup/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
+
 ## Build
 
 **Backend** — `backend/modules/`:

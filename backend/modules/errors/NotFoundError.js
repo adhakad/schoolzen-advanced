@@ -12,8 +12,9 @@ const AppError = require('./AppError');
  *   throw new NotFoundError('Student not found', { module: 'student', context: { studentId } });
  */
 class NotFoundError extends AppError {
-  constructor(message, { module, context } = {}) {
+  constructor(message, { module, context, code } = {}) {
     super(message, {
+      code,
       category: 'NotFoundError',
       statusCode: 404,
       module,

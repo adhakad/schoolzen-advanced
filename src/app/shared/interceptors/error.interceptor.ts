@@ -81,6 +81,13 @@ export class ErrorInterceptor implements HttpInterceptor {
       }
 
       case 'ConflictError':
+        // A duplicate that traces to a form field (duplicate Admission No., Aadhar, roll
+        // number…) is shown inline by the form, like a ValidationError — never also as a
+        // toast (error-catalog-conventions.md, shape #2).
+        if (apiError.fields && apiError.fields.length) break;
+        this.snackBar.open(apiError.message, 'Dismiss', { duration: 5000 });
+        break;
+
       case 'NotFoundError':
       case 'PermissionError':
       case 'ExternalServiceError':

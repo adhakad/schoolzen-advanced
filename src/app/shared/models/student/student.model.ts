@@ -198,7 +198,22 @@ export interface QueuedResponse {
   jobId: string;
 }
 
+/** A save that succeeded with a caveat — e.g. IMAGE_UPLOAD_FAILED: record saved, photo not. */
+export interface SaveWarning {
+  code: string;
+  message: string;
+}
+
 export interface MessageResponse {
   message: string;
   id?: string;
+  warning?: SaveWarning | null;
+}
+
+/** One record a bulk action could not process (error-catalog-conventions.md, shape #7). */
+export interface BulkRowResult {
+  id?: string;
+  studentId?: string;
+  code: string;
+  message: string;
 }

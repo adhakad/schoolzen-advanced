@@ -5,7 +5,7 @@ import { LetterheadDocumentComponent } from './letterhead-document.component';
 const DOCUMENT: LetterheadDocument = {
   header: { schoolName: 'GREEN VALLEY PUBLIC SCHOOL', logoUrl: null, metaLines: ['Recognized by CBSE', 'Indore'] },
   title: 'CERTIFICATE OF ADMISSION',
-  subtitle: 'Academic Session 2026-27',
+  subtitle: 'Academic Session 2026-2027',
   sectionLabel: 'Admission Details',
   fields: [{ label: 'Admission No.', value: '2024142' }, { label: 'Class', value: '8th · A' }],
   note: 'This is to certify…',

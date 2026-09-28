@@ -14,8 +14,9 @@ import {
   MessageResponse, QueuedResponse, StudentDetail, StudentListResponse
 } from 'src/app/shared/models/student/student.model';
 import {
-  AssignCardsPayload, ListQuery, ManageStudentsOverview
+  AssignCardsPayload, AssignCardsResponse, BulkDeleteResponse, ListQuery, ManageStudentsOverview
 } from 'src/app/shared/models/student/manage-students.model';
+import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 
 /** Drops empty values so the query string carries only real filters. */
 export const toParams = (adminId: string, query: object): Record<string, string> => {
@@ -45,23 +46,28 @@ export class ManageStudentsService {
     return this.http.get<StudentDetail>(`${this.url}/students/${id}`, { params: { adminId, session } });
   }
 
-  /** Multipart: the form (plus an optional `photo` file) as FormData. */
-  createStudent(form: FormData): Observable<MessageResponse> {
-    return this.http.post<MessageResponse>(`${this.url}/students`, form);
+  /**
+   * Multipart: the form (plus an optional `photo` file) as FormData. `key` is the
+   * Idempotency-Key the page made when the form opened (utils/idempotency.util.ts).
+   */
+  createStudent(form: FormData, key?: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.url}/students`, form, { headers: idempotencyHeaders(key) });
   }
 
-  updateStudent(id: string, form: FormData): Observable<MessageResponse> {
-    return this.http.put<MessageResponse>(`${this.url}/students/${id}`, form);
+  updateStudent(id: string, form: FormData, key?: string): Observable<MessageResponse> {
+    return this.http.put<MessageResponse>(`${this.url}/students/${id}`, form, { headers: idempotencyHeaders(key) });
   }
 
   /** Every delete (one row or a selection) goes through here, after the type-DELETE confirm. */
-  bulkDelete(adminId: string, ids: string[]): Observable<MessageResponse> {
-    return this.http.post<MessageResponse>(`${this.url}/students/bulk-delete`, { adminId, ids, confirmed: true });
+  bulkDelete(adminId: string, ids: string[], key?: string): Observable<BulkDeleteResponse> {
+    return this.http.post<BulkDeleteResponse>(
+      `${this.url}/students/bulk-delete`, { adminId, ids, confirmed: true }, { headers: idempotencyHeaders(key) }
+    );
   }
 
   /** Saves the cards; a background job pushes them to the devices (202 + jobId). */
-  assignCards(payload: AssignCardsPayload): Observable<QueuedResponse> {
-    return this.http.post<QueuedResponse>(`${this.url}/students/cards`, payload);
+  assignCards(payload: AssignCardsPayload, key?: string): Observable<AssignCardsResponse> {
+    return this.http.post<AssignCardsResponse>(`${this.url}/students/cards`, payload, { headers: idempotencyHeaders(key) });
   }
 
   resyncCard(adminId: string, id: string): Observable<QueuedResponse> {
@@ -76,7 +82,7 @@ export class ManageStudentsService {
     });
   }
 
-  importExcel(form: FormData): Observable<QueuedResponse> {
-    return this.http.post<QueuedResponse>(`${this.url}/students/excel/import`, form);
+  importExcel(form: FormData, key?: string): Observable<QueuedResponse> {
+    return this.http.post<QueuedResponse>(`${this.url}/students/excel/import`, form, { headers: idempotencyHeaders(key) });
   }
 }

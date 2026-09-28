@@ -18,21 +18,20 @@
         <div class="search">
           <i class="bi bi-search"></i>
           <input type="text" placeholder="Search by name or admission no." aria-label="Search students"
-                 (input)="onSearchInput($any($event.target).value)" />
+            (input)="onSearchInput($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group">
           <button type="button" class="btn-warn" [disabled]="!selectedCount" title="Delete Selected"
-                  (click)="onDeleteSelected()">
+            (click)="onDeleteSelected()">
             <i class="bi bi-trash"></i> <span class="btn-label">Delete Selected</span>
           </button>
           <button type="button" class="btn-assign" [disabled]="!selectedCount" title="Assign Card to Selected"
-                  (click)="onAssignCardSelected()">
+            (click)="onAssignCardSelected()">
             <i class="bi bi-credit-card"></i> <span class="btn-label">Assign Card to Selected</span>
           </button>
           <!-- The one scope-gated action: disabled until a Class (+Stream for 11th/12th) is picked. -->
           <button type="button" class="btn-secondary excel-btn" [disabled]="!excelEnabled"
-                  [title]="excelEnabled ? 'Excel Import/Export' : 'Pick a class first'"
-                  (click)="onOpenExcel()">
+            [title]="excelEnabled ? 'Excel Import/Export' : 'Pick a class first'" (click)="onOpenExcel()">
             <i class="bi bi-file-earmark-spreadsheet"></i> <span class="btn-label">Excel Import/Export</span>
           </button>
           <button type="button" class="btn-primary" title="Create" (click)="onCreate()">
@@ -42,7 +41,12 @@
       </div>
       <div class="toolbar-row2">
         <app-class-cascade-filter [options]="filterOptions" [value]="filter"
-                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+          (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+      <!-- A failed class/settings fetch is said out loud — never a silently empty dropdown. -->
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="retryOptions()">Retry</button>
       </div>
     </div>
 
@@ -52,18 +56,26 @@
           <thead>
             <tr>
               <th class="check-col">
-                <input type="checkbox" aria-label="Select all students on this page"
-                       [checked]="allSelected" (change)="toggleAll()" />
+                <input type="checkbox" aria-label="Select all students on this page" [checked]="allSelected"
+                  (change)="toggleAll()" />
               </th>
-              <th>Photo</th><th>Admission No.</th><th>Student</th><th>Class</th><th>Father</th>
-              <th>Mother</th><th>Roll No.</th><th>Contact</th><th>Card</th><th class="act">Action</th>
+              <th>Photo</th>
+              <th>Admission No.</th>
+              <th>Student</th>
+              <th>Class</th>
+              <th>Father</th>
+              <th>Mother</th>
+              <th>Roll No.</th>
+              <th>Contact</th>
+              <th>Card</th>
+              <th class="act">Action</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let row of rows; trackBy: trackByRow">
               <td class="check-col">
-                <input type="checkbox" [attr.aria-label]="'Select ' + row.name"
-                       [checked]="isSelected(row)" (change)="toggleRow(row)" />
+                <input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="isSelected(row)"
+                  (change)="toggleRow(row)" />
               </td>
               <td>
                 <span class="st-avatar" [style.background]="row.photoUrl ? null : row.gradient">
@@ -79,7 +91,7 @@
               <td>
                 <span class="cls-tag">{{ row.classTag }}</span>
                 <i class="bi bi-exclamation-circle incomplete" *ngIf="row.placementIncomplete"
-                   title="Stream / Subject Group still needs to be set"></i>
+                  title="Stream / Subject Group still needs to be set"></i>
               </td>
               <td>{{ row.fatherName || '—' }}</td>
               <td>{{ row.motherName || '—' }}</td>
@@ -92,16 +104,19 @@
               <td class="act">
                 <div class="actions">
                   <button type="button" class="icon-btn" [attr.aria-label]="'View ' + row.name" title="View profile"
-                          (click)="onView(row)"><i class="bi bi-eye"></i></button>
+                    (click)="onView(row)"><i class="bi bi-eye"></i></button>
                   <button type="button" class="icon-btn" [attr.aria-label]="'Assign card to ' + row.name"
-                          [title]="row.card ? 'Change card' : 'Assign card'"
-                          (click)="onAssignCard(row)"><i class="bi bi-credit-card"></i></button>
-                  <button type="button" class="icon-btn" [attr.aria-label]="'Resync ' + row.name" title="Resync to devices"
-                          (click)="onResync(row)"><i class="bi bi-arrow-repeat"></i></button>
+                    [title]="row.card ? 'Change card' : 'Assign card'" (click)="onAssignCard(row)"><i
+                      class="bi bi-credit-card"></i></button>
+                  <!-- Per-row busy state: only THIS row's actions wait while its resync/delete
+                       is in flight; every other row stays clickable. -->
+                  <button type="button" class="icon-btn" [attr.aria-label]="'Resync ' + row.name"
+                    title="Resync to devices" [disabled]="isBusy(row)" [attr.aria-busy]="isBusy(row)"
+                    (click)="onResync(row)"><i class="bi bi-arrow-repeat" [class.spinning]="isBusy(row)"></i></button>
                   <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name" title="Edit"
-                          (click)="onEdit(row)"><i class="bi bi-pencil"></i></button>
+                    [disabled]="isBusy(row)" (click)="onEdit(row)"><i class="bi bi-pencil"></i></button>
                   <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name" title="Delete"
-                          (click)="onDelete(row)"><i class="bi bi-trash"></i></button>
+                    [disabled]="isBusy(row)" (click)="onDelete(row)"><i class="bi bi-trash"></i></button>
                 </div>
               </td>
             </tr>
@@ -110,49 +125,57 @@
       </div>
     </div>
 
-    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+    <!-- A failed load and a genuinely empty result are two different states. -->
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="retryList()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
       {{ search || filter.classId ? 'No students match these filters.' : 'No students in this session yet.' }}
     </div>
 
-    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
-                        (pageChange)="onPageChange($event)"
-                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total" (pageChange)="onPageChange($event)"
+      (limitChange)="onLimitChange($event)"></app-pagination-bar>
   </div>
 
   <div class="col-side">
     <div class="stats-card">
       <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
-      <div class="stat-row"><span class="stat-label">Total Students</span><span class="stat-value">{{ overview.totalStudents }}</span></div>
-      <div class="stat-row accent"><span class="stat-label">Cards Assigned</span><span class="stat-value">{{ overview.cardsAssigned }}</span></div>
+      <div class="stat-row"><span class="stat-label">Total Students</span><span class="stat-value">{{
+          overview.totalStudents }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Cards Assigned</span><span class="stat-value">{{
+          overview.cardsAssigned }}</span></div>
     </div>
     <div class="status-card">
       <div class="card-title-row">Good to know</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Excel Import/Export needs a Class picked first — it applies only to that class(+stream).</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a student also removes their login access, fee records, admit cards, and results.</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Resync pushes this person's card and fingerprint back down to every biometric device.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Excel Import/Export needs a Class picked first — it applies
+        only to that class(+stream).</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a student also removes their login access, fee
+        records, admit cards, and results.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Resync pushes this person's card and fingerprint back down
+        to every biometric device.</div>
     </div>
   </div>
 </div>
 
 <!-- Create / Update — the shared student form. -->
-<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit" [width]="560"
-                [submitDisabled]="saving" (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit" [width]="560" [submitDisabled]="saving"
+  (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
   <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
-  <app-student-form *ngIf="formOpen" [mode]="formMode" [adminId]="adminId" [session]="session"
-                    [detail]="formDetail" [filterOptions]="filterOptions" [fieldConfig]="fieldConfig"
-                    [serverErrors]="formErrors"></app-student-form>
+  <app-student-form *ngIf="formOpen" [mode]="formMode" [adminId]="adminId" [session]="session" [detail]="formDetail"
+    [filterOptions]="filterOptions" [fieldConfig]="fieldConfig" [serverErrors]="formErrors"></app-student-form>
 </app-form-modal>
 
 <!-- View Profile — read-only. -->
-<app-form-modal [open]="viewOpen" title="Student Profile" [width]="560" [showSubmit]="false"
-                cancelLabel="Close" (cancelled)="closeView()">
+<app-form-modal [open]="viewOpen" title="Student Profile" [width]="560" [showSubmit]="false" cancelLabel="Close"
+  (cancelled)="closeView()">
   <app-student-profile-view [detail]="viewDetail" variant="profile"></app-student-profile-view>
 </app-form-modal>
 
 <!-- Assign Card — single or bulk. Submitting pushes to every device; no separate resync. -->
 <app-form-modal [open]="cardOpen" [title]="cardTitle" [width]="420"
-                [submitLabel]="cardSaving ? 'Syncing to device…' : 'Assign & Sync'"
-                [submitDisabled]="cardSubmitDisabled" (submitted)="onCardSubmit()" (cancelled)="cardOpen = false">
+  [submitLabel]="cardSaving ? 'Syncing to device…' : 'Assign & Sync'" [submitDisabled]="cardSubmitDisabled"
+  (submitted)="onCardSubmit()" (cancelled)="cardOpen = false">
   <div class="m-field card-info">
     <ng-container *ngIf="cardTargets.length === 1; else bulkInfo">
       <b>{{ cardTargets[0].name }}</b>
@@ -166,35 +189,49 @@
   <div class="m-field" *ngIf="cardTargets.length === 1">
     <label for="card-single">Card Number</label>
     <input id="card-single" type="text" inputmode="numeric" placeholder="Scan or type card number"
-           [value]="cardNumbers[cardTargets[0].studentId] || ''"
-           (input)="onCardInput(cardTargets[0].studentId, $any($event.target).value)" />
+      [value]="cardNumbers[cardTargets[0].studentId] || ''"
+      [class.is-invalid]="!!cardRowError(cardTargets[0].studentId)"
+      (input)="onCardInput(cardTargets[0].studentId, $any($event.target).value)" />
     <p class="m-hint" *ngIf="cardTargets[0].card">Currently {{ cardTargets[0].card }} — a new number replaces it.</p>
+    <p class="m-error" *ngIf="cardRowError(cardTargets[0].studentId)">
+      <i class="bi bi-exclamation-circle"></i> {{ cardRowError(cardTargets[0].studentId) }}
+    </p>
   </div>
 
   <ng-container *ngIf="cardTargets.length > 1">
-    <div class="card-row" *ngFor="let target of cardTargets; trackBy: trackByTarget">
-      <span class="cr-name" [title]="target.name">{{ target.name }}<br />
-        <span class="cr-meta">Adm. {{ target.admissionNo ?? '—' }} · Roll {{ target.rollNumber ?? '—' }} · {{ target.classTag }}</span>
-      </span>
-      <input type="text" inputmode="numeric" [placeholder]="'Card no. for ' + (target.admissionNo ?? target.name)"
-             [value]="cardNumbers[target.studentId] || ''"
-             (input)="onCardInput(target.studentId, $any($event.target).value)" />
-    </div>
+    <ng-container *ngFor="let target of cardTargets; trackBy: trackByTarget">
+      <div class="card-row">
+        <span class="cr-name" [title]="target.name">{{ target.name }}<br />
+          <span class="cr-meta">Adm. {{ target.admissionNo ?? '—' }} · Roll {{ target.rollNumber ?? '—' }} · {{
+            target.classTag }}</span>
+        </span>
+        <input type="text" inputmode="numeric" [placeholder]="'Card no. for ' + (target.admissionNo ?? target.name)"
+          [value]="cardNumbers[target.studentId] || ''" [class.is-invalid]="!!cardRowError(target.studentId)"
+          (input)="onCardInput(target.studentId, $any($event.target).value)" />
+      </div>
+      <!-- This row's own outcome — an in-list duplicate before submit, or the server's
+           per-row result after it. -->
+      <p class="m-error card-row-error" *ngIf="cardRowError(target.studentId)">
+        <i class="bi bi-exclamation-circle"></i> {{ cardRowError(target.studentId) }}
+      </p>
+    </ng-container>
   </ng-container>
 
   <div class="m-field last">
     <label>Verify Mode</label>
     <app-dd [options]="verifyModeOptions" [value]="cardVerifyMode" ariaLabel="Verify mode"
-            (valueChange)="cardVerifyMode = $event"></app-dd>
-    <div class="m-hint">Applies to everyone here. Submitting pushes this straight to every biometric device — no separate resync needed.</div>
+      (valueChange)="cardVerifyMode = $event"></app-dd>
+    <div class="m-hint">Applies to everyone here. Submitting pushes this straight to every biometric device — no
+      separate resync needed.</div>
   </div>
-  <p class="m-error" *ngIf="cardError">{{ cardError }}</p>
+  <p class="m-error" *ngIf="cardError"><i class="bi bi-exclamation-circle"></i> {{ cardError }}</p>
 </app-form-modal>
 
 <!-- Excel Import / Export — explicitly scoped to the filtered class(+stream). -->
-<app-form-modal [open]="excelOpen" title="Excel Import / Export" [width]="420" [showSubmit]="false"
-                cancelLabel="Close" (cancelled)="closeExcel()">
-  <p class="m-hint scope-note">Scope: <b>{{ excelScopeLabel }}</b>, session <b>{{ session }}</b>. Both import and export apply only to this class(+stream) — switch the filter above to work with a different one.</p>
+<app-form-modal [open]="excelOpen" title="Excel Import / Export" [width]="420" [showSubmit]="false" cancelLabel="Close"
+  (cancelled)="closeExcel()">
+  <p class="m-hint scope-note">Scope: <b>{{ excelScopeLabel }}</b>, session <b>{{ session }}</b>. Both import and export
+    apply only to this class(+stream) — switch the filter above to work with a different one.</p>
 
   <div class="excel-title">Export</div>
   <p class="m-hint">Download the current class(+stream)'s students as an Excel file.</p>
@@ -203,21 +240,42 @@
   </button>
 
   <div class="excel-title">Import</div>
-  <p class="m-hint">Upload a filled Excel sheet to add or update students in this class(+stream). Each row needs an Admission No.</p>
+  <p class="m-hint">Upload a filled Excel sheet to add or update students in this class(+stream). Each row needs an
+    Admission No.</p>
   <label class="upload-box" [class.busy]="importing">
     <i class="bi bi-cloud-upload"></i>{{ importStatus || 'Click to choose an Excel file' }}
     <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden
-           [disabled]="importing" (change)="onImportFile($event)" />
+      [disabled]="importing" (change)="onImportFile($event)" />
   </label>
   <p class="m-error" *ngIf="importError">{{ importError }}</p>
 
+  <!-- Bulk result panel (design-system.md): passed rows as counts, each failed row listed with
+       its own field-level messages nested under it. -->
   <div class="import-result" *ngIf="importResult">
-    <div><b>{{ importResult.created }}</b> added · <b>{{ importResult.updated }}</b> updated · <b>{{ importResult.failedCount }}</b> skipped</div>
-    <ul *ngIf="importResult.failed.length">
-      <li *ngFor="let failure of importResult.failed">Row {{ failure.row }}: {{ failure.messages.join('; ') }}</li>
+    <div><b>{{ importResult.created }}</b> added · <b>{{ importResult.updated }}</b> updated · <b>{{
+        importResult.failedCount }}</b> skipped</div>
+    <ul class="result-rows" *ngIf="importResult.rows.length">
+      <li *ngFor="let failure of importResult.rows">
+        <span class="result-row-label">Row {{ failure.row }}</span>
+        <span class="m-error" *ngFor="let field of failure.fields">
+          <i class="bi bi-exclamation-circle"></i> {{ field.message }}
+        </span>
+      </li>
     </ul>
   </div>
 </app-form-modal>
 
-<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
-                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
+<!-- Per-row outcome of a bulk action — never one pass/fail toast for a whole selection. -->
+<app-form-modal [open]="bulkResultOpen" [title]="bulkResultTitle" [width]="420" [showSubmit]="false"
+  cancelLabel="Close" (cancelled)="closeBulkResult()">
+  <p class="bulk-summary">{{ bulkResultSummary }}</p>
+  <ul class="result-rows">
+    <li *ngFor="let line of bulkResultLines">
+      <span class="result-row-label">{{ line.label }}</span>
+      <span class="m-error"><i class="bi bi-exclamation-circle"></i> {{ line.message }}</span>
+    </li>
+  </ul>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig" (confirmed)="onConfirmed()"
+  (cancelled)="onConfirmCancelled()"></app-confirm-modal>

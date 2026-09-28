@@ -29,6 +29,10 @@
         <app-class-cascade-filter [options]="filterOptions" [value]="filter"
                                   (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
       </div>
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="retryOptions()">Retry</button>
+      </div>
     </div>
 
     <div class="grid-scroll">
@@ -70,7 +74,8 @@
               </td>
               <td>
                 <button type="button" class="icon-btn" [attr.aria-label]="'Admission letter for ' + row.name"
-                        [disabled]="!canPrint(row)"
+                        [disabled]="!canPrint(row) || letterLoadingId === row.studentId"
+                        [attr.aria-busy]="letterLoadingId === row.studentId"
                         [title]="canPrint(row) ? 'Admission Letter' : 'Issue an Admission No. first'"
                         (click)="onLetter(row)"><i class="bi bi-printer"></i></button>
               </td>
@@ -80,7 +85,12 @@
       </div>
     </div>
 
-    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+    <!-- A failed load and a genuinely empty result are two different states. -->
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="retryList()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
       {{ search || filter.classId ? 'No admissions match these filters.' : 'No admissions this session yet.' }}
     </div>
 

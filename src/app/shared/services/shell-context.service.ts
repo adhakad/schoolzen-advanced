@@ -16,6 +16,8 @@ import { TeacherAuthService } from 'src/app/services/auth/teacher-auth.service';
 import { SchoolService } from 'src/app/services/school.service';
 import { TeacherService } from 'src/app/services/teacher.service';
 import { AcademicSessionService } from 'src/app/services/academic-session.service';
+// "2026-2027" — the fallback when the server has no academic-session document at all.
+import { currentSessionLabel } from 'src/app/shared/utils/academic-session.util';
 import {
   ShellContext,
   ShellPermissionKey,
@@ -53,16 +55,6 @@ const initialsOf = (text: string): string =>
     .map((word) => word.charAt(0).toUpperCase())
     .join('') || '?';
 
-/**
- * "2026-27" for a year that starts in April, the convention every session string in this
- * codebase already follows. Used only when the server has no academic-session document at
- * all — a placeholder for the selector, never written anywhere.
- */
-const currentSessionLabel = (): string => {
-  const now = new Date();
-  const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-  return startYear + '-' + String((startYear + 1) % 100).padStart(2, '0');
-};
 
 const EMPTY_CONTEXT: ShellContext = {
   role: 'admin',

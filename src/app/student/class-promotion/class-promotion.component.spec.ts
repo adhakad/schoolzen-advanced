@@ -11,8 +11,8 @@ import { PromotionRoster } from 'src/app/shared/models/student/class-promotion.m
 import { ClassPromotionComponent } from './class-promotion.component';
 
 const ROSTER: PromotionRoster = {
-  session: '2026-27',
-  nextSession: '2027-28',
+  session: '2026-2027',
+  nextSession: '2027-2028',
   currentClass: { classId: 'c8', label: '8th' },
   defaultTargetKey: 'c9::s9a',
   targetOptions: [
@@ -34,9 +34,9 @@ describe('ClassPromotionComponent', () => {
     api = jasmine.createSpyObj<ClassPromotionService>('ClassPromotionService', ['getRoster', 'preview', 'confirm']);
     api.getRoster.and.returnValue(of(ROSTER));
     api.preview.and.returnValue(of({
-      nextSession: '2027-28',
+      nextSession: '2027-2028',
       summary: { promoting: 1, detaining: 1, notDecided: 0, total: 2 },
-      warnings: [{ type: 'fee-structure-missing', message: 'No Fee Structure exists yet for 9th in session 2027-28' }]
+      warnings: [{ type: 'fee-structure-missing', message: 'No Fee Structure exists yet for 9th in session 2027-2028' }]
     }));
 
     await TestBed.configureTestingModule({
@@ -49,7 +49,7 @@ describe('ClassPromotionComponent', () => {
         },
         { provide: JobStatusService, useValue: { watch: () => of() } },
         { provide: AdminAuthService, useValue: { getLoggedInAdminInfo: () => ({ id: 'a1' }) } },
-        { provide: ShellContextService, useValue: { context: of({ activeSession: '2026-27' }) } },
+        { provide: ShellContextService, useValue: { context: of({ activeSession: '2026-2027' }) } },
         { provide: MatSnackBar, useValue: { open: () => undefined } }
       ],
       schemas: [NO_ERRORS_SCHEMA]
@@ -66,7 +66,7 @@ describe('ClassPromotionComponent', () => {
   };
 
   it('loads one class (pre-selected) with the default Promote To target on every row', () => {
-    expect(api.getRoster).toHaveBeenCalledWith('a1', jasmine.objectContaining({ session: '2026-27', classId: 'c8' }));
+    expect(api.getRoster).toHaveBeenCalledWith('a1', jasmine.objectContaining({ session: '2026-2027', classId: 'c8' }));
     expect(component.rows.map((row) => row.targetKey)).toEqual(['c9::s9a', 'c9::s9a']);
     expect(component.counts).toEqual({ promoting: 0, detaining: 0, notDecided: 2 });
   });

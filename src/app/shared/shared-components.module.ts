@@ -45,6 +45,7 @@ import { ClassCascadeFilterComponent } from './components/class-cascade-filter/c
 import { LetterheadDocumentComponent } from './components/letterhead-document/letterhead-document.component';
 import { StudentProfileViewComponent } from './components/student-profile-view/student-profile-view.component';
 import { StudentFormComponent } from './components/student-form/student-form.component';
+import { DpComponent } from './components/dp/dp.component';
 
 const COMPONENTS = [
   PageShellComponent,
@@ -70,7 +71,9 @@ const COMPONENTS = [
   ClassCascadeFilterComponent,
   LetterheadDocumentComponent,
   StudentProfileViewComponent,
-  StudentFormComponent
+  StudentFormComponent,
+  // THE date picker (design-system.md `.dp`) — never a native <input type="date">.
+  DpComponent
 ];
 
 @NgModule({

@@ -13,7 +13,7 @@ The school year every new record (admission, attendance, fee, payroll) is saved 
 
 **Create Session modal**: label + start/end date → creates as **Upcoming** (never immediately active) → an optional "copy forward" checklist (Fee Structure, Marksheet+Admit Card Structure, Salary Groups, Holiday Templates — configuration only, never student placements or financial records; Class Promotion remains a separate explicit step).
 
-**Set as Active modal**: heavy warning — this changes where EVERY new record across the whole app saves, for every user, immediately; the previous session becomes Closed (still fully browsable read-only, nothing deleted). Gated by typing the session label itself (e.g. "2027-28") to confirm — a session-specific type-to-confirm, not the generic "DELETE".
+**Set as Active modal**: heavy warning — this changes where EVERY new record across the whole app saves, for every user, immediately; the previous session becomes Closed (still fully browsable read-only, nothing deleted). Gated by typing the session label itself (e.g. "2027-2028" — session labels are always the full start-end year format, see `backend/modules/helpers/academic-session-format.js`) to confirm — a session-specific type-to-confirm, not the generic "DELETE".
 
 ## Backend
 

@@ -31,6 +31,7 @@ import { StudentFormComponent } from 'src/app/shared/components/student-form/stu
 import { LetterheadDocumentComponent } from 'src/app/shared/components/letterhead-document/letterhead-document.component';
 import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 import { validationErrorsOf } from 'src/app/shared/utils/api-error.util';
+import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
 
 interface AdmissionRow extends StudentListRow {
   initials: string;
@@ -50,9 +51,13 @@ export class AdmissionComponent implements OnInit, OnDestroy {
   adminId = '';
   session = '';
   loading = true;
+  /** A failed list fetch — rendered distinctly from a genuinely empty result. */
+  loadError = '';
 
   filterOptions: StudentFilterOptions | null = null;
   fieldConfig: FieldConfigResponse | null = null;
+  /** A failed class/field-config fetch — never a silently empty dropdown. */
+  optionsError = '';
   filter: CascadeFilterValue = { ...EMPTY_CASCADE };
   search = '';
   private search$ = new Subject<string>();
@@ -70,6 +75,10 @@ export class AdmissionComponent implements OnInit, OnDestroy {
   formErrors: Record<string, string> = {};
   formError = '';
   saving = false;
+  /** One Idempotency-Key per form-open. */
+  private formKey = '';
+  /** The row whose letter is being fetched — a second click on it is ignored meanwhile. */
+  letterLoadingId: string | null = null;
 
   viewOpen = false;
   viewDetail: StudentDetail | null = null;
@@ -96,14 +105,7 @@ export class AdmissionComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.optionsService.getFilterOptions(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((options) => {
-      this.filterOptions = options;
-      this.cdr.markForCheck();
-    });
-    this.optionsService.getFieldConfig(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((config) => {
-      this.fieldConfig = config;
-      this.cdr.markForCheck();
-    });
+    this.loadOptions();
 
     this.search$.pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroyed$)).subscribe((term) => {
       this.search = term;
@@ -127,6 +129,34 @@ export class AdmissionComponent implements OnInit, OnDestroy {
     this.destroyed$.complete();
   }
 
+  /** Class options + FieldConfig, each with an error state and a retry. */
+  loadOptions(): void {
+    this.optionsError = '';
+    this.optionsService.getFilterOptions(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((options) => {
+      this.filterOptions = options;
+      this.cdr.markForCheck();
+    }, () => {
+      this.optionsError = "Couldn't load classes and sections.";
+      this.cdr.markForCheck();
+    });
+    this.optionsService.getFieldConfig(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((config) => {
+      this.fieldConfig = config;
+      this.cdr.markForCheck();
+    }, () => {
+      this.optionsError = "Couldn't load the admission form's settings.";
+      this.cdr.markForCheck();
+    });
+  }
+
+  retryOptions(): void {
+    this.optionsService.refresh();
+    this.loadOptions();
+  }
+
+  retryList(): void {
+    this.fetchPage();
+  }
+
   // --- list ---------------------------------------------------------------------------
 
   private resetAndFetch(): void {
@@ -138,6 +168,7 @@ export class AdmissionComponent implements OnInit, OnDestroy {
   private fetchPage(): void {
     if (!this.session) return;
     this.loading = true;
+    this.loadError = '';
     this.api.getAdmissions(this.adminId, {
       session: this.session,
       ...this.filter,
@@ -153,6 +184,8 @@ export class AdmissionComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     }, () => {
       this.loading = false;
+      this.rows = [];
+      this.loadError = "Couldn't load admissions.";
       this.cdr.markForCheck();
     });
   }
@@ -192,6 +225,7 @@ export class AdmissionComponent implements OnInit, OnDestroy {
   onCreate(): void {
     this.formErrors = {};
     this.formError = '';
+    this.formKey = newIdempotencyKey();
     this.formOpen = true;
   }
 
@@ -208,10 +242,11 @@ export class AdmissionComponent implements OnInit, OnDestroy {
     this.saving = true;
     this.formErrors = {};
     this.formError = '';
-    this.api.createAdmission(body).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+    this.api.createAdmission(body, this.formKey).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.saving = false;
       this.formOpen = false;
-      this.snackBar.open(res.message, 'Close', { duration: 3000 });
+      // Saved, but the photo didn't upload (IMAGE_UPLOAD_FAILED) — say so, don't hide it.
+      this.snackBar.open(res.warning ? res.warning.message : res.message, 'Close', { duration: res.warning ? 6000 : 3000 });
       this.fetchPage();
       this.fetchOverview();
       this.cdr.markForCheck();
@@ -247,10 +282,17 @@ export class AdmissionComponent implements OnInit, OnDestroy {
   }
 
   onLetter(row: AdmissionRow): void {
-    if (!this.canPrint(row)) return;
+    if (!this.canPrint(row) || this.letterLoadingId) return;
+    this.letterLoadingId = row.studentId;
+    // The letter only opens with a complete document (school header included) — a failed
+    // fetch is surfaced by the interceptor and never reaches print() with undefined parts.
     this.api.getLetter(this.adminId, row.studentId).pipe(takeUntil(this.destroyed$)).subscribe((document) => {
+      this.letterLoadingId = null;
       this.letter = document;
       this.letterOpen = true;
+      this.cdr.markForCheck();
+    }, () => {
+      this.letterLoadingId = null;
       this.cdr.markForCheck();
     });
   }

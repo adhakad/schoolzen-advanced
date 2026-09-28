@@ -8,6 +8,8 @@ Depends on Student and Staff modules — build those first.
 3. `docs/schoolzen-planning/v1/attendance/manage-shifts.{html,md}`
 4. `docs/schoolzen-planning/v1/attendance/roster.{html,md}`
 
+Also read `docs/schoolzen-planning/v1/attendance/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
+
 ## Build
 **Backend**: `models/attendance/attendance-record.js`, `shift.js`; `controllers/attendance/*.controller.js`; matching routes.
 **Frontend**: `attendance/attendance-overview/`, `attendance/manage-shifts/`, `attendance/roster/`; `shared/services/attendance/*.service.ts`; `shared/models/attendance/*.model.ts`.

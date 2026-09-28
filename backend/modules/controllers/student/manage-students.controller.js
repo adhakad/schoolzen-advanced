@@ -9,7 +9,7 @@ const { getStudentFieldConfig, OPTIONS } = require('../../validators/student/fie
 const { buildWorkbook, parseWorkbook } = require('../../services/excel/excel.service');
 const { destroyImages } = require('../../services/media/cloudinary.service');
 const { buildStudentSheetColumns, formatSheetDate } = require('../../helpers/student/student-excel');
-const { createStudentRecord, updateStudentRecord, assertCardsFree } = require('../../helpers/student/student-write');
+const { createStudentRecord, updateStudentRecord } = require('../../helpers/student/student-write');
 const {
     MODULE, maskCard, toObjectId, loadClassIndex, describePlacement, buildEnrollmentMatch,
     listStudentRows, runStudentDeleteCascade, withTransaction,
@@ -142,24 +142,26 @@ let GetFieldConfig = async (req, res) => {
 // Writes
 // ---------------------------------------------------------------------------------------
 
+// `warning` is set when the record saved but its photo didn't (IMAGE_UPLOAD_FAILED) — a
+// 200 with a warning, never a 500 for a student that actually exists.
 let CreateStudent = async (req, res) => {
-    const id = await createStudentRecord({
-        adminId: req.body.adminId,
+    const { id, warning } = await createStudentRecord({
+        adminId: req.adminId,
         body: req.body,
         file: req.file,
         entryType: 'manual',
     });
-    return res.status(200).json({ message: success.created('Student'), id });
+    return res.status(200).json({ message: success.created('Student'), id, warning });
 };
 
 let UpdateStudent = async (req, res) => {
-    await updateStudentRecord({
-        adminId: req.body.adminId,
+    const { warning } = await updateStudentRecord({
+        adminId: req.adminId,
         studentId: req.params.id,
         body: req.body,
         file: req.file,
     });
-    return res.status(200).json({ message: success.updated('Student') });
+    return res.status(200).json({ message: success.updated('Student'), warning });
 };
 
 /**
@@ -169,36 +171,62 @@ let UpdateStudent = async (req, res) => {
  * `confirmed` is the server-side backstop for the type-DELETE modal: the API refuses
  * without it, so calling it directly can't skip what the UI insists on.
  */
-const deleteStudents = async (adminId, ids, confirmed) => {
+const requireConfirmation = (confirmed, count) => {
     if (!confirmed) {
-        throw new ConflictError(messages.deleteNeedsConfirmation(ids.length), {
+        throw new ConflictError(messages.deleteNeedsConfirmation(count), {
             module: MODULE,
-            context: { requiresConfirmation: true, count: ids.length },
+            code: 'DELETE_NOT_CONFIRMED',
+            context: { requiresConfirmation: true, count },
         });
     }
+};
 
+/**
+ * Delete the given students — cascade included — in ONE transaction; ids that don't
+ * resolve to a student of THIS school are reported back, never deleted (and never revealed
+ * as "belongs to another school": another school's id reads exactly like a missing one).
+ * @returns {Promise<{ deleted: Number, missing: String[] }>}
+ */
+const deleteStudents = async (adminId, ids) => {
     const studentIds = ids.map(toObjectId);
-    const found = await StudentProfileModel.countDocuments({ adminId, _id: { $in: studentIds } });
-    if (found !== ids.length) {
-        throw new NotFoundError(messages.studentsNotFound(ids.length - found), { module: MODULE });
-    }
+    const found = await StudentProfileModel.find({ adminId, _id: { $in: studentIds } }, '_id').lean();
+    const foundIds = found.map((item) => item._id);
+    const foundSet = new Set(foundIds.map(String));
+    const missing = ids.filter((id) => !foundSet.has(String(id)));
 
-    const afterCommit = await withTransaction((dbSession) => runStudentDeleteCascade({ dbSession, adminId, studentIds }));
-    // Outside the transaction: an external delete can't be rolled back.
-    destroyImages(afterCommit.photoPublicIds);
+    if (foundIds.length) {
+        const afterCommit = await withTransaction((dbSession) => runStudentDeleteCascade({ dbSession, adminId, studentIds: foundIds }));
+        // Outside the transaction: an external delete can't be rolled back.
+        destroyImages(afterCommit.photoPublicIds);
+    }
+    return { deleted: foundIds.length, missing };
 };
 
 let DeleteStudent = async (req, res) => {
-    const adminId = req.query.adminId || req.body.adminId;
     const confirmed = req.query.confirmed === 'true' || req.body.confirmed === true;
-    await deleteStudents(adminId, [req.params.id], confirmed);
+    requireConfirmation(confirmed, 1);
+    const { deleted } = await deleteStudents(req.adminId, [req.params.id]);
+    if (!deleted) throw new NotFoundError(messages.studentNotFound(), { module: MODULE, code: 'STUDENT_NOT_FOUND' });
     return res.status(200).json({ message: success.deleted('Student') });
 };
 
+/**
+ * "Delete Selected" — a PER-ROW outcome (student/errors.md, frontend requirements), never
+ * one pass/fail for the whole selection: every student that exists is deleted, and any id
+ * that didn't resolve is listed in `rows[]` with its own code.
+ */
 let BulkDeleteStudents = async (req, res) => {
-    const { adminId, ids, confirmed } = req.body;
-    await deleteStudents(adminId, ids, confirmed);
-    return res.status(200).json({ message: success.bulkProcessed(ids.length, 'student') });
+    const { ids, confirmed } = req.body;
+    requireConfirmation(confirmed, ids.length);
+    const { deleted, missing } = await deleteStudents(req.adminId, ids);
+    if (!deleted) {
+        throw new NotFoundError(messages.studentsNotFound(missing.length), { module: MODULE, code: 'STUDENT_NOT_FOUND' });
+    }
+    return res.status(200).json({
+        message: success.bulkProcessed(deleted, 'student'),
+        deleted,
+        rows: missing.map((id) => ({ id, code: 'STUDENT_NOT_FOUND', message: messages.studentNotFound() })),
+    });
 };
 
 /**
@@ -207,36 +235,80 @@ let BulkDeleteStudents = async (req, res) => {
  * (manage-students.md). 202 + jobId; the modal polls it.
  */
 let AssignCards = async (req, res) => {
-    const { adminId, items, verifyMode } = req.body;
+    const { items, verifyMode } = req.body;
+    const adminId = req.adminId;
+    const cardMessage = messages.duplicate.CARD_ALREADY_ASSIGNED();
 
-    const found = await StudentProfileModel.countDocuments({ adminId, _id: { $in: items.map((item) => toObjectId(item.studentId)) } });
-    if (found !== items.length) {
-        throw new NotFoundError(messages.studentsNotFound(items.length - found), { module: MODULE });
-    }
-    await assertCardsFree(adminId, items);
+    // Per-row outcome (student/errors.md): a student that doesn't exist here, or a card
+    // another student already holds, fails ITS row — the rest of the selection still goes
+    // through. (A card typed twice in one request is rejected before this, by the schema.)
+    const [found, taken] = await Promise.all([
+        StudentProfileModel.find({ adminId, _id: { $in: items.map((item) => toObjectId(item.studentId)) } }, '_id').lean(),
+        StudentProfileModel.find({
+            adminId,
+            cardNumber: { $in: items.map((item) => item.cardNumber) },
+            _id: { $nin: items.map((item) => toObjectId(item.studentId)) },
+        }, 'cardNumber').lean(),
+    ]);
+    const foundSet = new Set(found.map((item) => String(item._id)));
+    const takenSet = new Set(taken.map((item) => item.cardNumber));
 
-    try {
-        await StudentProfileModel.bulkWrite(items.map((item) => ({
-            updateOne: {
-                filter: { _id: toObjectId(item.studentId), adminId },
-                update: { $set: { cardNumber: item.cardNumber, verifyMode, updatedAt: new Date() } },
-            },
-        })));
-    } catch (error) {
-        // The unique index is the real guard; the pre-check above just names the card
-        // nicely in the common case. A race lands here.
-        if (error.code === 11000 || (error.writeErrors && error.writeErrors.length)) {
-            throw new ConflictError(messages.cardInUse('number'), { module: MODULE });
+    const rows = [];
+    const writable = [];
+    items.forEach((item) => {
+        if (!foundSet.has(String(item.studentId))) {
+            rows.push({ studentId: item.studentId, code: 'STUDENT_NOT_FOUND', message: messages.studentNotFound() });
+        } else if (takenSet.has(item.cardNumber)) {
+            rows.push({ studentId: item.studentId, code: 'CARD_ALREADY_ASSIGNED', message: `Card ${item.cardNumber}: ${cardMessage}` });
+        } else {
+            writable.push(item);
         }
-        throw error;
+    });
+
+    // ordered:false — the unique index is the real guard; a card lost to a concurrent assign
+    // fails only its own row here instead of the whole batch.
+    const now = new Date();
+    try {
+        if (writable.length) {
+            await StudentProfileModel.bulkWrite(writable.map((item) => ({
+                updateOne: {
+                    filter: { _id: toObjectId(item.studentId), adminId },
+                    update: { $set: { cardNumber: item.cardNumber, verifyMode, updatedAt: now } },
+                },
+            })), { ordered: false });
+        }
+    } catch (error) {
+        if (!error.writeErrors) throw error;
+        const failedIndexes = new Set([].concat(error.writeErrors).map((writeError) => writeError.index));
+        const stillWritable = [];
+        writable.forEach((item, index) => {
+            if (failedIndexes.has(index)) {
+                rows.push({ studentId: item.studentId, code: 'CARD_ALREADY_ASSIGNED', message: `Card ${item.cardNumber}: ${cardMessage}` });
+            } else {
+                stillWritable.push(item);
+            }
+        });
+        writable.length = 0;
+        writable.push(...stillWritable);
+    }
+
+    if (!writable.length) {
+        throw new ConflictError(rows.length === 1 ? rows[0].message : `None of the ${rows.length} cards could be assigned.`, {
+            module: MODULE,
+            code: rows.every((row) => row.code === 'CARD_ALREADY_ASSIGNED') ? 'CARD_ALREADY_ASSIGNED' : 'BULK_ROWS_FAILED',
+            fields: rows.length === 1 && rows[0].code === 'CARD_ALREADY_ASSIGNED'
+                ? [{ field: 'cardNumber', code: 'CARD_ALREADY_ASSIGNED', message: rows[0].message }]
+                : undefined,
+            rows,
+        });
     }
 
     const jobId = await queue().addDeviceSyncJob({
         adminId,
-        studentIds: items.map((item) => item.studentId),
+        studentIds: writable.map((item) => item.studentId),
         reason: 'assign',
     });
-    return res.status(202).json({ message: messages.cardsQueued(items.length), jobId });
+    return res.status(202).json({ message: messages.cardsQueued(writable.length), jobId, assigned: writable.length, rows });
 };
 
 /** Re-push an EXISTING card to every device (a device was offline or reset). */
@@ -294,7 +366,12 @@ let ExportExcel = async (req, res) => {
 
     const rows = enrollments.map((enrollment) => {
         const placement = describePlacement(classIndex, enrollment);
-        const row = { rollNumber: enrollment.rollNumber, sectionName: placement.sectionName || '', groupName: groupName.get(String(enrollment.groupId)) || '' };
+        const row = {
+            className: placement.className,
+            rollNumber: enrollment.rollNumber,
+            sectionName: placement.sectionName || '',
+            groupName: groupName.get(String(enrollment.groupId)) || '',
+        };
         columns.forEach((column) => {
             if (column.key in row) return;
             const value = enrollment.student[column.key];

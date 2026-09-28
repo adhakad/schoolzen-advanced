@@ -33,7 +33,7 @@
     (searchChange)="onSearch($event)" (filterChange)="onFilterChange($event)"></app-data-toolbar>
 
   <app-data-table [columns]="columns" [rows]="rows" trackByKey="id" [selectable]="true" [selected]="selected"
-    [footerLeft]="footerLeft" footerRight="August 2026 · 2026-27 session" (selectionChange)="onSelectionChange($event)">
+    [footerLeft]="footerLeft" footerRight="August 2026 · 2026-2027 session" (selectionChange)="onSelectionChange($event)">
     <ng-template #cells let-row>
       <app-row-avatar class="sw-cell sw-r-info" style="width:180px" [name]="row.name" [role]="row.role"
         [colorSeed]="row.id"></app-row-avatar>

@@ -47,6 +47,10 @@
   --sidebar: #181321;
   --sidebar-active: #2A2138;
   --radius: 6px;
+  /* The ONE common width every secondary/utility toolbar button shares (design-system.md,
+     Buttons — Width rule). The page's main button is never given this — it sizes to its
+     own label. */
+  --toolbar-btn-width: 150px;
 }
 
 /* --- root shell --------------------------------------------------------------------- */
@@ -535,13 +539,44 @@
 
 .sz table { width: 100%; border-collapse: collapse; }
 .sz th.check-col, .sz td.check-col { width: 38px; text-align: center; }
-.sz .row-check, .sz .select-all {
+/* --- checkboxes (design-system.md, "Checkboxes") ---------------------------------------
+   EVERY checkbox in the v2 shell and its modals — a table's row-select column, select-all,
+   and any standalone one — is this one control: one fixed size, hairline border unchecked,
+   filled brand purple with a white check when checked. Never the browser default, and
+   never a mix of sizes on one page. The glyph is Bootstrap Icons' own `bi-check2` shape, so
+   the icon set stays single. */
+.sz input[type="checkbox"],
+.sz-modal-overlay input[type="checkbox"],
+.sz-confirm-overlay input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
   width: 16px;
   height: 16px;
-  accent-color: var(--brand);
+  margin: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background-color: var(--surface);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 12px 12px;
   cursor: pointer;
   vertical-align: middle;
+  transition: background-color .12s, border-color .12s;
 }
+.sz input[type="checkbox"]:hover:not(:disabled),
+.sz-modal-overlay input[type="checkbox"]:hover:not(:disabled) { border-color: var(--brand); }
+.sz input[type="checkbox"]:checked,
+.sz-modal-overlay input[type="checkbox"]:checked,
+.sz-confirm-overlay input[type="checkbox"]:checked {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3E%3Cpath d='M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E");
+}
+.sz input[type="checkbox"]:focus-visible,
+.sz-modal-overlay input[type="checkbox"]:focus-visible { outline: 2px solid var(--brand-soft); outline-offset: 1px; }
+.sz input[type="checkbox"]:disabled,
+.sz-modal-overlay input[type="checkbox"]:disabled { background-color: var(--line-soft); cursor: not-allowed; }
 .sz thead th {
   text-align: left;
   font-size: 11px;
@@ -777,6 +812,12 @@
 .sz-modal-overlay .m-hint.tight { margin-top: -10px; margin-bottom: 16px; }
 .sz-modal-overlay .m-error { font-size: 11.5px; color: var(--danger); margin-top: 6px; line-height: 1.4; }
 .sz-modal-overlay .m-error.form-level { margin: 0 0 14px; }
+.sz-modal-overlay .m-error .bi { margin-right: 3px; }
+/* Form validation state (design-system.md): an invalid control is a danger-coloured
+   hairline — no glow, no box-shadow ring. Same look for inputs, `.dd` and `.dp`. */
+.sz-modal-overlay .m-field input.is-invalid,
+.sz-modal-overlay .m-field textarea.is-invalid,
+.sz-modal-overlay .dd.is-invalid { border-color: var(--danger); }
 .sz-modal-overlay .req-star { color: var(--danger); }
 
 .sz-modal-overlay .toggle-row {
@@ -789,7 +830,7 @@
   font-weight: 500;
   cursor: pointer;
 }
-.sz-modal-overlay .toggle-row input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+/* The checkbox itself is the shared themed checkbox above — nothing re-styled here. */
 
 .sz-modal-overlay .sec-block { margin-bottom: 18px; }
 .sz-modal-overlay .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -1030,6 +1071,24 @@
 .sz .tag.fixed { min-width: 78px; justify-content: center; }
 
 .sz .toolbar-btn-group .btn-label { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Buttons — Width rule (design-system.md). Every secondary/utility button on a toolbar
+   shares ONE width, whatever its own label length; the page's single main (.btn-primary)
+   button is padding-based and auto-widths to its own label. Same basis AND same shrink
+   factor for every secondary, so when a row is tight they narrow together and stay
+   identical to each other — the label ellipsizes (the button's `title` holds the full
+   text) rather than any one button growing wider than its siblings. */
+.sz .toolbar-btn-group > .btn-secondary,
+.sz .toolbar-btn-group > .btn-assign,
+.sz .toolbar-btn-group > .btn-warn,
+.sz .toolbar-btn-group > .btn-danger-outline {
+  flex: 0 1 var(--toolbar-btn-width);
+  width: var(--toolbar-btn-width);
+  min-width: 0;
+  padding: 0 12px;
+}
+.sz .toolbar-btn-group > .btn-primary { flex: 0 0 auto; }
+.sz .toolbar-btn-group > button .btn-label { min-width: 0; }
+.sz .toolbar-btn-group > button .bi { flex-shrink: 0; }
 .sz .btn-secondary, .sz .btn-assign, .sz .btn-warn,
 .sz-modal-overlay .btn-secondary {
   flex-shrink: 0; height: 38px; background: var(--surface);
@@ -1048,6 +1107,34 @@
 .sz .btn-warn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
 
 .sz .sw-footer { padding-top: 14px; font-size: 12.5px; color: var(--ink-faint); display: flex; justify-content: space-between; }
+
+/* Fetch-error states (student/errors.md): a failed dropdown/list fetch says so, with a Retry —
+   distinct from a genuinely empty result, never a silently blank control or table. */
+.sz .fetch-error, .sz .tbl-empty.load-error {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 12.5px; color: var(--danger);
+}
+.sz .tbl-empty.load-error { justify-content: center; }
+.sz .link-btn, .sz-modal-overlay .link-btn {
+  border: none; background: none; padding: 0 2px; cursor: pointer; font-family: inherit;
+  font-size: inherit; font-weight: 600; color: var(--brand); text-decoration: underline;
+}
+/* A per-row action in flight (resync). */
+.sz .bi.spinning { display: inline-block; animation: sz-spin .9s linear infinite; }
+@keyframes sz-spin { to { transform: rotate(360deg); } }
+.sz .icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Bulk result panel (design-system.md): one line per failed record, messages nested. */
+.sz-modal-overlay .bulk-summary { font-size: 13px; color: var(--ink); margin: 0 0 10px; }
+.sz-modal-overlay .result-rows {
+  list-style: none; margin: 8px 0 0; padding: 0; max-height: 260px; overflow-y: auto;
+  border-top: 1px solid var(--line-soft);
+}
+.sz-modal-overlay .result-rows li {
+  display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line-soft);
+}
+.sz-modal-overlay .result-rows .result-row-label { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.sz-modal-overlay .result-rows .m-error { margin-top: 0; }
 
 .sz-modal-overlay .warn-box {
   background: var(--danger-soft); border-radius: var(--radius); padding: 12px 14px;
@@ -1130,6 +1217,11 @@
 
   .sz .layout-row { flex-direction: column; }
   .sz .col-side { width: 100%; }
+  /* Both columns full width when stacked (design-system.md). Without this the main card
+     keeps the row's align-items:flex-start sizing and grows to its widest content — a wide
+     table's min-width then pushes the whole card, toolbar included, past the viewport
+     instead of scrolling inside it. */
+  .sz .sw-card-main { width: 100%; }
 }
 
 /* below md — phones, portrait and landscape. */

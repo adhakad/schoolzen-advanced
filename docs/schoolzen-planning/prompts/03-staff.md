@@ -8,6 +8,8 @@ No dependency on other modules.
 3. `docs/schoolzen-planning/v1/staff/departments.{html,md}`
 4. `docs/schoolzen-planning/v1/staff/designations.{html,md}`
 
+Also read `docs/schoolzen-planning/v1/staff/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
+
 ## Build
 **Backend**: `models/staff/staff.js`, `department.js`, `designation.js`; `controllers/staff/*.controller.js`; matching routes.
 **Frontend**: `staff/manage-staff/`, `staff/departments/`, `staff/designations/` (components); `shared/services/staff/*.service.ts`; `shared/models/staff/*.model.ts`.

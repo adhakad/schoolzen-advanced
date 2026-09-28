@@ -45,7 +45,7 @@ describe('ClassesSectionsComponent', () => {
   ];
 
   beforeEach(async () => {
-    context$ = new BehaviorSubject<{ activeSession: string }>({ activeSession: '2026-27' });
+    context$ = new BehaviorSubject<{ activeSession: string }>({ activeSession: '2026-2027' });
 
     api = jasmine.createSpyObj<ClassesSectionsService>('ClassesSectionsService', [
       'getClasses', 'getClassNameOptions', 'createClass', 'updateClass', 'deleteClass', 'bulkDelete'
@@ -79,7 +79,7 @@ describe('ClassesSectionsComponent', () => {
   // --- list ---------------------------------------------------------------------------
 
   it('loads the school`s classes on init, scoped to the header`s session', () => {
-    expect(api.getClasses).toHaveBeenCalledWith('a1', '2026-27');
+    expect(api.getClasses).toHaveBeenCalledWith('a1', '2026-2027');
     expect(component.rows.length).toBe(3);
     expect(component.loading).toBe(false);
   });
@@ -91,12 +91,12 @@ describe('ClassesSectionsComponent', () => {
   it('refetches when the header switches session, and not when anything else changes', () => {
     api.getClasses.calls.reset();
 
-    context$.next({ activeSession: '2025-26' });
-    expect(api.getClasses).toHaveBeenCalledWith('a1', '2025-26');
+    context$.next({ activeSession: '2025-2026' });
+    expect(api.getClasses).toHaveBeenCalledWith('a1', '2025-2026');
 
     // A context emission that leaves the session alone (school details landing, say).
     api.getClasses.calls.reset();
-    context$.next({ activeSession: '2025-26' });
+    context$.next({ activeSession: '2025-2026' });
     expect(api.getClasses).not.toHaveBeenCalled();
   });
 
@@ -109,7 +109,7 @@ describe('ClassesSectionsComponent', () => {
 
   it('pluralises the tag label off the count', () => {
     api.getClasses.and.returnValue(of([classDoc({ _id: 'x', class: 9, sections: [{ name: 'A' }] })]));
-    context$.next({ activeSession: '2024-25' });
+    context$.next({ activeSession: '2024-2025' });
     expect(row('x').sectionTagLabel).toBe('1 section');
   });
 
@@ -130,7 +130,7 @@ describe('ClassesSectionsComponent', () => {
     expect(row('c11').classSuffix).toBe('th');
 
     api.getClasses.and.returnValue(of([classDoc({ _id: 'n', class: 200 })]));
-    context$.next({ activeSession: '2024-25' });
+    context$.next({ activeSession: '2024-2025' });
     // Nursery has no numeral to split off, so it falls through as a whole word.
     expect(row('n').classNum).toBe('Nursery');
     expect(row('n').classSuffix).toBe('');
@@ -175,7 +175,7 @@ describe('ClassesSectionsComponent', () => {
     component.toggleRow('c7');
     api.getClasses.and.returnValue(of(CLASSES.filter((item) => item._id !== 'c7')));
 
-    context$.next({ activeSession: '2024-25' });
+    context$.next({ activeSession: '2024-2025' });
 
     expect(component.selectedCount).toBe(0);
   });

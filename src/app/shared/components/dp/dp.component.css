@@ -1,0 +1,73 @@
+/* `.dp` — design-system.md "Date picker component". Hairline border, 6px radius, Inter /
+   Fraunces, today ringed, the selected day filled brand purple. Opens below the field with
+   the same positioning as `.dd-menu`. */
+
+:host { display: block; position: relative; }
+
+.dp-trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  height: 38px; padding: 0 12px; box-sizing: border-box; width: 100%;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  font-size: 13.5px; color: var(--ink); cursor: pointer; user-select: none; outline: none;
+}
+.dp-trigger.placeholder { color: var(--ink-faint); }
+.dp-trigger .bi { color: var(--ink-faint); flex-shrink: 0; }
+.dp-trigger:focus-visible, :host(.open) .dp-trigger { border-color: var(--brand); }
+.dp-trigger.is-invalid { border-color: var(--danger); }
+.dp-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+:host(.disabled) .dp-trigger { background: var(--paper); color: #B7B0C9; cursor: not-allowed; }
+
+.dp-panel {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 65;
+  width: 272px; padding: 10px; box-sizing: border-box;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 10px 26px rgba(30, 23, 48, 0.14);
+  font-family: 'Inter', sans-serif;
+}
+
+.dp-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.dp-nav-btn {
+  width: 30px; height: 30px; border-radius: var(--radius); border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink-soft); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.dp-nav-btn:hover { border-color: var(--brand); color: var(--brand); }
+.dp-month-label {
+  border: none; background: none; cursor: pointer; padding: 4px 8px; border-radius: var(--radius);
+  font-family: 'Fraunces', serif; font-size: 14px; font-weight: 500; color: var(--ink);
+}
+.dp-month-label:hover { background: var(--brand-soft); color: var(--brand); }
+
+.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dp-weekdays span {
+  text-align: center; font-size: 10.5px; font-weight: 600; color: var(--ink-faint);
+  text-transform: uppercase; padding: 4px 0;
+}
+.dp-day {
+  height: 32px; border: 1px solid transparent; border-radius: var(--radius); background: none;
+  font-size: 12.5px; color: var(--ink); cursor: pointer; font-family: inherit;
+}
+.dp-day:hover:not(:disabled) { background: var(--brand-soft); color: var(--brand); }
+.dp-day.outside { color: #C4BED3; }
+.dp-day.today { border-color: var(--line); }
+.dp-day.selected, .dp-day.selected:hover { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+.dp-day:disabled { color: #D3CEE0; cursor: not-allowed; }
+
+.dp-years { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.dp-year {
+  height: 36px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+  font-size: 13px; color: var(--ink); cursor: pointer; font-family: inherit;
+}
+.dp-year:hover { border-color: var(--brand); color: var(--brand); }
+.dp-year.selected { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+
+.dp-foot { display: flex; justify-content: flex-end; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+.dp-clear {
+  border: none; background: none; cursor: pointer; font-size: 12px; font-weight: 600;
+  color: var(--ink-soft); padding: 4px 8px; border-radius: var(--radius); font-family: inherit;
+}
+.dp-clear:hover { color: var(--danger); background: var(--danger-soft); }
+
+@media (max-width: 767px) {
+  .dp-panel { width: min(272px, calc(100vw - 48px)); }
+}

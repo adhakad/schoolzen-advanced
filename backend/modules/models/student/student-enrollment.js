@@ -62,10 +62,11 @@ EnrollmentSchema.index({ adminId: 1, session: 1, classId: 1, streamId: 1, groupI
 // The Admission page's own list: this session's admission-type rows, newest paging by _id.
 EnrollmentSchema.index({ adminId: 1, session: 1, entryType: 1, _id: 1 });
 
-// A roll number is unique inside one section of one class in one session. Partial, because
-// null ("not assigned yet") is the normal state right after a promotion.
+// A roll number is unique per class per session — scoped per class+session, NOT per section
+// and not global (student/errors.md, ROLL_NUMBER_DUPLICATE). Partial, because null ("not
+// assigned yet") is the normal state right after a promotion.
 EnrollmentSchema.index(
-    { adminId: 1, session: 1, classId: 1, streamId: 1, sectionId: 1, rollNumber: 1 },
+    { adminId: 1, session: 1, classId: 1, rollNumber: 1 },
     { unique: true, partialFilterExpression: { rollNumber: { $type: 'number' } } }
 );
 

@@ -9,6 +9,8 @@ Depends on Staff and Attendance modules.
 4. `docs/schoolzen-planning/v1/payroll/generate-payroll.{html,md}`
 5. `docs/schoolzen-planning/v1/payroll/salary-payouts.{html,md}`
 
+Also read `docs/schoolzen-planning/v1/payroll/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
+
 ## Build
 **Backend**: `models/payroll/salary-group.js`, `staff-salary-assignment.js`, `payroll-run.js`, `payroll-payment.js`; `controllers/payroll/*.controller.js`; matching routes.
 **Frontend**: one component folder per page under `payroll/`; `shared/services/payroll/*.service.ts`; `shared/models/payroll/*.model.ts`.

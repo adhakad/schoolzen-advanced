@@ -1,5 +1,6 @@
 'use strict';
 const Joi = require('joi');
+const { isValidSession, SESSION_EXAMPLE } = require('../../helpers/academic-session-format');
 
 // Request-shape schemas for Manage Students. The PROFILE fields of a create/update are not
 // here — they are FieldConfig-driven and validated by field-config.validator.js, so the
@@ -7,9 +8,11 @@ const Joi = require('joi');
 // paging, card payloads.
 
 const objectId = Joi.string().hex().length(24);
-const session = Joi.string().trim().pattern(/^\d{4}-\d{2}$/).messages({
-    'string.pattern.base': 'Session must look like 2026-27',
-});
+// The full "2026-2027" label, end year = start year + 1 — the one format every module shares
+// (helpers/academic-session-format.js).
+const session = Joi.string().trim()
+    .custom((value, helpers) => (isValidSession(value) ? value : helpers.error('session.format')))
+    .messages({ 'session.format': `Session must look like ${SESSION_EXAMPLE}` });
 
 // Shared by the list, the overview and the Excel export — every one of them is "this
 // school, this session, optionally narrowed by the cascade filter".

@@ -11,6 +11,7 @@ import { ListQuery } from 'src/app/shared/models/student/manage-students.model';
 import { AdmissionOverview } from 'src/app/shared/models/student/admission.model';
 import { LetterheadDocument } from 'src/app/shared/models/letterhead.model';
 import { toParams } from './manage-students.service';
+import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 
 @Injectable({ providedIn: 'root' })
 export class AdmissionService {
@@ -26,8 +27,8 @@ export class AdmissionService {
     return this.http.get<AdmissionOverview>(`${this.url}/admissions/overview`, { params: { adminId, session } });
   }
 
-  createAdmission(form: FormData): Observable<MessageResponse> {
-    return this.http.post<MessageResponse>(`${this.url}/admissions`, form);
+  createAdmission(form: FormData, key?: string): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${this.url}/admissions`, form, { headers: idempotencyHeaders(key) });
   }
 
   /** The letter's document model, built by the shared letterhead service. */

@@ -6,8 +6,9 @@ const AcademicSessionModel = require('../../models/academic-session');
 const StudentProfileModel = require('../../models/student/student');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const BiometricMappingModel = require('../../models/biometric-mapping');
-const { ValidationError } = require('../../errors');
+const { ValidationError, ConflictError } = require('../../errors');
 const { getClassDisplayName } = require('../format-class-name');
+const { isValidSession, nextSessionLabel } = require('../academic-session-format');
 const messages = require('../messages/student.messages');
 
 // Student-module logic shared by its three controllers and its worker. Nothing here is
@@ -32,26 +33,20 @@ const maskCard = (cardNumber) => (cardNumber ? '•• ' + String(cardNumber).sl
 // Sessions
 // ---------------------------------------------------------------------------------------
 
-const bumpSessionLabel = (session) => {
-    const match = /^(\d{4})-(\d{2})$/.exec(String(session || ''));
-    if (!match) return null;
-    const start = Number(match[1]) + 1;
-    return `${start}-${String((start + 1) % 100).padStart(2, '0')}`;
-};
-
 /**
  * The session after `session` — what Class Promotion creates placements in.
  *
- * Sessions are still the legacy global strings ("2026-27", models/academic-session.js)
+ * Sessions are still the legacy global strings ("2026-2027", models/academic-session.js)
  * until Settings → Academic Sessions is rebuilt. If the legacy list already holds a later
- * session, that one wins; otherwise the label is computed (read-only — nothing is written
- * to the legacy collection).
+ * session, that one wins; otherwise the label is computed in the same full format
+ * (helpers/academic-session-format.js) — read-only, nothing is written to the legacy
+ * collection.
  */
 const getNextSession = async (session) => {
     const doc = await AcademicSessionModel.findOne({}, 'allSession').lean();
     const known = (doc && doc.allSession) || [];
-    const later = known.filter((label) => label > session).sort();
-    return later[0] || bumpSessionLabel(session);
+    const later = known.filter((label) => isValidSession(label) && label > session).sort();
+    return later[0] || nextSessionLabel(session);
 };
 
 // ---------------------------------------------------------------------------------------
@@ -386,6 +381,45 @@ registerStudentDeleteStep('students', async ({ dbSession, adminId, studentIds })
     await StudentProfileModel.deleteMany({ adminId, _id: { $in: studentIds } }, { session: dbSession });
 });
 
+// ---------------------------------------------------------------------------------------
+// Uniqueness — the unique indexes are the guard; this turns their error into the catalog
+// ---------------------------------------------------------------------------------------
+
+// Index key field → the form field it traces to + its errors.md code.
+const DUPLICATE_RULES = {
+    admissionNo: { field: 'admissionNo', code: 'ADMISSION_NO_DUPLICATE' },
+    rollNumber: { field: 'rollNumber', code: 'ROLL_NUMBER_DUPLICATE' },
+    aadharNumber: { field: 'aadharNumber', code: 'AADHAR_DUPLICATE' },
+    samagraId: { field: 'samagraId', code: 'SAMAGRA_ID_DUPLICATE' },
+    udiseNumber: { field: 'udiseNumber', code: 'UDISE_DUPLICATE' },
+    cardNumber: { field: 'cardNumber', code: 'CARD_ALREADY_ASSIGNED' },
+};
+
+/** The DUPLICATE_RULES entry a Mongo duplicate-key error collided on, or null. */
+const duplicateRuleOf = (error) => {
+    if (!error || error.code !== 11000) return null;
+    const keys = Object.keys(error.keyPattern || error.keyValue || {});
+    const key = keys.find((name) => DUPLICATE_RULES[name]);
+    return key ? DUPLICATE_RULES[key] : null;
+};
+
+/**
+ * Rethrow a duplicate-key error as the catalog's ConflictError — code + message, and the
+ * field it traces to so a form shows it inline (error-catalog-conventions.md, shape #2).
+ * Two concurrent saves can't both pass a unique index, so this is the real race guard;
+ * anything that isn't a known duplicate is rethrown untouched.
+ */
+const rethrowAsDuplicate = (error) => {
+    const rule = duplicateRuleOf(error);
+    if (!rule) throw error;
+    const message = messages.duplicate[rule.code]();
+    throw new ConflictError(message, {
+        module: MODULE,
+        code: rule.code,
+        fields: [{ field: rule.field, code: rule.code, message }],
+    });
+};
+
 /** Run `work(dbSession)` in a transaction and always end the session. */
 const withTransaction = async (work) => {
     const dbSession = await mongoose.startSession();
@@ -423,4 +457,7 @@ module.exports = {
     runStudentDeleteCascade,
     runPromotionSteps,
     withTransaction,
+    DUPLICATE_RULES,
+    duplicateRuleOf,
+    rethrowAsDuplicate,
 };

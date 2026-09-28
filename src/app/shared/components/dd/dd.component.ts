@@ -58,6 +58,13 @@ export class DdComponent implements OnChanges {
   @Input() ariaLabel = '';
 
   @Output() valueChange = new EventEmitter<string>();
+  /**
+   * Every time an OPEN menu closes — a pick, an outside click, Escape, or the trigger again.
+   * A `.dd` gets no native blur, so a form binds this to its control's markAsTouched() or a
+   * required, never-picked dropdown would never show its error (design-system.md, Form
+   * validation state).
+   */
+  @Output() closed = new EventEmitter<void>();
 
   @HostBinding('class.dd') readonly ddClass = true;
   @HostBinding('class.sw-select-pill') get pillClass(): boolean { return this.pill; }
@@ -103,14 +110,16 @@ export class DdComponent implements OnChanges {
     // Without this the document listener below would immediately close what we just opened.
     event.stopPropagation();
     if (this.disabled) return;
-    this.open = !this.open;
+    if (this.open) this.close();
+    else this.open = true;
   }
 
   select(event: Event, option: DdOption): void {
     event.stopPropagation();
-    this.open = false;
-    if (option.value === this.value) return;
-    this.valueChange.emit(option.value);
+    // The value is emitted before `closed`, so a form marking its control touched on close
+    // validates the NEW value, not the old one.
+    if (option.value !== this.value) this.valueChange.emit(option.value);
+    this.close();
   }
 
   /** One open menu at a time, and a click anywhere else closes it — the reference behaviour. */
@@ -118,12 +127,17 @@ export class DdComponent implements OnChanges {
   onDocumentClick(event: MouseEvent): void {
     if (!this.open) return;
     if (this.host.nativeElement.contains(event.target as Node)) return;
-    this.open = false;
+    this.close();
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
+    if (this.open) this.close();
+  }
+
+  private close(): void {
     this.open = false;
+    this.closed.emit();
   }
 
   trackByValue(_index: number, option: DdOption): string {

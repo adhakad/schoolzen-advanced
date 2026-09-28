@@ -1,0 +1,52 @@
+<!-- design-system.md's `.dp` markup: a trigger shaped like the form's inputs, and a panel
+     that opens below it exactly like `.dd-menu`. -->
+<div class="dp-trigger field-input" role="button" tabindex="0"
+     [class.is-invalid]="invalid"
+     [class.placeholder]="!hasValue"
+     [attr.aria-haspopup]="'dialog'"
+     [attr.aria-expanded]="open"
+     [attr.aria-disabled]="disabled"
+     [attr.aria-invalid]="invalid || null"
+     [attr.aria-describedby]="describedBy || null"
+     [attr.aria-label]="ariaLabel || null"
+     (click)="toggle($event)"
+     (keydown.enter)="toggle($event)"
+     (keydown.space)="toggle($event)">
+  <span class="dp-label">{{ label }}</span><i class="bi bi-calendar3"></i>
+</div>
+
+<div class="dp-panel" *ngIf="open" role="dialog" [attr.aria-label]="ariaLabel || 'Choose a date'">
+  <div class="dp-nav">
+    <button type="button" class="dp-nav-btn" aria-label="Previous" (click)="prev($event)">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <button type="button" class="dp-month-label" (click)="toggleYears($event)"
+            [attr.aria-label]="mode === 'days' ? 'Choose a year' : 'Back to days'">{{ monthLabel }}</button>
+    <button type="button" class="dp-nav-btn" aria-label="Next" (click)="next($event)">
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+
+  <ng-container *ngIf="mode === 'days'; else yearGrid">
+    <div class="dp-grid dp-weekdays">
+      <span *ngFor="let weekday of weekdays">{{ weekday }}</span>
+    </div>
+    <div class="dp-grid">
+      <button type="button" class="dp-day" *ngFor="let cell of cells; trackBy: trackByIso"
+              [class.outside]="!cell.inMonth" [class.today]="cell.today" [class.selected]="cell.selected"
+              [disabled]="cell.disabled" [attr.aria-pressed]="cell.selected"
+              (click)="pick($event, cell)">{{ cell.day }}</button>
+    </div>
+  </ng-container>
+
+  <ng-template #yearGrid>
+    <div class="dp-years">
+      <button type="button" class="dp-year" *ngFor="let year of years; trackBy: trackByYear"
+              [class.selected]="isYearSelected(year)" (click)="pickYear($event, year)">{{ year }}</button>
+    </div>
+  </ng-template>
+
+  <div class="dp-foot" *ngIf="hasValue">
+    <button type="button" class="dp-clear" (click)="clear($event)">Clear</button>
+  </div>
+</div>
