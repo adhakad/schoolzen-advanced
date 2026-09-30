@@ -11,17 +11,24 @@
 // class — or text matching no class at all — is reported (CLASS_OUT_OF_SCOPE /
 // CLASS_NAME_UNRECOGNIZED) instead of being silently filed under the selected one.
 // Optional: a blank Class cell means "the selected class".
-const placementColumns = (hasStreams) => [
+// Subject Group: written only for a streamed class; on IMPORT it is always a recognised
+// header, so a non-streamed class's sheet that carries one has it silently ignored (the
+// class's automatic "General" group applies) — never flagged as an unknown column
+// (student/errors.md, Group column).
+const placementColumns = (hasStreams, acceptGroup) => [
     { key: 'className', header: 'Class', width: 10 },
     { key: 'sectionName', header: 'Section', width: 10 },
-    ...(hasStreams ? [{ key: 'groupName', header: 'Subject Group', width: 22 }] : []),
+    ...(hasStreams || acceptGroup ? [{ key: 'groupName', header: 'Subject Group', width: 22 }] : []),
 ];
 
 /**
  * @param {Array} fieldConfig from getStudentFieldConfig()
  * @param {Boolean} hasStreams whether the scoped class has streams
+ * @param {Object} [opts]
+ * @param {Boolean} [opts.forImport] recognise the Subject Group header even for a
+ *        non-streamed class (its values are then ignored)
  */
-const buildStudentSheetColumns = (fieldConfig, hasStreams) => {
+const buildStudentSheetColumns = (fieldConfig, hasStreams, opts = {}) => {
     const visible = fieldConfig.filter((field) => field.visible || field.locked);
     const byKey = new Map(visible.map((field) => [field.fieldKey, field]));
 
@@ -36,13 +43,15 @@ const buildStudentSheetColumns = (fieldConfig, hasStreams) => {
         header: field.label,
         // Import rows must carry an Admission No.: it is the upsert key that makes a
         // re-import update rather than duplicate.
-        required: field.fieldKey === 'admissionNo' || field.required,
+        // …and a field with a server default (Admission Type) never makes its column
+        // mandatory: a sheet without it takes the default.
+        required: field.fieldKey === 'admissionNo' || (field.required && (field.validationRule || {}).default === undefined),
         type: field.validationRule.type,
     });
 
     return [
         ...leading.map(toColumn),
-        ...placementColumns(hasStreams),
+        ...placementColumns(hasStreams, Boolean(opts.forImport)),
         ...rest.map(toColumn),
     ];
 };

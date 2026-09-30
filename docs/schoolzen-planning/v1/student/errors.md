@@ -57,17 +57,21 @@ here is checked server-side regardless of what the client sent.
 | `medium` | `.dd` | `required` | `required`, enum from seeded mediums | required→"Medium is required." |
 | `admissionNo` | number input | `required`, `pattern(^\d+$)` | `required`, integer, **uniqueness** `(adminId, admissionNo)` | required→"Admission no. is required." · pattern→"Admission no. must contain numbers only." · (server) duplicate→`ADMISSION_NO_DUPLICATE` "This admission number is already in use." |
 | `admissionClass`/`class` | `.dd` | `required` | `required`, must be a `Class._id` reference that resolves to an existing `Class` (see `academic-setup/errors.md`) — **not** a raw digit string | required→"First enrolled class is required." |
+| `group` | `.dd` | **required only when the chosen Class has streams** (11th/12th) — hidden/not-applicable for a non-streamed class, since it auto-resolves to that class's single "General" `SubjectGroup` server-side, never asked on the form | when applicable: `required`, must be a `SubjectGroup._id` reference that resolves to an existing group for that exact `(classId, streamId)` combination | required→"Group is required for this class/stream." |
 | `rollNumber` | number input | `required`, `maxLength(8)`, `pattern(^[0-9]+$)` | `required`, integer ≤ 8 digits, **uniqueness** `(adminId, classId, sessionId)` — scoped per class+session, NOT global | required→"Roll number is required." · maxlength→"Roll number can't be more than 8 digits." · pattern→"Roll number must contain numbers only." · (server) duplicate→`ROLL_NUMBER_DUPLICATE` "This roll number is already taken in this class." |
 | `name` | text input | `required`, `pattern(^[a-zA-Z\s]+$)` | `required`, same pattern, trim+collapse whitespace, HTML-escape before storing (XSS hardening the legacy form didn't have) | required→"Name is required." · pattern→"Name can only contain letters and spaces." |
 | `dob` | date picker | `required` | `required`, valid date, **not in the future**, and **not less than 2 years before today** (a sanity bound the legacy form never had — catches a fat-fingered year) | required→"Date of birth is required." · (server-only) `DOB_INVALID` "Enter a valid date of birth." · `DOB_IN_FUTURE` "Date of birth can't be in the future." |
-| `doa` | date picker | `required` | `required`, valid date, **not before `dob`** (server-only cross-field check — legacy form had no such guard) | required→"Date of admission is required." · (server-only) `DOA_BEFORE_DOB` "Admission date can't be before date of birth." |
+| `admissionType` | `.dd` | `required`, default `new` | `required`, enum `new\|old` | required→"Admission type is required." |
+| `doa` | date picker | `required` when `admissionType:'old'` (hidden/server-set to today when `'new'`) | `required` when `'old'`, valid date, **not before `dob`** (server-only cross-field check — legacy form had no such guard) | required→"Date of admission is required." · (server-only) `DOA_BEFORE_DOB` "Admission date can't be before date of birth." |
 | `aadharNumber` | number input | optional, `pattern(^\d{12}$)` | optional, same pattern, **uniqueness** `(adminId, aadharNumber)` when present | pattern→"Aadhar number must be a 12-digit number." · (server) duplicate→`AADHAR_DUPLICATE` "This Aadhar number is already registered." |
 | `samagraId` | number input | optional, `pattern(^\d{9}$)` | optional, same pattern, **uniqueness** `(adminId, samagraId)` when present | pattern→"Samagra ID must be a 9-digit number." · (server) duplicate→`SAMAGRA_ID_DUPLICATE` "This Samagra ID is already registered." |
 | `udiseNumber` | number input | optional, `pattern(^\d{11}$)` | optional, same pattern, **uniqueness** `(adminId, udiseNumber)` when present | pattern→"UDISE number must be an 11-digit number." · (server) duplicate→`UDISE_DUPLICATE` "This UDISE number is already registered." |
 | `bankAccountNo` | number input | optional, `minLength(9)`, `maxLength(18)`, `pattern(^[0-9]+$)` | optional, same bounds | minlength→"Bank account number must be at least 9 digits." · maxlength→"Bank account number can't be more than 18 digits." · pattern→"Bank account number must contain numbers only." |
-| `bankIfscCode` | text input | optional, `minLength(11)`, `maxLength(11)` | optional, exact length 11, **format** `pattern(^[A-Z]{4}0[A-Z0-9]{6}$)` (a real IFSC format check — the legacy form only checked length, which lets through 11 garbage characters; this is a genuine improvement, not a copy) | length→"IFSC code must be exactly 11 characters." · (server-only) `IFSC_FORMAT_INVALID` "Enter a valid IFSC code (e.g. SBIN0001234)." |
+| `bankIfscCode` | text input | optional, `minLength(11)`, `maxLength(11)`, **input auto-uppercased** (`.toUpperCase()` on input/blur, before the pattern check ever runs) | optional, exact length 11, **format** `pattern(^[A-Z]{4}0[A-Z0-9]{6}$)` — server also uppercases the incoming value before validating, so a lowercase-but-otherwise-correct code from any client is still accepted | length→"IFSC code must be exactly 11 characters." · (server-only) `IFSC_FORMAT_INVALID` "Enter a valid IFSC code (e.g. SBIN0001234)." |
+
+**IFSC validation bug — confirmed real: a correct IFSC code gets rejected.** The pattern `^[A-Z]{4}0[A-Z0-9]{6}$` is case-sensitive, and a real, valid IFSC code typed in lowercase or mixed case (which people do — copy-pasting from a lowercase source, or a keyboard auto-capitalize quirk) fails the regex even though the code itself is correct. Fix: uppercase the value BEFORE running the pattern check, on both frontend (as the user types/on blur, so what they see in the field also becomes correct) and backend (defense in depth — never trust the client did it) — never validate the raw, as-typed case.
 | `gender` | `.dd` | `required` | `required`, enum `male\|female\|other` | required→"Gender is required." |
-| `category` | `.dd` | `required` | `required`, enum `general\|obc\|sc\|st\|ews\|other` | required→"Category is required." |
+| `category` | `.dd` | `required` | `required`, enum `general\|obc\|sc\|st\|ews` (India's actual reservation categories — no "other") | required→"Category is required." |
 | `religion` | `.dd` | `required` | `required`, enum from seeded religions | required→"Religion is required." |
 | `nationality` | `.dd` | `required` | `required`, enum `indian\|other` | required→"Nationality is required." |
 | `address` | textarea | `required`, `maxLength(50)` | `required`, same bound — **note**: 50 chars is very tight for a real address; flagged here as a legacy limitation worth raising with the school, not silently carried into v2 as-is (see "Deviations from legacy" below) | required→"Address is required." · maxlength→"Address can't be more than 50 characters." |
@@ -183,6 +187,7 @@ concerns:
   duplicate, caught before either is inserted.
 - Unmapped class-name text in the sheet (e.g. "Nursary" typo) →
   `CLASS_NAME_UNRECOGNIZED`, "Row N: '<text>' doesn't match any class."
+- **Group column validates dynamically per row, against that row's actual Class+Stream — never a fixed global list.** For a streamed class (11th/12th) row, the Group value must match one of the `SubjectGroup`s that actually exist for THAT row's specific `(classId, streamId)` — a Science-stream group name is not valid on a Commerce-stream row, and a group name that doesn't exist for that class+stream at all is `GROUP_NAME_UNRECOGNIZED`, "Row N: '<text>' doesn't match any group for this class/stream." For a non-streamed class row, the Group column is ignored even if present (it auto-resolves to "General" server-side, per the field table above) — never validated or reported as an error. Same header-text-driven mapping principle as `admission-form-fields.md`'s Excel rule: the validator reads the sheet's actual Group column values against live data, it never hardcodes a group-name whitelist anywhere.
 - Whole-batch (never partial) rejections: empty file, more than the
   configured max rows (`performance-principles.md`), missing expected
   template columns, or the batch pushing the school over its plan's
@@ -592,6 +597,34 @@ flag/report any that don't resolve rather than silently dropping them).
 The API layer still accepts a session label from existing callers and
 resolves it to the id server-side, so nothing calling it needs to
 change shape.
+
+## `admissionType` ('new' vs 'old') — why it exists, and what it changes beyond just the DOA
+
+Manage Students/Admission is a **universal module**, not a
+new-admissions-only one — a school can start using this app mid-session
+(or mid-year) and needs to bring in BOTH students freshly admitted from
+today AND students who were already studying there before the school
+adopted this ERP. `admissionType` is the field that distinguishes these
+two, and it changes more than just where `doa` comes from:
+
+- **`'new'`**: standard flow exactly as "Admission-time fee & concession"
+  describes below — `doa` is today, the full `FeeStructure` is resolved
+  and `feesConcession` is entered fresh against it, and the first
+  `FeesCollection` ledger record starts from zero paid.
+- **`'old'`**: `doa` is the real, already-past admission date the form
+  enters (validated `doa ≥ dob`, per the field table). The Fee step gets
+  ONE more field: **"Amount already paid till date"** (optional, default
+  0) — this is what a mid-session onboarding actually needs: the school
+  isn't re-collecting fees this student already paid before the ERP
+  existed, it's just recording accurate history. The first
+  `FeesCollection` record is still created (same transaction, same
+  resolved `totalFees`/`feesConcession` fields), but its running "paid"
+  ledger starts from this entered amount instead of zero — never a
+  second/different record type, the same `FeesCollection` shape just
+  seeded with a non-zero starting point.
+
+Both types are admitted through the SAME Admission form/flow — this is
+one field with a conditional follow-up, not two separate forms.
 
 ## Admission-time fee & concession: how it's actually taken and fixed
 

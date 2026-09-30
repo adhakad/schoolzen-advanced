@@ -26,14 +26,34 @@ const uniqueByName = (message) => (value, helpers) => {
     return value;
 };
 
+const objectId = Joi.string().hex().length(24);
+
+// `_id` is sent for a section/stream/group that already exists, so an edit KEEPS its id:
+// enrollments, subject groups and fee structures all reference these sub-document ids, and
+// re-minting them on every save orphaned all of them (student-fix5.md #6).
 const sectionSchema = Joi.object({
+    _id: objectId,
     name: Joi.string().trim().max(30).required().messages({
         'string.empty': 'Section name cannot be blank',
         'any.required': 'Section name is required',
     }),
 });
 
+// A stream's subject group, created/edited inline in the Class modal — the same
+// SubjectGroup document the Subject Groups page edits (academic-setup/subject-groups.md).
+const groupSchema = Joi.object({
+    _id: objectId,
+    name: Joi.string().trim().max(60).required().messages({
+        'string.empty': 'Group name cannot be blank',
+        'any.required': 'Group name is required',
+    }),
+    subjectIds: Joi.array().items(objectId).unique().default([]).messages({
+        'array.unique': 'The same subject is listed twice',
+    }),
+});
+
 const streamSchema = Joi.object({
+    _id: objectId,
     name: Joi.string().trim().max(50).required().messages({
         'string.empty': 'Stream name cannot be blank',
         'any.required': 'Stream name is required',
@@ -42,6 +62,17 @@ const streamSchema = Joi.object({
         .items(sectionSchema)
         .default([])
         .custom(uniqueByName('Two sections in this stream have the same name')),
+    // Mandatory, minimum 1 (classes-sections.md): a stream saved with no group is exactly
+    // the gap that used to surface only at Admission as SUBJECT_GROUP_MISSING.
+    groups: Joi.array()
+        .items(groupSchema)
+        .min(1)
+        .required()
+        .custom(uniqueByName('Two groups in this stream have the same name'))
+        .messages({
+            'array.min': 'Every stream needs at least one subject group',
+            'any.required': 'Every stream needs at least one subject group',
+        }),
 });
 
 const createClassSchema = Joi.object({

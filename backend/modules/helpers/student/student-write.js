@@ -2,6 +2,7 @@
 const StudentProfileModel = require('../../models/student/student');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const StudentFeeRecordModel = require('../../models/fees/student-fee-record');
+const FeePaymentModel = require('../../models/fees/fee-payment');
 const { resolveFeeStructure } = require('../fees/fee-structure-resolver');
 const { CONCESSION_REASON_THRESHOLD } = require('./student.constants');
 const { ValidationError, NotFoundError, ConflictError } = require('../../errors');
@@ -65,12 +66,24 @@ const resolveAdmissionClass = (classIndex, value) => {
  * schools have none): the admission still goes through, with a FEE_STRUCTURE_MISSING
  * warning and no fee record — a soft gate until Fee Structures exist.
  *
- * @returns {Promise<{ record: Object|null, warning: Object|null }>}
+ * admissionType 'old' (a student already studying here before the ERP): an optional
+ * "Amount already paid till date" becomes the ledger's opening-balance FeePayment, so its
+ * running paid total starts from it instead of zero (student/errors.md, admissionType).
+ *
+ * @returns {Promise<{ record: Object|null, openingPaid: Number, warning: Object|null }>}
  */
 const planAdmissionFee = async ({ adminId, sessionId, sessionLabel, placement, profile, body }) => {
+    let openingPaid = 0;
+    if (profile.admissionType === 'old' && body.amountPaid !== undefined && String(body.amountPaid).trim() !== '') {
+        openingPaid = Number(String(body.amountPaid).replace(/[,\s₹]/g, ''));
+        if (!Number.isFinite(openingPaid) || openingPaid < 0) {
+            failFields([{ field: 'amountPaid', message: messages.amountPaidInvalid() }]);
+        }
+    }
     const fee = await resolveFeeStructure(adminId, sessionId, placement);
     if (!fee) {
-        return { record: null, warning: { code: 'FEE_STRUCTURE_MISSING', message: messages.feeStructureMissing(sessionLabel) } };
+        const message = messages.feeStructureMissing(sessionLabel) + (openingPaid ? ' ' + messages.amountPaidNotRecorded(openingPaid) : '');
+        return { record: null, openingPaid: 0, warning: { code: 'FEE_STRUCTURE_MISSING', message } };
     }
     const concession = profile.feesConcession || 0;
     if (concession > fee.totalFee) {
@@ -80,6 +93,10 @@ const planAdmissionFee = async ({ adminId, sessionId, sessionLabel, placement, p
     if (concession > fee.totalFee * CONCESSION_REASON_THRESHOLD && reason.length < 3) {
         failFields([{ field: 'concessionReason', code: 'CONCESSION_REASON_REQUIRED',
             message: messages.concessionReasonRequired(Math.round(CONCESSION_REASON_THRESHOLD * 100)) }]);
+    }
+    const payable = fee.totalFee - concession;
+    if (openingPaid > payable) {
+        failFields([{ field: 'amountPaid', code: 'AMOUNT_PAID_EXCEEDS_PAYABLE', message: messages.amountPaidExceedsPayable(payable) }]);
     }
     // The Student keeps a write-once snapshot; the fee record is the ledger from here on.
     profile.admissionFee = fee.admissionFee;
@@ -94,6 +111,7 @@ const planAdmissionFee = async ({ adminId, sessionId, sessionLabel, placement, p
             concession,
             concessionReason: reason || null,
         },
+        openingPaid,
         warning: null,
     };
 };
@@ -163,9 +181,15 @@ const createStudentRecord = async ({ adminId, body, file, entryType }) => {
     const classIndex = await loadClassIndex(adminId);
     const placement = await resolvePlacement(adminId, body, { classIndex });
     const { profile, enrollment } = splitProfile(value);
-    // A new admission's date is today unless the form gave a real one — never left empty
-    // for the letter/records to guess at (legacy 'new' admission behaviour, errors.md).
-    if (profile.doa == null) profile.doa = todayUtc();
+    // DOA follows admissionType (student/errors.md): 'new' is admitted today — set here,
+    // whatever was sent; 'old' must carry its real, already-past admission date (≥ DOB,
+    // checked by the validator).
+    if (profile.admissionType === 'old') {
+        if (profile.doa == null) failFields([{ field: 'doa', message: messages.doaRequired() }]);
+    } else {
+        profile.admissionType = 'new';
+        profile.doa = todayUtc();
+    }
     // First Enrolled Class defaults to the class being enrolled into — the Admission form
     // doesn't ask for it, and "Class" and "First Enrolled Class" must never disagree.
     profile.admissionClass = resolveAdmissionClass(classIndex, profile.admissionClass) || placement.classId;
@@ -197,7 +221,19 @@ const createStudentRecord = async ({ adminId, body, file, entryType }) => {
         // The first fee ledger entry — same transaction: never a student whose admission
         // concession was fixed without its fee record, or the reverse.
         if (fee.record) {
-            await StudentFeeRecordModel.create([{ ...fee.record, studentId: student._id }], { session: dbSession });
+            const [record] = await StudentFeeRecordModel.create([{ ...fee.record, studentId: student._id }], { session: dbSession });
+            // 'old' admission: what was already paid before the ERP opens the ledger.
+            if (fee.openingPaid > 0) {
+                await FeePaymentModel.create([{
+                    adminId,
+                    studentFeeRecordId: record._id,
+                    amount: fee.openingPaid,
+                    mode: 'opening-balance',
+                    date: profile.doa,
+                    collectedBy: 'admission',
+                    note: 'Paid before this student was added to the system (admission type: old)',
+                }], { session: dbSession });
+            }
         }
 
         return { studentId: student._id, enrollmentId: enrollmentDoc._id };

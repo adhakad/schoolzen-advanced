@@ -8,6 +8,7 @@ const StudentEnrollmentModel = require('../../models/student/student-enrollment'
 const BiometricMappingModel = require('../../models/biometric-mapping');
 // Admission writes a student's first fee ledger entry (student-write.js), so a delete removes it.
 const StudentFeeRecordModel = require('../../models/fees/student-fee-record');
+const FeePaymentModel = require('../../models/fees/fee-payment');
 const { ValidationError, ConflictError } = require('../../errors');
 const { getClassDisplayName } = require('../format-class-name');
 const { isValidSession, nextSessionLabel } = require('../academic-session-format');
@@ -74,7 +75,7 @@ const loadClasses = (adminId) => cacheService.wrap(
 const loadSubjectGroups = (adminId) => cacheService.wrap(
     cacheKeys.academicSetup.subjectGroups(adminId),
     cacheService.TTL.NEAR_STATIC_45,
-    () => SubjectGroupModel.find({ adminId }, 'name classId streamId').sort({ name: 1 }).lean()
+    () => SubjectGroupModel.find({ adminId }, 'name classId streamId isSystemGroup').sort({ name: 1 }).lean()
 );
 
 /**
@@ -131,8 +132,10 @@ const describePlacement = (classIndex, enrollment) => {
  */
 const resolvePlacement = async (adminId, placement, opts = {}) => {
     const { classId, streamId, groupId, sectionId } = placement || {};
-    const fail = (field, message) => {
-        throw new ValidationError('Please fix the highlighted fields', { module: MODULE, fields: [{ field, message }] });
+    const fail = (field, message, code) => {
+        throw new ValidationError('Please fix the highlighted fields', {
+            module: MODULE, ...(code ? { code } : {}), fields: [{ field, message, ...(code ? { code } : {}) }],
+        });
     };
 
     if (!classId || !ObjectId.isValid(String(classId))) fail('classId', 'Class is required');
@@ -170,16 +173,34 @@ const resolvePlacement = async (adminId, placement, opts = {}) => {
         result.sectionId = toObjectId(sectionId);
     }
 
-    if (groupId) {
-        const group = await SubjectGroupModel.findOne(
-            { _id: groupId, adminId, classId: result.classId, streamId: result.streamId },
-            '_id'
-        ).lean();
-        if (!group) fail('groupId', messages.groupNotInPlacement());
-        result.groupId = toObjectId(groupId);
-    } else if (entry.doc.hasStreams && opts.allowIncomplete) {
-        // A streamed class needs a Subject Group too before the placement is complete.
-        result.placementIncomplete = true;
+    // Group (student/errors.md field table; student-fix5.md #9):
+    //   - streamed class: REQUIRED, and must be one of the groups that exist for this exact
+    //     (classId, streamId). A stream with no group at all is SUBJECT_GROUP_MISSING —
+    //     the admin has to add one in Academic Setup first.
+    //   - non-streamed class: never asked; resolves to the class's automatic "General"
+    //     group, whatever (if anything) was sent.
+    if (entry.doc.hasStreams) {
+        const groups = await SubjectGroupModel
+            .find({ adminId, classId: result.classId, streamId: result.streamId, isSystemGroup: { $ne: true } }, '_id')
+            .lean();
+        if (!groups.length) {
+            if (opts.allowIncomplete) { result.placementIncomplete = true; return result; }
+            fail('groupId', messages.subjectGroupMissing(), 'SUBJECT_GROUP_MISSING');
+        }
+        if (groupId) {
+            if (!groups.some((group) => String(group._id) === String(groupId))) fail('groupId', messages.groupNotInPlacement());
+            result.groupId = toObjectId(groupId);
+        } else if (opts.allowIncomplete) {
+            // Class Promotion into 11th/12th: the group is picked later on the edit form.
+            result.placementIncomplete = true;
+        } else {
+            fail('groupId', messages.groupRequired(), 'GROUP_REQUIRED');
+        }
+    } else {
+        const general = await SubjectGroupModel.findOne({ adminId, classId: result.classId, isSystemGroup: true }, '_id').lean();
+        // A class saved before "General" existed has none until the backfill runs (or the
+        // class is next saved) — the placement is still valid without it.
+        result.groupId = general ? general._id : null;
     }
 
     return result;
@@ -448,6 +469,11 @@ registerStudentDeleteStep('enrollments', async ({ dbSession, adminId, studentIds
     await StudentEnrollmentModel.deleteMany({ adminId, studentId: { $in: studentIds } }, { session: dbSession });
 });
 registerStudentDeleteStep('fee-records', async ({ dbSession, adminId, studentIds }) => {
+    // Payments first (an 'old' admission's opening balance), then the records they hang off.
+    const records = await StudentFeeRecordModel.find({ adminId, studentId: { $in: studentIds } }, '_id').session(dbSession).lean();
+    if (records.length) {
+        await FeePaymentModel.deleteMany({ adminId, studentFeeRecordId: { $in: records.map((record) => record._id) } }, { session: dbSession });
+    }
     await StudentFeeRecordModel.deleteMany({ adminId, studentId: { $in: studentIds } }, { session: dbSession });
 });
 registerStudentDeleteStep('students', async ({ dbSession, adminId, studentIds }) => {
@@ -494,18 +520,8 @@ const rethrowAsDuplicate = (error) => {
 };
 
 /** Run `work(dbSession)` in a transaction and always end the session. */
-const withTransaction = async (work) => {
-    const dbSession = await mongoose.startSession();
-    try {
-        let result;
-        await dbSession.withTransaction(async () => {
-            result = await work(dbSession);
-        });
-        return result;
-    } finally {
-        await dbSession.endSession();
-    }
-};
+// Shared with Academic Setup (helpers/with-transaction.js); re-exported for this module's callers.
+const { withTransaction } = require('../with-transaction');
 
 module.exports = {
     MODULE,

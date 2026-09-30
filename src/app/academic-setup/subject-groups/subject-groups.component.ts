@@ -50,6 +50,8 @@ interface GroupRow {
   /** "Science", or null for a class with no streams (the "— not applicable" cell). */
   streamName: string | null;
   subjects: SubjectGroupSubject[];
+  /** The automatic "General" group — no actions, not selectable. */
+  isSystemGroup: boolean;
   source: SubjectGroup;
 }
 
@@ -87,6 +89,8 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   limit = 10;
   total = 0;
   summary: SubjectGroupSummary = { total: 0, classesCovered: 0, streamsCovered: 0 };
+  /** "11th Arts, 12th Commerce" — streams with zero groups; '' hides the warning strip. */
+  noGroupStreams = '';
 
   /** Checked rows, by id. A Set, not an array scan — O(1) per row render. */
   selected = new Set<string>();
@@ -168,7 +172,9 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
           label: item.label || this.classSuffix.transform(item.class) || String(item.class)
         }));
         this.classFilterOptions = [ALL_CLASSES, ...classOptions];
-        this.formClassOptions = [NO_SELECTION, ...classOptions];
+        // The Add/Edit modal only offers STREAMED classes: a class without streams has its
+        // automatic "General" group and nothing to add here (subject-groups.md).
+        this.formClassOptions = [NO_SELECTION, ...classOptions.filter((option) => this.classesById.get(option.value)?.hasStreams)];
 
         this.subjectChecklist = options.subjects || [];
 
@@ -253,6 +259,9 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
         this.rows = (res.rows || []).map((row) => this.toRow(row));
         this.total = res.total || 0;
         this.summary = res.summary;
+        this.noGroupStreams = (res.summary.streamsWithoutGroups || [])
+          .map((stream) => stream.label + ' ' + this.streamTitleCase.transform(stream.streamName))
+          .join(', ');
         this.loading = false;
         this.cdr.markForCheck();
       }, () => {
@@ -268,6 +277,7 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
       className: this.classSuffix.transform(row.class) || String(row.class),
       streamName: row.streamName ? this.streamTitleCase.transform(row.streamName) : null,
       subjects: row.subjects || [],
+      isSystemGroup: Boolean(row.isSystemGroup),
       source: row
     };
   }
@@ -293,17 +303,24 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   }
 
   toggleRow(id: string): void {
+    if (this.rows.some((row) => row._id === id && row.isSystemGroup)) return;
     if (this.selected.has(id)) this.selected.delete(id);
     else this.selected.add(id);
   }
 
+  /** Select-all covers the selectable rows — never an automatic "General" group. */
+  private get selectableRows(): GroupRow[] {
+    return this.rows.filter((row) => !row.isSystemGroup);
+  }
+
   get allSelected(): boolean {
-    return this.rows.length > 0 && this.rows.every((row) => this.selected.has(row._id));
+    const selectable = this.selectableRows;
+    return selectable.length > 0 && selectable.every((row) => this.selected.has(row._id));
   }
 
   toggleAll(): void {
     const selectAll = !this.allSelected;
-    this.rows.forEach((row) => {
+    this.selectableRows.forEach((row) => {
       if (selectAll) this.selected.add(row._id);
       else this.selected.delete(row._id);
     });

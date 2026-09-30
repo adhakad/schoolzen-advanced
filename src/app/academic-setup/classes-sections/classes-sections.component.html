@@ -76,6 +76,11 @@
               <button type="button" class="tag tag-slate clickable" *ngIf="row.showStreamTag; else noStreams"
                       (click)="showDetails(row)">{{ row.streamTagLabel }}</button>
               <ng-template #noStreams><span class="na">&mdash; not applicable</span></ng-template>
+              <!-- A stream saved before groups became mandatory: said on the row until fixed. -->
+              <span class="tag tag-warning no-group" *ngIf="row.streamsWithoutGroups.length"
+                    [title]="row.streamsWithoutGroups.join(', ') + ' — no subject group yet'">
+                <i class="bi bi-exclamation-triangle"></i> No group &mdash; Admission blocked until one is added
+              </span>
             </td>
 
             <td>
@@ -164,6 +169,7 @@
     <!-- The class number is the record's identity and the key every other collection joins
          on, so an edit may restructure everything except which class it is. -->
     <p class="m-hint" *ngIf="form.id">A class cannot be changed after it is created.</p>
+    <p class="m-hint" *ngIf="!form.hasStreams">Students of a class without streams all share its automatic "General" subject group.</p>
     <p class="m-error" *ngIf="fieldErrors['class']">{{ fieldErrors['class'] }}</p>
   </div>
 
@@ -180,7 +186,7 @@
       <button type="button" class="sec-add" aria-label="Add section" (click)="addSection()">+</button>
     </div>
     <div class="sec-row" *ngFor="let section of form.sections; let i = index; trackBy: trackByIndex">
-      <input type="text" [value]="section" placeholder="A" maxlength="30"
+      <input type="text" [value]="section.name" placeholder="A" maxlength="30"
              [attr.aria-label]="'Section ' + (i + 1)"
              (input)="updateSection(i, $any($event.target).value)" />
       <button type="button" class="sec-remove" [attr.aria-label]="'Remove section ' + (i + 1)"
@@ -207,16 +213,47 @@
       <p class="m-error" *ngIf="fieldErrors['streams']">{{ fieldErrors['streams'] }}</p>
     </div>
 
-    <!-- One bordered block per stream, so which sections belong to which stream is
-         visible rather than inferred. A stream with no sections is a real, valid state. -->
+    <!-- One bordered block per stream: its subject GROUPS (mandatory, at least one — name +
+         the live subject checklist, the same SubjectGroup the Subject Groups page edits) and,
+         independently, its SECTIONS (a seating division; zero is valid). -->
     <div class="stream-block" *ngFor="let stream of form.streams; let i = index; trackBy: trackByIndex">
       <div class="sec-head">
+        <span class="stream-block-title">{{ stream.name || 'Stream ' + (i + 1) }} &mdash; Subject Groups <span class="req-star">*</span></span>
+        <button type="button" class="sec-add" [attr.aria-label]="'Add group to stream ' + (i + 1)"
+                (click)="addStreamGroup(i)">+</button>
+      </div>
+      <div class="group-draft" *ngFor="let group of stream.groups; let g = index; trackBy: trackByIndex">
+        <div class="sec-row">
+          <input type="text" [value]="group.name" placeholder="e.g. PCM (Maths)" maxlength="60"
+                 [attr.aria-label]="'Group ' + (g + 1) + ' name'"
+                 (input)="updateStreamGroupName(i, g, $any($event.target).value)" />
+          <button type="button" class="sec-remove" [attr.aria-label]="'Remove group ' + (g + 1)"
+                  (click)="removeStreamGroup(i, g)">&times;</button>
+        </div>
+        <div class="subj-check-grid compact">
+          <label class="subj-check" [class.checked]="isSubjectInGroup(group, subject._id)"
+                 *ngFor="let subject of subjects; trackBy: trackBySubject">
+            <input type="checkbox" [checked]="isSubjectInGroup(group, subject._id)"
+                   (change)="toggleGroupSubject(i, g, subject._id)" />
+            <span>{{ subject.name }}</span>
+          </label>
+          <p class="m-hint no-gap" *ngIf="!subjects.length && !subjectsError">
+            No active subjects yet &mdash; add them on the Subjects page.
+          </p>
+        </div>
+      </div>
+      <p class="m-hint no-gap" *ngIf="subjectsError" role="alert">{{ subjectsError }}</p>
+      <p class="m-error" *ngIf="streamGroupErrors[i]" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ streamGroupErrors[i] }}
+      </p>
+
+      <div class="sec-head sections-head">
         <span class="stream-block-title">{{ stream.name || 'Stream ' + (i + 1) }} &mdash; Sections</span>
         <button type="button" class="sec-add" [attr.aria-label]="'Add section to stream ' + (i + 1)"
                 (click)="addStreamSection(i)">+</button>
       </div>
       <div class="sec-row" *ngFor="let section of stream.sections; let j = index; trackBy: trackByIndex">
-        <input type="text" [value]="section" placeholder="A" maxlength="30"
+        <input type="text" [value]="section.name" placeholder="A" maxlength="30"
                [attr.aria-label]="'Section ' + (j + 1)"
                (input)="updateStreamSection(i, j, $any($event.target).value)" />
         <button type="button" class="sec-remove" [attr.aria-label]="'Remove section ' + (j + 1)"

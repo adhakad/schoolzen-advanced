@@ -3,17 +3,17 @@
 Status: **FINAL**
 Reference: `admission.html`
 
-New students entering the school this session — the intake form, distinct from Manage Students' ongoing-record view.
+The intake form for bringing a student into the system — distinct from Manage Students' ongoing-record view. This is a **universal module, not new-admissions-only**: `errors.md`'s `admissionType` field ('new'/'old') covers both a student freshly admitted this session AND a student already studying at the school before it adopted this ERP (a real mid-session-onboarding case) — both go through this same form, `admissionType` just changes which follow-up fields appear (see `errors.md`'s dedicated section on this).
 
 ---
 
 ## Frontend
 
-**Toolbar**: same shape as Manage Students (row1: search+Create; row2: Class→Stream→Group→Section dependency-filtered `.dd`s).
+**Toolbar**: same shape as Manage Students (row1: search+Create; row2: Class→Stream→Group→Section dependency-filtered `.dd`s). **Shares the exact same real filter bug confirmed on Manage Students** (`manage-students.md`'s "Class/Stream/Group/Section filters don't actually filter" note) — this page's filters read from the same underlying `Student` collection query path, so the fix applies to both pages, not just one.
 
 **Table**: Photo, Admission No. (or "Not yet issued" muted, before a number is assigned), Student, Father Name, Class, Stream, Roll No., Session, Status (tag: Admitted / Pending), View (eye icon → read-only profile), Letter (printer icon → formal Admission Letter).
 
-**Admission form modal**: a long, grouped form — beyond core identity fields it includes Aadhar/Samagra ID (optional), Category, Religion, Nationality, Address, UDISE Number (optional), Last School (optional), Bank A/C+IFSC (optional), and a "Parents Info" group (name/qualification/occupation/income/contact for both). Every categorical field (Category, Religion, Nationality, Qualification, Occupation) is a `.dd`, never a native select.
+**Admission form modal**: a long, grouped form — beyond core identity fields it includes Admission Type ('new'/'old' — 'old' reveals the real Date of Admission and an "Amount already paid till date" field per `errors.md`), Aadhar/Samagra ID (optional), Category, Religion, Nationality, Address, PEN (optional), Last School (optional), Bank A/C+IFSC (optional), and a "Parents Info" group (name/qualification/occupation/income/contact for both). Every categorical field (Category, Religion, Nationality, Qualification, Occupation) is a `.dd`, never a native select.
 
 **View modal**: Admission Info / Student Info / Parents Info sections, read-only — same visual pattern as Manage Students' View Profile but with admission-specific fields (Admission Fee, Fees Concession, Class Applied For).
 

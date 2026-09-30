@@ -124,7 +124,15 @@
               <td>{{ row.rollNumber ?? '—' }}</td>
               <td>{{ row.contact || '—' }}</td>
               <td>
-                <span class="card-tag" *ngIf="row.card; else noCard">{{ row.card }}</span>
+                <span class="card-cell" *ngIf="row.card; else noCard">
+                  <span class="card-tag">{{ revealedCards.has(row.studentId) ? row.card : row.cardMasked }}</span>
+                  <button type="button" class="card-eye" [attr.aria-pressed]="revealedCards.has(row.studentId)"
+                          [attr.aria-label]="(revealedCards.has(row.studentId) ? 'Hide' : 'Show') + ' card number of ' + row.name"
+                          [title]="revealedCards.has(row.studentId) ? 'Hide card number' : 'Show full card number'"
+                          (click)="toggleCardReveal(row)">
+                    <i class="bi" [class.bi-eye]="!revealedCards.has(row.studentId)" [class.bi-eye-slash]="revealedCards.has(row.studentId)"></i>
+                  </button>
+                </span>
                 <ng-template #noCard><span class="not-set">Not assigned</span></ng-template>
               </td>
               <td class="act">

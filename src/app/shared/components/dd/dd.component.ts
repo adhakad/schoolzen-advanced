@@ -180,6 +180,9 @@ export class DdComponent implements OnChanges, OnDestroy {
     const menu = this.menu.nativeElement;
     menu.classList.add('dd-portal');
     document.body.appendChild(menu);
+    // Options only render while open — render them NOW, so the height the flip decision
+    // measures is the real menu's, not an empty one's.
+    this.cdr.detectChanges();
     this.position();
     // Scroll events don't bubble, so the capture phase is the only way to hear a modal body
     // or table scroller move the trigger. Attached only while open.

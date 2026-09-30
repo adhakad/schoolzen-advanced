@@ -7,6 +7,7 @@ import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 import { ApiError } from 'src/app/shared/models/api-error.model';
 import { ClassesSectionsService } from 'src/app/shared/services/academic-setup/classes-sections.service';
+import { SubjectGroupsService } from 'src/app/shared/services/academic-setup/subject-groups.service';
 import { AcademicClass } from 'src/app/shared/models/academic-setup/class.model';
 import { ClassesSectionsComponent } from './classes-sections.component';
 
@@ -29,7 +30,7 @@ describe('ClassesSectionsComponent', () => {
   let context$: BehaviorSubject<{ activeSession: string }>;
 
   const CLASSES: AcademicClass[] = [
-    classDoc({ _id: 'c6', class: 6, sections: [{ name: 'A' }, { name: 'B' }], studentCount: 72 }),
+    classDoc({ _id: 'c6', class: 6, sections: [{ _id: 's6a', name: 'A' }, { _id: 's6b', name: 'B' }], studentCount: 72 }),
     // No sections and no students: the class a delete strands nobody over.
     classDoc({ _id: 'c7', class: 7, studentCount: 0 }),
     classDoc({
@@ -37,8 +38,10 @@ describe('ClassesSectionsComponent', () => {
       class: 11,
       hasStreams: true,
       streams: [
-        { name: 'science', sections: [{ name: 'A' }], studentCount: 60 },
-        { name: 'commerce', sections: [], studentCount: 38 }
+        { _id: 'sci', name: 'science', sections: [{ _id: 'sciA', name: 'A' }], studentCount: 60,
+          groups: [{ _id: 'g-pcm', name: 'PCM', subjectIds: ['phy'] }], groupCount: 1 },
+        // Saved before groups were mandatory: no group — the row's warning badge.
+        { _id: 'com', name: 'commerce', sections: [], studentCount: 38, groups: [], groupCount: 0 }
       ],
       studentCount: 98
     })
@@ -63,6 +66,10 @@ describe('ClassesSectionsComponent', () => {
         ClassSuffixPipe,
         StreamTitleCasePipe,
         { provide: ClassesSectionsService, useValue: api },
+        {
+          provide: SubjectGroupsService,
+          useValue: { getFormOptions: () => of({ classes: [], subjects: [{ _id: 'phy', name: 'Physics' }, { _id: 'acc', name: 'Accounts' }] }) }
+        },
         { provide: AdminAuthService, useValue: { getLoggedInAdminInfo: () => ({ id: 'a1' }) } },
         { provide: ShellContextService, useValue: { context: context$.asObservable() } }
       ],
@@ -227,7 +234,7 @@ describe('ClassesSectionsComponent', () => {
     component.updateSection(1, 'B');
 
     component.removeSection(0);
-    expect(component.form.sections).toEqual(['B']);
+    expect(component.form.sections).toEqual([{ name: 'B' }]);
   });
 
   it('keeps each stream`s sections attached to it through add, rename and remove', () => {
@@ -245,12 +252,12 @@ describe('ClassesSectionsComponent', () => {
 
     // Renaming the first stream must not disturb the second one's sections.
     component.updateStreamName(0, 'Sciences');
-    expect(component.form.streams[0].sections).toEqual(['A']);
-    expect(component.form.streams[1].sections).toEqual(['C']);
+    expect(component.form.streams[0].sections).toEqual([{ name: 'A' }]);
+    expect(component.form.streams[1].sections).toEqual([{ name: 'C' }]);
 
     component.removeStreamSection(0, 0);
     expect(component.form.streams[0].sections).toEqual([]);
-    expect(component.form.streams[1].sections).toEqual(['C']);
+    expect(component.form.streams[1].sections).toEqual([{ name: 'C' }]);
   });
 
   it('offers the class dropdown as strings and restores the number on selection', () => {
@@ -306,12 +313,72 @@ describe('ClassesSectionsComponent', () => {
 
   it('saves straight away when nothing is stranded', () => {
     component.onEditClass(row('c11'));
+    component.addStreamGroup(1);
+    component.updateStreamGroupName(1, 0, 'Accounts');
     component.addStreamSection(0);
     component.updateStreamSection(0, 1, 'B');
     component.onFormSubmit();
 
     expect(component.confirmOpen).toBe(false);
     expect(api.updateClass).toHaveBeenCalled();
+  });
+
+  // --- student-fix5 #6 / #8 -------------------------------------------------------------
+
+  it('sends back the id of every existing section, stream and group — an edit never re-mints them', () => {
+    component.onEditClass(row('c11'));
+    component.addStreamGroup(1);
+    component.updateStreamGroupName(1, 0, 'Accounts');
+    component.updateStreamName(0, 'Sciences');   // a rename keeps the id
+    component.addStreamSection(0);
+    component.updateStreamSection(0, 1, 'B');     // a new section has none
+    component.onFormSubmit();
+
+    const [id, payload] = api.updateClass.calls.mostRecent().args;
+    expect(id).toBe('c11');
+    expect(payload.streams[0]).toEqual({
+      _id: 'sci', name: 'Sciences',
+      sections: [{ _id: 'sciA', name: 'A' }, { name: 'B' }],
+      groups: [{ _id: 'g-pcm', name: 'PCM', subjectIds: ['phy'] }]
+    });
+    expect(payload.streams[1].groups).toEqual([{ name: 'Accounts', subjectIds: [] }]);
+
+    component.onEditClass(row('c6'));
+    component.onFormSubmit();
+    expect(api.updateClass.calls.mostRecent().args[1].sections).toEqual([{ _id: 's6a', name: 'A' }, { _id: 's6b', name: 'B' }]);
+  });
+
+  it('blocks Submit while a stream has no subject group, and says so on that stream', () => {
+    component.onEditClass(row('c11'));   // Commerce has none
+    component.onFormSubmit();
+    expect(api.updateClass).not.toHaveBeenCalled();
+    expect(component.streamGroupErrors[1]).toContain('at least one subject group');
+    expect(component.streamGroupErrors[0]).toBeUndefined();
+
+    component.addStreamGroup(1);
+    expect(component.streamGroupErrors[1]).toBeUndefined();
+  });
+
+  it('a new stream starts with one empty group row; each group has its own subject checklist', () => {
+    component.onAddClass();
+    component.onStreamsToggled(true);
+    component.addStream();
+    expect(component.form.streams[0].groups).toEqual([{ name: '', subjectIds: [] }]);
+    expect(component.subjects.map((subject) => subject.name)).toEqual(['Physics', 'Accounts']);
+
+    component.toggleGroupSubject(0, 0, 'phy');
+    component.toggleGroupSubject(0, 0, 'acc');
+    component.toggleGroupSubject(0, 0, 'phy');
+    expect(component.form.streams[0].groups[0].subjectIds).toEqual(['acc']);
+  });
+
+  it('flags a stream saved without any group on its table row', () => {
+    expect(row('c11').streamsWithoutGroups).toEqual(['Commerce']);
+    expect(row('c6').streamsWithoutGroups).toEqual([]);
+    fixture.detectChanges();
+    const badges = Array.from(fixture.nativeElement.querySelectorAll('.no-group')) as HTMLElement[];
+    expect(badges.length).toBe(1);
+    expect(badges[0].textContent).toContain('Admission blocked');
   });
 
   /**

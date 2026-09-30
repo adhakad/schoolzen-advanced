@@ -36,8 +36,11 @@ export const verhoeffValid = (digits: string): boolean => {
   return check === 0;
 };
 
-/** 12 digits, not starting 0/1 (UIDAI), passing the Verhoeff checksum. */
-export const isValidAadhaar = (value: string): boolean => /^[2-9]\d{11}$/.test(value) && verhoeffValid(value);
+/**
+ * 12 digits + a passing Verhoeff checksum (student/errors.md) — nothing more. A "first digit
+ * 2–9" rule rejected ~1 in 5 checksum-valid numbers (student-fix5.md #1).
+ */
+export const isValidAadhaar = (value: string): boolean => /^\d{12}$/.test(value) && verhoeffValid(value);
 
 const CHECKSUMS: Record<string, (value: string) => boolean> = { verhoeff: isValidAadhaar };
 

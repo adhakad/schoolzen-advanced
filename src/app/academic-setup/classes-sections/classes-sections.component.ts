@@ -29,6 +29,15 @@
  * sentinels) that student.class and every other class-keyed collection joins on — free text
  * would break every one of those joins. Everything else on the page matches the reference.
  *
+ * Groups live with their stream (classes-sections.md; student-fix5.md #8): with streams on,
+ * each stream carries an inline, mandatory (≥1) Groups sub-block — name + the live subject
+ * checklist, the same SubjectGroup the Subject Groups page edits — beside its independent
+ * Sections. Submit is blocked here AND on the server while any stream has no group. With
+ * streams off there is no group UI; the server keeps the class's automatic "General" group.
+ *
+ * Every draft keeps the `_id` of what already exists and the save sends it back, so an
+ * edit never re-mints a section/stream/group id that enrollments point at (fix5 #6).
+ *
  * This is configuration, not a record of something that happened, so deletes are hard
  * deletes with no grace period. What makes a delete heavy is the students it strands —
  * counts come from the list response, so no confirmation costs an extra request.
@@ -46,8 +55,10 @@ import { ApiError, ApiErrorResponse } from 'src/app/shared/models/api-error.mode
 import { ConfirmConfig, DdOption } from 'src/app/shared/models/shared-components.model';
 import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 import { ClassesSectionsService } from 'src/app/shared/services/academic-setup/classes-sections.service';
+import { SubjectGroupsService } from 'src/app/shared/services/academic-setup/subject-groups.service';
+import { SubjectGroupSubject } from 'src/app/shared/models/academic-setup/subject-group.model';
 import {
-  AcademicClass, ClassFormValue, ClassNameOption, ClassPayload, StreamDraft
+  AcademicClass, ClassFormValue, ClassNameOption, ClassPayload, GroupDraft, SectionDraft, StreamDraft
 } from 'src/app/shared/models/academic-setup/class.model';
 
 /** One stream's worth of the Details modal: a heading and its section chips. */
@@ -75,6 +86,9 @@ interface ClassRow {
   sectionTagLabel: string;
   sectionTagMuted: boolean;
 
+  /** Streams with zero subject groups (saved before groups were mandatory) — the warning badge. */
+  streamsWithoutGroups: string[];
+
   /** Matched against the search box — on names the cells only ever show as a count. */
   searchText: string;
 
@@ -92,7 +106,7 @@ const EMPTY_FORM: ClassFormValue = {
 const normalise = (name: string): string => (name || '').trim().toLowerCase();
 
 /** The fields this modal renders a message slot for; anything else lands on formError. */
-const KNOWN_FIELDS: readonly string[] = ['class', 'sections', 'streams'];
+const KNOWN_FIELDS: readonly string[] = ['class', 'sections', 'streams', 'groups'];
 
 const countLabel = (count: number, noun: string): string =>
   count + ' ' + noun + (count === 1 ? '' : 's');
@@ -153,6 +167,12 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
    * the modal sitting there looking like Submit had done nothing at all.
    */
   formError = '';
+  /** Per-stream "needs at least one group" messages, by stream index — set on Submit. */
+  streamGroupErrors: Record<number, string> = {};
+
+  /** The live Subjects list for each group's checklist — re-read every time the modal opens. */
+  subjects: SubjectGroupSubject[] = [];
+  subjectsError = '';
 
   /** Read-only Streams & Sections breakdown, opened from a cell's tag. */
   detailsOpen = false;
@@ -170,6 +190,7 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
 
   constructor(
     private academicSetup: ClassesSectionsService,
+    private subjectGroups: SubjectGroupsService,
     private adminAuthService: AdminAuthService,
     private shellContext: ShellContextService,
     private classSuffix: ClassSuffixPipe,
@@ -297,6 +318,10 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
       sectionTagLabel: item.hasStreams ? 'Set per stream' : countLabel(sectionNames.length, 'section'),
       sectionTagMuted: item.hasStreams,
 
+      streamsWithoutGroups: item.hasStreams
+        ? (item.streams || []).filter((stream) => !stream.groupCount).map((stream) => this.streamTitleCase.transform(stream.name))
+        : [],
+
       searchText: [className, ...streamNames, ...sectionNames].join(' ').toLowerCase(),
 
       source: item
@@ -324,6 +349,7 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   trackByIndex = (index: number): number => index;
   trackByName = (_index: number, name: string): string => name;
   trackByGroup = (_index: number, group: DetailGroup): string => group.name;
+  trackBySubject = (_index: number, subject: SubjectGroupSubject): string => subject._id;
 
   // --- selection ------------------------------------------------------------------------
 
@@ -386,6 +412,7 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
     this.clearErrors();
     this.formOpen = true;
     this.loadClassOptions();
+    this.loadSubjects();
   }
 
   onEditClass(row: ClassRow): void {
@@ -395,19 +422,36 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
       id: item._id,
       class: item.class,
       hasStreams: item.hasStreams,
-      sections: (item.sections || []).map((section) => section.name),
+      sections: (item.sections || []).map((section) => ({ _id: section._id, name: section.name })),
       streams: (item.streams || []).map((stream) => ({
+        _id: stream._id,
         name: this.streamTitleCase.transform(stream.name),
-        sections: (stream.sections || []).map((section) => section.name),
+        sections: (stream.sections || []).map((section) => ({ _id: section._id, name: section.name })),
+        groups: (stream.groups || []).map((group) => ({ _id: group._id, name: group.name, subjectIds: [...(group.subjectIds || [])] })),
         // Carried into the draft so removing a stream can warn without another request.
         studentCount: stream.studentCount || 0
       }))
     };
     this.clearErrors();
     this.formOpen = true;
+    this.loadSubjects();
     // The dropdown is disabled in edit mode — the class number is the record's identity —
     // so the option list is not needed here.
     this.setClassOptions([{ class: item.class, label: row.className }]);
+  }
+
+  /** The live Subjects list (subject-groups.md: "never a stale copy"), with an error state. */
+  private loadSubjects(): void {
+    this.subjectsError = '';
+    this.subjectGroups.getFormOptions(this.adminId)
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe((res) => {
+        this.subjects = res.subjects || [];
+        this.cdr.markForCheck();
+      }, () => {
+        this.subjectsError = "Couldn't load the subject list — groups can still be named and saved.";
+        this.cdr.markForCheck();
+      });
   }
 
   private loadClassOptions(): void {
@@ -458,13 +502,13 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   // --- the class's own sections (streams off) -------------------------------------------
 
   addSection(): void {
-    this.form = { ...this.form, sections: this.form.sections.concat(['']) };
+    this.form = { ...this.form, sections: this.form.sections.concat([{ name: '' }]) };
   }
 
   updateSection(index: number, value: string): void {
     this.form = {
       ...this.form,
-      sections: this.form.sections.map((name, position) => (position === index ? value : name))
+      sections: this.form.sections.map((section, position) => (position === index ? { ...section, name: value } : section))
     };
   }
 
@@ -482,7 +526,9 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   // separate array of names that would have to be reconciled back onto them.
 
   addStream(): void {
-    const stream: StreamDraft = { name: '', sections: [], studentCount: 0 };
+    // A new stream starts with one empty group row: a group is mandatory, so the modal asks
+    // for it up front rather than failing Submit later.
+    const stream: StreamDraft = { name: '', sections: [], groups: [{ name: '', subjectIds: [] }], studentCount: 0 };
     this.form = { ...this.form, streams: this.form.streams.concat([stream]) };
   }
 
@@ -498,14 +544,68 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   }
 
   addStreamSection(index: number): void {
-    this.patchStream(index, (stream) => ({ ...stream, sections: stream.sections.concat(['']) }));
+    this.patchStream(index, (stream) => ({ ...stream, sections: stream.sections.concat([{ name: '' }]) }));
   }
 
   updateStreamSection(index: number, sectionIndex: number, value: string): void {
     this.patchStream(index, (stream) => ({
       ...stream,
-      sections: stream.sections.map((name, position) => (position === sectionIndex ? value : name))
+      sections: stream.sections.map((section, position) => (position === sectionIndex ? { ...section, name: value } : section))
     }));
+  }
+
+  // --- each stream's subject groups (mandatory, ≥1) -------------------------------------
+
+  addStreamGroup(index: number): void {
+    this.patchStream(index, (stream) => ({ ...stream, groups: stream.groups.concat([{ name: '', subjectIds: [] }]) }));
+    delete this.streamGroupErrors[index];
+  }
+
+  updateStreamGroupName(index: number, groupIndex: number, value: string): void {
+    this.patchStreamGroup(index, groupIndex, (group) => ({ ...group, name: value }));
+    delete this.streamGroupErrors[index];
+  }
+
+  removeStreamGroup(index: number, groupIndex: number): void {
+    this.patchStream(index, (stream) => ({ ...stream, groups: stream.groups.filter((_group, position) => position !== groupIndex) }));
+  }
+
+  isSubjectInGroup(group: GroupDraft, subjectId: string): boolean {
+    return group.subjectIds.indexOf(subjectId) !== -1;
+  }
+
+  toggleGroupSubject(index: number, groupIndex: number, subjectId: string): void {
+    this.patchStreamGroup(index, groupIndex, (group) => ({
+      ...group,
+      subjectIds: this.isSubjectInGroup(group, subjectId)
+        ? group.subjectIds.filter((id) => id !== subjectId)
+        : group.subjectIds.concat([subjectId])
+    }));
+  }
+
+  private patchStreamGroup(index: number, groupIndex: number, change: (group: GroupDraft) => GroupDraft): void {
+    this.patchStream(index, (stream) => ({
+      ...stream,
+      groups: stream.groups.map((group, position) => (position === groupIndex ? change(group) : group))
+    }));
+  }
+
+  /**
+   * Submit is blocked while any stream has no NAMED group (classes-sections.md) — checked
+   * here so the message lands on that stream, and again on the server.
+   */
+  private checkStreamGroups(): boolean {
+    const errors: Record<number, string> = {};
+    if (this.form.hasStreams) {
+      this.form.streams.forEach((stream, index) => {
+        if (!stream.name.trim()) return;
+        if (!stream.groups.some((group) => group.name.trim())) {
+          errors[index] = 'Add at least one subject group — Admission to this stream is blocked without one.';
+        }
+      });
+    }
+    this.streamGroupErrors = errors;
+    return Object.keys(errors).length === 0;
   }
 
   removeStreamSection(index: number, sectionIndex: number): void {
@@ -526,6 +626,10 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
 
   onFormSubmit(): void {
     if (this.saving) return;
+    if (!this.checkStreamGroups()) {
+      this.cdr.markForCheck();
+      return;
+    }
 
     // Removing a stream is only destructive at Submit — until then the modal is a draft.
     const stranded = this.strandedStreams();
@@ -559,12 +663,13 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
     const original = this.classes.find((item) => item._id === this.form.id);
     if (!original || !original.hasStreams) return { names: [], total: 0 };
 
-    const kept = new Set(
-      this.form.hasStreams ? this.form.streams.map((stream) => normalise(stream.name)) : []
-    );
+    // A stream is KEPT when its id is still in the draft (a rename keeps the id now), or,
+    // for one without an id, when its name is.
+    const keptIds = new Set(this.form.hasStreams ? this.form.streams.map((stream) => stream._id).filter(Boolean) : []);
+    const keptNames = new Set(this.form.hasStreams ? this.form.streams.map((stream) => normalise(stream.name)) : []);
 
     const dropped = (original.streams || [])
-      .filter((stream) => !kept.has(normalise(stream.name)) && (stream.studentCount || 0) > 0);
+      .filter((stream) => !keptIds.has(stream._id) && !keptNames.has(normalise(stream.name)) && (stream.studentCount || 0) > 0);
 
     return {
       names: dropped.map((stream) => this.streamTitleCase.transform(stream.name)),
@@ -575,24 +680,31 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   private clearErrors(): void {
     this.fieldErrors = {};
     this.formError = '';
+    this.streamGroupErrors = {};
   }
 
   private save(): void {
     this.saving = true;
     this.clearErrors();
 
+    // Existing ids go back with their items, so the server keeps them (never re-mints).
+    const cleanSections = (sections: SectionDraft[]): SectionDraft[] => sections
+      .filter((section) => section.name.trim())
+      .map((section) => ({ ...(section._id ? { _id: section._id } : {}), name: section.name.trim() }));
     const payload: ClassPayload = {
       adminId: this.adminId,
       hasStreams: this.form.hasStreams,
-      sections: this.form.hasStreams
-        ? []
-        : this.form.sections.filter((name) => name.trim()).map((name) => ({ name: name.trim() })),
+      sections: this.form.hasStreams ? [] : cleanSections(this.form.sections),
       streams: this.form.hasStreams
         ? this.form.streams
             .filter((stream) => stream.name.trim())
             .map((stream) => ({
+              ...(stream._id ? { _id: stream._id } : {}),
               name: stream.name.trim(),
-              sections: stream.sections.filter((name) => name.trim()).map((name) => ({ name: name.trim() }))
+              sections: cleanSections(stream.sections),
+              groups: stream.groups
+                .filter((group) => group.name.trim())
+                .map((group) => ({ ...(group._id ? { _id: group._id } : {}), name: group.name.trim(), subjectIds: group.subjectIds }))
             }))
         : []
     };

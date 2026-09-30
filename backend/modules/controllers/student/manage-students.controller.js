@@ -14,6 +14,8 @@ const { findSessionId, ensureSessionId, labelOfSessionId } = require('../../help
 const { maskStudent, maskValue, SENSITIVE_FIELDS } = require('../../helpers/student/student-mask');
 const { logActivity } = require('../../services/activity-log.service');
 const StudentFeeRecordModel = require('../../models/fees/student-fee-record');
+const FeePaymentModel = require('../../models/fees/fee-payment');
+const { byClassOrder } = require('../../helpers/academic-setup/class-order');
 const {
     MODULE, toObjectId, loadClassIndex, loadSubjectGroups, describePlacement, buildEnrollmentMatch,
     listStudentRows, runStudentDeleteCascade, withTransaction,
@@ -116,11 +118,17 @@ let GetStudent = async (req, res) => {
             'totalFee concession admissionFee concessionReason')
         .sort({ createdAt: -1 })
         .lean();
+    // Paid / Due are DERIVED from the payments (fees/fees.md), never stored.
+    const paid = feeDoc
+        ? (await FeePaymentModel.find({ adminId, studentFeeRecordId: feeDoc._id }, 'amount').lean()).reduce((sum, payment) => sum + payment.amount, 0)
+        : 0;
     const feeRecord = feeDoc ? {
         totalFee: feeDoc.totalFee,
         concession: feeDoc.concession,
         admissionFee: feeDoc.admissionFee,
         payable: feeDoc.totalFee - feeDoc.concession,
+        paid,
+        due: Math.max(0, feeDoc.totalFee - feeDoc.concession - paid),
         concessionReason: feeDoc.concessionReason || null,
     } : null;
     return res.status(200).json({ student: body, placement, feeRecord });
@@ -155,7 +163,8 @@ let GetFilterOptions = async (req, res) => {
         loadSubjectGroups(adminId),
     ]);
     const classes = [...classIndex.values()]
-        .sort((a, b) => (a.doc.class >= 200 ? a.doc.class - 300 : a.doc.class) - (b.doc.class >= 200 ? b.doc.class - 300 : b.doc.class))
+        // Class.order — Nursery → 12th, the one app-wide class ordering.
+        .sort((a, b) => byClassOrder(a.doc, b.doc))
         .map((entry) => ({
             _id: String(entry.doc._id),
             class: entry.doc.class,
@@ -175,6 +184,8 @@ let GetFilterOptions = async (req, res) => {
             name: group.name,
             classId: String(group.classId),
             streamId: group.streamId ? String(group.streamId) : null,
+            // A non-streamed class's automatic "General" group — never offered as a choice.
+            isSystemGroup: Boolean(group.isSystemGroup),
         })),
     });
 };
@@ -486,7 +497,7 @@ let ImportExcel = async (req, res) => {
     }
     const { entry } = await resolveExcelScope(adminId, req.body);
     const config = await getStudentFieldConfig(adminId);
-    const columns = buildStudentSheetColumns(config, entry.doc.hasStreams);
+    const columns = buildStudentSheetColumns(config, entry.doc.hasStreams, { forImport: true });
 
     let parsed;
     try {

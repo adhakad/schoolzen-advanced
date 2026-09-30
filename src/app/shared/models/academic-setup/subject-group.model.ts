@@ -26,12 +26,27 @@ export interface SubjectGroup {
   /** Stored lowercase, rendered through StreamTitleCasePipe. */
   streamName: string | null;
   subjects: SubjectGroupSubject[];
+  /**
+   * A non-streamed class's automatic "General" group (classes-sections.md): no edit/delete
+   * actions, not bulk-selectable — only its Class's delete removes it.
+   */
+  isSystemGroup?: boolean;
+}
+
+/** A stream with zero groups (saved before groups were mandatory) — the warning strip. */
+export interface StreamWithoutGroup {
+  classId: string;
+  class: number;
+  label: string;
+  streamId: string;
+  streamName: string;
 }
 
 export interface SubjectGroupSummary {
   total: number;
   classesCovered: number;
   streamsCovered: number;
+  streamsWithoutGroups?: StreamWithoutGroup[];
 }
 
 export interface SubjectGroupListResponse {

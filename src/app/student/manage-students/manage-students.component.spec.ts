@@ -233,6 +233,20 @@ describe('ManageStudentsComponent', () => {
     });
   });
 
+  it('shows the card masked by default; the row eye reveals that row only, with no API call (fix5 #3)', () => {
+    fixture.detectChanges();
+    const cardText = (): string => fixture.nativeElement.querySelector('tbody .card-tag').textContent.trim();
+    expect(cardText()).toBe('•• 8821');
+    api.getStudents.calls.reset();
+    fixture.nativeElement.querySelector('tbody .card-eye').click();
+    fixture.detectChanges();
+    expect(cardText()).toBe('88218821');
+    fixture.nativeElement.querySelector('tbody .card-eye').click();
+    fixture.detectChanges();
+    expect(cardText()).toBe('•• 8821');
+    expect(api.getStudents).not.toHaveBeenCalled();
+  });
+
   it('asks the server only for the columns the table renders', () => {
     expect(api.getStudents).toHaveBeenCalledWith('a1', jasmine.objectContaining({
       fields: 'name,admissionNo,status,photo,father,mother,contact,card'

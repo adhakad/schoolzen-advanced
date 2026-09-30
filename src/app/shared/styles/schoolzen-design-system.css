@@ -1273,3 +1273,32 @@
     margin-right: auto;
   }
 }
+
+/* --- Subject checklist — Subject Groups' modal AND the Classes & Sections modal's inline
+   per-stream Groups sub-block (the same SubjectGroup fields in both places). */
+/* The checklist scrolls inside the modal rather than growing it: a school with forty
+   subjects must not push Submit below the fold. */
+.sz-modal-overlay .subj-check-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  border-top: 1px solid var(--line-soft);
+}
+
+.sz-modal-overlay .subj-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.sz-modal-overlay .subj-check:hover { background: var(--paper); }
+.sz-modal-overlay .subj-check.checked { color: var(--brand); font-weight: 600; }
+.sz-modal-overlay .subj-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; flex-shrink: 0; }
+.sz-modal-overlay .subj-check span { flex: 1; }

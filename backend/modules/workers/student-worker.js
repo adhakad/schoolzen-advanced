@@ -105,10 +105,15 @@ const processImport = async (job) => {
         ? ((classEntry.streams.get(String(placement.streamId)) || {}).sections || [])
         : (classEntry.doc.sections || []);
     const sectionByName = new Map(sectionPool.map((section) => [section.name.toUpperCase(), section._id]));
-    const groups = classEntry.doc.hasStreams
-        ? await SubjectGroupModel.find({ adminId, classId: placement.classId, streamId: placement.streamId }, 'name').lean()
-        : [];
-    const groupByName = new Map(groups.map((group) => [group.name.toLowerCase(), group._id]));
+    // Group (student-fix5.md #9): validated against the groups that ACTUALLY exist for this
+    // sheet's class+stream — never a fixed list. A non-streamed class's rows ignore the
+    // column and take the class's automatic "General" group.
+    const groups = await SubjectGroupModel
+        .find({ adminId, classId: placement.classId, streamId: placement.streamId || null }, 'name isSystemGroup')
+        .lean();
+    const streamGroups = groups.filter((group) => !group.isSystemGroup);
+    const generalGroup = groups.find((group) => group.isSystemGroup);
+    const groupByName = new Map(streamGroups.map((group) => [group.name.toLowerCase(), group._id]));
 
     // Every failing row, in the catalog's shape #7: { row, fields:[{field, code?, message}] }.
     // ALL rows are validated before anything is written, and one bad row never stops the
@@ -138,6 +143,11 @@ const processImport = async (job) => {
         const record = { ...values };
         // A Masked export re-imported: masked identifiers mean "unchanged", not new data.
         SENSITIVE_FIELDS.forEach((key) => { if (isMaskedValue(record[key])) delete record[key]; });
+        // A sheet row with no Admission Type is an existing student when it gives a real
+        // admission date (the usual mid-session onboarding sheet), else a new admission.
+        if (record.admissionType == null || String(record.admissionType).trim() === '') {
+            record.admissionType = record.doa != null && String(record.doa).trim() !== '' ? 'old' : 'new';
+        }
         if (admissionClassText) {
             const id = classIdByToken.get(classToken(admissionClassText));
             if (id) record.admissionClass = id;
@@ -147,6 +157,14 @@ const processImport = async (job) => {
             }
         }
         const { value, errors } = validateStudentRecord(record, config);
+        // 'new' is admitted today (student/errors.md, admissionType) — same rule as the form.
+        if (value.admissionType === 'new' && value.doa == null) {
+            const now = new Date();
+            value.doa = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        }
+        if (value.admissionType === 'old' && value.doa == null && !errors.some((error) => error.field === 'doa')) {
+            errors.push({ field: 'doa', message: studentMessages.doaRequired() });
+        }
 
         // Missing required fields become ONE line naming every one of them (legacy
         // behaviour, kept): "Missing: Father Name, Mother Occupation, Date of Birth."
@@ -184,10 +202,18 @@ const processImport = async (job) => {
             if (!sectionId) fields.push(fieldError('sectionName', 'SECTION_NOT_FOUND', `Section "${sectionName}" is not set up for this class.`));
         }
         let groupId = null;
-        const groupName = String(values.groupName || '').trim().toLowerCase();
-        if (groupName) {
-            groupId = groupByName.get(groupName) || null;
-            if (!groupId) fields.push(fieldError('groupName', 'SUBJECT_GROUP_NOT_FOUND', `Subject Group "${values.groupName}" is not set up for this class.`));
+        if (classEntry.doc.hasStreams) {
+            const groupText = String(values.groupName || '').trim();
+            if (!streamGroups.length) {
+                fields.push(fieldError('groupName', 'SUBJECT_GROUP_MISSING', studentMessages.subjectGroupMissing()));
+            } else if (!groupText) {
+                fields.push(fieldError('groupName', 'GROUP_REQUIRED', studentMessages.groupRequired()));
+            } else {
+                groupId = groupByName.get(groupText.toLowerCase()) || null;
+                if (!groupId) fields.push(fieldError('groupName', 'GROUP_NAME_UNRECOGNIZED', studentMessages.groupNameUnrecognized(groupText)));
+            }
+        } else {
+            groupId = generalGroup ? generalGroup._id : null;
         }
 
         if (fields.length) rowErrors.push({ row: rowNumber, fields });

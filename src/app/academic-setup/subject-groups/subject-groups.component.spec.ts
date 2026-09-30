@@ -81,6 +81,45 @@ describe('SubjectGroupsComponent', () => {
 
   // --- list ---------------------------------------------------------------------------
 
+  // --- student-fix5 #8 ------------------------------------------------------------------
+
+  describe('the automatic "General" group and streams without groups', () => {
+    beforeEach(() => {
+      api.getSubjectGroups.and.returnValue(of({
+        ...RESPONSE,
+        rows: [{ ...RESPONSE.rows[0], name: 'General', isSystemGroup: true }, RESPONSE.rows[1]],
+        summary: { ...RESPONSE.summary, streamsWithoutGroups: [{ classId: 'c11', class: 11, label: '11th', streamId: 'st2', streamName: 'commerce' }] }
+      }));
+      component.onPageChange(1);
+      fixture.detectChanges();
+    });
+
+    const tableRows = (): HTMLElement[] => Array.from(fixture.nativeElement.querySelectorAll('tbody tr'));
+
+    it('gives a "General" row no edit/delete actions at all, and a disabled checkbox', () => {
+      const [general, normal] = tableRows();
+      expect(general.querySelector('.actions')).toBeNull();
+      expect((general.querySelector('.row-check') as HTMLInputElement).disabled).toBe(true);
+      expect(normal.querySelectorAll('.actions .icon-btn').length).toBe(2);
+    });
+
+    it('never bulk-selects it — select-all takes the editable rows only', () => {
+      component.toggleAll();
+      expect(component.isSelected('g1')).toBe(false);
+      expect(component.isSelected('g2')).toBe(true);
+      component.toggleRow('g1');
+      expect(component.isSelected('g1')).toBe(false);
+    });
+
+    it('names streams that have no group yet, above the table', () => {
+      expect(fixture.nativeElement.querySelector('.no-group-strip').textContent).toContain('11th Commerce');
+    });
+
+    it('only offers streamed classes in the Add Group modal', () => {
+      expect(component.formClassOptions.map((option) => option.label)).toEqual(['— Select —', '11th']);
+    });
+  });
+
   it('loads the list and the form options on init — two calls, not a join per row', () => {
     expect(api.getSubjectGroups).toHaveBeenCalledTimes(1);
     expect(api.getFormOptions).toHaveBeenCalledTimes(1);

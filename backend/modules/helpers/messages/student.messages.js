@@ -27,6 +27,10 @@ const excelFileRequired = () => 'Choose an Excel (.xlsx) file to import.';
 const excelEmpty = () => 'That sheet has no student rows under the header row.';
 const importQueued = () => 'Import started — you can keep working while it runs.';
 
+const groupRequired = () => 'Group is required for this class/stream.';
+const subjectGroupMissing = () => 'Please group subjects for this class/stream before admission — add a group in Academic Setup.';
+const groupNameUnrecognized = (text) => `'${text}' doesn't match any group for this class/stream.`;
+
 const admissionNoLocked = () => 'Admission No. has already been issued and cannot be changed.';
 
 // Admission-time fee & concession (student/errors.md).
@@ -37,6 +41,11 @@ const concessionReasonRequired = (percent) =>
 const feeStructureMissing = (session) =>
     `No fee structure is set up for this class in ${session} yet, so no fee record was created. ` +
     'Set it up in Fees → Fee Structure; the admission itself is saved.';
+const amountPaidExceedsPayable = (payable) => `Amount already paid can't be more than the fee payable (${rupees(payable)}).`;
+const amountPaidInvalid = () => 'Enter a valid amount (numbers only).';
+const amountPaidNotRecorded = (amount) =>
+    `The amount already paid (${rupees(amount)}) wasn't recorded — there's no fee record until this class has a fee structure.`;
+const doaRequired = () => 'Date of admission is required.';
 const feesManagedInFees = () =>
     "Admission fee and concession are recorded on this student's fee record — change them in Fees, not here.";
 const placementLocked = () => 'Stream and Subject Group can only be changed while a promotion into a streamed class is incomplete.';
@@ -89,6 +98,13 @@ const bulkRowsFailed = (failed, total) => `${failed} of ${total} rows could not 
 const duplicateSubmit = () => 'This request is already being processed.';
 
 module.exports = {
+    amountPaidExceedsPayable,
+    amountPaidInvalid,
+    amountPaidNotRecorded,
+    doaRequired,
+    groupRequired,
+    subjectGroupMissing,
+    groupNameUnrecognized,
     concessionExceedsFee,
     concessionReasonRequired,
     feeStructureMissing,

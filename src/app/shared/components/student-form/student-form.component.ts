@@ -53,7 +53,13 @@ export const VALIDATION_DEBOUNCE_MS = 250;
 
 const PLACEMENT_KEYS = ['classId', 'streamId', 'groupId', 'sectionId'] as const;
 /** Not FieldConfig fields, but still keyboard-focusable controls with their own errors. */
-const EXTRA_KEYS = ['concessionReason'] as const;
+const EXTRA_KEYS = ['concessionReason', 'amountPaid'] as const;
+
+/** admissionType's two values, worded for the form (student/errors.md, admissionType). */
+const ADMISSION_TYPE_LABELS: Record<string, string> = {
+  new: 'New admission (from today)',
+  old: 'Existing student (already studying here)'
+};
 
 const titleCase = (text: string): string => (text || '').replace(/\b\w/g, (c) => c.toUpperCase());
 const pad = (n: number): string => String(n).padStart(2, '0');
@@ -168,6 +174,34 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
     return this.feeQuote && this.feeQuote.found ? rupees(this.feeQuote.totalFee) : '';
   }
 
+  /** 'old' = already studying here before the ERP: a real past DOA, maybe fees already paid. */
+  get isOldAdmission(): boolean {
+    return this.value('admissionType') === 'old';
+  }
+
+  /** DOA is server-set to today for a 'new' admission, so the form only asks for it otherwise. */
+  get showDoa(): boolean {
+    return this.show('doa') && (this.isEdit || this.isOldAdmission);
+  }
+
+  /** "Amount already paid till date" — only for an 'old' admission (student/errors.md). */
+  get showAmountPaid(): boolean {
+    return !this.isEdit && this.isOldAdmission;
+  }
+
+  /**
+   * Group (student/errors.md field table): asked — and required — only for a streamed class;
+   * a non-streamed class's students are all in its automatic "General" group (set server-side).
+   */
+  get showGroup(): boolean {
+    return Boolean(this.selectedClass?.hasStreams) && this.placementUnlocked;
+  }
+
+  /** The chosen stream has no subject group at all — Admission is blocked until one exists. */
+  get streamHasNoGroups(): boolean {
+    return this.showGroup && Boolean(this.value('streamId')) && this.groupOptions.length === 0;
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['fieldConfig'] || changes['filterOptions'] || changes['detail'] || changes['mode']) {
       const all = this.fieldConfig?.fields || [];
@@ -229,6 +263,13 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
   touch(key: string): void {
     // Leaving the field ends "still typing": its result shows now, not after the debounce.
     this.settle(key);
+    // An upper-cased field (IFSC) shows its normalized form as soon as it's left, the same
+    // form the server checks and stores (student-fix5.md #4) — "sbin0001234" is valid.
+    const field = this.fields.get(key);
+    const current = this.value(key);
+    if (field?.validationRule?.normalize === 'upper' && current && current !== current.toUpperCase()) {
+      this.form.controls[key]?.setValue(current.toUpperCase());
+    }
     this.form.controls[key]?.markAsTouched();
     this.cdr.markForCheck();
   }
@@ -297,11 +338,12 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
     this.streamOptions = (chosen?.streams || []).map((item) => ({ value: item._id, label: titleCase(item.name) }));
 
     const ready = Boolean(chosen) && (!chosen?.hasStreams || Boolean(stream));
-    this.groupOptions = [{ value: '', label: '— None —' }].concat(ready
+    // Only a streamed class's own groups for THIS stream — never an automatic "General".
+    this.groupOptions = ready && chosen?.hasStreams
       ? (this.filterOptions?.groups || [])
-          .filter((group) => group.classId === chosen?._id && (group.streamId || '') === (stream?._id || ''))
+          .filter((group) => !group.isSystemGroup && group.classId === chosen?._id && (group.streamId || '') === (stream?._id || ''))
           .map((group) => ({ value: group._id, label: group.name }))
-      : []);
+      : [];
     const sections = ready ? (chosen?.hasStreams ? stream?.sections || [] : chosen?.sections || []) : [];
     this.sectionOptions = [{ value: '', label: '— None —' }]
       .concat(sections.map((section) => ({ value: section._id, label: 'Section ' + section.name })));
@@ -413,6 +455,8 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
       controls[key] = new FormControl<string>((placement && placement[key]) || '', { nonNullable: true });
     });
     EXTRA_KEYS.forEach((key) => { controls[key] = new FormControl<string>('', { nonNullable: true }); });
+    // admissionType is required with a default of 'new' — a new student starts on it.
+    if (!student && controls['admissionType'] && !controls['admissionType'].value) controls['admissionType'].setValue('new');
 
     this.form = new FormGroup(controls);
     this.clientErrors = {};
@@ -434,7 +478,8 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
       religion: toDd(options['religion']),
       nationality: toDd(options['nationality']),
       qualification: toDd(options['qualification']),
-      occupation: toDd(options['occupation'])
+      occupation: toDd(options['occupation']),
+      admissionType: (options['admissionType'] || ['new', 'old']).map((item) => ({ value: item, label: ADMISSION_TYPE_LABELS[item] || item }))
     };
     // First Enrolled Class is a class REFERENCE — the same id placement uses.
     this.admissionClassOptions = (this.filterOptions?.classes || [])
@@ -460,6 +505,10 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
     if (key === 'feesConcession' && this.feesLocked) return false;
     if (key === 'admissionClass' && this.mode === 'admission') return false;
     if (key === 'concessionReason') return this.concessionNeedsReason;
+    if (key === 'amountPaid') return this.showAmountPaid;
+    // A 'new' admission's DOA is today, set by the server — not collected.
+    if (key === 'doa') return this.isEdit || this.isOldAdmission;
+    if (key === 'groupId') return this.showGroup;
     return true;
   }
 
@@ -480,6 +529,7 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
    */
   buildPayload(): FormData | null {
     const errors: Record<string, string> = {};
+    const quote = this.feeQuote;
     // Submit touches every field at once, so one never visited still shows its error.
     this.typing.clear();
     this.form.markAllAsTouched();
@@ -494,8 +544,17 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
     if (!this.isEdit) {
       if (!this.value('classId')) errors['classId'] = 'Class is required.';
       else if (this.selectedClass?.hasStreams && !this.value('streamId')) errors['streamId'] = 'Stream is required.';
+      else if (this.streamHasNoGroups) {
+        errors['groupId'] = 'Please group subjects for this class/stream before admission — add a group in Academic Setup.';
+      } else if (this.showGroup && !this.value('groupId')) errors['groupId'] = 'Group is required for this class/stream.';
+      if (this.isOldAdmission && this.show('doa') && !this.value('doa')) errors['doa'] = 'Date of admission is required.';
+      if (this.showAmountPaid && this.value('amountPaid').trim()) {
+        const paid = Number(this.value('amountPaid').replace(/[,\s₹]/g, ''));
+        const payable = quote && quote.found ? quote.totalFee - this.concessionAmount() : null;
+        if (!Number.isFinite(paid) || paid < 0) errors['amountPaid'] = 'Enter a valid amount (numbers only).';
+        else if (payable !== null && paid > payable) errors['amountPaid'] = `Amount already paid can't be more than the fee payable (${rupees(payable)}).`;
+      }
     }
-    const quote = this.feeQuote;
     if (!this.isEdit && quote && quote.found && this.concessionAmount() > quote.totalFee) {
       errors['feesConcession'] = `Concession can't be greater than the total fee (${rupees(quote.totalFee)}).`;
     }
@@ -523,9 +582,11 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
       body.append(key, this.value(key).trim());
     });
     if (this.concessionNeedsReason) body.append('concessionReason', this.value('concessionReason').trim());
+    if (this.showAmountPaid && this.value('amountPaid').trim()) body.append('amountPaid', this.value('amountPaid').trim());
 
     if (!this.isEdit) {
-      PLACEMENT_KEYS.forEach((key) => body.append(key, this.value(key)));
+      // groupId only for a streamed class; the server resolves "General" for the rest.
+      PLACEMENT_KEYS.forEach((key) => { if (key !== 'groupId' || this.showGroup) body.append(key, this.value(key)); });
     } else {
       body.append('sectionId', this.value('sectionId'));
       if (this.placementUnlocked) {

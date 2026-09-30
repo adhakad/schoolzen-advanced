@@ -19,10 +19,21 @@ export interface ClassSection {
   name: string;
 }
 
+/** One of a stream's subject groups — the same SubjectGroup the Subject Groups page edits. */
+export interface ClassGroup {
+  _id?: string;
+  name: string;
+  subjectIds: string[];
+}
+
 export interface ClassStream {
   _id?: string;
   name: string;
   sections: ClassSection[];
+  /** Attached by GetClasses: the stream's groups (pre-fill the modal) and how many. */
+  groups?: ClassGroup[];
+  /** 0 = the "No group — Admission blocked" badge (a stream from before groups were mandatory). */
+  groupCount?: number;
   /** Attached by GetClasses from the page's one grouped aggregation. */
   studentCount?: number;
 }
@@ -31,6 +42,8 @@ export interface AcademicClass {
   _id: string;
   adminId: string;
   class: number;
+  /** Nursery=0 … 12th=14 — the order every class list is shown in (set server-side). */
+  order?: number;
   hasStreams: boolean;
   /** Populated only when hasStreams is false; a class with streams keeps them per stream. */
   sections: ClassSection[];
@@ -45,9 +58,28 @@ export interface ClassNameOption {
 }
 
 /** A stream while the modal is open: names are plain strings until Submit shapes them. */
-export interface StreamDraft {
+/**
+ * Drafts carry the `_id` of anything that already exists, and the save sends it back: a
+ * section/stream/group is referenced by id from every enrollment, so an edit must keep it
+ * (student-fix5.md #6 — re-minted ids emptied the Section/Group filters). Undefined = new.
+ */
+export interface SectionDraft {
+  _id?: string;
   name: string;
-  sections: string[];
+}
+
+export interface GroupDraft {
+  _id?: string;
+  name: string;
+  subjectIds: string[];
+}
+
+export interface StreamDraft {
+  _id?: string;
+  name: string;
+  sections: SectionDraft[];
+  /** Mandatory, minimum 1 (classes-sections.md) — Submit is blocked without. */
+  groups: GroupDraft[];
   /**
    * How many students this stream held when the page loaded, carried into the draft so
    * removing it can warn without another round-trip. 0 for a stream added in this modal.
@@ -61,7 +93,7 @@ export interface ClassFormValue {
   id: string | null;
   class: number | null;
   hasStreams: boolean;
-  sections: string[];
+  sections: SectionDraft[];
   streams: StreamDraft[];
 }
 
@@ -70,6 +102,6 @@ export interface ClassPayload {
   adminId: string;
   class?: number;
   hasStreams: boolean;
-  sections: { name: string }[];
-  streams: { name: string; sections: { name: string }[] }[];
+  sections: SectionDraft[];
+  streams: { _id?: string; name: string; sections: SectionDraft[]; groups: GroupDraft[] }[];
 }

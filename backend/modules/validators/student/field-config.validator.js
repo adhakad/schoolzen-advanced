@@ -57,7 +57,12 @@ const f = (fieldKey, label, group, rule, flags = {}) => ({
 const DEFAULT_STUDENT_FIELD_CONFIG = Object.freeze([
     f('admissionNo', 'Admission No.', 'admission', { type: 'number', integer: true, min: 1, max: 99999999999 }),
     f('rollNumber', 'Roll Number', 'admission', { type: 'number', integer: true, min: 1, max: 99999 }),
-    f('doa', 'Date of Admission', 'admission', { type: 'date', notFuture: true }),
+    // Required, default 'new' (student/errors.md): a blank value IS 'new', so older sheets
+    // and API callers without the column still work. The write path applies its DOA/fee
+    // consequences (helpers/student/student-write.js).
+    f('admissionType', 'Admission Type', 'admission', { type: 'dropdown', options: OPTIONS.admissionType, default: 'new',
+        errorMessages: { required: 'Admission type is required.' } }, { required: true }),
+    f('doa', 'Date of Admission', 'admission', { type: 'date', notFuture: true, errorMessages: { required: 'Date of admission is required.' } }),
     f('medium', 'Medium', 'admission', { type: 'dropdown', options: OPTIONS.medium }, { required: true }),
     // A reference to the Academic Setup class the student FIRST enrolled in — the same
     // class id placement uses, so "Class" and "First Enrolled Class" can't disagree.
@@ -191,8 +196,10 @@ const verhoeffValid = (digits) => {
     reversed.forEach((digit, i) => { check = VERHOEFF_D[check][VERHOEFF_P[i % 8][digit]]; });
     return check === 0;
 };
-// Aadhaar numbers never start with 0 or 1 (UIDAI), in addition to the checksum.
-const isValidAadhaar = (value) => /^[2-9]\d{11}$/.test(value) && verhoeffValid(value);
+// 12 digits + a passing Verhoeff checksum — the rule student/errors.md specifies. No
+// "first digit 2–9" rule on top: it rejected ~1 in 5 checksum-valid numbers, including
+// standard generated test numbers (student-fix5.md #1).
+const isValidAadhaar = (value) => /^\d{12}$/.test(value) && verhoeffValid(value);
 const CHECKSUMS = { verhoeff: isValidAadhaar };
 
 // ---------------------------------------------------------------------------------------
@@ -395,7 +402,12 @@ const validateStudentRecord = (record, config, opts = {}) => {
         // A hidden, non-locked field is not collected, so it is neither required nor kept.
         if (!field.visible && !field.locked) continue;
 
-        const raw = record[field.fieldKey];
+        let raw = record[field.fieldKey];
+        // A rule's `default` stands in for a blank on create (never on a partial update,
+        // where blank means "clear it").
+        if (isBlank(raw) && !opts.partial && field.validationRule && field.validationRule.default !== undefined) {
+            raw = field.validationRule.default;
+        }
         if (isBlank(raw)) {
             // In partial mode only a field actually sent can fail — sending it blank is an
             // attempt to clear it.

@@ -20,29 +20,12 @@
    Action column off the table. */
 .subj-tags { display: flex; gap: 6px; flex-wrap: wrap; max-width: 300px; }
 
-/* The checklist scrolls inside the modal rather than growing it: a school with forty
-   subjects must not push Submit below the fold. */
-.subj-check-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  margin-top: 8px;
-  max-height: 260px;
-  overflow-y: auto;
-  border-top: 1px solid var(--line-soft);
-}
+/* The subject checklist (.subj-check-grid / .subj-check) moved to the global design system:
+   the Classes & Sections modal renders the same checklist inline per stream. */
 
-.subj-check {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 4px;
-  border-bottom: 1px solid var(--line-soft);
-  font-size: 13px;
-  color: var(--ink-soft);
-  cursor: pointer;
+/* Streams with no group yet (classes-sections.md backfill) — named above the table. */
+.no-group-strip {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 8px;
+  background: var(--warning-soft); color: var(--warning); font-size: 12.5px;
 }
-.subj-check:hover { background: var(--paper); }
-.subj-check.checked { color: var(--brand); font-weight: 600; }
-.subj-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; flex-shrink: 0; }
-.subj-check span { flex: 1; }

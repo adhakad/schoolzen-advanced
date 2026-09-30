@@ -46,6 +46,13 @@
       </div>
     </div>
 
+    <!-- Streams saved before groups became mandatory (classes-sections.md backfill): they
+         have no row here, so they're named above the table until a group is added. -->
+    <div class="no-group-strip" role="alert" *ngIf="noGroupStreams">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>No group &mdash; Admission blocked until one is added: <b>{{ noGroupStreams }}</b></span>
+    </div>
+
     <div class="table-scroll">
       <table>
         <thead>
@@ -65,6 +72,7 @@
           <tr *ngFor="let row of rows; trackBy: trackByRow">
             <td class="check-col">
               <input type="checkbox" class="row-check" [attr.aria-label]="'Select ' + row.name"
+                     [disabled]="row.isSystemGroup" [title]="row.isSystemGroup ? 'Automatic group — removed only with its class' : ''"
                      [checked]="isSelected(row._id)" (change)="toggleRow(row._id)" />
             </td>
 
@@ -75,7 +83,10 @@
               <ng-template #noStream><span class="na">&mdash; not applicable</span></ng-template>
             </td>
 
-            <td><div class="grp-name">{{ row.name }}</div></td>
+            <td>
+              <div class="grp-name">{{ row.name }}</div>
+              <div class="na" *ngIf="row.isSystemGroup">Automatic &mdash; every student of this class</div>
+            </td>
 
             <!-- Names resolved server-side from the referenced Subjects, so a rename shows
                  through here with no migration and no stale copy. -->
@@ -89,7 +100,8 @@
             </td>
 
             <td class="act">
-              <div class="actions">
+              <!-- An automatic "General" group has NO actions at all (not disabled ones). -->
+              <div class="actions" *ngIf="!row.isSystemGroup">
                 <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name"
                         (click)="onEditGroup(row)">
                   <i class="bi bi-pencil"></i>

@@ -52,6 +52,8 @@ export interface StudentProfile {
   name: string;
   photoUrl: string | null;
   medium?: string;
+  /** 'new' = admitted from today; 'old' = already studying here before this system. */
+  admissionType?: 'new' | 'old';
   /** First Enrolled Class — an Academic Setup class id. */
   admissionClass?: string | null;
   /** That class's label ("8th"), resolved server-side for display. */
@@ -112,6 +114,9 @@ export interface StudentFeeRecord {
   concession: number;
   admissionFee: number;
   payable: number;
+  /** Derived from the fee payments (an 'old' admission's opening balance included). */
+  paid?: number;
+  due?: number;
   concessionReason: string | null;
 }
 
@@ -211,6 +216,8 @@ export interface FilterGroup {
   name: string;
   classId: string;
   streamId: string | null;
+  /** A non-streamed class's automatic "General" group — never offered as a choice. */
+  isSystemGroup?: boolean;
 }
 
 export interface StudentFilterOptions {

@@ -14,6 +14,21 @@ const classHasStudents = (count, className) =>
 
 const classNotFound = () => 'Class not found';
 
+// The automatic "General" group of a non-streamed class (classes-sections.md).
+const systemGroupLocked = () =>
+    'This is the automatic "General" group of a class without streams — it can only be removed by deleting the class.';
+const groupsOnlyForStreams = (className) =>
+    `${className} has no streams — its students all use the automatic "General" group, so there's nothing to add here.`;
+
+// Hard block (classes-sections.md): enrollments and First Enrolled Class are real class-id
+// references, and nothing in the app can show "a class that no longer exists".
+const classBlockedByStudents = (count, className) =>
+    `${className} can't be deleted: ${count} ${count === 1 ? 'student is' : 'students are'} placed in it or first enrolled in it. ` +
+    'Move or promote them to another class first.';
+const classesBlockedByStudents = (count) =>
+    `The selected classes can't be deleted: ${count} ${count === 1 ? 'student is' : 'students are'} placed in or first enrolled in them. ` +
+    'Move or promote them to another class first.';
+
 const classesHaveStudents = (count) =>
     `${count} ${count === 1 ? 'student is' : 'students are'} enrolled in the selected ` +
     `${count === 1 ? 'class' : 'classes'} and will need reassigning.`;
@@ -46,6 +61,10 @@ module.exports = {
     classAlreadySetUp,
     classHasStudents,
     classesHaveStudents,
+    classBlockedByStudents,
+    systemGroupLocked,
+    groupsOnlyForStreams,
+    classesBlockedByStudents,
     classNotFound,
     subjectAlreadyExists,
     subjectNotFound,

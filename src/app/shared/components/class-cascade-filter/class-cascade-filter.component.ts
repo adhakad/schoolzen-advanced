@@ -99,7 +99,8 @@ export class ClassCascadeFilterComponent implements OnChanges {
     const placementReady = Boolean(chosen) && (!chosen?.hasStreams || Boolean(stream));
 
     const groups: FilterGroup[] = placementReady
-      ? (this.options?.groups || []).filter((group) =>
+      // A non-streamed class's only group is its automatic "General" — nothing to filter by.
+      ? (this.options?.groups || []).filter((group) => !group.isSystemGroup &&
           group.classId === chosen?._id && (group.streamId || '') === (stream?._id || ''))
       : [];
     this.groupDisabled = groups.length === 0;

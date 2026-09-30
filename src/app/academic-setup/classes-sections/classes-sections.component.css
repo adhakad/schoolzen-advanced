@@ -11,3 +11,10 @@
    table scrolling within it. */
 
 .table-scroll { min-width: 0; }
+
+/* Each stream's inline subject groups (student-fix5.md #8): a name row, then its checklist
+   — the global .subj-check-grid, capped shorter here since there can be several groups. */
+.group-draft { margin-bottom: 10px; }
+.subj-check-grid.compact { max-height: 150px; margin-top: 4px; }
+.sections-head { margin-top: 14px; }
+.no-group { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }

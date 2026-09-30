@@ -12,6 +12,12 @@ const CATEGORY_OPTIONS = Object.freeze(['General', 'OBC', 'SC', 'ST', 'EWS']);
 const RELIGION_OPTIONS = Object.freeze(['Hindu', 'Sikh', 'Jain', 'Buddhist', 'Christian', 'Muslim', 'Other']);
 const NATIONALITY_OPTIONS = Object.freeze(['Indian', 'Other']);
 const QUALIFICATION_OPTIONS = Object.freeze(['Illiterate', 'Primary', 'Secondary', 'Higher Secondary', 'Graduate', 'Postgraduate', 'Doctorate', 'Other']);
+/**
+ * 'new' = admitted from today; 'old' = already studying here before the school adopted the
+ * ERP (student/errors.md, admissionType) — a real past admission date and, optionally, fees
+ * already paid.
+ */
+const ADMISSION_TYPES = Object.freeze(['new', 'old']);
 const OCCUPATION_OPTIONS = Object.freeze(['Business', 'Service', 'Government Job', 'Self-employed', 'Farmer', 'Labour', 'Homemaker', 'Other']);
 
 /** Keyed the way GET /field-config returns them to the form. */
@@ -23,6 +29,7 @@ const OPTIONS = Object.freeze({
     nationality: NATIONALITY_OPTIONS,
     qualification: QUALIFICATION_OPTIONS,
     occupation: OCCUPATION_OPTIONS,
+    admissionType: ADMISSION_TYPES,
 });
 
 /**
@@ -47,6 +54,7 @@ module.exports = {
     NATIONALITY_OPTIONS,
     QUALIFICATION_OPTIONS,
     OCCUPATION_OPTIONS,
+    ADMISSION_TYPES,
     OPTIONS,
     NAME_PATTERN,
     CONCESSION_REASON_THRESHOLD,

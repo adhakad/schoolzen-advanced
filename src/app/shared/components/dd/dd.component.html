@@ -17,6 +17,10 @@
 <div #menu class="dd-menu" role="listbox"
      [class.full-width]="fullWidth"
      [class.align-left]="menuAlign === 'left'">
+  <!-- Options exist only while the menu is open: a long form carries ~25 dropdowns, and
+       rendering every closed one's full list made each modal open pay for them all
+       (student-fix5.md #7). -->
+  <ng-container *ngIf="open">
   <div class="dd-option" role="option"
        *ngFor="let option of options; trackBy: trackByValue"
        [class.selected]="isSelected(option)"
@@ -25,4 +29,5 @@
        (click)="select($event, option)">
     <i class="bi" [ngClass]="'bi-' + option.icon" *ngIf="option.icon"></i>{{ option.label }}
   </div>
+  </ng-container>
 </div>

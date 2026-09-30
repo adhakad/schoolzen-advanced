@@ -8,6 +8,7 @@ const { getClassDisplayName } = require('../../helpers/format-class-name');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
 const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
+const { byClassOrder } = require('../../helpers/academic-setup/class-order');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Subject group';
@@ -74,6 +75,7 @@ const LOOKUP_STAGES = [
             name: 1,
             classId: 1,
             streamId: 1,
+            isSystemGroup: 1,
             // The raw class NUMBER, rendered through ClassSuffixPipe on the frontend —
             // the same value student.class and every other class-keyed collection holds.
             class: '$classDoc.class',
@@ -111,6 +113,8 @@ const shapeRow = (row) => ({
     hasStreams: !!row.hasStreams,
     streamId: row.streamId,
     streamName: row.stream ? row.stream.name : null,
+    // The automatic "General" group: no edit/delete, not bulk-selectable.
+    isSystemGroup: Boolean(row.isSystemGroup),
     subjects: (row.subjects || []).sort((a, b) => a.name.localeCompare(b.name)),
 });
 
@@ -166,8 +170,25 @@ let GetSubjectGroups = async (req, res, next) => {
             total: counts.total || 0,
             classesCovered: (counts.classIds || []).length,
             streamsCovered: streamIds.length,
+            // Backfill warning (classes-sections.md): a stream saved before groups became
+            // mandatory has none, and Admission is blocked for it until one is added.
+            streamsWithoutGroups: await streamsWithoutGroups(req.query.adminId, new Set(streamIds.map(String))),
         },
     });
+};
+
+/** Every stream of this school with zero groups — {classId, class, label, streamId, streamName}. */
+const streamsWithoutGroups = async (adminId, streamsWithGroups) => {
+    const classes = await AcademicClassModel.find({ adminId, hasStreams: true }, 'class order streams._id streams.name').lean();
+    return classes.sort(byClassOrder).flatMap((item) => (item.streams || [])
+        .filter((stream) => !streamsWithGroups.has(String(stream._id)))
+        .map((stream) => ({
+            classId: item._id,
+            class: item.class,
+            label: getClassDisplayName(item.class),
+            streamId: stream._id,
+            streamName: stream.name,
+        })));
 };
 
 // Everything both the toolbar's filters and the Add/Edit modal need, in ONE call:
@@ -190,9 +211,11 @@ let GetFormOptions = async (req, res, next) => {
             // here left every Stream option in the UI with an undefined value, so picking
             // "Science" sent no stream at all and the save came back "12th has streams, so
             // this group must belong to one of them" while the dropdown still read Science.
-            .find({ adminId: adminId }, 'class hasStreams streams.name streams._id')
-            .sort({ class: 1 })
-            .lean(),
+            .find({ adminId: adminId }, 'class order hasStreams streams.name streams._id')
+            .lean()
+            // Class.order (Nursery → 12th) — never the raw class number, which puts the
+            // 200/201/202 Nursery/LKG/UKG sentinels last.
+            .then((list) => list.sort(byClassOrder)),
         SubjectModel
             .find({ adminId: adminId, status: 'active' }, 'name type')
             .sort({ name: 1 })
@@ -293,10 +316,27 @@ const assertNameFree = async (adminId, classId, streamId, name, excludeId) => {
     }
 };
 
+/** Groups are only ever hand-made for a STREAMED class; a non-streamed class has "General". */
+const assertStreamedClass = (classDoc) => {
+    if (classDoc.hasStreams) return;
+    const message = messages.groupsOnlyForStreams(getClassDisplayName(classDoc.class));
+    throw new ValidationError(message, { module: MODULE, fields: [{ field: 'classId', message }] });
+};
+
+/** The automatic "General" group is refused here, whatever the UI shows. */
+const assertNotSystemGroup = (group) => {
+    if (!group || !group.isSystemGroup) return;
+    throw new ConflictError(messages.systemGroupLocked(), {
+        module: MODULE,
+        code: 'SYSTEM_GROUP_LOCKED',
+        context: { id: String(group._id) },
+    });
+};
+
 let CreateSubjectGroup = async (req, res, next) => {
     const { adminId, classId, streamId, name, subjectIds } = req.body;
 
-    await resolveClassAndStream(adminId, classId, streamId);
+    assertStreamedClass(await resolveClassAndStream(adminId, classId, streamId));
     await assertSubjectsExist(adminId, subjectIds);
     await assertNameFree(adminId, classId, streamId, name);
 
@@ -325,8 +365,9 @@ let UpdateSubjectGroup = async (req, res, next) => {
             context: { id: req.params.id },
         });
     }
+    assertNotSystemGroup(group);
 
-    await resolveClassAndStream(adminId, classId, streamId);
+    assertStreamedClass(await resolveClassAndStream(adminId, classId, streamId));
     await assertSubjectsExist(adminId, subjectIds);
     await assertNameFree(adminId, classId, streamId, name, group._id);
 
@@ -346,8 +387,11 @@ let UpdateSubjectGroup = async (req, res, next) => {
 let BulkDeleteSubjectGroups = async (req, res, next) => {
     const { adminId, ids } = req.body;
 
-    const found = await SubjectGroupModel
-        .countDocuments({ _id: { $in: ids }, adminId: adminId });
+    const groups = await SubjectGroupModel
+        .find({ _id: { $in: ids }, adminId: adminId }, 'isSystemGroup')
+        .lean();
+    const found = groups.length;
+    assertNotSystemGroup(groups.find((group) => group.isSystemGroup));
 
     if (found !== ids.length) {
         throw new NotFoundError(messages.groupNotFound(), {

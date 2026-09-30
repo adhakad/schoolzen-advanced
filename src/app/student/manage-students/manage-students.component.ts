@@ -60,7 +60,12 @@ interface BulkResultLine {
 interface StudentRow extends StudentListRow {
   initials: string;
   gradient: string;
+  /** "•• 8821" — the Card column's default (student-fix5.md #3); null when no card. */
+  cardMasked: string | null;
 }
+
+/** Card column is masked by default — a UI-consistency choice, not a masking-law one. */
+const maskCard = (card: string | null): string | null => (card ? '•• ' + card.slice(-4) : null);
 
 /**
  * The header controls' final spec (student-fix4.md H): a sort arrow on Admission No.,
@@ -75,7 +80,9 @@ const compareNumber = (a: number | null, b: number | null, dir: SortDir): number
   return dir === 'asc' ? a - b : b - a;
 };
 
-const toRow = (row: StudentListRow): StudentRow => ({ ...row, initials: initialsOf(row.name), gradient: avatarGradient(row.studentId) });
+const toRow = (row: StudentListRow): StudentRow => ({
+  ...row, initials: initialsOf(row.name), gradient: avatarGradient(row.studentId), cardMasked: maskCard(row.card)
+});
 
 @Component({
   selector: 'app-manage-students',
@@ -118,6 +125,11 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
    * never one page-level flag that would block or ignore a click on a different row.
    */
   busyRows = new Set<string>();
+  /**
+   * Rows whose card number is shown in full, by studentId — the eye toggle on that one row.
+   * Local only: unlike Aadhar/bank/PEN, revealing a card isn't logged (student-fix5.md #3).
+   */
+  revealedCards = new Set<string>();
   overview: ManageStudentsOverview = { totalStudents: 0, cardsAssigned: 0 };
 
   /**
@@ -365,7 +377,7 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
       const card = byStudent.get(row.studentId);
       if (!card) return row;
       if (!row.card) newlyAssigned += 1;
-      return { ...row, card };
+      return { ...row, card, cardMasked: maskCard(card) };
     });
     byStudent.forEach((card, studentId) => {
       const picked = this.selected.get(studentId);
@@ -419,6 +431,11 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
   }
 
   trackByRow = (_index: number, row: StudentRow): string => row.enrollmentId;
+
+  toggleCardReveal(row: StudentRow): void {
+    if (this.revealedCards.has(row.studentId)) this.revealedCards.delete(row.studentId);
+    else this.revealedCards.add(row.studentId);
+  }
 
   // --- header: sort + display case (frontend only, no API call) -------------------------
 

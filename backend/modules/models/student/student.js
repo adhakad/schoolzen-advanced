@@ -38,6 +38,9 @@ const StudentSchema = new mongoose.Schema({
     // reference an enrollment's classId is, so the two can never disagree.
     admissionClass: { type: mongoose.Schema.Types.ObjectId, ref: 'academic-class', default: null },
     doa: { type: Date, default: null },                // date of admission
+    // 'new' = admitted from today; 'old' = already studying here before the school moved to
+    // this system (student/errors.md, admissionType).
+    admissionType: { type: String, enum: ['new', 'old'], default: 'new' },
     admissionFee: { type: Number, default: null },
     feesConcession: { type: Number, default: 0 },
     lastSchool: { type: String, trim: true },

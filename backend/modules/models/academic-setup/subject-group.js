@@ -40,6 +40,14 @@ const SubjectGroupModel = mongoose.model('academic-subject-group', {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'academic-subject',
     }],
+    isSystemGroup: {
+        // true ONLY for the automatic "General" group every non-streamed class gets on save
+        // (academic-setup/classes-sections.md). It can't be edited or deleted on its own —
+        // only its Class's delete removes it — and the backend refuses a direct attempt,
+        // whatever the UI shows.
+        type: Boolean,
+        default: false,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

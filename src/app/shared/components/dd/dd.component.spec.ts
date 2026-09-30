@@ -177,7 +177,21 @@ describe('DdComponent', () => {
     fixture.detectChanges();
 
     expect(query('.dd-label').textContent!.trim()).toBe('— Select —');
+    trigger().click();
+    fixture.detectChanges();
     expect(options()[0].classList).not.toContain('selected');
+  });
+
+  // student-fix5.md #7: a closed dropdown renders no options — a form with ~25 of them no
+  // longer builds every list on each modal open.
+  it('renders its options only while open', () => {
+    expect(options().length).toBe(0);
+    trigger().click();
+    fixture.detectChanges();
+    expect(options().length).toBe(3);
+    trigger().click();
+    fixture.detectChanges();
+    expect(options().length).toBe(0);
   });
 
   it('closes an open menu if it becomes disabled', () => {

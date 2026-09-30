@@ -45,12 +45,17 @@
     </div>
   </div>
   <div class="m-row">
-    <div class="m-field">
-      <label>Subject Group</label>
-      <app-dd [options]="groupOptions" [value]="value('groupId')" placeholder="— None —"
-              ariaLabel="Subject group" [disabled]="groupOptions.length < 2" disabledHint="— None —"
+    <!-- Group: only for a streamed class, and required there. A class without streams puts
+         every student in its automatic "General" group — nothing to ask. -->
+    <div class="m-field" *ngIf="showGroup">
+      <label>Subject Group <span class="req-star">*</span></label>
+      <app-dd [options]="groupOptions" [value]="value('groupId')" placeholder="Select group"
+              ariaLabel="Subject group" [disabled]="!value('streamId') || streamHasNoGroups"
+              [disabledHint]="streamHasNoGroups ? 'No group for this stream' : 'Select a stream first'"
               [class.is-invalid]="!!error('groupId')" (valueChange)="onGroupChange($event)" (closed)="touch('groupId')" [invalid]="!!error('groupId')" [describedBy]="describedBy('groupId')"></app-dd>
-      <p class="m-error" id="err-groupId" *ngIf="error('groupId')"><i class="bi bi-exclamation-circle"></i> {{ error('groupId') }}</p>
+      <p class="m-error" id="err-groupId" *ngIf="error('groupId') || streamHasNoGroups">
+        <i class="bi bi-exclamation-circle"></i> {{ error('groupId') || 'This stream has no subject group yet — add one in Academic Setup before admitting to it.' }}
+      </p>
     </div>
     <div class="m-field">
       <label>Section</label>
@@ -81,9 +86,9 @@
     </div>
   </div>
   <div class="m-row">
-    <div class="m-field" *ngIf="placementUnlocked">
-      <label>Subject Group</label>
-      <app-dd [options]="groupOptions" [value]="value('groupId')" placeholder="— None —"
+    <div class="m-field" *ngIf="showGroup">
+      <label>Subject Group <span class="req-star">*</span></label>
+      <app-dd [options]="groupOptions" [value]="value('groupId')" placeholder="Select group"
               ariaLabel="Subject group" [class.is-invalid]="!!error('groupId')" (valueChange)="onGroupChange($event)" (closed)="touch('groupId')" [invalid]="!!error('groupId')" [describedBy]="describedBy('groupId')"></app-dd>
       <p class="m-error" id="err-groupId" *ngIf="error('groupId')"><i class="bi bi-exclamation-circle"></i> {{ error('groupId') }}</p>
     </div>
@@ -100,6 +105,18 @@
   </p>
 </ng-template>
 
+<!-- Admission type (student/errors.md): 'new' is admitted today (DOA set by the server);
+     'old' = already studying here before this system — a real past DOA, and the fee step
+     asks what was already paid. -->
+<div class="m-row" *ngIf="show('admissionType')">
+  <div class="m-field">
+    <label>{{ label('admissionType', 'Admission Type') }} <span class="req-star">*</span></label>
+    <app-dd [options]="enumOptions['admissionType'] || []" [value]="value('admissionType')" placeholder="Select admission type"
+            ariaLabel="Admission type" [class.is-invalid]="!!error('admissionType')" (valueChange)="set('admissionType', $event)" (closed)="touch('admissionType')" [invalid]="!!error('admissionType')" [describedBy]="describedBy('admissionType')"></app-dd>
+    <p class="m-error" id="err-admissionType" *ngIf="error('admissionType')"><i class="bi bi-exclamation-circle"></i> {{ error('admissionType') }}</p>
+  </div>
+</div>
+
 <div class="m-row">
   <div class="m-field" *ngIf="show('admissionNo')">
     <label>{{ label('admissionNo', 'Admission No.') }}</label>
@@ -108,8 +125,8 @@
     <p class="m-hint" *ngIf="!admissionNoLocked">Blank keeps the admission Pending until one is issued.</p>
     <p class="m-error" id="err-admissionNo" *ngIf="error('admissionNo')"><i class="bi bi-exclamation-circle"></i> {{ error('admissionNo') }}</p>
   </div>
-  <div class="m-field" *ngIf="show('doa')">
-    <label>{{ label('doa', 'Date of Admission') }} <span class="req-star" *ngIf="required('doa')">*</span></label>
+  <div class="m-field" *ngIf="showDoa">
+    <label>{{ label('doa', 'Date of Admission') }} <span class="req-star" *ngIf="required('doa') || isOldAdmission">*</span></label>
     <app-dp [value]="value('doa')" [max]="today" ariaLabel="Date of admission" [invalid]="!!error('doa')"
             (valueChange)="set('doa', $event)" (closed)="touch('doa')" [describedBy]="describedBy('doa')"></app-dp>
     <p class="m-error" id="err-doa" *ngIf="error('doa')"><i class="bi bi-exclamation-circle"></i> {{ error('doa') }}</p>
@@ -143,6 +160,16 @@
     <p class="m-hint" *ngIf="feesLocked">Recorded on this student's fee record — change it in Fees.</p>
     <p class="m-error" id="err-feesConcession" *ngIf="error('feesConcession')"><i class="bi bi-exclamation-circle"></i> {{ error('feesConcession') }}</p>
   </div>
+</div>
+
+<!-- 'old' admission only: fees already paid before this system opens the ledger. -->
+<div class="m-field" *ngIf="showAmountPaid">
+  <label>Amount already paid till date (₹) (optional)</label>
+  <input id="f-amountPaid" type="text" inputmode="numeric" placeholder="0" [value]="value('amountPaid')"
+         (input)="onInput('amountPaid', $event)" (blur)="touch('amountPaid')"
+         [class.is-invalid]="!!error('amountPaid')" [attr.aria-invalid]="!!error('amountPaid') || null" [attr.aria-describedby]="describedBy('amountPaid')" />
+  <p class="m-hint">Recorded as the opening balance of this student's fee record — not collected again.</p>
+  <p class="m-error" id="err-amountPaid" *ngIf="error('amountPaid')"><i class="bi bi-exclamation-circle"></i> {{ error('amountPaid') }}</p>
 </div>
 
 <div class="m-field" *ngIf="concessionNeedsReason">
