@@ -7,6 +7,7 @@ const { NotFoundError, ConflictError, ValidationError } = require('../../errors'
 const { getClassDisplayName } = require('../../helpers/format-class-name');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
+const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Subject group';
@@ -306,6 +307,7 @@ let CreateSubjectGroup = async (req, res, next) => {
         name: name,
         subjectIds: subjectIds,
     });
+    await cacheInvalidation.onSubjectGroupsChanged(adminId);
 
     return res.status(200).json({ message: success.created(ENTITY) });
 };
@@ -333,6 +335,7 @@ let UpdateSubjectGroup = async (req, res, next) => {
     group.name = name;
     group.subjectIds = subjectIds;
     await group.save();
+    await cacheInvalidation.onSubjectGroupsChanged(adminId);
 
     return res.status(200).json({ message: success.updated(ENTITY) });
 };
@@ -354,6 +357,7 @@ let BulkDeleteSubjectGroups = async (req, res, next) => {
     }
 
     await SubjectGroupModel.deleteMany({ _id: { $in: ids }, adminId: adminId });
+    await cacheInvalidation.onSubjectGroupsChanged(adminId);
 
     return res.status(200).json({
         message: success.bulkProcessed(ids.length, 'subject group'),

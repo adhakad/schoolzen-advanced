@@ -6,9 +6,15 @@ const AcademicSessionModel = require('../../models/academic-session');
 const StudentProfileModel = require('../../models/student/student');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const BiometricMappingModel = require('../../models/biometric-mapping');
+// Admission writes a student's first fee ledger entry (student-write.js), so a delete removes it.
+const StudentFeeRecordModel = require('../../models/fees/student-fee-record');
 const { ValidationError, ConflictError } = require('../../errors');
 const { getClassDisplayName } = require('../format-class-name');
 const { isValidSession, nextSessionLabel } = require('../academic-session-format');
+const { findSessionId } = require('../academic-session/session-resolver');
+const cacheService = require('../../services/cache/cache.service');
+const cacheKeys = require('../../services/cache/cache-keys');
+const { imageUrl } = require('../../services/media/cloudinary.service');
 const messages = require('../messages/student.messages');
 
 // Student-module logic shared by its three controllers and its worker. Nothing here is
@@ -27,7 +33,6 @@ const sameId = (a, b) => String(a || '') === String(b || '');
 const escapeRegex = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** "•• 8821" — the list never ships a full card number to the browser. */
-const maskCard = (cardNumber) => (cardNumber ? '•• ' + String(cardNumber).slice(-4) : null);
 
 // ---------------------------------------------------------------------------------------
 // Sessions
@@ -49,17 +54,36 @@ const getNextSession = async (session) => {
     return later[0] || nextSessionLabel(session);
 };
 
-// ---------------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 // Academic Setup lookups — one small read per request, then O(1) Map lookups per row
 // ---------------------------------------------------------------------------------------
 
 /**
+ * A school's raw class documents, through Academic Setup's OWN cache key — the same entry
+ * Academic Setup writes and invalidates, never a Student-local copy with its own TTL
+ * (student/optimization.md). Ids come back as strings from the cache; every reader below
+ * compares them with String(...).
+ */
+const loadClasses = (adminId) => cacheService.wrap(
+    cacheKeys.academicSetup.classes(adminId),
+    cacheService.TTL.NEAR_STATIC_45,
+    () => AcademicClassModel.find({ adminId }).lean()
+);
+
+/** A school's subject groups (name + class/stream), through Academic Setup's cache key. */
+const loadSubjectGroups = (adminId) => cacheService.wrap(
+    cacheKeys.academicSetup.subjectGroups(adminId),
+    cacheService.TTL.NEAR_STATIC_45,
+    () => SubjectGroupModel.find({ adminId }, 'name classId streamId').sort({ name: 1 }).lean()
+);
+
+/**
  * A school's configured classes, indexed by _id with their streams and sections indexed
- * too. A school has at most ~15 class documents, so one read serves any list page's
- * labels without a per-row lookup.
+ * too. A school has at most ~15 class documents, so one (cached) read serves any list
+ * page's labels without a per-row lookup.
  */
 const loadClassIndex = async (adminId) => {
-    const classes = await AcademicClassModel.find({ adminId }).lean();
+    const classes = await loadClasses(adminId);
     const byId = new Map();
     for (const item of classes) {
         const streams = new Map();
@@ -189,20 +213,49 @@ const resolveSearchStudentIds = async (adminId, search) => {
     return matches.map((item) => item._id);
 };
 
-/** The enrollment-side $match for a list: school + session + whatever filters are set. */
-const buildEnrollmentMatch = (adminId, session, filters = {}) => {
-    const match = { adminId, session };
+/**
+ * The enrollment-side $match for a list: school + session (the AcademicSession _id, never a
+ * label) + whatever filters are set.
+ */
+const buildEnrollmentMatch = (adminId, sessionId, filters = {}) => {
+    const match = { adminId, sessionId: toObjectId(sessionId) };
     ['classId', 'streamId', 'groupId', 'sectionId'].forEach((key) => {
         if (filters[key]) match[key] = toObjectId(filters[key]);
     });
     return match;
 };
 
-// Only the columns the tables render — never the 30-field profile (performance-principles.md).
-const LIST_STUDENT_PROJECTION = {
-    name: 1, admissionNo: 1, status: 1, photoUrl: 1, fatherName: 1, motherName: 1,
-    parentsContact: 1, cardNumber: 1, verifyMode: 1, admissionSession: 1,
+// Field projection (module-optimization-guide.md §4): the page's service passes
+// `?fields=` naming exactly the columns its table shows, and only those student fields are
+// read — never the 30-field profile to paint a 10-column row. Whitelisted: a client can't
+// project a field this map doesn't name (so never a sensitive one like aadharNumber).
+const LIST_FIELD_MAP = {
+    name: ['name'],
+    admissionNo: ['admissionNo'],
+    status: ['status'],
+    photo: ['photoUrl', 'photoPublicId'],
+    father: ['fatherName'],
+    mother: ['motherName'],
+    contact: ['parentsContact'],
+    card: ['cardNumber', 'verifyMode'],
 };
+const DEFAULT_LIST_FIELDS = Object.keys(LIST_FIELD_MAP);
+
+/** `"name,photo,card"` → the student-document projection for those columns. */
+const studentProjectionFor = (fields) => {
+    const wanted = String(fields || '').split(',').map((field) => field.trim()).filter((field) => LIST_FIELD_MAP[field]);
+    const chosen = new Set(['name', 'admissionNo', 'status', ...(wanted.length ? wanted : DEFAULT_LIST_FIELDS)]);
+    const projection = {};
+    chosen.forEach((field) => LIST_FIELD_MAP[field].forEach((docField) => { projection[docField] = 1; }));
+    return projection;
+};
+
+// Row thumbnails are requested at the size the table renders them (f_auto,q_auto, 64px) —
+// never the full-size profile image shrunk with CSS (student-fix3.md).
+const ROW_PHOTO_WIDTH = 64;
+const rowPhoto = (student) => (student.photoPublicId
+    ? imageUrl(student.photoPublicId, ROW_PHOTO_WIDTH)
+    : student.photoUrl || null);
 
 /**
  * One keyset page of enrollments joined to their students in ONE aggregation (no
@@ -211,7 +264,7 @@ const LIST_STUDENT_PROJECTION = {
  *
  * @returns {{ rows: Array, nextCursor: String|null }}
  */
-const listEnrollmentPage = async ({ match, studentIds, cursor, limit }) => {
+const listEnrollmentPage = async ({ match, studentIds, cursor, limit, projection }) => {
     const pageMatch = { ...match };
     if (studentIds) pageMatch.studentId = { $in: studentIds };
     if (cursor) pageMatch._id = { $gt: toObjectId(cursor) };
@@ -235,11 +288,11 @@ const listEnrollmentPage = async ({ match, studentIds, cursor, limit }) => {
         {
             $project: {
                 classId: 1, class: 1, streamId: 1, groupId: 1, sectionId: 1,
-                rollNumber: 1, session: 1, entryType: 1, placementIncomplete: 1,
+                rollNumber: 1, sessionId: 1, entryType: 1, placementIncomplete: 1,
                 // A dotted projection keeps only the named sub-fields — the student's own
                 // _id has to be asked for explicitly or every row loses its studentId.
                 'student._id': 1,
-                ...Object.fromEntries(Object.keys(LIST_STUDENT_PROJECTION).map((key) => ['student.' + key, 1])),
+                ...Object.fromEntries(Object.keys(projection || studentProjectionFor()).map((key) => ['student.' + key, 1])),
             },
         },
     ]);
@@ -249,8 +302,11 @@ const listEnrollmentPage = async ({ match, studentIds, cursor, limit }) => {
     return { rows, nextCursor: hasMore ? String(rows[rows.length - 1]._id) : null };
 };
 
-/** One table row — exactly the columns the page renders, nothing else. */
-const toListRow = (classIndex) => (row) => {
+/**
+ * One table row — exactly the columns the page renders, nothing else. `sessionLabel` is
+ * the label the request asked for (the enrollment itself stores only the session's id).
+ */
+const toListRow = (classIndex, sessionLabel) => (row) => {
     const placement = describePlacement(classIndex, row);
     return {
         enrollmentId: String(row._id),
@@ -258,13 +314,14 @@ const toListRow = (classIndex) => (row) => {
         name: row.student.name,
         admissionNo: row.student.admissionNo,
         status: row.student.status,
-        photoUrl: row.student.photoUrl || null,
+        photoUrl: rowPhoto(row.student),
         fatherName: row.student.fatherName || null,
         motherName: row.student.motherName || null,
         contact: row.student.parentsContact || null,
-        card: maskCard(row.student.cardNumber),
+        // In full (student-fix4.md C) — an operational identifier, not regulated PII.
+        card: row.student.cardNumber || null,
         rollNumber: row.rollNumber,
-        session: row.session,
+        session: sessionLabel,
         classId: String(row.classId),
         streamId: row.streamId ? String(row.streamId) : null,
         groupId: row.groupId ? String(row.groupId) : null,
@@ -282,19 +339,32 @@ const toListRow = (classIndex) => (row) => {
  * filtered total, and label the rows — three queries total regardless of page size.
  */
 const listStudentRows = async ({ adminId, query, extraMatch = {} }) => {
-    const studentIds = await resolveSearchStudentIds(adminId, query.search);
-    if (studentIds && studentIds.length === 0) return { rows: [], nextCursor: null, total: 0 };
+    // The header's label → this school's AcademicSession id. A label with no session yet has
+    // no enrollments against it, so the answer is simply an empty list.
+    const [sessionId, studentIds] = await Promise.all([
+        findSessionId(adminId, query.session),
+        resolveSearchStudentIds(adminId, query.search),
+    ]);
+    const empty = { rows: [], nextCursor: null, total: 0 };
+    if (!sessionId || (studentIds && studentIds.length === 0)) return empty;
 
-    const match = { ...buildEnrollmentMatch(adminId, query.session, query), ...extraMatch };
+    const match = { ...buildEnrollmentMatch(adminId, sessionId, query), ...extraMatch };
     const countMatch = studentIds ? { ...match, studentId: { $in: studentIds } } : match;
 
     const [page, total, classIndex] = await Promise.all([
-        listEnrollmentPage({ match, studentIds, cursor: query.cursor, limit: query.limit }),
+        listEnrollmentPage({ match, studentIds, cursor: query.cursor, limit: query.limit, projection: studentProjectionFor(query.fields) }),
         StudentEnrollmentModel.countDocuments(countMatch),
         loadClassIndex(adminId),
     ]);
 
-    return { rows: page.rows.map(toListRow(classIndex)), nextCursor: page.nextCursor, total };
+    return { rows: page.rows.map(toListRow(classIndex, query.session)), nextCursor: page.nextCursor, total };
+};
+
+/** One enrollment + its student as a list row — the fresh document a write responds with. */
+const loadListRow = async (adminId, enrollmentId, sessionLabel) => {
+    const page = await listEnrollmentPage({ match: { adminId, _id: toObjectId(enrollmentId) }, limit: 1 });
+    if (!page.rows.length) return null;
+    return toListRow(await loadClassIndex(adminId), sessionLabel)(page.rows[0]);
 };
 
 // ---------------------------------------------------------------------------------------
@@ -377,6 +447,9 @@ registerStudentDeleteStep('biometric-mapping', async ({ dbSession, adminId, stud
 registerStudentDeleteStep('enrollments', async ({ dbSession, adminId, studentIds }) => {
     await StudentEnrollmentModel.deleteMany({ adminId, studentId: { $in: studentIds } }, { session: dbSession });
 });
+registerStudentDeleteStep('fee-records', async ({ dbSession, adminId, studentIds }) => {
+    await StudentFeeRecordModel.deleteMany({ adminId, studentId: { $in: studentIds } }, { session: dbSession });
+});
 registerStudentDeleteStep('students', async ({ dbSession, adminId, studentIds }) => {
     await StudentProfileModel.deleteMany({ adminId, _id: { $in: studentIds } }, { session: dbSession });
 });
@@ -391,7 +464,7 @@ const DUPLICATE_RULES = {
     rollNumber: { field: 'rollNumber', code: 'ROLL_NUMBER_DUPLICATE' },
     aadharNumber: { field: 'aadharNumber', code: 'AADHAR_DUPLICATE' },
     samagraId: { field: 'samagraId', code: 'SAMAGRA_ID_DUPLICATE' },
-    udiseNumber: { field: 'udiseNumber', code: 'UDISE_DUPLICATE' },
+    penNumber: { field: 'penNumber', code: 'PEN_DUPLICATE' },
     cardNumber: { field: 'cardNumber', code: 'CARD_ALREADY_ASSIGNED' },
 };
 
@@ -440,9 +513,10 @@ module.exports = {
     toObjectId,
     sameId,
     escapeRegex,
-    maskCard,
     titleCase,
     getNextSession,
+    loadClasses,
+    loadSubjectGroups,
     loadClassIndex,
     describePlacement,
     resolvePlacement,
@@ -450,6 +524,8 @@ module.exports = {
     buildEnrollmentMatch,
     listEnrollmentPage,
     listStudentRows,
+    loadListRow,
+    studentProjectionFor,
     registerStudentDeleteStep,
     registerPromotionStep,
     promotionLookups,

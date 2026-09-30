@@ -44,6 +44,12 @@ Dark sticky sidebar (248px) → topbar (crumb left, session-pill + profile-dropd
 ```
 `.dd-label` MUST have `white-space:nowrap;overflow:hidden;text-overflow:ellipsis` — never let it wrap to 2 lines (this broke row alignment once already). Disabled state resets value+label to the default option. Profile dropdown starts with a `.drop-school` block (logo+name+meta) above the menu items — don't drop this.
 
+**Menu positioning and open/close behavior — a global rule, confirmed broken across forms today, not a per-instance fix.**
+- `.dd-menu` renders in a **top-layer/portal** (a `<dialog>`/`popover`-API element, or an absolutely-positioned element appended to `document.body`, not a child clipped by the modal/form's own `overflow:hidden`/`overflow:auto` container) — this is why a `.dd` near a modal's footer today gets visually cut off/hidden behind the footer: it's being clipped by an ancestor's overflow box, not actually mispositioned.
+- On open, measure available space below the trigger inside the viewport (or the nearest scroll container for a non-modal page): if the full menu height doesn't fit below, **flip it to open upward** above the trigger instead — the same collision-aware placement pattern already used for the `.dp` date picker. Never let a menu render partially off-screen or behind another element; flip/clamp, don't just overflow-hidden it away.
+- **Stays open until an explicit resolution**: selecting an option, clicking anywhere outside the `.dd` (including outside the portaled menu itself), or moving focus to a different field all close it. A menu must never auto-close on its own (e.g. on scroll, on an unrelated re-render, or after a fixed timeout) while no resolution has happened — that's the other half of today's bug reports (menus disappearing before a value was picked).
+- This applies to **every** `.dd` instance app-wide — filters, form fields, Excel Import's field-mapping dropdown, everything — fixed once here rather than patched per page/per module.
+
 ## Date picker component — `.dp` — never a native `<input type="date">`
 A native date input renders the browser's own calendar chrome, which is
 inconsistent across browsers and breaks the design system's look on any
@@ -87,6 +93,8 @@ Primary: `background:var(--ink);color:#fff`. Any consequential action (sync, del
 
 ## Cards / tables
 Hairline border only (`1px solid var(--line)`), `border-radius:6px`, no box-shadow. Sticky leading columns via `position:sticky` with cumulative left offsets. Status chips: outline only, all chips in a set the same fixed width, never filled/solid.
+
+**Per-column text-case + sort, on any list table with free-text "main field" columns (a person's name, father/mother/guardian name, and similar — never numeric IDs, dates, or tag/status columns)**: each such column header carries, inline next to its existing sort-direction arrow, a small "Aa" trigger — no extra table column, ever, regardless of how many real fields the table has. Clicking "Aa" opens a small dropdown scoped to that one column: Title Case (default) / UPPERCASE / lowercase, plus a last row "Apply to all fields" that sets every case-toggleable column in that table at once. Pure frontend display transform — never mutates stored data, never fires an API call, never affects any export/import format. Worked example: `student/manage-students.md`'s "Per-column text-case + sort" section — every other module's list table (Staff, etc.) follows the same pattern for its own name-type columns when that module is built, rather than restating it per module.
 
 ## Constants
 Control height 38px everywhere (search, pills, buttons, month-nav). Radius 6px (pills 20px, circular avatars 50%). Gap in layout-row/col-side: 16px.

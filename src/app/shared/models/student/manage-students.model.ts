@@ -36,6 +36,8 @@ export interface ListQuery {
   search?: string;
   cursor?: string | null;
   limit: number;
+  /** Comma-separated list columns the page renders (server whitelists them). */
+  fields?: string;
 }
 
 /** One failed sheet row, in the catalog's bulk shape: its row number + field errors. */
@@ -67,6 +69,8 @@ export interface AssignCardsResponse {
   message: string;
   jobId: string;
   assigned: number;
+  /** Write-back: each saved card, already masked, to patch the rows in place. */
+  cards: { studentId: string; card: string }[];
   rows: BulkRowResult[];
 }
 

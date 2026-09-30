@@ -21,7 +21,7 @@ export interface StudentListRow {
   fatherName: string | null;
   motherName: string | null;
   contact: string | null;
-  /** Masked server-side ("•• 8821"); null = not assigned. */
+  /** The card number IN FULL — an operational identifier, not masked; null = not assigned. */
   card: string | null;
   rollNumber: number | null;
   session: string;
@@ -49,11 +49,13 @@ export interface StudentProfile {
   _id: string;
   admissionNo: number | null;
   status: AdmissionStatus;
-  admissionSession: string;
   name: string;
   photoUrl: string | null;
   medium?: string;
-  admissionClass?: number | null;
+  /** First Enrolled Class — an Academic Setup class id. */
+  admissionClass?: string | null;
+  /** That class's label ("8th"), resolved server-side for display. */
+  admissionClassLabel?: string | null;
   doa?: string | null;
   admissionFee?: number | null;
   feesConcession?: number | null;
@@ -63,9 +65,11 @@ export interface StudentProfile {
   category?: string;
   religion?: string;
   nationality?: string;
+  /** Masked ("XXXX-XXXX-9067") unless read with purpose=edit or revealed. */
   aadharNumber?: string;
   samagraId?: string;
-  udiseNumber?: string;
+  /** PEN — Permanent Education Number (UDISE+), per student. */
+  penNumber?: string;
   bankAccountNo?: string;
   bankIfscCode?: string;
   address?: string;
@@ -77,9 +81,11 @@ export interface StudentProfile {
   motherOccupation?: string;
   familyAnnualIncome?: number | null;
   parentsContact?: string;
-  /** Masked. */
+  /** In full. */
   card: string | null;
   verifyMode: number;
+  /** Values of the school's custom FieldConfig fields, by fieldKey. */
+  extraFields?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -100,33 +106,76 @@ export interface StudentPlacement {
   groupName: string | null;
 }
 
+/** The student's fee ledger entry (Fees module truth once it exists). */
+export interface StudentFeeRecord {
+  totalFee: number;
+  concession: number;
+  admissionFee: number;
+  payable: number;
+  concessionReason: string | null;
+}
+
 export interface StudentDetail {
   student: StudentProfile;
   placement: StudentPlacement | null;
+  feeRecord?: StudentFeeRecord | null;
 }
+
+/** The identifiers View Profile shows masked, each with its own logged reveal. */
+export type SensitiveField = 'aadharNumber' | 'bankAccountNo' | 'bankIfscCode' | 'penNumber';
+
+export interface RevealResponse {
+  field: SensitiveField;
+  value: string | null;
+}
+
+/** GET /admissions/fee-quote — the fee panel for a chosen placement. */
+export type FeeQuote =
+  | { found: true; admissionFee: number; totalFee: number; reasonThresholdPercent: number; reasonRequiredAbove: number }
+  | { found: false; code: 'FEE_STRUCTURE_MISSING'; message: string };
 
 /* --- FieldConfig (Settings → Admission Form Fields; defaults until that module lands) --- */
 
-export type FieldType = 'text' | 'number' | 'date' | 'enum' | 'phone';
-export type FieldGroup = 'admission' | 'student' | 'parents';
+/**
+ * A FieldConfig rule's type. The first eight are what a school's custom field may use;
+ * `classRef` is platform-only (First Enrolled Class).
+ */
+export type FieldType = 'text' | 'number' | 'date' | 'dropdown' | 'email' | 'phone' | 'boolean' | 'file' | 'classRef';
+export type FieldGroup = string;
+
+/** One field's rule — interpreted by type (utils/field-rules.util.ts), never by field name. */
+export interface FieldRule {
+  type: FieldType;
+  options?: string[];
+  pattern?: string;
+  min?: number;
+  max?: number;
+  integer?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  notFuture?: boolean;
+  minAgeYears?: number;
+  /** 'digits' strips spaces/dashes before checking; 'upper' upper-cases. */
+  normalize?: 'digits' | 'upper';
+  checksum?: 'verhoeff';
+  allowedMimeTypes?: string[];
+  maxSizeMB?: number;
+  /** The school's own wording for a failure key (required / pattern / min / …). */
+  errorMessages?: Partial<Record<string, string>>;
+  errorCodes?: Partial<Record<string, string>>;
+}
 
 export interface FieldConfigField {
   fieldKey: string;
   label: string;
   group: FieldGroup;
-  type: FieldType;
   required: boolean;
   visible: boolean;
   locked: boolean;
-  validationRule: {
-    options?: string[];
-    pattern?: string;
-    patternMessage?: string;
-    min?: number;
-    max?: number;
-    minLength?: number;
-    maxLength?: number;
-  };
+  /** A school-added field — rendered in "Additional Info", stored under extraFields. */
+  isCustom?: boolean;
+  stateSpecific?: string | null;
+  validationRule: FieldRule;
 }
 
 export interface FieldConfigResponse {
@@ -196,6 +245,8 @@ export interface JobStatus<T = unknown> {
 export interface QueuedResponse {
   message: string;
   jobId: string;
+  /** e.g. COLUMNS_UNRECOGNIZED on an import — said once for the file. */
+  warning?: SaveWarning & { headers?: string[] } | null;
 }
 
 /** A save that succeeded with a caveat — e.g. IMAGE_UPLOAD_FAILED: record saved, photo not. */
@@ -207,7 +258,12 @@ export interface SaveWarning {
 export interface MessageResponse {
   message: string;
   id?: string;
+  /** Every save-with-a-caveat (IMAGE_UPLOAD_FAILED, FEE_STRUCTURE_MISSING). */
+  warnings?: SaveWarning[];
+  /** The first of `warnings` — kept for older callers. */
   warning?: SaveWarning | null;
+  /** Write-back: the saved record as a list row, so the page patches its table in place. */
+  student?: StudentListRow | null;
 }
 
 /** One record a bulk action could not process (error-catalog-conventions.md, shape #7). */

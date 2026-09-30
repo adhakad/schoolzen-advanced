@@ -1,0 +1,27 @@
+<button #trigger type="button" class="case-trigger" [class.active]="open || value !== 'title'"
+        aria-haspopup="menu" [attr.aria-expanded]="open"
+        [attr.aria-label]="'Text case for ' + columnLabel + ': ' + currentLabel"
+        [title]="'Text case: ' + currentLabel"
+        (click)="toggle($event)">Aa</button>
+
+<div class="dd-menu case-menu" role="menu" *ngIf="open"
+     [style.top.px]="menuTop" [style.left.px]="menuLeft" (click)="$event.stopPropagation()">
+  <div class="dd-option" role="menuitemradio" tabindex="0"
+       *ngFor="let option of options"
+       [class.selected]="option.value === value"
+       [attr.aria-checked]="option.value === value"
+       (click)="pick($event, option.value)"
+       (keydown.enter)="pick($event, option.value)"
+       (keydown.space)="pick($event, option.value)">
+    <i class="bi" [class.bi-check2]="option.value === value"></i>{{ option.label }}
+  </div>
+  <div class="dd-divider" *ngIf="showApplyAll"></div>
+  <div class="dd-option apply-all" role="menuitem" tabindex="0" *ngIf="showApplyAll"
+       (click)="pickApplyAll($event)"
+       (keydown.enter)="pickApplyAll($event)"
+       (keydown.space)="pickApplyAll($event)">
+    <i class="bi bi-layout-three-columns"></i>
+    <span class="apply-label">Apply to all fields</span>
+    <span class="apply-hint">{{ currentLabel }}</span>
+  </div>
+</div>

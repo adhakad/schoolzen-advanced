@@ -11,15 +11,25 @@ Shows ALL students by default (no mandatory class gate) — Class/Stream/Group/S
 
 **Toolbar**: row1 (search + button group: Delete Selected / Assign Card to Selected / Excel Import-Export / Create) — Delete/Assign buttons disabled until rows are checked, Excel button disabled until a Class filter is picked. row2: Class → Stream (existence: only for 11/12) → Group (options depend on Class+Stream) → Section, all `.dd`, dependency-disabled until a Class is chosen.
 
-**Table**: checkbox, Photo (gradient-avatar initials), Admission No., Student, Class (tag "8th · A"), Father, Mother, Roll No., Contact, Card (masked "•• 8821" or "Not assigned" muted), Action (view, assign/change card, resync, edit, delete icons).
+**Table**: checkbox, Photo (gradient-avatar initials), Admission No., Student, Class (tag "8th · A"), Father, Mother, Roll No., Contact, Card (**full card number shown**, e.g. "8821409934", or "Not assigned" muted), Action (view, assign/change card, resync, edit, delete icons).
 
-**View Profile modal**: read-only, grouped sections (Academic Info / Personal Info / Parents Info) each a label+value grid — this is a profile display, not a form.
+**Card number is shown in full to the admin, not masked.** Unlike Aadhar/Bank A/C/IFSC/PEN (masked per `errors.md`'s legally-grounded masking note — RBI KYC / UIDAI Masked Aadhaar), a biometric access card number is an operational identifier, not regulated financial/identity PII — the admin routinely needs to read the exact full number off this list to troubleshoot a device sync issue, confirm which physical card is assigned, or cross-check against the device's own log. No masking, no "reveal" action needed here.
+
+**Per-column text-case + sort (header-integrated, no extra column)**: **sort applies to Admission No., Roll No., and Student** — each keeps its existing sort-direction arrow, click the column label to toggle Ascending ↔ Descending. **Father and Mother have neither sort nor the "Aa" text-case toggle** — plain header text only, no controls. The **"Aa" text-case toggle applies only to Student** (Admission No./Roll No. are numeric and have no "case"; Class is a tag, not free text).
+- On Student, the sort arrow and the "Aa" trigger sit side by side in the same header cell; on Admission No./Roll No., only the sort arrow.
+- Clicking "Aa" opens a tiny dropdown: **Title Case** (default) / **UPPERCASE** / **lowercase**, scoped to the Student column.
+- This is a **display-only transform on the frontend** — it never touches the stored value, never triggers a save/API call, and is not part of any export/import format. Default state on page load is Title Case.
+- No extra table column is added for this control — it lives inside the Student header cell, the same way the sort arrow already does.
+
+**View Profile modal**: read-only, grouped sections (Academic Info / Personal Info / Parents Info) each a label+value grid — this is a profile display, not a form. Personal Info's Aadhar/Bank A/C/Bank IFSC/PEN rows show masked by default, each with its own small reveal-toggle icon (`bi-eye`/`bi-eye-slash`) next to the value — see `errors.md`'s masking section for the exact behavior and audit-logging rule.
 
 **Assign Card modal**: single-student or bulk (checkbox selection) — Card Number input (or a list for bulk) + Verify Mode `.dd` (Card only / Card + Fingerprint). Submitting pushes straight to biometric devices — no separate resync step needed after a fresh assign.
 
 **Resync** (single icon button per row): re-pushes that person's existing card+fingerprint to every device — for when a device was offline or reset, not a first-time assignment.
 
-**Excel Import/Export modal**: explicitly scoped to whichever Class(+Stream) is currently filtered — states the scope in the modal itself, Export downloads current scope, Import uploads a sheet to add/update within that same scope.
+**Excel Import/Export modal**: explicitly scoped to whichever Class(+Stream) is currently filtered — states the scope in the modal itself, Export downloads current scope, Import uploads a sheet to add/update within that same scope. Import's file picker never auto-uploads on selection: choosing a file only shows the file's name in the modal (with a way to pick a different file again before submitting, which replaces the shown name); an explicit "Import" button is what actually starts the upload+processing. This avoids a wrong-file mistake going through silently before the user notices.
+
+**Export offers a "Masked" / "Full (sensitive data)" choice** (radio or toggle in the Export panel, "Masked" selected by default) — Masked truncates Aadhar/Bank A/C/IFSC/PEN (last-4 only, per `errors.md`'s masking note); Full exports the real values, for the occasional bulk-correction round trip (edit in Excel, re-Import). No password/extra gate on Full for now — any user with Export access on this page can pick either option, but choosing "Full" is logged to `ActivityLog` (who, when, which class/stream scope) per `additional-technical-considerations.md`'s Audit Log section — Masked exports are routine and aren't logged, only Full is.
 
 **Delete**: type-to-confirm, warning explicitly lists cascade impact (login access, fee records, admit cards, results).
 

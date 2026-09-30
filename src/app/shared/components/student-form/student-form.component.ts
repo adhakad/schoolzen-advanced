@@ -4,18 +4,27 @@
  *
  * FieldConfig-driven: which fields show, which are required and each field's rule come
  * from GET /api/v2/student/field-config — the same config the server validator and the
- * Excel import read (settings/admission-form-fields.md). The client-side checks here are a
- * convenience derived from that config, never a second rule set: the server re-validates
- * everything and its field errors are bound back through `serverErrors`.
+ * Excel import read (settings/admission-form-fields.md). Rules are interpreted BY TYPE
+ * (utils/field-rules.util.ts, the mirror of the server's buildJoiSchema), so a school's
+ * custom field gets a control, validation and wording exactly like a seeded one; custom
+ * fields render in their own "Additional Info" group. The server re-validates everything
+ * and its field errors are bound back through `serverErrors`.
  *
  * Every categorical field is an app-dd (never a native select) and every date an app-dp
  * (never a native date input). Errors follow design-system.md's Form validation state: a
- * field shows its error once touched (blurred, or its dd/dp closed), re-validates live
- * after that, Submit touches everything, and a server field error lands in the same slot.
+ * field shows its error once touched (blurred, or its dd/dp closed), and after that
+ * re-validates as the person types — but only once they PAUSE (debounced, student/errors.md:
+ * never flashing on/off per keystroke). Submit touches everything, shows a summary banner
+ * ("N fields need your attention") and moves focus to the first invalid field. Every
+ * invalid control carries aria-invalid + aria-describedby → its error's id.
  *
- * The host page owns the
- * modal (app-form-modal) and calls `buildPayload()` on Submit; this component owns the
- * fields.
+ * Admission-time fee (student-fix4.md E): for a new student the chosen placement's Fee
+ * Structure supplies the admission fee and total — never typed — and the concession is
+ * checked against that total, with a reason required above the school's threshold. Once a
+ * fee record exists (edit), fee fields are read-only: they're Fees-module truth.
+ *
+ * The host page owns the modal (app-form-modal) and calls `buildPayload()` on Submit; this
+ * component owns the fields.
  *
  * Placement follows the Student/Enrollment split:
  *   - create/admission: Class → Stream → Group → Section are chosen here.
@@ -24,23 +33,31 @@
  *     placementIncomplete (a promotion into 11th/12th that still needs them).
  */
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnChanges, SimpleChanges
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Input, OnChanges, OnDestroy, SimpleChanges
 } from '@angular/core';
-import { FormControl, FormGroup, ValidatorFn, Validators } from '@angular/forms';
+import { FormControl, FormGroup } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { DdOption } from 'src/app/shared/models/shared-components.model';
 import {
-  FieldConfigField, FieldConfigResponse, FilterClass, StudentDetail, StudentFilterOptions
+  FeeQuote, FieldConfigField, FieldConfigResponse, FilterClass, StudentDetail, StudentFilterOptions
 } from 'src/app/shared/models/student/student.model';
+import { AdmissionService } from 'src/app/shared/services/student/admission.service';
+import { buildMessage, failureOf, fieldValidator, prepareValue } from 'src/app/shared/utils/field-rules.util';
 
 export type StudentFormMode = 'create' | 'edit' | 'admission';
 
-/** Largest photo the server accepts (helpers/file-upload.js studentImage). */
-export const MAX_PHOTO_BYTES = 100 * 1024;
+/** Largest photo the server accepts (middleware/single-upload.js imageFile). */
+export const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+/** How long typing must pause before a pattern error shows (student/errors.md: 150–300ms). */
+export const VALIDATION_DEBOUNCE_MS = 250;
 
 const PLACEMENT_KEYS = ['classId', 'streamId', 'groupId', 'sectionId'] as const;
+/** Not FieldConfig fields, but still keyboard-focusable controls with their own errors. */
+const EXTRA_KEYS = ['concessionReason'] as const;
 
 const titleCase = (text: string): string => (text || '').replace(/\b\w/g, (c) => c.toUpperCase());
 const pad = (n: number): string => String(n).padStart(2, '0');
+const rupees = (amount: number): string => '₹' + Number(amount || 0).toLocaleString('en-IN');
 
 /** A stored date (ISO timestamp at UTC midnight) → the 'YYYY-MM-DD' app-dp works in. */
 const toIsoDate = (value: unknown): string => {
@@ -62,7 +79,7 @@ const localToday = (): string => {
   styleUrls: ['./student-form.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class StudentFormComponent implements OnChanges {
+export class StudentFormComponent implements OnChanges, OnDestroy {
   @Input() mode: StudentFormMode = 'create';
   @Input() adminId = '';
   @Input() session = '';
@@ -74,19 +91,33 @@ export class StudentFormComponent implements OnChanges {
 
   form = new FormGroup<Record<string, FormControl<string>>>({});
   /**
-   * Messages for things that are not a config field's own control: the photo, and the
-   * placement pickers' required checks on submit.
+   * Messages for things that are not a config field's own control: the photo, the
+   * placement pickers' required checks, and the fee checks.
    */
   clientErrors: Record<string, string> = {};
+  /** Set by a Submit that found problems: how many fields need attention. */
+  submitErrorCount = 0;
   /** Dates can't be in the future (DOB) — the dp greys out later days. */
   readonly today = localToday();
 
   photoFile: File | null = null;
   photoPreview: string | null = null;
 
+  /** The school's own custom fields, in config order — the "Additional Info" group. */
+  customFields: FieldConfigField[] = [];
+  /** Fee panel for the chosen placement (create/admission). null = nothing chosen yet. */
+  feeQuote: FeeQuote | null = null;
+  feeQuoteLoading = false;
+  feeQuoteError = '';
+
   /** Field config by key — O(1) per template lookup. */
   private fields = new Map<string, FieldConfigField>();
   private classById = new Map<string, FilterClass>();
+  /** Keys still being typed in — their error waits until the pause. */
+  private typing = new Set<string>();
+  private typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private feeQuoteSub?: Subscription;
+  private feeQuoteKey = '';
 
   classOptions: DdOption[] = [];
   streamOptions: DdOption[] = [];
@@ -94,8 +125,14 @@ export class StudentFormComponent implements OnChanges {
   sectionOptions: DdOption[] = [];
   admissionClassOptions: DdOption[] = [];
   enumOptions: Record<string, DdOption[]> = {};
+  /** Dropdown options per custom field (dropdown and boolean types). */
+  customOptions: Record<string, DdOption[]> = {};
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(
+    private cdr: ChangeDetectorRef,
+    private host: ElementRef<HTMLElement>,
+    private admissionApi: AdmissionService
+  ) {}
 
   get isEdit(): boolean {
     return this.mode === 'edit';
@@ -115,14 +152,38 @@ export class StudentFormComponent implements OnChanges {
     return this.classById.get(this.value('classId')) || null;
   }
 
+  /** Once a fee record exists, admission fee and concession are Fees-module truth. */
+  get feesLocked(): boolean {
+    return this.isEdit && Boolean(this.detail?.feeRecord);
+  }
+
+  /** The concession needs a written reason (only knowable once a fee structure is found). */
+  get concessionNeedsReason(): boolean {
+    const quote = this.feeQuote;
+    if (this.isEdit || !quote || !quote.found) return false;
+    return this.concessionAmount() > quote.reasonRequiredAbove;
+  }
+
+  get feeTotalLabel(): string {
+    return this.feeQuote && this.feeQuote.found ? rupees(this.feeQuote.totalFee) : '';
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['fieldConfig'] || changes['filterOptions'] || changes['detail'] || changes['mode']) {
-      this.fields = new Map((this.fieldConfig?.fields || []).map((field) => [field.fieldKey, field]));
+      const all = this.fieldConfig?.fields || [];
+      this.fields = new Map(all.map((field) => [field.fieldKey, field]));
+      this.customFields = all.filter((field) => field.isCustom && (field.visible || field.locked));
       this.classById = new Map((this.filterOptions?.classes || []).map((item) => [item._id, item]));
       this.buildForm();
       this.buildStaticOptions();
       this.rebuildPlacementOptions();
+      this.refreshFeeQuote();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.typingTimers.forEach((timer) => clearTimeout(timer));
+    this.feeQuoteSub?.unsubscribe();
   }
 
   // --- template helpers -------------------------------------------------------------------
@@ -143,22 +204,31 @@ export class StudentFormComponent implements OnChanges {
 
   /**
    * The one message a field shows, in priority order: a server error for it, a client-only
-   * check (photo/placement), then — once the control is touched — its own validator result.
-   * Never shown for an untouched field, so nothing flashes red before it's been visited.
+   * check (photo/placement/fee), then — once the control is touched and typing has paused —
+   * its own rule result, worded like the server's. Never shown for an untouched field.
    */
   error(key: string): string {
     if (this.serverErrors[key]) return this.serverErrors[key];
     if (this.clientErrors[key]) return this.clientErrors[key];
     const control = this.form.controls[key];
-    if (!control || !control.touched || control.valid) return '';
+    if (!control || !control.touched || control.valid || this.typing.has(key)) return '';
     const field = this.fields.get(key);
-    const label = field?.label || 'This field';
-    if (control.hasError('required')) return `${label} is required`;
-    return field?.validationRule?.patternMessage || `Enter a valid ${label.toLowerCase()}`;
+    const failure = failureOf(control.errors);
+    if (!field || !failure) return '';
+    return buildMessage(field, failure);
   }
+
+  /** `aria-describedby` for a control: its error's id, only while there is an error. */
+  describedBy(key: string): string | null {
+    return this.error(key) ? 'err-' + key : null;
+  }
+
+  trackByField = (_index: number, field: FieldConfigField): string => field.fieldKey;
 
   /** Marks a control touched — bound to inputs' blur and to every dd/dp `closed`. */
   touch(key: string): void {
+    // Leaving the field ends "still typing": its result shows now, not after the debounce.
+    this.settle(key);
     this.form.controls[key]?.markAsTouched();
     this.cdr.markForCheck();
   }
@@ -173,10 +243,27 @@ export class StudentFormComponent implements OnChanges {
     // Editing a field the server rejected clears that rejection — its new value hasn't been
     // judged yet, and a stale red message would contradict what the person just typed.
     if (this.serverErrors[key]) this.serverErrors = { ...this.serverErrors, [key]: '' };
+    if (this.submitErrorCount) this.submitErrorCount = this.countErrors();
   }
 
+  /** Typing: the value updates at once, its error waits for a pause in typing. */
   onInput(key: string, event: Event): void {
     this.set(key, (event.target as HTMLInputElement).value);
+    this.typing.add(key);
+    const pending = this.typingTimers.get(key);
+    if (pending) clearTimeout(pending);
+    this.typingTimers.set(key, setTimeout(() => {
+      this.settle(key);
+      this.cdr.markForCheck();
+    }, VALIDATION_DEBOUNCE_MS));
+    if (key === 'feesConcession') this.checkConcession();
+  }
+
+  private settle(key: string): void {
+    this.typing.delete(key);
+    const pending = this.typingTimers.get(key);
+    if (pending) clearTimeout(pending);
+    this.typingTimers.delete(key);
   }
 
   // --- placement ------------------------------------------------------------------------
@@ -185,6 +272,7 @@ export class StudentFormComponent implements OnChanges {
     this.set('classId', classId);
     ['streamId', 'groupId', 'sectionId'].forEach((key) => this.set(key, ''));
     this.rebuildPlacementOptions();
+    this.refreshFeeQuote();
   }
 
   onStreamChange(streamId: string): void {
@@ -193,6 +281,12 @@ export class StudentFormComponent implements OnChanges {
     // A stream change in edit mode keeps no section of the old stream.
     this.set('sectionId', '');
     this.rebuildPlacementOptions();
+    this.refreshFeeQuote();
+  }
+
+  onGroupChange(groupId: string): void {
+    this.set('groupId', groupId);
+    this.refreshFeeQuote();
   }
 
   private rebuildPlacementOptions(): void {
@@ -213,6 +307,65 @@ export class StudentFormComponent implements OnChanges {
       .concat(sections.map((section) => ({ value: section._id, label: 'Section ' + section.name })));
   }
 
+  // --- admission-time fee -------------------------------------------------------------
+
+  /**
+   * Re-read the Fee Structure for the current placement (new students only). Skipped until
+   * a class — and, for a streamed class, its stream — is chosen, and when nothing changed.
+   */
+  private refreshFeeQuote(): void {
+    if (this.isEdit || !this.adminId || !this.session) return;
+    const chosen = this.selectedClass;
+    const classId = this.value('classId');
+    const streamId = this.value('streamId');
+    const groupId = this.value('groupId');
+    const ready = Boolean(chosen) && (!chosen?.hasStreams || Boolean(streamId));
+    const key = ready ? [classId, streamId, groupId].join('|') : '';
+    if (key === this.feeQuoteKey) return;
+    this.feeQuoteKey = key;
+    this.feeQuoteSub?.unsubscribe();
+    this.feeQuote = null;
+    this.feeQuoteError = '';
+    if (!ready) return;
+
+    this.feeQuoteLoading = true;
+    this.feeQuoteSub = this.admissionApi.getFeeQuote(this.adminId, {
+      session: this.session, classId, streamId: streamId || undefined, groupId: groupId || undefined
+    }).subscribe((quote) => {
+      this.feeQuote = quote;
+      this.feeQuoteLoading = false;
+      if (quote.found) this.form.controls['admissionFee']?.setValue(String(quote.admissionFee));
+      this.checkConcession();
+      this.cdr.markForCheck();
+    }, () => {
+      // Its own error state — a failed fetch is never shown as "no fee structure".
+      this.feeQuoteLoading = false;
+      this.feeQuoteError = "Couldn't load this class's fee. The server still checks the concession on save.";
+      this.cdr.markForCheck();
+    });
+  }
+
+  retryFeeQuote(): void {
+    this.feeQuoteKey = '';
+    this.refreshFeeQuote();
+  }
+
+  private concessionAmount(): number {
+    const field = this.fields.get('feesConcession');
+    const text = field ? prepareValue(field.validationRule, this.value('feesConcession')) : this.value('feesConcession');
+    return Number(text) || 0;
+  }
+
+  /** Cross-field, live: concession ≤ the fee structure's total (CONCESSION_EXCEEDS_FEE). */
+  private checkConcession(): void {
+    const quote = this.feeQuote;
+    if (quote && quote.found && this.concessionAmount() > quote.totalFee) {
+      this.clientErrors['feesConcession'] = `Concession can't be greater than the total fee (${rupees(quote.totalFee)}).`;
+    } else if (this.clientErrors['feesConcession']?.startsWith("Concession can't")) {
+      delete this.clientErrors['feesConcession'];
+    }
+  }
+
   // --- photo ----------------------------------------------------------------------------
 
   onPhotoPicked(event: Event): void {
@@ -221,11 +374,11 @@ export class StudentFormComponent implements OnChanges {
     input.value = '';
     if (!file) return;
     if (!/^image\/(png|jpe?g)$/.test(file.type)) {
-      this.clientErrors['photo'] = 'Only PNG or JPG images are allowed';
+      this.clientErrors['photo'] = 'Only JPG/PNG images are allowed.';
       return;
     }
     if (file.size > MAX_PHOTO_BYTES) {
-      this.clientErrors['photo'] = 'Photo must be 100KB or smaller';
+      this.clientErrors['photo'] = 'Image must be under 2MB.';
       return;
     }
     delete this.clientErrors['photo'];
@@ -241,31 +394,34 @@ export class StudentFormComponent implements OnChanges {
     const controls: Record<string, FormControl<string>> = {};
     const student = this.detail?.student;
     const placement = this.detail?.placement;
+    const extra = (student?.extraFields || {}) as Record<string, unknown>;
 
     (this.fieldConfig?.fields || []).forEach((field) => {
       let initial = '';
-      const raw = student ? student[field.fieldKey] : undefined;
+      const raw = student ? (field.isCustom ? extra[field.fieldKey] : student[field.fieldKey]) : undefined;
       if (field.fieldKey === 'rollNumber') initial = placement?.rollNumber != null ? String(placement.rollNumber) : '';
-      else if (field.type === 'date') initial = toIsoDate(raw);
+      else if (field.validationRule?.type === 'date') initial = toIsoDate(raw);
       else if (raw !== undefined && raw !== null) initial = String(raw);
-      controls[field.fieldKey] = new FormControl<string>(initial, { nonNullable: true, validators: this.validatorsFor(field) });
+      controls[field.fieldKey] = new FormControl<string>(initial, { nonNullable: true, validators: [fieldValidator(field)] });
     });
+    if (this.feesLocked && this.detail?.feeRecord) {
+      controls['admissionFee']?.setValue(String(this.detail.feeRecord.admissionFee));
+      controls['feesConcession']?.setValue(String(this.detail.feeRecord.concession));
+    }
 
     PLACEMENT_KEYS.forEach((key) => {
       controls[key] = new FormControl<string>((placement && placement[key]) || '', { nonNullable: true });
     });
+    EXTRA_KEYS.forEach((key) => { controls[key] = new FormControl<string>('', { nonNullable: true }); });
 
     this.form = new FormGroup(controls);
     this.clientErrors = {};
+    this.submitErrorCount = 0;
+    this.typing.clear();
     this.photoFile = null;
     this.photoPreview = null;
-  }
-
-  private validatorsFor(field: FieldConfigField): ValidatorFn[] {
-    const validators: ValidatorFn[] = [];
-    if (field.required) validators.push(Validators.required);
-    if (field.validationRule?.pattern) validators.push(Validators.pattern(field.validationRule.pattern));
-    return validators;
+    this.feeQuote = null;
+    this.feeQuoteKey = '';
   }
 
   private buildStaticOptions(): void {
@@ -280,49 +436,93 @@ export class StudentFormComponent implements OnChanges {
       qualification: toDd(options['qualification']),
       occupation: toDd(options['occupation'])
     };
+    // First Enrolled Class is a class REFERENCE — the same id placement uses.
     this.admissionClassOptions = (this.filterOptions?.classes || [])
-      .map((item) => ({ value: String(item.class), label: item.label }));
+      .map((item) => ({ value: item._id, label: item.label }));
+    this.customOptions = {};
+    this.customFields.forEach((field) => {
+      if (field.validationRule.type === 'dropdown') this.customOptions[field.fieldKey] = toDd(field.validationRule.options);
+      if (field.validationRule.type === 'boolean') this.customOptions[field.fieldKey] = [{ value: 'true', label: 'Yes' }, { value: 'false', label: 'No' }];
+    });
+  }
+
+  /** Every field currently showing an error — the summary banner's N. */
+  private countErrors(): number {
+    const keys = [...this.fields.keys(), ...PLACEMENT_KEYS, ...EXTRA_KEYS, 'photo'];
+    return keys.filter((key) => this.isCollected(key) && this.error(key)).length;
+  }
+
+  /** Whether Submit checks/sends this key at all (hidden, locked or not-applicable don't). */
+  private isCollected(key: string): boolean {
+    if (!this.show(key)) return false;
+    if (key === 'admissionNo' && this.admissionNoLocked) return false;
+    if (key === 'admissionFee') return false;
+    if (key === 'feesConcession' && this.feesLocked) return false;
+    if (key === 'admissionClass' && this.mode === 'admission') return false;
+    if (key === 'concessionReason') return this.concessionNeedsReason;
+    return true;
+  }
+
+  /** After a failed Submit: the first invalid control gets focus (errors.md, accessibility). */
+  private focusFirstInvalid(): void {
+    setTimeout(() => {
+      const target = this.host.nativeElement.querySelector<HTMLElement>(
+        '[aria-invalid="true"], .is-invalid input, .is-invalid [tabindex]'
+      );
+      target?.focus();
+    });
   }
 
   /**
    * Validate against the config-derived rules and return the multipart body, or null (with
-   * the messages shown inline) when something is missing. The server validates again.
+   * the messages shown inline, the summary banner up and focus on the first problem) when
+   * something needs fixing. The server validates again.
    */
   buildPayload(): FormData | null {
     const errors: Record<string, string> = {};
     // Submit touches every field at once, so one never visited still shows its error.
+    this.typing.clear();
     this.form.markAllAsTouched();
 
     let invalid = false;
     this.fields.forEach((_field, key) => {
-      if (!this.show(key)) return;
-      if (key === 'admissionNo' && this.admissionNoLocked) return;
+      if (!this.isCollected(key)) return;
       const control = this.form.controls[key];
       if (control && control.invalid) invalid = true;
     });
 
     if (!this.isEdit) {
-      if (!this.value('classId')) errors['classId'] = 'Class is required';
-      else if (this.selectedClass?.hasStreams && !this.value('streamId')) errors['streamId'] = 'Stream is required';
+      if (!this.value('classId')) errors['classId'] = 'Class is required.';
+      else if (this.selectedClass?.hasStreams && !this.value('streamId')) errors['streamId'] = 'Stream is required.';
     }
+    const quote = this.feeQuote;
+    if (!this.isEdit && quote && quote.found && this.concessionAmount() > quote.totalFee) {
+      errors['feesConcession'] = `Concession can't be greater than the total fee (${rupees(quote.totalFee)}).`;
+    }
+    if (this.concessionNeedsReason && this.value('concessionReason').trim().length < 3) {
+      errors['concessionReason'] = `A concession above ${quote && quote.found ? quote.reasonThresholdPercent : 50}% of the total fee needs a reason.`;
+    }
+    if (this.clientErrors['photo']) errors['photo'] = this.clientErrors['photo'];
 
     this.clientErrors = errors;
+    this.submitErrorCount = this.countErrors();
     this.cdr.markForCheck();
-    if (invalid || Object.keys(errors).length) return null;
+    if (invalid || Object.keys(errors).length) {
+      this.focusFirstInvalid();
+      return null;
+    }
 
     const body = new FormData();
     body.append('adminId', this.adminId);
     body.append('session', this.detail?.placement?.session || this.session);
 
     this.fields.forEach((_field, key) => {
-      if (!this.show(key)) return;
-      // An issued Admission No. is never re-sent: it can't change, and sending it would
-      // only ask the server to reject a no-op.
-      if (key === 'admissionNo' && this.admissionNoLocked) return;
-      // Admission Fee comes from the Fee Structure, not from this form.
-      if (key === 'admissionFee') return;
+      // An issued Admission No. is never re-sent (it can't change); Admission Fee comes from
+      // the Fee Structure; a locked concession is the Fees module's to change.
+      if (!this.isCollected(key)) return;
       body.append(key, this.value(key).trim());
     });
+    if (this.concessionNeedsReason) body.append('concessionReason', this.value('concessionReason').trim());
 
     if (!this.isEdit) {
       PLACEMENT_KEYS.forEach((key) => body.append(key, this.value(key)));

@@ -122,7 +122,7 @@
 
 <app-form-modal [open]="viewOpen" title="Admission Profile" [width]="560" [showSubmit]="false"
                 cancelLabel="Close" (cancelled)="closeView()">
-  <app-student-profile-view [detail]="viewDetail" variant="admission"></app-student-profile-view>
+  <app-student-profile-view [detail]="viewDetail" [adminId]="adminId" variant="admission"></app-student-profile-view>
 </app-form-modal>
 
 <!-- The formal letter, rendered by the shared letterhead template. -->

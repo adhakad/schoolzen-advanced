@@ -6,6 +6,9 @@ const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/student.messages');
 const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
 const { createStudentRecord } = require('../../helpers/student/student-write');
+const { findSessionId, labelOfSessionId } = require('../../helpers/academic-session/session-resolver');
+const { resolveFeeStructure } = require('../../helpers/fees/fee-structure-resolver');
+const { CONCESSION_REASON_THRESHOLD } = require('../../helpers/student/student.constants');
 const {
     MODULE, listStudentRows, loadClassIndex, describePlacement,
 } = require('../../helpers/student/student.utils');
@@ -28,8 +31,10 @@ let ListAdmissions = async (req, res) => {
 // "This Session" side card — Admitted / Pending, one grouped aggregation.
 let GetAdmissionOverview = async (req, res) => {
     const { adminId, session } = req.query;
+    const sessionId = await findSessionId(adminId, session);
+    if (!sessionId) return res.status(200).json({ admitted: 0, pending: 0 });
     const groups = await StudentEnrollmentModel.aggregate([
-        { $match: { adminId, session, entryType: 'admission' } },
+        { $match: { adminId, sessionId, entryType: 'admission' } },
         { $lookup: { from: StudentProfileModel.collection.name, localField: 'studentId', foreignField: '_id', as: 'student' } },
         { $unwind: '$student' },
         { $group: { _id: '$student.status', count: { $sum: 1 } } },
@@ -39,13 +44,15 @@ let GetAdmissionOverview = async (req, res) => {
 };
 
 let CreateAdmission = async (req, res) => {
-    const { id, warning } = await createStudentRecord({
+    const { id, row, warnings } = await createStudentRecord({
         adminId: req.adminId,
         body: req.body,
         file: req.file,
         entryType: 'admission',
     });
-    return res.status(200).json({ message: success.created('Admission'), id, warning });
+    // The fresh row (write-back, module-optimization-guide.md §2) — the page adds it to its
+    // table from this response.
+    return res.status(200).json({ message: success.created('Admission'), id, student: row, warnings, warning: warnings[0] || null });
 };
 
 const formatDate = (date) => (date
@@ -65,11 +72,17 @@ let GetAdmissionLetter = async (req, res) => {
         throw new ConflictError(messages.letterNotReady(), { module: MODULE, context: { id: req.params.id } });
     }
 
+    // The session a student was admitted in is their admission ENROLLMENT's (Student holds
+    // no session field) — falling back to their earliest placement for an imported/migrated
+    // student who never went through the Admission form.
     const enrollment = await StudentEnrollmentModel
-        .findOne({ adminId, studentId: student._id, session: student.admissionSession })
-        .lean();
-    const placement = enrollment ? describePlacement(await loadClassIndex(adminId), enrollment) : null;
-    const session = student.admissionSession;
+        .findOne({ adminId, studentId: student._id, entryType: 'admission' }).lean()
+        || await StudentEnrollmentModel.findOne({ adminId, studentId: student._id }).sort({ createdAt: 1 }).lean();
+    const [classIndex, session] = await Promise.all([
+        loadClassIndex(adminId),
+        enrollment ? labelOfSessionId(adminId, enrollment.sessionId) : null,
+    ]);
+    const placement = enrollment ? describePlacement(classIndex, enrollment) : null;
 
     const document = await buildLetterheadDocument({
         adminId,
@@ -92,7 +105,30 @@ let GetAdmissionLetter = async (req, res) => {
     return res.status(200).json(document);
 };
 
+/**
+ * The admission form's fee panel: the FeeStructure's admission fee and total for the
+ * chosen class(+stream+group) this session — so the officer never types a fee — plus the
+ * concession amount above which a reason is required. `found:false` = no structure yet
+ * (the admission can still be saved; it just gets no fee record).
+ */
+let GetFeeQuote = async (req, res) => {
+    const { adminId, session, classId, streamId, groupId } = req.query;
+    const sessionId = await findSessionId(adminId, session);
+    const fee = await resolveFeeStructure(adminId, sessionId, { classId, streamId: streamId || null, groupId: groupId || null });
+    if (!fee) {
+        return res.status(200).json({ found: false, code: 'FEE_STRUCTURE_MISSING', message: messages.feeStructureMissing(session) });
+    }
+    return res.status(200).json({
+        found: true,
+        admissionFee: fee.admissionFee,
+        totalFee: fee.totalFee,
+        reasonThresholdPercent: Math.round(CONCESSION_REASON_THRESHOLD * 100),
+        reasonRequiredAbove: Math.floor(fee.totalFee * CONCESSION_REASON_THRESHOLD),
+    });
+};
+
 module.exports = {
+    GetFeeQuote,
     ListAdmissions,
     GetAdmissionOverview,
     CreateAdmission,

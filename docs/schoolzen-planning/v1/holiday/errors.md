@@ -85,6 +85,7 @@ A guessed or enumerated `_id` from one school lets an admin at a different schoo
 - **`BulkAssignHoliday`/`BulkAssignClassHoliday` need a guard against an empty selection** before calling `bulkWrite`, and should validate `personType` is `staff`/`teacher` rather than trusting the payload.
 - **`DeleteHoliday`'s template-detach should report how many templates it touched**, not just `$pull` silently — same "named consequence" pattern Leave/Academic Setup's cascade guards already use, even though this one isn't a hard block.
 - **Everything already correct and must not regress in the rebuild**: `parseRange`'s start/end validation; `rejectForeignHolidayIds` correctly re-verifying every holiday id in a template belongs to the same school on both create and update; `DeleteHolidayTemplate`'s combined person+class cascade count; `GenerateTemplateFromPublic`'s transaction around the holiday-insert + template-create pair; `BulkAssignHoliday`/`BulkAssignClassHoliday`'s `ordered:false` ($set-replace, ok for a race) and correct `adminId`-scoped template lookup.
+- **Data-modeling contradiction, needs reconciling**: `assign.md` says template assignment is a flat `templateId` field on `Staff`/`StudentEnrollment` ("rather than a separate join collection"), but this file's own Shape 7 finding references a real `HolidayAssignmentModel` collection used by `BulkAssignHoliday`. The two docs describe different physical schemas for the same feature — pick one and correct the other before building.
 
 ## Frontend component requirements
 

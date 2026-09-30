@@ -46,21 +46,26 @@ const cellValue = (value) => {
  * Parse the first worksheet. Columns are matched by HEADER text (case/space-insensitive),
  * never by position, so a school that reorders or adds columns doesn't corrupt its import.
  *
- * @returns {Promise<{ rows: Array<{ rowNumber: Number, values: Object }>, missingHeaders: String[] }>}
+ * @returns {Promise<{ rows: Array<{ rowNumber: Number, values: Object }>, missingHeaders: String[],
+ *          unrecognizedHeaders: String[] }>}  unrecognized = header cells matching no column,
+ *          reported ONCE for the file (never once per row); their cells are ignored.
  */
 const parseWorkbook = async (buffer, columns) => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
     const sheet = workbook.worksheets[0];
-    if (!sheet) return { rows: [], missingHeaders: columns.map((column) => column.header) };
+    if (!sheet) return { rows: [], missingHeaders: columns.map((column) => column.header), unrecognizedHeaders: [] };
 
     const normalize = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const keyByHeader = new Map(columns.map((column) => [normalize(column.header), column.key]));
 
     const positionToKey = new Map();
+    const unrecognizedHeaders = [];
     sheet.getRow(1).eachCell((cell, position) => {
-        const key = keyByHeader.get(normalize(cellValue(cell.value)));
+        const text = String(cellValue(cell.value) || '').trim();
+        const key = keyByHeader.get(normalize(text));
         if (key) positionToKey.set(position, key);
+        else if (text) unrecognizedHeaders.push(text);
     });
     const found = new Set(positionToKey.values());
     const missingHeaders = columns.filter((column) => column.required && !found.has(column.key)).map((column) => column.header);
@@ -78,7 +83,7 @@ const parseWorkbook = async (buffer, columns) => {
         if (hasAny) rows.push({ rowNumber, values });
     });
 
-    return { rows, missingHeaders };
+    return { rows, missingHeaders, unrecognizedHeaders };
 };
 
 module.exports = { buildWorkbook, parseWorkbook };

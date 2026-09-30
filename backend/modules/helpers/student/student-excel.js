@@ -37,7 +37,7 @@ const buildStudentSheetColumns = (fieldConfig, hasStreams) => {
         // Import rows must carry an Admission No.: it is the upsert key that makes a
         // re-import update rather than duplicate.
         required: field.fieldKey === 'admissionNo' || field.required,
-        type: field.type,
+        type: field.validationRule.type,
     });
 
     return [

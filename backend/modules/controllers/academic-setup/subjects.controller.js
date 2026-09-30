@@ -4,6 +4,7 @@ const SubjectGroupModel = require('../../models/academic-setup/subject-group');
 const { NotFoundError, ConflictError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
+const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Subject';
@@ -116,6 +117,7 @@ let CreateSubject = async (req, res, next) => {
 
     await assertNameFree(adminId, name);
     await SubjectModel.create(req.body);
+    await cacheInvalidation.onSubjectsChanged(adminId);
 
     return res.status(200).json({ message: success.created(ENTITY) });
 };
@@ -138,6 +140,7 @@ let UpdateSubject = async (req, res, next) => {
     subject.type = type;
     subject.status = status;
     await subject.save();
+    await cacheInvalidation.onSubjectsChanged(adminId);
 
     return res.status(200).json({ message: success.updated(ENTITY) });
 };
@@ -188,6 +191,8 @@ let BulkDeleteSubjects = async (req, res, next) => {
             { $pull: { subjectIds: { $in: ids } } }
         ),
     ]);
+    // The $pull changed groups too — their cached subject lists go with the subjects'.
+    await cacheInvalidation.onSubjectsChanged(adminId, { groupsTouched: true });
 
     return res.status(200).json({
         message: success.bulkProcessed(ids.length, ENTITY.toLowerCase()),

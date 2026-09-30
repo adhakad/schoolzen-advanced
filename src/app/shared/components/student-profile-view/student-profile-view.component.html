@@ -16,7 +16,19 @@
     <div class="view-grid">
       <div class="view-item" *ngFor="let item of section.items; trackBy: trackByLabel" [class.full]="item.full">
         <label>{{ item.label }}</label>
-        <div>{{ item.value }}</div>
+        <div class="view-value">
+          <span [class.masked]="item.sensitive && !isRevealed(item)">{{ shown(item) }}</span>
+          <!-- One field at a time; revealing is logged, hiding again isn't. -->
+          <button type="button" class="reveal-btn" *ngIf="item.sensitive && item.value !== '—'"
+                  [disabled]="revealing.has(item.sensitive)"
+                  [attr.aria-pressed]="isRevealed(item)"
+                  [attr.aria-label]="(isRevealed(item) ? 'Hide ' : 'Show ') + item.label"
+                  [title]="isRevealed(item) ? 'Hide' : 'Show full number (logged)'"
+                  (click)="toggleReveal(item.sensitive)">
+            <i class="bi" [class.bi-eye]="!isRevealed(item)" [class.bi-eye-slash]="isRevealed(item)"></i>
+          </button>
+        </div>
+        <p class="reveal-error" *ngIf="item.sensitive && revealError[item.sensitive]" role="alert">{{ revealError[item.sensitive] }}</p>
       </div>
     </div>
   </ng-container>

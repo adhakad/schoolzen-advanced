@@ -89,3 +89,57 @@ Read the current built code fully before patching, the same discipline
 as items 1-3 above — don't guess which of these are already handled;
 confirm each one against the actual file, and only change what's
 actually missing or wrong.
+
+## 5. `session` stored as a raw label string on the wrong document entirely
+
+A real admitted-student record in the current build has
+`admissionSession: "2026-2027"` stored as a plain string directly on
+`Student`. This is wrong in two separate ways, per
+`v1/student/errors.md`'s updated note:
+- **Wrong type**: it must be an `AcademicSession._id` reference, not
+  a copied label string (`v1/settings/academic-sessions.md` now
+  specifies `label` as server-computed and every module's `session`
+  field as a reference for this reason).
+- **Wrong document**: `manage-students.md`'s own schema note already
+  says class/stream/section placement lives on `StudentEnrollment`
+  (session-scoped), not as a flat field on `Student` — a session
+  field directly on `Student` contradicts that design the same way a
+  flat `class` field would.
+
+Fix (do both together, not just the type):
+- Remove the session field from `Student` entirely.
+- On Admission submit, create the student's first `StudentEnrollment`
+  record carrying the real `AcademicSession._id` (plus class/stream/
+  section), inside the same transaction as the Student create.
+- Migrate existing records: for each Student with a legacy
+  `admissionSession` string, create the corresponding
+  `StudentEnrollment` row with the resolved `AcademicSession._id` (match
+  the string label to that `adminId`'s session document), then drop the
+  field from `Student` — flag/report any record whose label doesn't
+  resolve to an existing session instead of silently dropping it.
+- Anywhere the UI currently reads `Student.admissionSession`, switch
+  it to reading the session off the student's current
+  `StudentEnrollment`.
+
+## 6. `udiseNumber` — confirm before shipping as-is
+
+Flagged in `v1/student/errors.md`: `udiseNumber` is very likely a
+school-level identifier (identifies the school under UDISE, not the
+student — a per-student number under UDISE+ is a separate "PEN").
+Storing it as a per-student field with per-student uniqueness may be
+wrong modeling. Before patching anything else here, confirm with the
+actual intended use — if it should be school-level, move it onto the
+School/Admin record (set once) and drop it from the Student schema
+and form entirely, rather than leaving a per-student field that
+doesn't match how the real identifier works.
+
+## 7. Seeded fields need state-wise conditional visibility
+
+`samagraId` (Madhya Pradesh-specific) and `category`'s option list
+(state-specific reservation categories) are currently shown/offered
+identically to every school regardless of state. Per the new note in
+`v1/student/errors.md` ("Seeded fields also need state-wise
+conditional visibility"), add a `conditionalOn`/`optionsByState`-style
+resolution to these seeded field definitions, the same mechanism a
+custom `FieldConfig` field already needs — not a hardcoded
+always-visible field.

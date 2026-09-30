@@ -10,6 +10,8 @@ No dependency on other modules.
 
 Also read `docs/schoolzen-planning/v1/staff/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
 
+Also read `docs/schoolzen-planning/v1/staff/optimization.md` — this module's concrete caching/invalidation/pagination/idempotency catalog (extends the shared conventions in `docs/schoolzen-planning/v1/_core/module-optimization-guide.md`). Implement it as part of this build — a module isn't done until its optimization.md is wired up either, not just the happy-path CRUD.
+
 ## Build
 **Backend**: `models/staff/staff.js`, `department.js`, `designation.js`; `controllers/staff/*.controller.js`; matching routes.
 **Frontend**: `staff/manage-staff/`, `staff/departments/`, `staff/designations/` (components); `shared/services/staff/*.service.ts`; `shared/models/staff/*.model.ts`.

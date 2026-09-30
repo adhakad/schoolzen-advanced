@@ -18,7 +18,10 @@ const mongoose = require('mongoose');
 const EnrollmentSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-student', required: true },
-    session: { type: String, required: true, trim: true },
+    // A REFERENCE to the school's AcademicSession, never a copied label string
+    // (settings/academic-sessions.md). The API still takes the header's label and resolves
+    // it at the edge (helpers/academic-session/session-resolver.js).
+    sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-session', required: true },
 
     classId: { type: mongoose.Schema.Types.ObjectId, ref: 'academic-class', required: true },
     class: { type: Number, required: true },
@@ -52,21 +55,21 @@ const EnrollmentSchema = new mongoose.Schema({
 
 // One placement per student per session. This is what makes a retried promotion chunk
 // collide instead of double-enrolling.
-EnrollmentSchema.index({ adminId: 1, studentId: 1, session: 1 }, { unique: true });
+EnrollmentSchema.index({ adminId: 1, studentId: 1, sessionId: 1 }, { unique: true });
 
 // Backs Manage Students / Admission / Class Promotion's cascade filter directly, in ESR
 // order (equality fields, then _id as the keyset-pagination sort) — the list query is an
 // index range scan at any depth, never .skip(N) (performance-principles.md).
-EnrollmentSchema.index({ adminId: 1, session: 1, classId: 1, streamId: 1, groupId: 1, sectionId: 1, _id: 1 });
+EnrollmentSchema.index({ adminId: 1, sessionId: 1, classId: 1, streamId: 1, groupId: 1, sectionId: 1, _id: 1 });
 
 // The Admission page's own list: this session's admission-type rows, newest paging by _id.
-EnrollmentSchema.index({ adminId: 1, session: 1, entryType: 1, _id: 1 });
+EnrollmentSchema.index({ adminId: 1, sessionId: 1, entryType: 1, _id: 1 });
 
 // A roll number is unique per class per session — scoped per class+session, NOT per section
 // and not global (student/errors.md, ROLL_NUMBER_DUPLICATE). Partial, because null ("not
 // assigned yet") is the normal state right after a promotion.
 EnrollmentSchema.index(
-    { adminId: 1, session: 1, classId: 1, rollNumber: 1 },
+    { adminId: 1, sessionId: 1, classId: 1, rollNumber: 1 },
     { unique: true, partialFilterExpression: { rollNumber: { $type: 'number' } } }
 );
 

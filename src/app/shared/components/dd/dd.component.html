@@ -2,6 +2,8 @@
      [attr.aria-haspopup]="'listbox'"
      [attr.aria-expanded]="open"
      [attr.aria-disabled]="disabled"
+     [attr.aria-invalid]="invalid || null"
+     [attr.aria-describedby]="describedBy || null"
      [attr.aria-label]="ariaLabel || null"
      (click)="toggle($event)"
      (keydown.enter)="toggle($event)"
@@ -11,7 +13,8 @@
   <i class="bi bi-chevron-down chevron" *ngIf="showChevron"></i>
 </div>
 
-<div class="dd-menu" role="listbox"
+<!-- Portaled to <body> while open (see the component note); lives here while closed. -->
+<div #menu class="dd-menu" role="listbox"
      [class.full-width]="fullWidth"
      [class.align-left]="menuAlign === 'left'">
   <div class="dd-option" role="option"

@@ -106,6 +106,13 @@ the *only* place a login gets revoked (see Beyond-legacy note below).
 
 ---
 
+## Schema-level data-modeling notes (added by data-modeling review, cross-checked against `_core/database-design-principles.md`)
+
+- **`manage-staff.md`'s own `Schema — Staff` line contradicts the soft-delete requirement stated just above** ("Delete cascades (login, attendance history) inside a transaction" implies a real document removal). Since Payroll/SalaryStructure/LeaveRequest/BiometricMapping all reference `Staff` for historical reporting, the schema definition itself must carry `status:'terminated'` + `terminatedAt`/`terminatedBy` fields — this needs to be fixed in the schema line, not left as a behavior described only here in errors.md while the module's own schema doc still describes a hard delete.
+- **`departments.md`/`designations.md` never state a unique compound index inline**, unlike Academic Setup's `Class`/`Subject` (which spell out `Unique index (adminId, class)` etc. directly in their own module docs). The UI here equally implies uniqueness (`DEPARTMENT_DUPLICATE` scoped `(adminId, name)`, `DESIGNATION_DUPLICATE` scoped `(adminId, title, departmentId)` with `departmentId:null` as a valid value) — the module docs should name these indexes explicitly, matching Academic Setup's precedent, not leave them only implied by the error catalog.
+
+---
+
 ## Backend controller requirements
 
 - **Tenant isolation on every single-record lookup, across all four files.** `findOne({_id, adminId})`, never bare `findById`/`findByIdAndUpdate(id)`/`findByIdAndRemove(id)`. Confirmed missing on: `staff.js`'s `GetSingleStaff`/`UpdateStaff`/`DeleteStaff`; `department.js`'s equivalents; `designation.js`'s equivalents; `teacher.js`'s `UpdateTeacher`/`ChangeStatus`/`DeleteTeacher` (its `GetTeacherById` already does this correctly and is the pattern to copy). Wrong-tenant reads identically to missing, never a 403.

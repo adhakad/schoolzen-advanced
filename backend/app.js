@@ -12,6 +12,8 @@ const app = express();
 const http = require('http');
 const { DbConnect } = require('./modules/helpers/database');
 const { ensureIndexes } = require('./modules/helpers/ensure-indexes');
+const { ensureUploadDirs } = require('./modules/helpers/ensure-upload-dirs');
+ensureUploadDirs();
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");

@@ -16,9 +16,20 @@
  * Disabled is a real state, not a hidden one: a dependent filter (Stream before a Class is
  * picked) stays in the DOM, greyed, showing `disabledHint` instead of its label — a pill
  * that disappears breaks the toolbar's shape.
+ *
+ * Menu positioning and open/close (design-system.md, "Menu positioning and open/close
+ * behavior" — one global rule, fixed here for every .dd):
+ *   - The open menu is PORTALED to document.body (class `dd-portal`, position: fixed), so no
+ *     modal body or table scroller's overflow can clip it or hide it behind a footer.
+ *   - It opens below the trigger, and FLIPS upward when it doesn't fit below but does
+ *     above; it is clamped inside the viewport either way — never partly off-screen.
+ *   - It stays open until a resolution: an option is picked, a click lands outside the dd
+ *     (trigger and portaled menu both count as inside), Escape, or focus moves to another
+ *     field. Scrolling or resizing only REPOSITIONS it — a menu never closes on its own.
  */
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -26,9 +37,15 @@ import {
   HostListener,
   Input,
   OnChanges,
-  Output
+  OnDestroy,
+  Output,
+  ViewChild
 } from '@angular/core';
 import { DdOption } from 'src/app/shared/models/shared-components.model';
+
+/** Gap between trigger and menu, and the minimum margin kept from the viewport edge. */
+const GAP = 8;
+const EDGE = 8;
 
 @Component({
   selector: 'app-dd',
@@ -36,7 +53,7 @@ import { DdOption } from 'src/app/shared/models/shared-components.model';
   styleUrls: ['./dd.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DdComponent implements OnChanges {
+export class DdComponent implements OnChanges, OnDestroy {
   @Input() options: readonly DdOption[] = [];
   /** The selected option's value. '' is a legitimate value — it is how "All classes" is selected. */
   @Input() value: string = '';
@@ -56,15 +73,21 @@ export class DdComponent implements OnChanges {
   /** The session pill in the reference carries no chevron. Everything else does. */
   @Input() showChevron = true;
   @Input() ariaLabel = '';
+  /** A form field in error: `aria-invalid` on the trigger (the page styles the red border). */
+  @Input() invalid = false;
+  /** The id of the field's error message, for `aria-describedby`. */
+  @Input() describedBy: string | null = null;
 
   @Output() valueChange = new EventEmitter<string>();
   /**
-   * Every time an OPEN menu closes — a pick, an outside click, Escape, or the trigger again.
-   * A `.dd` gets no native blur, so a form binds this to its control's markAsTouched() or a
-   * required, never-picked dropdown would never show its error (design-system.md, Form
-   * validation state).
+   * Every time an OPEN menu closes — a pick, an outside click, Escape, focus leaving, or the
+   * trigger again. A `.dd` gets no native blur, so a form binds this to its control's
+   * markAsTouched() or a required, never-picked dropdown would never show its error
+   * (design-system.md, Form validation state).
    */
   @Output() closed = new EventEmitter<void>();
+
+  @ViewChild('menu', { static: true }) menu!: ElementRef<HTMLElement>;
 
   @HostBinding('class.dd') readonly ddClass = true;
   @HostBinding('class.sw-select-pill') get pillClass(): boolean { return this.pill; }
@@ -72,11 +95,19 @@ export class DdComponent implements OnChanges {
   @HostBinding('class.disabled') get disabledClass(): boolean { return this.disabled; }
 
   open = false;
+  /** Opened upward (didn't fit below) — styles the chevron/shadow, and asserted in tests. */
+  flipped = false;
 
-  constructor(private host: ElementRef<HTMLElement>) {}
+  constructor(private host: ElementRef<HTMLElement>, private cdr: ChangeDetectorRef) {}
 
   ngOnChanges(): void {
-    if (this.disabled) this.open = false;
+    if (this.disabled && this.open) this.close();
+  }
+
+  ngOnDestroy(): void {
+    this.detach();
+    // A menu left in <body> would outlive its component.
+    this.menu.nativeElement.remove();
   }
 
   get label(): string {
@@ -111,7 +142,7 @@ export class DdComponent implements OnChanges {
     event.stopPropagation();
     if (this.disabled) return;
     if (this.open) this.close();
-    else this.open = true;
+    else this.openMenu();
   }
 
   select(event: Event, option: DdOption): void {
@@ -125,9 +156,13 @@ export class DdComponent implements OnChanges {
   /** One open menu at a time, and a click anywhere else closes it — the reference behaviour. */
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.open) return;
-    if (this.host.nativeElement.contains(event.target as Node)) return;
-    this.close();
+    if (this.open && !this.contains(event.target)) this.close();
+  }
+
+  /** Focus moving to a different field is a resolution too (Tab past the dd). */
+  @HostListener('document:focusin', ['$event'])
+  onFocusIn(event: FocusEvent): void {
+    if (this.open && !this.contains(event.target)) this.close();
   }
 
   @HostListener('document:keydown.escape')
@@ -135,9 +170,79 @@ export class DdComponent implements OnChanges {
     if (this.open) this.close();
   }
 
+  private contains(target: EventTarget | null): boolean {
+    const node = target as Node | null;
+    return Boolean(node) && (this.host.nativeElement.contains(node) || this.menu.nativeElement.contains(node));
+  }
+
+  private openMenu(): void {
+    this.open = true;
+    const menu = this.menu.nativeElement;
+    menu.classList.add('dd-portal');
+    document.body.appendChild(menu);
+    this.position();
+    // Scroll events don't bubble, so the capture phase is the only way to hear a modal body
+    // or table scroller move the trigger. Attached only while open.
+    document.addEventListener('scroll', this.reposition, true);
+    window.addEventListener('resize', this.reposition);
+  }
+
   private close(): void {
     this.open = false;
+    this.detach();
+    const menu = this.menu.nativeElement;
+    menu.classList.remove('dd-portal');
+    menu.removeAttribute('style');
+    // Back into the host: the menu's bindings are the host's, and a closed menu has no reason
+    // to sit in <body>.
+    this.host.nativeElement.appendChild(menu);
     this.closed.emit();
+    this.cdr.markForCheck();
+  }
+
+  private detach(): void {
+    document.removeEventListener('scroll', this.reposition, true);
+    window.removeEventListener('resize', this.reposition);
+  }
+
+  private reposition = (): void => {
+    if (this.open) this.position();
+  };
+
+  /**
+   * Below the trigger if the whole menu fits; else above it if it fits there; else whichever
+   * side has more room, with the menu's height capped to that room. Horizontally aligned per
+   * `fullWidth`/`menuAlign` and clamped inside the viewport.
+   */
+  private position(): void {
+    const menu = this.menu.nativeElement;
+    // The HOST is the visible control (the pill's border and padding are on it); the inner
+    // trigger sits inside that padding, so measuring it would put the menu on the border.
+    const rect = this.host.nativeElement.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+
+    menu.style.position = 'fixed';
+    menu.style.maxHeight = '';
+    if (this.fullWidth) menu.style.width = `${rect.width}px`;
+
+    const height = menu.offsetHeight;
+    const width = menu.offsetWidth;
+    const below = viewportH - rect.bottom - GAP - EDGE;
+    const above = rect.top - GAP - EDGE;
+
+    this.flipped = height > below && (height <= above || above > below);
+    const room = this.flipped ? above : below;
+    if (height > room) menu.style.maxHeight = `${Math.max(120, room)}px`;
+    const finalHeight = Math.min(height, Math.max(120, room));
+    const top = this.flipped ? rect.top - GAP - finalHeight : rect.bottom + GAP;
+
+    let left = this.fullWidth || this.menuAlign === 'left' ? rect.left : rect.right - width;
+    left = Math.min(Math.max(EDGE, left), viewportW - width - EDGE);
+
+    menu.style.top = `${Math.max(EDGE, top)}px`;
+    menu.style.left = `${left}px`;
+    menu.classList.toggle('flipped', this.flipped);
   }
 
   trackByValue(_index: number, option: DdOption): string {

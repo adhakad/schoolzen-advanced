@@ -106,6 +106,9 @@ Depends on: `_core/error-catalog-conventions.md` (shape numbers below refer to i
 - **Decouple the WhatsApp receipt notification from the payment's own transaction/try-block** in `fees-collection.js` — a notification failure must never turn a successful payment into a 500 response.
 - **Tenant isolation on every single-record lookup** across all four controllers, following the pattern already established in Staff/Leave/Payroll (`findOne({_id, adminId})`, wrong-tenant reported identically to missing, never a 403).
 - **Fee Reminder's `POST /:id/send` must stay a queued job** (BullMQ), never synchronous inside the request, with the reviewed recipient list passed in as the job's input rather than re-resolved inside the worker — per `fee-reminder.md`, not a new requirement, but must not regress.
+- **Data-modeling gaps (this pass):**
+  - `fees.md`'s `StudentFeeRecord` and `FeePayment` schemas never mention `deletedAt`, even though `_core/database-design-principles.md` names "Fees" explicitly among the financial/historical records that must be soft-deleted, never hard-deleted. Add the flag to both schemas and confirm no handler ever issues a real delete against either collection.
+  - `fee-reminder.md`'s `POST /:id/send` BullMQ job has no idempotency key called out anywhere in its description — `_core/database-design-principles.md`'s idempotency-key rule names "WhatsApp bulk send" as one of its own worked examples. Unlike Payroll's generate job (idempotent by virtue of its upsert-on-natural-key write), a WhatsApp send is a one-way side effect with no natural dedup: a worker crash-and-retry mid-batch can re-message recipients already sent to in the failed attempt. Needs an explicit per-recipient/job dedup key, not just the after-the-fact `lastReminderSentAt` bulkWrite.
 
 ## Frontend component requirements
 

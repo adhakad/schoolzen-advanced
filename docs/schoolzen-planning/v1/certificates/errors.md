@@ -65,6 +65,7 @@ Wrong-tenant is always reported identically to genuinely missing — never a 403
 - **Build the `TcStructure.nextSerialNumber` mechanism from scratch** with a real atomic increment (`findOneAndUpdate` with `$inc`, in the same transaction as the `TransferCertificate` create) or a unique index with an `11000` retry — the legacy code has no equivalent to extend, so this is new, not a port, and must not repeat the client-supplied-number pattern.
 - **Add field-level validation server-side** for the Issue-TC payload (required fields, attendance day bounds) — today it exists only in the Angular form and is fully bypassable.
 - **Fix (or remove) the dead-code branch**: the `if (deleteAdmitCard || deleteExamResult || deleteFeesCollection)` check on `deleteOne` results is always truthy and should be replaced with a real check (`.deletedCount > 0`) or dropped along with the unreachable duplicate `create()` call beneath it.
+- **Data-modeling gap (found in this pass): `TcStructure` is described as "one school-wide structure" (`tc-structure.md`) but its schema line names no index at all** — that one-per-school shape is exactly the kind of UI-implied uniqueness `_core/database-design-principles.md` requires a REAL index for, not just "there happens to only ever be one create call at school setup." Add a unique index on `adminId` so a second `TcStructure` document for the same school (e.g. a retried setup call) can't silently be created and read inconsistently by different `findOne({adminId})` callers.
 
 ## Frontend component requirements
 

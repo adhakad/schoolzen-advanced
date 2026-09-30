@@ -10,6 +10,8 @@ Depends on Staff and Student modules — build those first.
 
 Also read `docs/schoolzen-planning/v1/leave/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
 
+Also read `docs/schoolzen-planning/v1/leave/optimization.md` — this module's concrete caching/invalidation/pagination/idempotency catalog (extends the shared conventions in `docs/schoolzen-planning/v1/_core/module-optimization-guide.md`). Implement it as part of this build — a module isn't done until its optimization.md is wired up either, not just the happy-path CRUD.
+
 ## Build
 **Backend**: `models/leave/leave-request.js`, `leave-type.js`, `leave-limit.js`; `controllers/leave/*.controller.js`; matching routes.
 **Frontend**: `leave/leave-requests/`, `leave/leave-create/`, `leave/leave-assign/`; `shared/services/leave/*.service.ts`; `shared/models/leave/*.model.ts`.

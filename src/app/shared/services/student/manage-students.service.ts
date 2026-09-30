@@ -11,7 +11,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import {
-  MessageResponse, QueuedResponse, StudentDetail, StudentListResponse
+  MessageResponse, QueuedResponse, RevealResponse, SensitiveField, StudentDetail, StudentListResponse
 } from 'src/app/shared/models/student/student.model';
 import {
   AssignCardsPayload, AssignCardsResponse, BulkDeleteResponse, ListQuery, ManageStudentsOverview
@@ -42,27 +42,36 @@ export class ManageStudentsService {
     return this.http.get<ManageStudentsOverview>(`${this.url}/students/overview`, { params: { adminId, session } });
   }
 
-  getStudent(adminId: string, id: string, session: string): Observable<StudentDetail> {
-    return this.http.get<StudentDetail>(`${this.url}/students/${id}`, { params: { adminId, session } });
+  /**
+   * `purpose: 'edit'` is the Edit form's read — it gets the real Aadhar/bank/PEN values to
+   * edit. Every other read (View Profile) gets them masked.
+   */
+  getStudent(adminId: string, id: string, session: string, purpose: 'view' | 'edit' = 'view'): Observable<StudentDetail> {
+    return this.http.get<StudentDetail>(`${this.url}/students/${id}`, { params: { adminId, session, purpose } });
+  }
+
+  /** View Profile's eye toggle: one masked field's real value. Logged server-side. */
+  revealField(adminId: string, id: string, field: SensitiveField): Observable<RevealResponse> {
+    return this.http.post<RevealResponse>(`${this.url}/students/${id}/reveal`, { adminId, field });
   }
 
   /**
    * Multipart: the form (plus an optional `photo` file) as FormData. `key` is the
-   * Idempotency-Key the page made when the form opened (utils/idempotency.util.ts).
+   * Idempotency-Key the page made when the form opened (utils/idempotency.util.ts) — sent
+   * only on the creates (student/optimization.md): an update, delete or import is safe to
+   * repeat, so it carries none.
    */
   createStudent(form: FormData, key?: string): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(`${this.url}/students`, form, { headers: idempotencyHeaders(key) });
   }
 
-  updateStudent(id: string, form: FormData, key?: string): Observable<MessageResponse> {
-    return this.http.put<MessageResponse>(`${this.url}/students/${id}`, form, { headers: idempotencyHeaders(key) });
+  updateStudent(id: string, form: FormData): Observable<MessageResponse> {
+    return this.http.put<MessageResponse>(`${this.url}/students/${id}`, form);
   }
 
   /** Every delete (one row or a selection) goes through here, after the type-DELETE confirm. */
-  bulkDelete(adminId: string, ids: string[], key?: string): Observable<BulkDeleteResponse> {
-    return this.http.post<BulkDeleteResponse>(
-      `${this.url}/students/bulk-delete`, { adminId, ids, confirmed: true }, { headers: idempotencyHeaders(key) }
-    );
+  bulkDelete(adminId: string, ids: string[]): Observable<BulkDeleteResponse> {
+    return this.http.post<BulkDeleteResponse>(`${this.url}/students/bulk-delete`, { adminId, ids, confirmed: true });
   }
 
   /** Saves the cards; a background job pushes them to the devices (202 + jobId). */
@@ -75,14 +84,16 @@ export class ManageStudentsService {
   }
 
   /** Class (+stream) is REQUIRED here — the one scope-gated action on this page. */
-  exportExcel(adminId: string, scope: { session: string; classId: string; streamId?: string }): Observable<Blob> {
+  /** `mode: 'full'` exports real Aadhar/bank/IFSC/PEN values and is logged; 'masked' is the default. */
+  exportExcel(adminId: string, scope: { session: string; classId: string; streamId?: string; mode?: 'masked' | 'full' }): Observable<Blob> {
     return this.http.get(`${this.url}/students/excel/export`, {
       params: toParams(adminId, scope),
       responseType: 'blob'
     });
   }
 
-  importExcel(form: FormData, key?: string): Observable<QueuedResponse> {
-    return this.http.post<QueuedResponse>(`${this.url}/students/excel/import`, form, { headers: idempotencyHeaders(key) });
+  /** No Idempotency-Key: the import job itself dedups on (school, scope, file hash). */
+  importExcel(form: FormData): Observable<QueuedResponse> {
+    return this.http.post<QueuedResponse>(`${this.url}/students/excel/import`, form);
   }
 }

@@ -15,28 +15,36 @@ import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
+import { of, Subject } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, switchMap, takeUntil } from 'rxjs/operators';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 import { AdmissionService } from 'src/app/shared/services/student/admission.service';
 import { ManageStudentsService } from 'src/app/shared/services/student/manage-students.service';
 import { StudentOptionsService } from 'src/app/shared/services/student/student-options.service';
 import {
-  CascadeFilterValue, EMPTY_CASCADE, FieldConfigResponse, StudentDetail, StudentFilterOptions, StudentListRow
+  CascadeFilterValue, EMPTY_CASCADE, FieldConfigResponse, StudentDetail, StudentFilterOptions, StudentListResponse,
+  StudentListRow
 } from 'src/app/shared/models/student/student.model';
 import { AdmissionOverview } from 'src/app/shared/models/student/admission.model';
+import { ListQuery } from 'src/app/shared/models/student/manage-students.model';
 import { LetterheadDocument } from 'src/app/shared/models/letterhead.model';
 import { StudentFormComponent } from 'src/app/shared/components/student-form/student-form.component';
 import { LetterheadDocumentComponent } from 'src/app/shared/components/letterhead-document/letterhead-document.component';
 import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 import { validationErrorsOf } from 'src/app/shared/utils/api-error.util';
 import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
+import { saveMessage } from 'src/app/shared/utils/save-message.util';
+
+/** The only columns this table renders — sent as `?fields=` (student/optimization.md). */
+export const ADMISSION_FIELDS = 'name,admissionNo,status,photo,father';
 
 interface AdmissionRow extends StudentListRow {
   initials: string;
   gradient: string;
 }
+
+const toRow = (row: StudentListRow): AdmissionRow => ({ ...row, initials: initialsOf(row.name), gradient: avatarGradient(row.studentId) });
 
 @Component({
   selector: 'app-admission',
@@ -86,6 +94,8 @@ export class AdmissionComponent implements OnInit, OnDestroy {
   letterOpen = false;
   letter: LetterheadDocument | null = null;
 
+  /** List requests — switchMapped, so a stale page/filter response never lands. */
+  private list$ = new Subject<ListQuery>();
   private destroyed$ = new Subject<void>();
 
   constructor(
@@ -104,6 +114,14 @@ export class AdmissionComponent implements OnInit, OnDestroy {
       this.loading = false;
       return;
     }
+
+    this.list$.pipe(
+      switchMap((query) => this.api.getAdmissions(this.adminId, query).pipe(
+        map((res): StudentListResponse | null => res),
+        catchError(() => of(null))
+      )),
+      takeUntil(this.destroyed$)
+    ).subscribe((res) => (res ? this.applyPage(res) : this.pageFailed()));
 
     this.loadOptions();
 
@@ -169,25 +187,48 @@ export class AdmissionComponent implements OnInit, OnDestroy {
     if (!this.session) return;
     this.loading = true;
     this.loadError = '';
-    this.api.getAdmissions(this.adminId, {
+    this.cdr.markForCheck();
+    this.list$.next({
       session: this.session,
       ...this.filter,
       search: this.search,
       cursor: this.cursors[this.page - 1],
-      limit: this.limit
-    }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
-      this.rows = res.rows.map((row) => ({ ...row, initials: initialsOf(row.name), gradient: avatarGradient(row.studentId) }));
-      this.total = res.total;
-      this.nextCursor = res.nextCursor;
-      this.cursors[this.page] = res.nextCursor;
-      this.loading = false;
-      this.cdr.markForCheck();
-    }, () => {
-      this.loading = false;
-      this.rows = [];
-      this.loadError = "Couldn't load admissions.";
-      this.cdr.markForCheck();
+      limit: this.limit,
+      fields: ADMISSION_FIELDS
     });
+  }
+
+  private applyPage(res: StudentListResponse): void {
+    this.rows = res.rows.map(toRow);
+    this.total = res.total;
+    this.nextCursor = res.nextCursor;
+    this.cursors[this.page] = res.nextCursor;
+    this.loading = false;
+    this.cdr.markForCheck();
+  }
+
+  private pageFailed(): void {
+    this.loading = false;
+    this.rows = [];
+    this.loadError = "Couldn't load admissions.";
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Write-back (student/optimization.md): the create response carries the new row, so it
+   * goes on top of page 1 and the counts move locally — no refetch of list or overview.
+   */
+  private writeBackCreated(row: StudentListRow): void {
+    this.overview = row.status === 'admitted'
+      ? { ...this.overview, admitted: this.overview.admitted + 1 }
+      : { ...this.overview, pending: this.overview.pending + 1 };
+    const f = this.filter;
+    const inView = (!f.classId || row.classId === f.classId) && (!f.streamId || row.streamId === f.streamId)
+      && (!f.groupId || row.groupId === f.groupId) && (!f.sectionId || row.sectionId === f.sectionId)
+      && (!this.search || row.name.toLowerCase().startsWith(this.search.toLowerCase()) || String(row.admissionNo ?? '') === this.search);
+    if (!inView) return;
+    this.total += 1;
+    if (this.page === 1) this.rows = [toRow(row), ...this.rows].slice(0, this.limit);
   }
 
   private fetchOverview(): void {
@@ -246,9 +287,12 @@ export class AdmissionComponent implements OnInit, OnDestroy {
       this.saving = false;
       this.formOpen = false;
       // Saved, but the photo didn't upload (IMAGE_UPLOAD_FAILED) — say so, don't hide it.
-      this.snackBar.open(res.warning ? res.warning.message : res.message, 'Close', { duration: res.warning ? 6000 : 3000 });
-      this.fetchPage();
-      this.fetchOverview();
+      this.snackBar.open(saveMessage(res), 'Close', { duration: res.warnings?.length ? 8000 : 3000 });
+      if (res.student) this.writeBackCreated(res.student);
+      else {
+        this.fetchPage();
+        this.fetchOverview();
+      }
       this.cdr.markForCheck();
     }, (error: unknown) => {
       this.saving = false;

@@ -11,6 +11,8 @@ Depends on Student (Admission Form Fields), Staff (Roles & Permissions), Examina
 
 Also read `docs/schoolzen-planning/v1/settings/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
 
+Also read `docs/schoolzen-planning/v1/settings/optimization.md` — this module's concrete caching/invalidation/pagination/idempotency catalog (extends the shared conventions in `docs/schoolzen-planning/v1/_core/module-optimization-guide.md`). Implement it as part of this build — a module isn't done until its optimization.md is wired up either, not just the happy-path CRUD.
+
 ## Build
 **Backend**: `models/settings/academic-session.js`, `field-config.js`, `role.js`, `role-assignment.js`, `marksheet-template.js` (seeded catalog); `controllers/settings/*.controller.js`; matching routes.
 **Frontend**: 4 page components under `settings/`; `shared/services/settings/*.service.ts`; `shared/models/settings/*.model.ts`.

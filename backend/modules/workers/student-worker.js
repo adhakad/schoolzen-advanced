@@ -12,6 +12,8 @@ const {
     loadClassIndex, toObjectId, withTransaction, runPromotionSteps, DUPLICATE_RULES,
 } = require('../helpers/student/student.utils');
 const studentMessages = require('../helpers/messages/student.messages');
+const { invalidateClassStats } = require('../helpers/student/student-write');
+const { SENSITIVE_FIELDS, isMaskedValue } = require('../helpers/student/student-mask');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 
@@ -79,7 +81,7 @@ const bulkWriteCollectingErrors = async (model, ops) => {
 
 // The unique fields a sheet can repeat within itself (student/errors.md, Bulk Import):
 // a duplicate between row 5 and row 40 is caught before either is written.
-const IN_FILE_UNIQUE = ['admissionNo', 'rollNumber', 'aadharNumber', 'samagraId', 'udiseNumber'];
+const IN_FILE_UNIQUE = ['admissionNo', 'rollNumber', 'aadharNumber', 'samagraId', 'penNumber'];
 
 // "8th", "8", "8TH", "LKG" → one comparable token.
 const classToken = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/^(\d+)(st|nd|rd|th)$/, '$1');
@@ -89,7 +91,10 @@ const classToken = (text) => String(text || '').toLowerCase().replace(/[^a-z0-9]
 // ---------------------------------------------------------------------------------------
 
 const processImport = async (job) => {
-    const { adminId, session, placement, rows } = job.data;
+    // `sessionId` is the AcademicSession reference the controller resolved; enrollments store
+    // it, never the label.
+    const { adminId, sessionId: sessionIdText, placement, rows } = job.data;
+    const sessionId = toObjectId(sessionIdText);
     const config = await getStudentFieldConfig(adminId);
     const classIndex = await loadClassIndex(adminId);
     const classEntry = classIndex.get(String(placement.classId));
@@ -117,20 +122,37 @@ const processImport = async (job) => {
     // The scoped class, and every configured class, by comparable token.
     const scopeToken = classToken(classEntry.label);
     const classTokens = new Set();
+    // "First Enrolled Class" is written as a class LABEL in the sheet ("8th") and stored as
+    // that class's id — resolved here, before validation, from the same tokens.
+    const classIdByToken = new Map();
     classIndex.forEach((entry) => {
         classTokens.add(classToken(entry.label));
         classTokens.add(classToken(String(entry.doc.class)));
+        classIdByToken.set(classToken(entry.label), String(entry.doc._id));
+        classIdByToken.set(classToken(String(entry.doc.class)), String(entry.doc._id));
     });
 
     for (const { rowNumber, values } of rows) {
-        const { value, errors } = validateStudentRecord(values, config);
         const fields = [];
+        const admissionClassText = String(values.admissionClass == null ? '' : values.admissionClass).trim();
+        const record = { ...values };
+        // A Masked export re-imported: masked identifiers mean "unchanged", not new data.
+        SENSITIVE_FIELDS.forEach((key) => { if (isMaskedValue(record[key])) delete record[key]; });
+        if (admissionClassText) {
+            const id = classIdByToken.get(classToken(admissionClassText));
+            if (id) record.admissionClass = id;
+            else {
+                delete record.admissionClass;
+                fields.push(fieldError('admissionClass', 'CLASS_NAME_UNRECOGNIZED', studentMessages.classNameUnrecognized(admissionClassText)));
+            }
+        }
+        const { value, errors } = validateStudentRecord(record, config);
 
         // Missing required fields become ONE line naming every one of them (legacy
         // behaviour, kept): "Missing: Father Name, Mother Occupation, Date of Birth."
-        const missing = errors.filter((error) => /is required$/.test(error.message)).map((error) => labelOf.get(error.field) || error.field);
+        const missing = errors.filter((error) => error.missing).map((error) => labelOf.get(error.field) || error.field);
         if (missing.length) fields.push(fieldError('row', 'FIELDS_REQUIRED', `Missing: ${missing.join(', ')}.`));
-        errors.filter((error) => !/is required$/.test(error.message))
+        errors.filter((error) => !error.missing)
             .forEach((error) => fields.push(fieldError(error.field, error.code, error.message)));
 
         if (value.admissionNo == null && !missing.includes(labelOf.get('admissionNo'))) {
@@ -179,7 +201,7 @@ const processImport = async (job) => {
         .lean();
     const existingIdByNo = new Map(existing.map((item) => [item.admissionNo, item._id]));
     const existingEnrollments = await StudentEnrollmentModel
-        .find({ adminId, session, studentId: { $in: existing.map((item) => item._id) } }, 'studentId classId streamId')
+        .find({ adminId, sessionId, studentId: { $in: existing.map((item) => item._id) } }, 'studentId classId streamId')
         .lean();
     const enrollmentByStudent = new Map(existingEnrollments.map((item) => [String(item.studentId), item]));
 
@@ -201,14 +223,27 @@ const processImport = async (job) => {
     const now = new Date();
     const studentOps = writable.map(({ value }) => {
         const profile = {};
-        Object.keys(value).forEach((key) => { if (!ENROLLMENT_FIELDS.has(key)) profile[key] = value[key]; });
+        Object.keys(value).forEach((key) => {
+            if (ENROLLMENT_FIELDS.has(key)) return;
+            // Custom fields go in one by one, so a re-import never wipes the others.
+            if (key === 'extraFields') Object.entries(value.extraFields).forEach(([name, v]) => { profile[`extraFields.${name}`] = v; });
+            else profile[key] = value[key];
+        });
+        // A blank First Enrolled Class on a NEW student means the class being imported into;
+        // an existing student's recorded value is never overwritten by a blank.
+        const onInsert = { adminId, createdAt: now };
+        if (profile.admissionClass == null) {
+            delete profile.admissionClass;
+            onInsert.admissionClass = toObjectId(placement.classId);
+        }
         return {
             updateOne: {
                 filter: { adminId, admissionNo: value.admissionNo },
                 update: {
                     // bulkWrite skips mongoose middleware, so the derived fields are set here.
                     $set: { ...profile, nameLower: String(value.name).toLowerCase(), status: 'admitted', updatedAt: now },
-                    $setOnInsert: { adminId, admissionSession: session, createdAt: now },
+                    // No session on the profile — the enrollment below carries it.
+                    $setOnInsert: onInsert,
                 },
                 upsert: true,
             },
@@ -229,7 +264,7 @@ const processImport = async (job) => {
 
     const enrollmentOps = savedRows.map(({ value, sectionId, groupId }) => ({
         updateOne: {
-            filter: { adminId, studentId: idByNo.get(value.admissionNo), session },
+            filter: { adminId, studentId: idByNo.get(value.admissionNo), sessionId },
             update: {
                 $set: {
                     classId: toObjectId(placement.classId),
@@ -251,6 +286,8 @@ const processImport = async (job) => {
         rowErrors.push({ row: savedRows[index].rowNumber, fields: [error] });
     });
 
+    // Enrollments were created/updated — Academic Setup's enrolled count is stale.
+    await invalidateClassStats(adminId);
     rowErrors.sort((a, b) => a.row - b.row);
     const succeeded = savedRows.filter((item, index) => !enrollmentFailures.has(index));
     const created = succeeded.filter((item) => !existingIdByNo.has(item.value.admissionNo)).length;
@@ -327,7 +364,8 @@ const processDeviceSync = async (job) => {
 // ---------------------------------------------------------------------------------------
 
 const processPromotion = async (job) => {
-    const { adminId, fromSession, toSession, items } = job.data;
+    const { adminId, fromSession, toSession, toSessionId: toSessionIdText, items } = job.data;
+    const toSessionId = toObjectId(toSessionIdText);
     const chunks = chunk(items, PROMOTION_CHUNK_SIZE);
     const totals = { promoted: 0, detained: 0, skipped: 0, incomplete: 0 };
 
@@ -344,7 +382,7 @@ const processPromotion = async (job) => {
             // Anyone already placed in the next session (an earlier promotion, a manual
             // add) is skipped, never overwritten.
             const placed = await StudentEnrollmentModel
-                .find({ adminId, session: toSession, studentId: { $in: studentIds } }, 'studentId')
+                .find({ adminId, sessionId: toSessionId, studentId: { $in: studentIds } }, 'studentId')
                 .session(dbSession)
                 .lean();
             const placedSet = new Set(placed.map((item) => String(item.studentId)));
@@ -361,7 +399,7 @@ const processPromotion = async (job) => {
                 docs.push({
                     adminId,
                     studentId: toObjectId(item.studentId),
-                    session: toSession,
+                    sessionId: toSessionId,
                     classId: toObjectId(target.classId),
                     class: target.class,
                     streamId: toObjectId(target.streamId),
@@ -394,6 +432,8 @@ const processPromotion = async (job) => {
         await job.updateProgress(Math.round(((index + 1) / chunks.length) * 100));
     }
 
+    // New next-session enrollments exist now — Academic Setup's enrolled count is stale.
+    await invalidateClassStats(adminId);
     return { ...totals, toSession };
 };
 

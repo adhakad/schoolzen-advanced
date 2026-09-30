@@ -60,12 +60,38 @@
                   (change)="toggleAll()" />
               </th>
               <th>Photo</th>
-              <th>Admission No.</th>
-              <th>Student</th>
+              <th [attr.aria-sort]="ariaSort('admissionNo')">
+                <span class="th-ctl">
+                  <button type="button" class="th-sort" [class.sorted]="sortColumn === 'admissionNo'" (click)="toggleSort('admissionNo')"
+                    [attr.aria-label]="'Sort by Admission No.'">
+                    Admission No.
+                    <i class="bi" [ngClass]="sortIcon('admissionNo')"></i>
+                  </button>
+                </span>
+              </th>
+              <th [attr.aria-sort]="ariaSort('name')">
+                <span class="th-ctl">
+                  <button type="button" class="th-sort" [class.sorted]="sortColumn === 'name'" (click)="toggleSort('name')"
+                    [attr.aria-label]="'Sort by Student'">
+                    Student
+                    <i class="bi" [ngClass]="sortIcon('name')"></i>
+                  </button>
+                  <app-column-case-menu columnLabel="Student" [value]="nameCase" [showApplyAll]="false"
+                    (valueChange)="setNameCase($event)"></app-column-case-menu>
+                </span>
+              </th>
               <th>Class</th>
               <th>Father</th>
               <th>Mother</th>
-              <th>Roll No.</th>
+              <th [attr.aria-sort]="ariaSort('rollNumber')">
+                <span class="th-ctl">
+                  <button type="button" class="th-sort" [class.sorted]="sortColumn === 'rollNumber'" (click)="toggleSort('rollNumber')"
+                    [attr.aria-label]="'Sort by Roll No.'">
+                    Roll No.
+                    <i class="bi" [ngClass]="sortIcon('rollNumber')"></i>
+                  </button>
+                </span>
+              </th>
               <th>Contact</th>
               <th>Card</th>
               <th class="act">Action</th>
@@ -87,7 +113,7 @@
                 <span class="adm-no" *ngIf="row.admissionNo !== null; else notIssued">{{ row.admissionNo }}</span>
                 <ng-template #notIssued><span class="not-set">Not yet issued</span></ng-template>
               </td>
-              <td><span class="st-name">{{ row.name }}</span></td>
+              <td><span class="st-name">{{ row.name | textCase: nameCase }}</span></td>
               <td>
                 <span class="cls-tag">{{ row.classTag }}</span>
                 <i class="bi bi-exclamation-circle incomplete" *ngIf="row.placementIncomplete"
@@ -169,7 +195,7 @@
 <!-- View Profile — read-only. -->
 <app-form-modal [open]="viewOpen" title="Student Profile" [width]="560" [showSubmit]="false" cancelLabel="Close"
   (cancelled)="closeView()">
-  <app-student-profile-view [detail]="viewDetail" variant="profile"></app-student-profile-view>
+  <app-student-profile-view [detail]="viewDetail" [adminId]="adminId" variant="profile"></app-student-profile-view>
 </app-form-modal>
 
 <!-- Assign Card — single or bulk. Submitting pushes to every device; no separate resync. -->
@@ -235,19 +261,48 @@
 
   <div class="excel-title">Export</div>
   <p class="m-hint">Download the current class(+stream)'s students as an Excel file.</p>
+  <!-- Masked (default) vs Full: Full puts real Aadhar / bank A/C / IFSC / PEN in the file and
+       is logged (who, when, which class/stream). Masked exports aren't logged. -->
+  <div class="export-mode" role="radiogroup" aria-label="Export contents">
+    <button type="button" role="radio" class="mode-opt" [class.active]="exportMode === 'masked'"
+      [attr.aria-checked]="exportMode === 'masked'" (click)="exportMode = 'masked'">
+      <i class="bi bi-shield-check"></i> Masked
+    </button>
+    <button type="button" role="radio" class="mode-opt" [class.active]="exportMode === 'full'"
+      [attr.aria-checked]="exportMode === 'full'" (click)="exportMode = 'full'">
+      <i class="bi bi-unlock"></i> Full (sensitive data)
+    </button>
+  </div>
+  <p class="m-hint" *ngIf="exportMode === 'masked'">Aadhar, bank A/C, IFSC and PEN show only their last 4 characters.
+    Re-importing this file leaves those values unchanged.</p>
+  <p class="m-hint warn-note" *ngIf="exportMode === 'full'"><i class="bi bi-exclamation-triangle"></i> Includes full Aadhar,
+    bank account, IFSC and PEN numbers. This export is recorded in the activity log.</p>
   <button type="button" class="btn-secondary full" [disabled]="exporting" (click)="onExport()">
-    <i class="bi bi-download"></i> {{ exporting ? 'Preparing…' : 'Export Excel' }}
+    <i class="bi bi-download"></i> {{ exporting ? 'Preparing…' : (exportMode === 'full' ? 'Export Full Excel' : 'Export Excel') }}
   </button>
 
   <div class="excel-title">Import</div>
   <p class="m-hint">Upload a filled Excel sheet to add or update students in this class(+stream). Each row needs an
     Admission No.</p>
-  <label class="upload-box" [class.busy]="importing">
-    <i class="bi bi-cloud-upload"></i>{{ importStatus || 'Click to choose an Excel file' }}
+  <!-- Picking a file only CHOOSES it — nothing uploads until Import is pressed, and a
+       different file can be picked first (student-fix4.md B). -->
+  <label class="upload-box" [class.busy]="importing" [class.chosen]="!!importFile">
+    <ng-container *ngIf="importStatus; else pickPrompt"><i class="bi bi-hourglass-split"></i>{{ importStatus }}</ng-container>
+    <ng-template #pickPrompt>
+      <ng-container *ngIf="importFile; else emptyPrompt">
+        <i class="bi bi-file-earmark-spreadsheet"></i><span class="file-name">{{ importFile.name }}</span>
+        <span class="file-change">Change file</span>
+      </ng-container>
+      <ng-template #emptyPrompt><i class="bi bi-cloud-upload"></i>Click to choose an Excel file</ng-template>
+    </ng-template>
     <input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden
-      [disabled]="importing" (change)="onImportFile($event)" />
+      [disabled]="importing" (change)="onImportFileChosen($event)" />
   </label>
-  <p class="m-error" *ngIf="importError">{{ importError }}</p>
+  <button type="button" class="btn-primary full import-btn" [disabled]="!importFile || importing" (click)="onImportSubmit()">
+    <i class="bi bi-cloud-arrow-up"></i> {{ importing ? 'Importing…' : 'Import' }}
+  </button>
+  <p class="m-error" *ngIf="importError" role="alert">{{ importError }}</p>
+  <p class="m-hint warn-note" *ngIf="importWarning"><i class="bi bi-info-circle"></i> {{ importWarning }}</p>
 
   <!-- Bulk result panel (design-system.md): passed rows as counts, each failed row listed with
        its own field-level messages nested under it. -->

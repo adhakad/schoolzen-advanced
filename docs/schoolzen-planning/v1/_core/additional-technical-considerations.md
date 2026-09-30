@@ -21,6 +21,19 @@ folder-per-school convention (`schoolzen/{adminId}/students/...`,
 and a bulk-delete (e.g. if a school account is closed) is one folder
 operation, not a scan across a flat namespace.
 
+**Easy, high-value win — always request Cloudinary's automatic
+transformations, never the raw upload.** Every `<img>` src (a Student/
+Staff photo thumbnail in a table row, a full profile photo) uses
+Cloudinary's URL-based transforms — `f_auto` (serves WebP/AVIF to a
+browser that supports it, falling back automatically, without the app
+deciding format itself), `q_auto` (perceptually-tuned compression,
+usually 30-50% smaller than a naive fixed quality), and an explicit
+`w_<size>` matching where it's actually displayed (a 40px table-row
+thumbnail never requests the same file as a 300px profile view). This
+costs nothing extra to build (it's URL parameters, not a new service)
+and is one of the single biggest, cheapest payload wins available —
+photos are usually the heaviest thing on any list page.
+
 ## Notifications system
 
 Fee Reminder is currently the only designed notification (WhatsApp).
@@ -87,6 +100,29 @@ Excel (Student Import/Export), and will likely need document uploads
 service app-wide — file-type validation, a max-size limit, and a
 consistent progress/error UI — rather than each module's upload button
 being a one-off `<input type="file">` with its own ad-hoc handling.
+
+**Permanent rule — `multer.memoryStorage()` everywhere, never
+`diskStorage`.** Confirmed real bug: a photo/file upload failing with
+"upload folder is missing on the server" because a `diskStorage`
+destination folder didn't exist on a fresh deploy/container (an empty
+folder isn't tracked by git). One shared multer instance
+(`middleware/upload.middleware.js`, per this package's folder
+convention), configured once with `multer.memoryStorage()`, used by
+EVERY upload route in the app (Student/Staff photo, Admission ID
+proofs, Bulk Assign Cards' CSV, Student Import/Export's Excel) — the
+file lands in `req.file.buffer`/`req.files[i].buffer`, handed straight
+to Cloudinary's `upload_stream` (for images/documents) or parsed
+directly in memory (for CSV/Excel, already bounded by the existing
+size-limit config), with no local folder ever created, checked, or
+depended on. This removes an entire class of "works on my machine,
+breaks on a fresh server" bugs — there is no folder to be missing.
+`prompts/fixes/student-fix3.md` has the concrete patch for the Student
+photo route (already confirmed broken) — the same `diskStorage` →
+`memoryStorage()` swap applies wherever else a `multer.diskStorage`
+call turns up (Staff photo, Admission ID proofs, Bulk Assign Cards'
+CSV, Student Import/Export's Excel) as each of those modules is built
+or touched, per this rule, rather than a separate fix file per
+upload spot.
 
 ## Pagination
 
@@ -221,6 +257,94 @@ caching on with one `cacheService.wrap(...)` call around its existing
 query — no module hand-writes Redis `get`/`set` itself. Build the
 service now; wire it into a given endpoint only when that module's
 own prompt calls for it.
+
+## Backup & disaster recovery (filling the gap noted above)
+
+Referenced at the top of this file as "addressed separately later" —
+addressed here:
+
+- **Automated backups**: managed MongoDB (Atlas or equivalent) daily
+  full backup + continuous point-in-time recovery, retained at least
+  30 days. Never rely on manual/ad-hoc dumps as the only backup.
+- **RPO/RTO targets stated explicitly**: e.g. RPO (max acceptable data
+  loss) ≤ 15 minutes via point-in-time recovery, RTO (max acceptable
+  downtime to restore) ≤ 2 hours for a full-cluster restore. Whatever
+  the actual numbers, they must be a stated decision, not an unstated
+  assumption discovered during a real incident.
+- **Restore procedure is documented and periodically tested** — a
+  backup nobody has ever restored from is unverified; a quarterly
+  restore-to-a-scratch-cluster drill catches a broken backup before an
+  actual disaster does.
+- **Per-tenant export**: since this is multi-tenant, a school leaving
+  the platform (or requesting their own data, see the DPDP section
+  below) needs a way to export *only that `adminId`'s* data across
+  every collection — not a full-cluster dump. Worth a small internal
+  script/job (`adminId` → zipped JSON/CSV per collection) rather than
+  building this ad hoc under time pressure the first time it's asked
+  for.
+
+## API versioning strategy
+
+Not addressed anywhere in this package. Every route is prefixed
+`/api/v1/...` from the start (even though there's only one version
+today) — this costs nothing now and avoids a painful retrofit later.
+When a genuinely breaking change is needed for one endpoint, it ships
+as `/api/v2/that-one-resource` alongside the still-working v1 route,
+never an in-place breaking change to a route mobile/web clients already
+depend on. Deprecation of an old version gets a stated sunset date
+communicated ahead of removal, not a silent removal.
+
+## SaaS plan / quota enforcement — flagged as an open scope question
+
+The platform bills schools via a `Plan`/`Invoice` mechanism (Schoolzen's
+own subscription billing — separate from a school's own Fees module,
+which bills parents). **This package's 13 modules don't currently
+include a page or schema for what a plan actually limits** (max
+students, max staff, storage, feature flags per tier). Before building
+Settings/Approvals-adjacent billing UI, this needs an explicit decision:
+which existing module (a new "Billing" section under Settings, or a
+separate super-admin-only module outside the school-facing app
+entirely) owns plan-limit enforcement, and where in the request path
+(a shared middleware checking current usage against the active plan's
+limits) that enforcement lives. Flagging this here rather than
+inventing a design outside the already-agreed module boundaries.
+
+## Data export & erasure — India's DPDP Act
+
+Student/Staff/Parent data falls under the Digital Personal Data
+Protection Act's subject-rights requirements: a person (or a school
+administrator acting for a minor student) can request their data back
+or request its erasure. Needed, not yet designed:
+- A "request my data" flow producing a structured export of everything
+  tied to one `personId` across modules (profile, attendance history,
+  fee history, results) — reuses the same per-tenant export mechanism
+  noted under Backup above, scoped to one person instead of one
+  `adminId`.
+- An erasure flow that respects the soft-delete-for-records rule
+  already in `database-design-principles.md` — "erase" for a financial/
+  historical record means anonymizing personally-identifying fields
+  while keeping the record's numeric/aggregate value intact (a school's
+  own statutory retention obligations for academic/financial records
+  typically outlive an individual erasure request), not a hard delete
+  that would break Fee/Payroll history integrity.
+
+## Automated testing — baseline expectation
+
+Not addressed anywhere in this package. Minimum bar per module before
+it's considered done, beyond `errors.md`'s cases being manually
+verified:
+- Unit tests on schema validators and any pure business-logic function
+  (fee/concession bound checks, promotion cascade logic, leave-limit
+  math).
+- Integration tests on every transaction-guarded flow already called
+  out in `database-design-principles.md` (Class Promotion, Leave
+  approval, Academic Session activation, Student/Staff delete) —
+  specifically testing the rollback path (a failure mid-transaction
+  leaves zero partial writes, not some).
+- At least one test per module asserting the relevant row(s) of this
+  file's Security checklist and `module-optimization-guide.md`'s
+  cache-invalidation behavior (a write followed immediately by a read
+  returns the fresh value, not a stale cached one).
 
 ## Search at scale
 

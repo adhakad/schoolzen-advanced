@@ -18,8 +18,8 @@
  */
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject } from 'rxjs';
-import { distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
+import { of, Subject } from 'rxjs';
+import { catchError, distinctUntilChanged, map, switchMap, takeUntil } from 'rxjs/operators';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 import { ClassPromotionService } from 'src/app/shared/services/student/class-promotion.service';
@@ -35,7 +35,6 @@ import {
 } from 'src/app/shared/models/student/class-promotion.model';
 import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 import { errorMessageOf, validationErrorsOf } from 'src/app/shared/utils/api-error.util';
-import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
 
 /** Each warning type keeps its own icon, so three different warnings never read as one. */
 const WARNING_ICON: Record<PromotionWarning['type'], string> = {
@@ -97,9 +96,9 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
   previewing = false;
   confirming = false;
   jobRunning = false;
-  /** One Idempotency-Key per opening of the confirm modal. */
-  private confirmKey = '';
 
+  /** Roster requests — switchMapped, so only the latest class's response ever lands. */
+  private roster$ = new Subject<{ session: string } & CascadeFilterValue>();
   private destroyed$ = new Subject<void>();
 
   constructor(
@@ -115,6 +114,16 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.adminId = this.adminAuthService.getLoggedInAdminInfo()?.id || '';
     if (!this.adminId) return;
+
+    // switchMap: a quick class/section change cancels the stale roster request instead of
+    // racing it, so a slow earlier response can never overwrite the class now selected.
+    this.roster$.pipe(
+      switchMap((query) => this.api.getRoster(this.adminId, query).pipe(
+        map((roster): PromotionRoster | null => roster),
+        catchError(() => of(null))
+      )),
+      takeUntil(this.destroyed$)
+    ).subscribe((roster) => (roster ? this.applyRoster(roster) : this.rosterFailed()));
 
     this.loadOptions();
 
@@ -178,36 +187,39 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
     if (!this.session || !this.filter.classId) return;
     this.loading = true;
     this.loadError = '';
-    this.api.getRoster(this.adminId, { session: this.session, ...this.filter })
-      .pipe(takeUntil(this.destroyed$))
-      .subscribe((roster) => {
-        this.roster = roster;
-        this.targetByKey = new Map(roster.targetOptions.map((option) => [option.key, option]));
-        this.targetOptions = roster.targetOptions.map((option) => ({ value: option.key, label: option.label }));
-        this.bulkTargetKey = roster.defaultTargetKey || '';
-        this.allRows = roster.rows.map((row) => ({
-          ...row,
-          initials: initialsOf(row.name),
-          gradient: avatarGradient(row.studentId),
-          decision: null,
-          targetKey: roster.defaultTargetKey || '',
-          resultLabel: RESULT_LABEL[row.examResult].label,
-          resultClass: RESULT_LABEL[row.examResult].css,
-          searchText: [row.name, row.rollNumber, row.admissionNo].join(' ').toLowerCase()
-        }));
-        this.applySearch();
-        this.recount();
-        this.loading = false;
-        this.cdr.markForCheck();
-      }, () => {
-        this.loading = false;
-        this.roster = null;
-        this.allRows = [];
-        this.rows = [];
-        this.recount();
-        this.loadError = "Couldn't load this class's students.";
-        this.cdr.markForCheck();
-      });
+    this.cdr.markForCheck();
+    this.roster$.next({ session: this.session, ...this.filter });
+  }
+
+  private applyRoster(roster: PromotionRoster): void {
+    this.roster = roster;
+    this.targetByKey = new Map(roster.targetOptions.map((option) => [option.key, option]));
+    this.targetOptions = roster.targetOptions.map((option) => ({ value: option.key, label: option.label }));
+    this.bulkTargetKey = roster.defaultTargetKey || '';
+    this.allRows = roster.rows.map((row) => ({
+      ...row,
+      initials: initialsOf(row.name),
+      gradient: avatarGradient(row.studentId),
+      decision: null,
+      targetKey: roster.defaultTargetKey || '',
+      resultLabel: RESULT_LABEL[row.examResult].label,
+      resultClass: RESULT_LABEL[row.examResult].css,
+      searchText: [row.name, row.rollNumber, row.admissionNo].join(' ').toLowerCase()
+    }));
+    this.applySearch();
+    this.recount();
+    this.loading = false;
+    this.cdr.markForCheck();
+  }
+
+  private rosterFailed(): void {
+    this.loading = false;
+    this.roster = null;
+    this.allRows = [];
+    this.rows = [];
+    this.recount();
+    this.loadError = "Couldn't load this class's students.";
+    this.cdr.markForCheck();
   }
 
   onFilterChange(value: CascadeFilterValue): void {
@@ -309,7 +321,6 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
     this.api.preview(this.buildRequest()).pipe(takeUntil(this.destroyed$)).subscribe((preview) => {
       this.previewing = false;
       this.preview = preview;
-      this.confirmKey = newIdempotencyKey();
       this.confirmOpen = true;
       this.cdr.markForCheck();
     }, (error: unknown) => {
@@ -336,7 +347,7 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
   onConfirm(): void {
     if (this.confirming) return;
     this.confirming = true;
-    this.api.confirm(this.buildRequest(), this.confirmKey).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+    this.api.confirm(this.buildRequest()).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.confirming = false;
       this.confirmOpen = false;
       this.jobRunning = true;

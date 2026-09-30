@@ -3,10 +3,19 @@ const StudentProfileModel = require('../../models/student/student');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const { ValidationError, NotFoundError } = require('../../errors');
 const messages = require('../../helpers/messages/student.messages');
+const { findSessionId, ensureSessionId } = require('../../helpers/academic-session/session-resolver');
+const { imageUrl } = require('../../services/media/cloudinary.service');
 const {
     MODULE, titleCase, getNextSession, loadClassIndex, resolvePlacement,
-    buildEnrollmentMatch, promotionLookups,
+    buildEnrollmentMatch, promotionLookups, setPromotionLookup,
 } = require('../../helpers/student/student.utils');
+const { hasFeeStructure } = require('../../helpers/fees/fee-structure-resolver');
+
+// The v2 FeeStructure collection now exists (created ahead of the Fees module for
+// Admission), so the "no fee structure for the target class" warning checks the real thing
+// instead of the always-warn placeholder. A session with no record yet has no structure.
+setPromotionLookup('hasFeeStructure', async (adminId, classId, sessionLabel) =>
+    hasFeeStructure(adminId, classId, await findSessionId(adminId, sessionLabel)));
 
 // Class Promotion — year-end Promote/Detain per student, creating NEXT-session placements.
 // The current session's enrollments are only ever read here (class-promotion.md).
@@ -89,15 +98,15 @@ const nextClassId = (classIndex, current) => {
     return later.length ? String(later[0].doc._id) : null;
 };
 
-const loadRosterEnrollments = (adminId, query) => StudentEnrollmentModel.aggregate([
-    { $match: buildEnrollmentMatch(adminId, query.session, query) },
+const loadRosterEnrollments = (adminId, sessionId, query) => StudentEnrollmentModel.aggregate([
+    { $match: buildEnrollmentMatch(adminId, sessionId, query) },
     { $limit: MAX_ROSTER },
     { $lookup: { from: StudentProfileModel.collection.name, localField: 'studentId', foreignField: '_id', as: 'student' } },
     { $unwind: '$student' },
     {
         $project: {
             studentId: 1, classId: 1, class: 1, streamId: 1, groupId: 1, sectionId: 1, rollNumber: 1,
-            'student.name': 1, 'student.admissionNo': 1, 'student.photoUrl': 1,
+            'student.name': 1, 'student.admissionNo': 1, 'student.photoUrl': 1, 'student.photoPublicId': 1,
         },
     },
 ]);
@@ -110,15 +119,20 @@ let GetPromotionRoster = async (req, res) => {
         throw new ValidationError(messages.classNotConfigured(), { module: MODULE, fields: [{ field: 'classId', message: messages.classNotConfigured() }] });
     }
 
-    const [nextSession, enrollments] = await Promise.all([
-        getNextSession(session),
-        loadRosterEnrollments(adminId, req.query),
+    // Labels in, references out: the header's label resolves to this school's session id,
+    // and the NEXT session's id is looked up (not created — a roster only reads).
+    const [sessionId, nextSession] = await Promise.all([findSessionId(adminId, session), getNextSession(session)]);
+    const [nextSessionId, enrollments] = await Promise.all([
+        findSessionId(adminId, nextSession),
+        sessionId ? loadRosterEnrollments(adminId, sessionId, req.query) : [],
     ]);
     const studentIds = enrollments.map((item) => item.studentId);
 
     const [results, placedNext] = await Promise.all([
-        promotionLookups.examResultFor(adminId, session, studentIds),
-        StudentEnrollmentModel.find({ adminId, session: nextSession, studentId: { $in: studentIds } }, 'studentId').lean(),
+        promotionLookups.examResultFor(adminId, sessionId, studentIds),
+        nextSessionId
+            ? StudentEnrollmentModel.find({ adminId, sessionId: nextSessionId, studentId: { $in: studentIds } }, 'studentId').lean()
+            : [],
     ]);
     const placedSet = new Set(placedNext.map((item) => String(item.studentId)));
 
@@ -142,7 +156,7 @@ let GetPromotionRoster = async (req, res) => {
             rollNumber: item.rollNumber,
             name: item.student.name,
             admissionNo: item.student.admissionNo,
-            photoUrl: item.student.photoUrl || null,
+            photoUrl: item.student.photoPublicId ? imageUrl(item.student.photoPublicId, 64) : (item.student.photoUrl || null),
             examResult: results.get(String(item.studentId)) || 'not-set',
             alreadyPlaced: placedSet.has(String(item.studentId)),
         })),
@@ -162,19 +176,24 @@ const buildPromotionPlan = async (body) => {
         throw new ValidationError(messages.classNotConfigured(), { module: MODULE, fields: [{ field: 'classId', message: messages.classNotConfigured() }] });
     }
 
-    const [nextSession, enrollments] = await Promise.all([
-        getNextSession(session),
-        StudentEnrollmentModel.find(buildEnrollmentMatch(adminId, session, body), 'studentId classId class streamId groupId sectionId').limit(MAX_ROSTER).lean(),
+    const [sessionId, nextSession] = await Promise.all([findSessionId(adminId, session), getNextSession(session)]);
+    const [nextSessionId, enrollments] = await Promise.all([
+        findSessionId(adminId, nextSession),
+        sessionId
+            ? StudentEnrollmentModel.find(buildEnrollmentMatch(adminId, sessionId, body), 'studentId classId class streamId groupId sectionId').limit(MAX_ROSTER).lean()
+            : [],
     ]);
     const byId = new Map(enrollments.map((item) => [String(item._id), item]));
 
     const missing = decisions.filter((decision) => !byId.has(decision.enrollmentId)).length;
     if (missing) throw new NotFoundError(messages.studentsNotFound(missing), { module: MODULE });
 
-    const placed = await StudentEnrollmentModel.find(
-        { adminId, session: nextSession, studentId: { $in: decisions.map((d) => byId.get(d.enrollmentId).studentId) } },
-        'studentId'
-    ).lean();
+    const placed = nextSessionId
+        ? await StudentEnrollmentModel.find(
+            { adminId, sessionId: nextSessionId, studentId: { $in: decisions.map((d) => byId.get(d.enrollmentId).studentId) } },
+            'studentId'
+        ).lean()
+        : [];
     const placedSet = new Set(placed.map((item) => String(item.studentId)));
 
     // Each distinct target is checked once, however many students share it.
@@ -287,10 +306,17 @@ let ConfirmPromotion = async (req, res) => {
     }
     // Re-planned server-side on confirm: the preview the modal showed may be minutes old.
     const plan = await buildPromotionPlan(req.body);
+    // The next session as a REFERENCE — created now if this is the first write against it.
+    const [fromSessionId, toSessionId] = await Promise.all([
+        findSessionId(req.body.adminId, req.body.session),
+        ensureSessionId(req.body.adminId, plan.nextSession),
+    ]);
     const jobId = await queue().addPromotionJob({
         adminId: req.body.adminId,
         fromSession: req.body.session,
+        fromSessionId: String(fromSessionId),
         toSession: plan.nextSession,
+        toSessionId: String(toSessionId),
         classId: String(req.body.classId),
         items: plan.items,
     });

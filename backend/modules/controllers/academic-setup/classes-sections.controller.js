@@ -6,6 +6,7 @@ const { NotFoundError, ConflictError } = require('../../errors');
 const { getClassDisplayName } = require('../../helpers/format-class-name');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
+const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Class';
@@ -139,6 +140,8 @@ let CreateClass = async (req, res, next) => {
     }
 
     await AcademicClassModel.create(req.body);
+    // Write-through: other modules read this school's classes from the cache.
+    await cacheInvalidation.onClassesChanged(adminId);
     return res.status(200).json({ message: success.created(ENTITY) });
 };
 
@@ -159,6 +162,7 @@ let UpdateClass = async (req, res, next) => {
     singleClass.sections = req.body.sections;
     singleClass.streams = req.body.streams;
     await singleClass.save();
+    await cacheInvalidation.onClassesChanged(req.body.adminId);
 
     return res.status(200).json({ message: success.updated(ENTITY) });
 };
@@ -192,6 +196,7 @@ let DeleteClass = async (req, res, next) => {
     }
 
     await AcademicClassModel.deleteOne({ _id: req.params.id, adminId: adminId });
+    await cacheInvalidation.onClassesChanged(adminId);
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };
 
@@ -232,6 +237,7 @@ let BulkDeleteClasses = async (req, res, next) => {
     }
 
     await AcademicClassModel.deleteMany({ _id: { $in: ids }, adminId: adminId });
+    await cacheInvalidation.onClassesChanged(adminId);
 
     return res.status(200).json({ message: success.bulkProcessed(ids.length, ENTITY.toLowerCase()) });
 };

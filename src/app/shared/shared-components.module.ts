@@ -46,6 +46,8 @@ import { LetterheadDocumentComponent } from './components/letterhead-document/le
 import { StudentProfileViewComponent } from './components/student-profile-view/student-profile-view.component';
 import { StudentFormComponent } from './components/student-form/student-form.component';
 import { DpComponent } from './components/dp/dp.component';
+import { ColumnCaseMenuComponent } from './components/column-case-menu/column-case-menu.component';
+import { TextCasePipe } from './pipes/text-case.pipe';
 
 const COMPONENTS = [
   PageShellComponent,
@@ -73,7 +75,11 @@ const COMPONENTS = [
   StudentProfileViewComponent,
   StudentFormComponent,
   // THE date picker (design-system.md `.dp`) — never a native <input type="date">.
-  DpComponent
+  DpComponent,
+  // The "Aa" per-column text-case control + its display pipe (manage-students.md,
+  // "Per-column text-case + sort") — any table with free-text name columns can reuse them.
+  ColumnCaseMenuComponent,
+  TextCasePipe
 ];
 
 @NgModule({

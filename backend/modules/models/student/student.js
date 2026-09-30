@@ -21,9 +21,10 @@ const StudentSchema = new mongoose.Schema({
     // keeps an admission Pending until an admin assigns one (admission.md).
     admissionNo: { type: Number, default: null },
     status: { type: String, enum: ['pending', 'admitted'], default: 'pending' },
-    // The session the student was admitted in — the Admission page lists "new students
-    // entering the school this session" off this, not off the current enrollment.
-    admissionSession: { type: String, required: true, trim: true },
+    // NO session field here, of any type. The admission creates the student's first
+    // StudentEnrollment, which carries the AcademicSession reference with the class/stream/
+    // section — Student holds identity only (student/errors.md; manage-students.md). The
+    // session a student was admitted in is their `entryType: 'admission'` enrollment's.
 
     name: { type: String, required: true, trim: true },
     // Lowercased copy backing the name-prefix search index. Kept in sync by the pre-save /
@@ -33,7 +34,9 @@ const StudentSchema = new mongoose.Schema({
     photoPublicId: { type: String, trim: true, default: null },
 
     medium: { type: String, trim: true },
-    admissionClass: { type: Number, default: null },   // "First Enrolled Class"
+    // "First Enrolled Class" — the Academic Setup class id (student-fix4.md A), the same
+    // reference an enrollment's classId is, so the two can never disagree.
+    admissionClass: { type: mongoose.Schema.Types.ObjectId, ref: 'academic-class', default: null },
     doa: { type: Date, default: null },                // date of admission
     admissionFee: { type: Number, default: null },
     feesConcession: { type: Number, default: 0 },
@@ -46,7 +49,9 @@ const StudentSchema = new mongoose.Schema({
     nationality: { type: String, trim: true },
     aadharNumber: { type: String, trim: true },
     samagraId: { type: String, trim: true },
-    udiseNumber: { type: String, trim: true },
+    // PEN — the student's Permanent Education Number under UDISE+. (UDISE itself identifies
+    // the SCHOOL, not a student, so it belongs on the school's own settings, never here.)
+    penNumber: { type: String, trim: true },
     bankAccountNo: { type: String, trim: true },
     bankIfscCode: { type: String, trim: true, uppercase: true },
     address: { type: String, trim: true },
@@ -116,7 +121,7 @@ StudentSchema.index(
 );
 
 // Government IDs are unique per school when present (student/errors.md, uniqueness table):
-// AADHAR_DUPLICATE / SAMAGRA_ID_DUPLICATE / UDISE_DUPLICATE. Partial on a string value, so
+// AADHAR_DUPLICATE / SAMAGRA_ID_DUPLICATE / PEN_DUPLICATE. Partial on a string value, so
 // the many students who don't have one never collide on "missing". The index — not a
 // findOne pre-check — is the guard: two concurrent saves can't both pass it.
 StudentSchema.index(
@@ -128,8 +133,8 @@ StudentSchema.index(
     { unique: true, partialFilterExpression: { samagraId: { $type: 'string' } } }
 );
 StudentSchema.index(
-    { adminId: 1, udiseNumber: 1 },
-    { unique: true, partialFilterExpression: { udiseNumber: { $type: 'string' } } }
+    { adminId: 1, penNumber: 1 },
+    { unique: true, partialFilterExpression: { penNumber: { $type: 'string' } } }
 );
 
 // Name-prefix search ("Search by name or admission no.") — an anchored, case-folded regex

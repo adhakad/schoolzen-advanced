@@ -56,7 +56,7 @@ here is checked server-side regardless of what the client sent.
 | `session` | `.dd` | `required` | `required`, must be an existing `AcademicSession` id | required→"Session is required." |
 | `medium` | `.dd` | `required` | `required`, enum from seeded mediums | required→"Medium is required." |
 | `admissionNo` | number input | `required`, `pattern(^\d+$)` | `required`, integer, **uniqueness** `(adminId, admissionNo)` | required→"Admission no. is required." · pattern→"Admission no. must contain numbers only." · (server) duplicate→`ADMISSION_NO_DUPLICATE` "This admission number is already in use." |
-| `admissionClass`/`class` | `.dd` | `required`, `pattern(^\d+$)` | `required`, must resolve to an existing `Class` (see `academic-setup/errors.md`) | required→"First enrolled class is required." · pattern→"Choose a valid class." |
+| `admissionClass`/`class` | `.dd` | `required` | `required`, must be a `Class._id` reference that resolves to an existing `Class` (see `academic-setup/errors.md`) — **not** a raw digit string | required→"First enrolled class is required." |
 | `rollNumber` | number input | `required`, `maxLength(8)`, `pattern(^[0-9]+$)` | `required`, integer ≤ 8 digits, **uniqueness** `(adminId, classId, sessionId)` — scoped per class+session, NOT global | required→"Roll number is required." · maxlength→"Roll number can't be more than 8 digits." · pattern→"Roll number must contain numbers only." · (server) duplicate→`ROLL_NUMBER_DUPLICATE` "This roll number is already taken in this class." |
 | `name` | text input | `required`, `pattern(^[a-zA-Z\s]+$)` | `required`, same pattern, trim+collapse whitespace, HTML-escape before storing (XSS hardening the legacy form didn't have) | required→"Name is required." · pattern→"Name can only contain letters and spaces." |
 | `dob` | date picker | `required` | `required`, valid date, **not in the future**, and **not less than 2 years before today** (a sanity bound the legacy form never had — catches a fat-fingered year) | required→"Date of birth is required." · (server-only) `DOB_INVALID` "Enter a valid date of birth." · `DOB_IN_FUTURE` "Date of birth can't be in the future." |
@@ -259,6 +259,82 @@ concerns:
 
 ## Beyond the legacy reference — real gaps found while porting, not silently copied
 
+- **Aadhar/Samagra/PEN/bank account number have no encryption-at-
+  rest or masking anywhere in the plan.** These are stored (and, per
+  the field table above, matched for uniqueness) as plain fields. At
+  minimum: encrypt `aadharNumber`/`bankAccountNo` at the field level
+  (app-level encryption, not just disk-level, so a DB dump/backup
+  leak doesn't expose them raw). `familyAnnualIncome` is also collected
+  as an exact rupee figure — consider an income-bracket enum instead of
+  an exact number if the only real use is a concession/scholarship
+  eligibility check, since the exact figure is more sensitive than
+  the bracket a decision actually needs. This same gap recurs for
+  Payroll's bank details — see `payroll/errors.md`.
+
+- **Display/export masking — confirmed real bug in the actual Bulk
+  Export feature, not just a theoretical gap.** A real exported sheet
+  (`students-1st-2026-2027_1.xlsx`) was checked directly: Aadhar
+  Number, Bank A/C Number, Bank IFSC Code, and PEN all come out as
+  plain, unmasked text in the exported file. Aadhar masking here is not
+  optional — RBI's 2019 KYC circular requires masking the first 8
+  digits of an Aadhaar number wherever it's stored/displayed/shared
+  (only the last 4 visible), and UIDAI's own "Masked Aadhaar" is the
+  standard document format for exactly this reason. Fix, applied only
+  to the LIST view and the BULK EXPORT file — never to the input side
+  (Admission form entry, or a fresh Bulk Import file used to bring new
+  records in, both of which legitimately need the real number to save
+  it in the first place):
+  - **Manage Students' Export control offers an explicit choice**
+    between two outputs, not a silent single behavior: **"Masked"**
+    (default — Aadhar shows `XXXX-XXXX-9067`, bank account shows last
+    4, IFSC/PEN similarly truncated) and **"Full (sensitive data)"** —
+    a plain second option/toggle right there in the Export
+    modal/dropdown, no password gate for now; any authenticated user
+    with Export permission on this page can pick either. **Choosing
+    "Full" is logged to `ActivityLog`** (actor, timestamp, class/stream
+    scope exported) per `additional-technical-considerations.md`'s
+    Audit Log section — this is exactly the kind of "access to
+    specifically sensitive reads" that section already says must be
+    logged; a routine "Masked" export is not logged. (A future
+    access-restriction — role-gating the "Full" option to Admin/Owner
+    only, or requiring a stated reason —
+    is a reasonable later hardening, not part of this decision.)
+  - **A single student's own Edit form shows the real, unmasked
+    value** to whoever has edit access to that record — this is the
+    correction path for a typo caught after saving (see the
+    Aadhaar-checksum note below); edit access already implies trust to
+    see/change the real value, so no extra toggle there.
+  - **View Profile modal (read-only) shows Aadhar/Bank A/C/IFSC/PEN
+    masked by default, each with its own inline reveal toggle** — a
+    small icon button right next to the value (`bi-eye`/`bi-eye-slash`,
+    same visual weight as the table's sort-arrow icon, not a separate
+    "Show all" control) that flips just that one field between masked
+    and full for as long as the modal stays open; closing/reopening the
+    modal resets it back to masked. This is narrower than the "Full"
+    bulk-export tier: View Profile is read-only viewing, not a
+    correction or a bulk operation, so revealing one field at a time
+    (rather than defaulting the whole modal to full) keeps the
+    unmasked value on-screen no longer than the person actually needs
+    it. **Revealing a field here is logged to `ActivityLog`** (actor,
+    timestamp, student id, which field) the same way choosing "Full"
+    export is logged — this is still "access to a specifically
+    sensitive read" per `additional-technical-considerations.md`'s
+    Audit Log section, since View Profile is reachable by anyone with
+    view access to this page, a broader set than just Export
+    permission. Re-masking (clicking the icon again to hide) is not
+    itself logged — only the reveal.
+  - **Prevent bad values before they're ever saved**: Aadhaar has a
+    built-in checksum (the Verhoeff algorithm) — validate it at
+    Admission-form submit time, in addition to the existing
+    `pattern(^\d{12}$)` check, so most typos are caught before they're
+    ever stored, not discovered later in a masked export where the
+    wrong digit can't be seen.
+  - **Bulk correction of many records** (if several rows are found
+    wrong at once) goes through the existing Export→edit→re-Import
+    round trip: use the "Full" export to get real values, correct them
+    in Excel, and Bulk Import back in (already supports add-or-update
+    by `admissionNo` match) — this is an occasional, deliberate action,
+    not something the masked default export needs to support.
 - **`name`/`fatherName`/`motherName` regex was wrong to carry over
   as-is.** `^[a-zA-Z\s]+$` rejects any regional-script name, and even
   in English rejects `D'Souza`, `Mary-Jane`, `A. Kumar`. Fixed pattern:
@@ -397,6 +473,164 @@ table's** (same `.field`/`.field-error`, same touched-gating, same
 static and a dynamic field is where its validator array comes from
 (hardcoded vs. built from `validationRule`), never the display/error
 mechanism itself.
+
+## Seeded fields need to actually use the state-specific mechanism that already exists — and one seeded field's OPTIONS also vary by state, which that mechanism doesn't cover
+
+`v1/settings/admission-form-fields.md`'s `FieldConfig` schema already
+has a `stateSpecific` field and a dedicated "State-Specific" form
+group for exactly this purpose — the mechanism exists. The gap is
+narrower than "build a new mechanism": `samagraId` (Madhya Pradesh's
+own student ID scheme) is one of the 25 SEEDED rows and must actually
+be seeded with `stateSpecific` set, not left in the generic "Student
+Info" group as a plain optional field shown to every school
+regardless of state — confirm the seed data for this one field, not
+just the schema capability.
+
+**`category`'s problem is different and still unsolved by
+`stateSpecific` as designed**: `stateSpecific` controls whether a
+field shows at all, but reservation-category *option lists* differ
+per state (a state's own category names/list) while the field itself
+should show everywhere — a visibility switch can't express "same
+field, different options depending on state." This needs the
+`validationRule` for a `dropdown`-type field to support a per-state
+options map (e.g. `optionsByState: {MP:[...], MH:[...], default:[...]}`)
+as a schema extension, not something `stateSpecific` already covers.
+
+**`admissionClass` — confirmed the same "wrong type, copied from
+legacy without checking" bug as `session`.** A real exported record
+shows `Class: "1st"` (the student's current class, resolved from
+`academic-setup/classes-sections.md`'s `Class.class` label field —
+"9th", "1st", string) but `First Enrolled Class: 1` (a bare number) —
+two different representations of the same kind of value on the same
+row. Root cause: `admissionClass`'s frontend validator was
+`pattern(^\d+$)` (a raw-digit-only string), carried straight from a
+legacy form field without checking it against how `Class` is actually
+shaped elsewhere in v2. Fix (already applied to the table above):
+`admissionClass` stores a `Class._id` reference like every other
+class-referencing field in this app, resolved to display the exact
+same label format as the current `Class` field — never a separately-
+validated raw number that can drift out of sync with it. Any existing
+record holding a raw digit needs the same kind of migration already
+planned for `admissionSession` — resolve the digit to the matching
+`Class._id` for that `adminId`, don't silently drop or reinterpret it.
+
+**`udiseNumber` — RESOLVED: replaced with `penNumber`.** Confirmed
+UDISE identifies the *school*, not the student — the real per-student
+national ID is the **PEN (Permanent Education Number)**. `udiseNumber`
+is removed from `Student` (schema, form, import, uniqueness) entirely;
+`penNumber` is added in its place (per-student, unique per school when
+present). The school's own UDISE code belongs on the School/Settings
+record, not here. (The historical framing below — "very likely modeled
+on the wrong entity" — is kept for context on how this was found; the
+decision itself is final, not still open.)
+
+**Student photo upload — RESOLVED: `multer.memoryStorage()`, no local
+folder dependency.** Confirmed real bug: upload failed with "Upload
+folder is missing on the server" because a `multer.diskStorage`
+destination folder didn't exist on a fresh deploy. Fixed per
+`prompts/fixes/student-fix3.md` and the permanent rule in
+`_core/additional-technical-considerations.md`'s File upload handling
+section — v2's Student photo upload uses its own `memoryStorage` +
+`upload_stream`→Cloudinary path; legacy `helpers/file-upload.js` and
+its controllers are left untouched per the isolation rule (§0), with
+its folder ensured to exist so legacy uploads stop failing.
+
+**Bulk Import UI — file selection requires an explicit Submit step.**
+Confirmed gap: the Import modal must not upload/process a file the
+moment it's chosen. Required flow: (1) user picks a file — nothing is
+sent to the server yet; (2) the modal shows the chosen file's name
+(and lets the user pick a different file again before submitting,
+replacing the shown name — never stuck with a wrong file and no way to
+change it); (3) an explicit "Import"/"Submit" button triggers the
+actual upload+enqueue. This also fixes a real usability trap: if a
+user picks the wrong file, there's currently no visible confirmation
+of *which* file is about to be imported before it's too late.
+
+**Bulk Import's demo/seed data must use the SAME enum lists as the
+import validator — confirmed real drift.** Re-importing this app's own
+exported Excel data failed on ~99% of rows (`Row 2: Must be one of:
+Illiterate, Primary, Secondary, Higher Secondary, Graduate,
+Postgraduate, Doctorate, Other`, etc.) because the exported demo values
+("High School", "Middle" for qualification; "Driver", "Housewife" for
+occupation) don't appear in the import validator's own whitelist
+("Secondary"/no equivalent for "Middle"; no "Driver"; "Homemaker" not
+"Housewife"). Root cause: the demo/export data generator and the
+import validator each hold their own separate hardcoded list instead
+of importing one shared constant. Fix: define `QUALIFICATION_OPTIONS`
+and `OCCUPATION_OPTIONS` once (e.g.
+`backend/modules/helpers/student/student.constants.js`) and have BOTH
+the import validator and any seed/demo data generator import from that
+single source — this is `performance-principles.md`'s "one shared
+value, never copy-pasted per place" rule applied to enum lists, not
+just functions. Also seen in the same failing batch: `Section "B" is
+not set up for this class` from row 52 onward — the demo/seed data
+assumes a Section B that Academic Setup was never seeded with for that
+class; the seed script needs to create matching sections before
+generating student rows that reference them, or the generator needs to
+only use sections that actually exist.
+
+**`session` — RESOLVED: build the `AcademicSession` model now, remove
+`admissionSession` from `Student` entirely.** Confirmed drift: a real
+admitted-student record in the current build had `admissionSession:
+"2026-2027"` stored as a plain string, not a reference —
+`v1/settings/academic-sessions.md` now specifies `label` as
+server-computed and every module's `session` field as an
+`AcademicSession._id` reference for exactly this reason. It was also
+on the **wrong document**: `manage-students.md`'s own schema note says
+class/stream/section placement lives on `StudentEnrollment`
+(session-scoped), never a flat field on `Student` — a flat
+`admissionSession` field contradicted that the same way a flat `class`
+field would. Final decision (both fixed together, not just the type):
+`AcademicSession` (adminId, server-computed `label`, `startDate`,
+`endDate`, `status`, `isLocked`, `createdBy`) is built in Settings now,
+seeded on demand from legacy labels; `Student.admissionSession` is
+removed; Admission submit creates the student's first
+`StudentEnrollment` row carrying the real `AcademicSession._id` in the
+same transaction as the Student create; existing records are migrated
+(resolve each legacy label string to that `adminId`'s matching session,
+flag/report any that don't resolve rather than silently dropping them).
+The API layer still accepts a session label from existing callers and
+resolves it to the id server-side, so nothing calling it needs to
+change shape.
+
+## Admission-time fee & concession: how it's actually taken and fixed
+
+`admissionFee`/`feesConcession` are captured once, during the
+Admission submit itself, not edited freely afterward as loose fields
+on the Student document (see "Editing after payment" above — this
+section covers how they're set the *first* time):
+
+1. Once `class`/`stream`/`session` are chosen on the form, the backend
+   resolves the matching `FeeStructure` for that
+   `(adminId, classId, streamId, sessionId)` and returns its
+   `totalFees` to the frontend — the admission officer never types a
+   raw fee amount from memory; it's always looked up, never
+   freehand-entered.
+2. `feesConcession` is entered as an amount (or %, converted server-
+   side to the same amount unit) against that resolved `totalFees`,
+   validated cross-field (`feesConcession ≤ totalFees`,
+   `CONCESSION_EXCEEDS_FEE` per the field table above) — this is the
+   ONE moment concession gets fixed for the admission; there's no
+   separate "set concession" step elsewhere in the flow.
+3. On submit, `CreateStudent`'s single transaction writes the Student
+   profile AND the first `FeesCollection` record together — the
+   `FeesCollection` record carries the resolved `totalFees` and the
+   entered `feesConcession` as its actual ledger entry (`payable =
+   totalFees - feesConcession`); the Student document itself does not
+   need to keep its own copy of either value as ongoing truth (see
+   "Should admissionFee/feesConcession live on Student" note below).
+4. A concession above some admin-configured threshold (e.g. >50% of
+   `totalFees`) should require an explicit reason/note field, stored
+   on the `FeesCollection` record for audit — not a silent large
+   discount with no trace of why.
+5. **After this point, `feesConcession` is Fees-module truth, not
+   Student-document truth.** Student's own `admissionFee`/
+   `feesConcession` fields, if kept at all, are a write-once snapshot
+   of what was decided at admission time for quick display — the Fees
+   module's `FeesCollection` record is the one place that can still
+   change (e.g. a later, separately-approved concession revision), and
+   the two are reconciled by re-reading from `FeesCollection`, never by
+   editing the Student copy directly.
 
 ---
 

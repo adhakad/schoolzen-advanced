@@ -10,6 +10,8 @@ Depends on Academic Setup and Staff modules.
 
 Also read `docs/schoolzen-planning/v1/holiday/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
 
+Also read `docs/schoolzen-planning/v1/holiday/optimization.md` — this module's concrete caching/invalidation/pagination/idempotency catalog (extends the shared conventions in `docs/schoolzen-planning/v1/_core/module-optimization-guide.md`). Implement it as part of this build — a module isn't done until its optimization.md is wired up either, not just the happy-path CRUD.
+
 ## Build
 **Backend**: `models/holiday/holiday.js`, `holiday-template.js`; `controllers/holiday/*.controller.js`; matching routes.
 **Frontend**: `holiday/holidays/`, `holiday/templates/`, `holiday/assign/`; `shared/services/holiday/*.service.ts`; `shared/models/holiday/*.model.ts`.

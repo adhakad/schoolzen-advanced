@@ -20,7 +20,9 @@ const logger = require('../helpers/logger');
 // required lazily, since that module throws at require-time without Redis — else an
 // in-process Map, which still protects a single API instance.
 
-const TTL_SECONDS = Number(process.env.IDEMPOTENCY_TTL_SECONDS) || 30;
+// ~24h (module-optimization-guide.md §3): long enough that a retry after a dropped
+// connection, or a user re-tapping minutes later, still returns the first result.
+const TTL_SECONDS = Number(process.env.IDEMPOTENCY_TTL_SECONDS) || 24 * 60 * 60;
 const KEY_PATTERN = /^[A-Za-z0-9-]{8,100}$/;
 
 let redis;
@@ -84,7 +86,9 @@ const idempotency = (module) => {
             }));
         }
 
-        const key = `idem:${req.adminId || 'anon'}:${req.method}:${req.baseUrl}${req.path}:${header}`;
+        // `idemp:{adminId}:{key}` (module-optimization-guide.md §3). The client key is a UUID
+        // per user action, so it never collides across endpoints within a school.
+        const key = `idemp:${req.adminId || 'anon'}:${header}`;
         const store = getStore();
 
         try {

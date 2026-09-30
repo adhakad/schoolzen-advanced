@@ -150,6 +150,23 @@ Examination's concern, not repeated here).
 - **Deleting a Role, an Academic Session, or a FieldConfig field all need the same cascade-count-before-block pattern** established across every other module's catalog (`ROLE_IN_USE`, `SESSION_IN_USE`, `FIELD_HAS_DATA`) — none of these three have a legacy delete endpoint to compare against, so the count-and-block behavior must be built fresh, not assumed present because "delete usually checks something."
 - **Response envelope cleanup**: `academic-session.js`'s and `exam-result-structure.js`'s catch blocks return bare strings (`'Internal Server Error!'`) inconsistently with the rest of the codebase's typed-error middleware — standardize here too, matching every other module's cleanup note.
 
+## Gap found outside this module's own 4 pages — no School Profile page exists anywhere in the plan
+
+Confirmed while reviewing where a school-level identifier like
+`udiseNumber` should actually live (see `student/errors.md`'s note —
+UDISE identifies a school, not a student): the legacy admin frontend
+has a real School Profile page (`school.component`) with
+`schoolName`, `schoolLogo`, `affiliationNumber`, and `board` — but no
+equivalent page exists anywhere across the 13 modules / 38 pages this
+package plans. If UDISE is genuinely school-level, and `board`/
+`affiliationNumber` are already known school-level fields with no
+home in the new plan either, this package is currently missing a
+School Profile settings page entirely, not just missing one field on
+an existing page. This needs a scope decision (add a 39th page to
+Settings, or fold into an existing page) before the affected fields
+can be placed correctly — flagged here rather than silently invented,
+since it changes the module's page count.
+
 ## Frontend component requirements
 
 - **Academic Sessions, Admission Form Fields, and Roles & Permissions have zero legacy frontend to port from** — confirmed, no matching component folder exists under `admin/admin/` for any of the three (only `school/` exists, and it covers unrelated school-profile fields, not sessions). All three pages' entire frontend — the Create Session modal, the type-to-confirm Set-Active flow, the FieldConfig grouped-list editor with its gear-icon rule modal, and the two-step Role/RoleAssignment matrix UI — is new v2 work built directly from `academic-sessions.md`/`admission-form-fields.md`/`roles-permissions.md`, not a migration, and should not be described as "matching legacy behavior" anywhere in the build since there is no legacy behavior to match.

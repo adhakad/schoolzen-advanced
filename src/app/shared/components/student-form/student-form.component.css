@@ -18,3 +18,23 @@
 .photo-circle img { width: 100%; height: 100%; object-fit: cover; }
 .photo-error { margin: -8px 0 12px; }
 .m-field.last { margin-bottom: 0; }
+
+/* Submit summary — "N fields need your attention" (student/errors.md, accessibility). */
+.form-summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; margin-bottom: 14px; border-radius: 8px;
+  background: var(--danger-soft); color: var(--danger); font-size: 13px; font-weight: 500;
+}
+.form-summary + .group-title { margin-top: 0; padding-top: 0; border-top: none; }
+
+/* Fee panel notes: a missing Fee Structure / a failed fetch — shown, never silent. */
+.fee-note { display: flex; align-items: center; gap: 6px; margin: -4px 0 14px; }
+.fee-note.warn { color: var(--warning); }
+.link-btn {
+  border: 0; background: transparent; padding: 0; margin-left: 4px;
+  color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline;
+}
+
+/* Custom fields: the same two-up rhythm as .m-row, however many the school added. */
+.custom-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; }
+@media (max-width: 767px) { .custom-grid { grid-template-columns: 1fr; } }

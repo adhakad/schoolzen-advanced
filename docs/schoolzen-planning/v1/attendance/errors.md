@@ -91,6 +91,14 @@ Wrong-tenant is always reported identically to genuinely missing — never a 403
 
 ---
 
+## Schema-level data-modeling notes (added by data-modeling review, cross-checked against `_core/database-design-principles.md`)
+
+- **`roster.md` says "No new model — reads/writes `shiftId` on `Staff` or on `StudentEnrollment`," but this file's own case tables assume a dedicated `Roster` collection** (a per-person `days.{date}` map written by `CreateRoster`/`BulkAssignRoster`, checked by `DeleteShift`'s `RosterModel` cascade guard) **and a separate `ClassShift` collection** (`ClassShiftModel`, `DeleteClassShift`, `BulkAssignClassShift`). These two descriptions of the same data cannot both be right — `roster.md`'s schema note needs correcting to describe the real `Roster`/`ClassShift` collections (each presumably keyed `(adminId, personType, personId)` / `(adminId, classId, ...)` with a per-date map), not a flat `shiftId` field on `Staff`/`StudentEnrollment`.
+- **`AttendanceRecord` has no documented `deletedAt`** despite `database-design-principles.md` naming Attendance explicitly in the soft-delete list (financial/historical records). `attendance-overview.md`'s schema line should carry this field even though no delete flow for `AttendanceRecord` is described yet in this module — the principle is decided at the collection-design stage, not deferred until a delete endpoint is built.
+- **`PunchLog`'s only documented index is the dedup hash (`punchHash`), a single-field index with no `adminId`-first compound index for tenant-scoped reads** (e.g. `GetPunchLog`/`getDayPunches`, referenced in the Frontend requirements below). Per the multi-tenancy rule, a query-serving index here should be `(adminId, personId, date)` (or similar) alongside the unique `punchHash` index used purely for write-dedup — the two indexes serve different purposes and neither substitutes for the other.
+
+---
+
 ## Backend controller requirements
 
 - **Tenant isolation on every single-record lookup in `shift.js` and `biometric-mapping.js`.** `GetSingleShift`, `UpdateShift`, `DeleteShift`, `GetSingleBiometricMapping`, `UpdateBiometricMapping`, `DeleteBiometricMapping` all resolve by bare `_id` with no `adminId` filter at all — every one of these six handlers lets any authenticated admin read, edit, or delete another school's shift or biometric mapping by guessing/enumerating an id. `class-shift.js`'s `BulkAssignClassShift` (`ShiftModel.findOne({_id, adminId})`) is the correct pattern already present in this same module — copy it, don't re-derive it.

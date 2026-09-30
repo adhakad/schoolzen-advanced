@@ -70,7 +70,7 @@ export class DpComponent implements OnChanges {
   /** Marks the trigger invalid (design-system.md, Form validation state). */
   @Input() invalid = false;
   @Input() ariaLabel = '';
-  @Input() describedBy = '';
+  @Input() describedBy: string | null = '';
 
   @Output() valueChange = new EventEmitter<string>();
   /** Every close — select, outside click, Escape. Parent marks its control touched here. */

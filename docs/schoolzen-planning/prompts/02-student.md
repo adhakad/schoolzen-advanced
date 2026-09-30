@@ -12,6 +12,8 @@ Read Academic Setup's built code (models/services) if you need to confirm how Cl
 
 Also read `docs/schoolzen-planning/v1/student/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
 
+Also read `docs/schoolzen-planning/v1/student/optimization.md` — this module's concrete caching/invalidation/pagination/idempotency catalog (extends the shared conventions in `docs/schoolzen-planning/v1/_core/module-optimization-guide.md`). Implement it as part of this build — a module isn't done until its optimization.md is wired up either, not just the happy-path CRUD.
+
 ## Build
 
 **Backend**: `models/student/student.js`, `student-enrollment.js`; `controllers/student/manage-students.controller.js`, `admission.controller.js`, `class-promotion.controller.js`; matching routes.

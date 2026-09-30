@@ -1,6 +1,7 @@
 'use strict';
 const Joi = require('joi');
 const { isValidSession, SESSION_EXAMPLE } = require('../../helpers/academic-session-format');
+const { SENSITIVE_FIELDS } = require('../../helpers/student/student-mask');
 
 // Request-shape schemas for Manage Students. The PROFILE fields of a create/update are not
 // here — they are FieldConfig-driven and validated by field-config.validator.js, so the
@@ -27,6 +28,9 @@ const scopeKeys = {
 
 const listStudentsQuerySchema = Joi.object({
     ...scopeKeys,
+    // Field projection (module-optimization-guide.md §4): the table's own columns, e.g.
+    // "name,photo,card" — whitelisted server-side, unknown names are ignored.
+    fields: Joi.string().trim().max(200).allow(''),
     search: Joi.string().trim().max(80).allow(''),
     // Keyset pagination: the _id of the last row of the previous page. Never an offset.
     cursor: objectId.allow('', null),
@@ -42,6 +46,25 @@ const overviewQuerySchema = Joi.object(scopeKeys);
 const excelScopeSchema = Joi.object({
     ...scopeKeys,
     classId: objectId.required().messages({ 'any.required': 'Pick a class first — Excel import/export applies to one class at a time' }),
+});
+
+// Export's "Masked" (default) / "Full (sensitive data)" choice — Full is logged.
+const excelExportSchema = excelScopeSchema.keys({
+    mode: Joi.string().valid('masked', 'full').default('masked'),
+});
+
+// GET /students/:id — `purpose=edit` is the Edit form's read (it needs the real values to
+// edit them); everything else gets the masked profile.
+const studentDetailQuerySchema = Joi.object({
+    adminId: Joi.string().trim().required(),
+    session: session.allow('', null),
+    purpose: Joi.string().valid('view', 'edit').default('view'),
+});
+
+// View Profile's per-field reveal — one masked identifier, logged.
+const revealFieldSchema = Joi.object({
+    adminId: Joi.string().trim().required(),
+    field: Joi.string().valid(...SENSITIVE_FIELDS).required(),
 });
 
 const bulkDeleteSchema = Joi.object({
@@ -74,6 +97,9 @@ module.exports = {
     listStudentsQuerySchema,
     overviewQuerySchema,
     excelScopeSchema,
+    excelExportSchema,
+    studentDetailQuerySchema,
+    revealFieldSchema,
     bulkDeleteSchema,
     assignCardsSchema,
     resyncSchema,

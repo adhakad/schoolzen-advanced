@@ -19,8 +19,8 @@ import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
+import { of, Subject } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, switchMap, takeUntil } from 'rxjs/operators';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 import { ManageStudentsService } from 'src/app/shared/services/student/manage-students.service';
@@ -28,10 +28,11 @@ import { StudentOptionsService } from 'src/app/shared/services/student/student-o
 import { JobStatusService } from 'src/app/shared/services/jobs/job-status.service';
 import { ConfirmConfig, DdOption } from 'src/app/shared/models/shared-components.model';
 import {
-  CascadeFilterValue, EMPTY_CASCADE, FieldConfigResponse, StudentDetail, StudentFilterOptions, StudentListRow
+  CascadeFilterValue, EMPTY_CASCADE, FieldConfigResponse, StudentDetail, StudentFilterOptions, StudentListResponse,
+  StudentListRow
 } from 'src/app/shared/models/student/student.model';
 import {
-  DeviceSyncResult, ImportResult, ManageStudentsOverview, VERIFY_MODE_OPTIONS
+  DeviceSyncResult, ImportResult, ListQuery, ManageStudentsOverview, VERIFY_MODE_OPTIONS
 } from 'src/app/shared/models/student/manage-students.model';
 import {
   describeClassScope, isClassScopeComplete
@@ -40,6 +41,14 @@ import { StudentFormComponent, StudentFormMode } from 'src/app/shared/components
 import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 import { errorMessageOf, rowErrorsOf, validationErrorsOf } from 'src/app/shared/utils/api-error.util';
 import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
+import { saveMessage } from 'src/app/shared/utils/save-message.util';
+import { compareText, DEFAULT_TEXT_CASE, SortDir, TextCase } from 'src/app/shared/utils/text-case.util';
+
+/**
+ * The only columns this table renders — sent as `?fields=` so the server projects just these
+ * (student/optimization.md, field projection).
+ */
+export const MANAGE_STUDENTS_FIELDS = 'name,admissionNo,status,photo,father,mother,contact,card';
 
 /** One line of the bulk-result panel: which record, and what happened to it. */
 interface BulkResultLine {
@@ -52,6 +61,21 @@ interface StudentRow extends StudentListRow {
   initials: string;
   gradient: string;
 }
+
+/**
+ * The header controls' final spec (student-fix4.md H): a sort arrow on Admission No.,
+ * Student and Roll No.; the "Aa" text-case trigger on Student only. Father and Mother are
+ * plain header text with neither control.
+ */
+export type SortColumn = 'admissionNo' | 'name' | 'rollNumber';
+
+/** Numbers ascending/descending, blanks (a Pending admission's number, no roll) always last. */
+const compareNumber = (a: number | null, b: number | null, dir: SortDir): number => {
+  if (a == null || b == null) return a == null ? (b == null ? 0 : 1) : -1;
+  return dir === 'asc' ? a - b : b - a;
+};
+
+const toRow = (row: StudentListRow): StudentRow => ({ ...row, initials: initialsOf(row.name), gradient: avatarGradient(row.studentId) });
 
 @Component({
   selector: 'app-manage-students',
@@ -96,6 +120,19 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
   busyRows = new Set<string>();
   overview: ManageStudentsOverview = { totalStudents: 0, cardsAssigned: 0 };
 
+  /**
+   * The Student column's DISPLAY case — Title Case on page load, never saved, never sent
+   * anywhere, never part of Excel export/import.
+   */
+  nameCase: TextCase = DEFAULT_TEXT_CASE;
+  /**
+   * Header sort (Ascending ↔ Descending), applied to the rows on screen. null = the list's
+   * own order until a header is clicked. The list pages by keyset, so this orders the loaded
+   * page; it is kept across page turns and re-applied to every page that arrives.
+   */
+  sortColumn: SortColumn | null = null;
+  sortDir: SortDir = 'asc';
+
   // Create / Update
   formOpen = false;
   formMode: StudentFormMode = 'create';
@@ -105,7 +142,7 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
   formError = '';
   saving = false;
   private editingId: string | null = null;
-  /** One Idempotency-Key per form-open (utils/idempotency.util.ts). */
+  /** One Idempotency-Key per Create form-open (utils/idempotency.util.ts); updates send none. */
   private formKey = '';
 
   // View Profile
@@ -133,6 +170,12 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
   importStatus = '';
   importResult: ImportResult | null = null;
   importError = '';
+  /** Columns the server didn't recognise — said once for the file, not per row. */
+  importWarning = '';
+  /** The chosen sheet — nothing uploads until Import is pressed. */
+  importFile: File | null = null;
+  /** Masked (default) or Full (logged) — the Export panel's choice. */
+  exportMode: 'masked' | 'full' = 'masked';
 
   // Bulk result panel — a per-row outcome, never one pass/fail toast for a selection.
   bulkResultOpen = false;
@@ -146,6 +189,8 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
   confirmConfig: ConfirmConfig = { title: '', message: '', confirmLabel: 'Delete' };
   private pending: { action: 'delete'; ids: string[] } | { action: 'resync'; row: StudentListRow } | null = null;
 
+  /** List requests — switchMapped, so a stale page/filter response never lands. */
+  private list$ = new Subject<ListQuery>();
   private destroyed$ = new Subject<void>();
 
   constructor(
@@ -164,6 +209,15 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
       this.loading = false;
       return;
     }
+
+    // switchMap: a newer filter/page/search cancels the in-flight request instead of racing it.
+    this.list$.pipe(
+      switchMap((query) => this.api.getStudents(this.adminId, query).pipe(
+        map((res): StudentListResponse | null => res),
+        catchError(() => of(null))
+      )),
+      takeUntil(this.destroyed$)
+    ).subscribe((res) => (res ? this.applyPage(res) : this.pageFailed()));
 
     this.loadOptions();
 
@@ -229,26 +283,96 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
     if (!this.session) return;
     this.loading = true;
     this.loadError = '';
-    this.api.getStudents(this.adminId, {
+    this.cdr.markForCheck();
+    this.list$.next({
       session: this.session,
       ...this.filter,
       search: this.search,
       cursor: this.cursors[this.page - 1],
-      limit: this.limit
-    }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
-      this.rows = res.rows.map((row) => ({ ...row, initials: initialsOf(row.name), gradient: avatarGradient(row.studentId) }));
-      this.total = res.total;
-      this.nextCursor = res.nextCursor;
-      this.cursors[this.page] = res.nextCursor;
-      this.loading = false;
-      this.cdr.markForCheck();
-    }, () => {
-      this.loading = false;
-      // Not the empty state: the table says the load FAILED and offers a retry.
-      this.rows = [];
-      this.loadError = "Couldn't load students.";
-      this.cdr.markForCheck();
+      limit: this.limit,
+      fields: MANAGE_STUDENTS_FIELDS
     });
+  }
+
+  private applyPage(res: StudentListResponse): void {
+    this.rows = this.sorted(res.rows.map(toRow));
+    this.total = res.total;
+    this.nextCursor = res.nextCursor;
+    this.cursors[this.page] = res.nextCursor;
+    this.loading = false;
+    this.cdr.markForCheck();
+  }
+
+  private pageFailed(): void {
+    this.loading = false;
+    // Not the empty state: the table says the load FAILED and offers a retry.
+    this.rows = [];
+    this.loadError = "Couldn't load students.";
+    this.cdr.markForCheck();
+  }
+
+  // --- write-back (student/optimization.md): patch from the mutation's response, no refetch
+
+  /** Would this row appear under the current filter + search? */
+  private inView(row: StudentListRow): boolean {
+    const f = this.filter;
+    if ((f.classId && row.classId !== f.classId) || (f.streamId && row.streamId !== f.streamId)
+      || (f.groupId && row.groupId !== f.groupId) || (f.sectionId && row.sectionId !== f.sectionId)) return false;
+    if (!this.search) return true;
+    const term = this.search.toLowerCase();
+    return row.name.toLowerCase().startsWith(term) || String(row.admissionNo ?? '') === this.search;
+  }
+
+  private writeBackCreated(row: StudentListRow): void {
+    this.overview = { ...this.overview, totalStudents: this.overview.totalStudents + 1 };
+    if (!this.inView(row)) return;
+    this.total += 1;
+    // Only page 1 shows it at the top; a later page's keyset window is left as it was.
+    if (this.page === 1) this.rows = this.sorted([toRow(row), ...this.rows].slice(0, this.limit));
+  }
+
+  private writeBackUpdated(row: StudentListRow): void {
+    const index = this.rows.findIndex((item) => item.studentId === row.studentId);
+    if (index === -1) return;
+    if (this.inView(row)) {
+      // Re-sorted: an edited name can move the row.
+      this.rows = this.sorted(this.rows.map((item, i) => (i === index ? toRow(row) : item)));
+    } else {
+      // Moved out of the filtered class/section by this edit.
+      this.rows = this.rows.filter((_item, i) => i !== index);
+      this.total = Math.max(0, this.total - 1);
+    }
+    if (this.selected.has(row.studentId)) this.selected.set(row.studentId, row);
+  }
+
+  private writeBackDeleted(ids: string[]): void {
+    const gone = new Set(ids);
+    const removed = this.rows.filter((row) => gone.has(row.studentId));
+    this.rows = this.rows.filter((row) => !gone.has(row.studentId));
+    this.total = Math.max(0, this.total - removed.length);
+    this.overview = {
+      totalStudents: Math.max(0, this.overview.totalStudents - ids.length),
+      cardsAssigned: Math.max(0, this.overview.cardsAssigned - removed.filter((row) => row.card).length)
+    };
+    // An emptied page can't be patched into a full one — refetch it (keyset window moved).
+    if (!this.rows.length && this.total > 0) this.resetAndFetch();
+  }
+
+  private writeBackCards(cards: { studentId: string; card: string }[]): void {
+    const byStudent = new Map(cards.map((item) => [item.studentId, item.card]));
+    let newlyAssigned = 0;
+    this.rows = this.rows.map((row) => {
+      const card = byStudent.get(row.studentId);
+      if (!card) return row;
+      if (!row.card) newlyAssigned += 1;
+      return { ...row, card };
+    });
+    byStudent.forEach((card, studentId) => {
+      const picked = this.selected.get(studentId);
+      if (picked) this.selected.set(studentId, { ...picked, card });
+    });
+    // Rows off this page aren't known here; the next overview fetch settles the exact count.
+    this.overview = { ...this.overview, cardsAssigned: this.overview.cardsAssigned + newlyAssigned };
   }
 
   retryList(): void {
@@ -295,6 +419,39 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
   }
 
   trackByRow = (_index: number, row: StudentRow): string => row.enrollmentId;
+
+  // --- header: sort + display case (frontend only, no API call) -------------------------
+
+  /** Clicking a column label: first click sorts it A→Z, each further click flips it. */
+  toggleSort(column: SortColumn): void {
+    this.sortDir = this.sortColumn === column && this.sortDir === 'asc' ? 'desc' : 'asc';
+    this.sortColumn = column;
+    this.rows = this.sorted(this.rows);
+  }
+
+  /** aria-sort for a header cell. */
+  /** The header arrow: neutral until sorted, then the direction. */
+  sortIcon(column: SortColumn): string {
+    if (this.sortColumn !== column) return 'bi-arrow-down-up';
+    return this.sortDir === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down';
+  }
+
+  ariaSort(column: SortColumn): string {
+    if (this.sortColumn !== column) return 'none';
+    return this.sortDir === 'asc' ? 'ascending' : 'descending';
+  }
+
+  setNameCase(mode: TextCase): void {
+    this.nameCase = mode;
+  }
+
+  private sorted(rows: StudentRow[]): StudentRow[] {
+    const column = this.sortColumn;
+    if (!column) return rows;
+    return [...rows].sort((a, b) => (column === 'name'
+      ? compareText(a.name, b.name, this.sortDir)
+      : compareNumber(a[column], b[column], this.sortDir)));
+  }
   trackByTarget = (_index: number, row: StudentListRow): string => row.studentId;
 
   // --- selection ------------------------------------------------------------------------
@@ -352,12 +509,11 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
   }
 
   onEdit(row: StudentListRow): void {
-    this.api.getStudent(this.adminId, row.studentId, this.session).pipe(takeUntil(this.destroyed$)).subscribe((detail) => {
+    this.api.getStudent(this.adminId, row.studentId, this.session, 'edit').pipe(takeUntil(this.destroyed$)).subscribe((detail) => {
       this.formMode = 'edit';
       this.formTitle = 'Update Student';
       this.formDetail = detail;
       this.editingId = row.studentId;
-      this.formKey = newIdempotencyKey();
       this.clearFormErrors();
       this.formOpen = true;
       this.cdr.markForCheck();
@@ -377,15 +533,20 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
     this.saving = true;
     this.clearFormErrors();
     const request = this.editingId
-      ? this.api.updateStudent(this.editingId, body, this.formKey)
+      ? this.api.updateStudent(this.editingId, body)
       : this.api.createStudent(body, this.formKey);
 
+    const editing = Boolean(this.editingId);
     request.pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.saving = false;
       this.formOpen = false;
       // Saved, but the photo didn't upload (IMAGE_UPLOAD_FAILED) — say so, don't hide it.
-      this.snackBar.open(res.warning ? res.warning.message : res.message, 'Close', { duration: res.warning ? 6000 : 3000 });
-      this.refresh();
+      this.snackBar.open(saveMessage(res), 'Close', { duration: res.warnings?.length ? 8000 : 3000 });
+      // Write-back: the response carries the saved row. Only a response without one (no
+      // placement in this session) falls back to a refetch.
+      if (!res.student) this.refresh();
+      else if (editing) this.writeBackUpdated(res.student);
+      else this.writeBackCreated(res.student);
       this.cdr.markForCheck();
     }, (error: unknown) => {
       this.saving = false;
@@ -476,6 +637,8 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
       // that row; the rest were saved and are syncing.
       const refused = this.cardErrorsByRow(queued.rows);
       this.cardRowErrors = refused;
+      // The cards are saved at this point (the job only pushes them to devices) — show them now.
+      this.writeBackCards(queued.cards || []);
       this.cdr.markForCheck();
 
       this.jobs.watch<DeviceSyncResult>('student', this.adminId, queued.jobId)
@@ -496,11 +659,9 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
               this.cardOpen = false;
               this.snackBar.open(queued.message, 'Close', { duration: 3000 });
             }
-            this.refresh();
           } else if (status.state === 'failed') {
             this.cardSaving = false;
             this.cardError = "Cards were saved, but the device sync didn't finish. Use Resync once the device is online.";
-            this.refresh();
           }
           this.cdr.markForCheck();
         }, () => {
@@ -596,14 +757,14 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Double-submit guard: one delete in flight at a time, plus the Idempotency-Key.
+    // Double-submit guard: one delete in flight at a time (a repeated delete is harmless anyway).
     if (this.deleting) return;
     this.deleting = true;
     this.setBusy(pending.ids, true);
     const nameById = new Map<string, string>();
     pending.ids.forEach((id) => nameById.set(id, this.selected.get(id)?.name || this.rows.find((row) => row.studentId === id)?.name || id));
 
-    this.api.bulkDelete(this.adminId, pending.ids, newIdempotencyKey()).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+    this.api.bulkDelete(this.adminId, pending.ids).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.deleting = false;
       this.setBusy(pending.ids, false);
       pending.ids.forEach((id) => this.selected.delete(id));
@@ -614,8 +775,9 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
       } else {
         this.snackBar.open(res.message, 'Close', { duration: 3000 });
       }
-      this.resetAndFetch();
-      this.fetchOverview();
+      const refused = new Set((res.rows || []).map((row) => row.id));
+      this.writeBackDeleted(pending.ids.filter((id) => !refused.has(id)));
+      this.cdr.markForCheck();
     }, () => {
       this.deleting = false;
       this.setBusy(pending.ids, false);
@@ -647,6 +809,10 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
     this.importStatus = '';
     this.importResult = null;
     this.importError = '';
+    this.importWarning = '';
+    this.importFile = null;
+    // Every opening starts Masked: Full is always a deliberate choice.
+    this.exportMode = 'masked';
     this.excelOpen = true;
   }
 
@@ -657,13 +823,14 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
   onExport(): void {
     if (this.exporting || !this.excelEnabled) return;
     this.exporting = true;
-    this.api.exportExcel(this.adminId, { session: this.session, classId: this.filter.classId, streamId: this.filter.streamId })
+    const mode = this.exportMode;
+    this.api.exportExcel(this.adminId, { session: this.session, classId: this.filter.classId, streamId: this.filter.streamId, mode })
       .pipe(takeUntil(this.destroyed$))
       .subscribe((blob) => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `students-${this.excelScopeLabel.replace(/[^\w]+/g, '-')}-${this.session}.xlsx`;
+        link.download = `students-${this.excelScopeLabel.replace(/[^\w]+/g, '-')}-${this.session}${mode === 'full' ? '-FULL' : ''}.xlsx`;
         link.click();
         URL.revokeObjectURL(url);
         this.exporting = false;
@@ -674,15 +841,26 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
       });
   }
 
-  onImportFile(event: Event): void {
+  /** Choosing (or re-choosing) a file only selects it — it's shown by name until Import. */
+  onImportFileChosen(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files && input.files[0];
     input.value = '';
     if (!file || this.importing) return;
+    this.importResult = null;
+    this.importWarning = '';
     if (!/\.xlsx$/i.test(file.name)) {
+      this.importFile = null;
       this.importError = 'Choose an Excel (.xlsx) file.';
       return;
     }
+    this.importError = '';
+    this.importFile = file;
+  }
+
+  onImportSubmit(): void {
+    const file = this.importFile;
+    if (!file || this.importing) return;
 
     const body = new FormData();
     body.append('adminId', this.adminId);
@@ -693,18 +871,20 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
 
     this.importing = true;
     this.importError = '';
+    this.importWarning = '';
     this.importResult = null;
-    this.importStatus = 'Uploading…';
+    this.importStatus = 'Uploading ' + file.name + '…';
 
-    // A new key per file pick: choosing a file again is a new submission, a double-fire of
-    // the same pick is not.
-    this.api.importExcel(body, newIdempotencyKey()).pipe(takeUntil(this.destroyed$)).subscribe((queued) => {
+    // The job dedups on (school, scope, file hash): the same file picked twice imports once.
+    this.api.importExcel(body).pipe(takeUntil(this.destroyed$)).subscribe((queued) => {
       this.importStatus = 'Importing — you can keep working while it runs.';
+      this.importWarning = queued.warning?.message || '';
       this.cdr.markForCheck();
       this.jobs.watch<ImportResult>('student', this.adminId, queued.jobId).pipe(takeUntil(this.destroyed$)).subscribe((status) => {
         if (status.state === 'completed') {
           this.importing = false;
           this.importStatus = '';
+          this.importFile = null;
           this.importResult = status.result;
           this.refresh();
         } else if (status.state === 'failed') {

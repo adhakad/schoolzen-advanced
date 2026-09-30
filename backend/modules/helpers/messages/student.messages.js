@@ -28,6 +28,17 @@ const excelEmpty = () => 'That sheet has no student rows under the header row.';
 const importQueued = () => 'Import started — you can keep working while it runs.';
 
 const admissionNoLocked = () => 'Admission No. has already been issued and cannot be changed.';
+
+// Admission-time fee & concession (student/errors.md).
+const rupees = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`;
+const concessionExceedsFee = (totalFee) => `Concession can't be greater than the total fee (${rupees(totalFee)}).`;
+const concessionReasonRequired = (percent) =>
+    `A concession above ${percent}% of the total fee needs a reason — it's kept on the fee record.`;
+const feeStructureMissing = (session) =>
+    `No fee structure is set up for this class in ${session} yet, so no fee record was created. ` +
+    'Set it up in Fees → Fee Structure; the admission itself is saved.';
+const feesManagedInFees = () =>
+    "Admission fee and concession are recorded on this student's fee record — change them in Fees, not here.";
 const placementLocked = () => 'Stream and Subject Group can only be changed while a promotion into a streamed class is incomplete.';
 
 const cardsQueued = (count) =>
@@ -59,7 +70,7 @@ const duplicate = {
     ROLL_NUMBER_DUPLICATE: () => 'This roll number is already taken in this class.',
     AADHAR_DUPLICATE: () => 'This Aadhar number is already registered.',
     SAMAGRA_ID_DUPLICATE: () => 'This Samagra ID is already registered.',
-    UDISE_DUPLICATE: () => 'This UDISE number is already registered.',
+    PEN_DUPLICATE: () => 'This PEN is already registered to another student.',
     CARD_ALREADY_ASSIGNED: () => 'This card is already assigned to someone else.',
 };
 
@@ -78,6 +89,10 @@ const bulkRowsFailed = (failed, total) => `${failed} of ${total} rows could not 
 const duplicateSubmit = () => 'This request is already being processed.';
 
 module.exports = {
+    concessionExceedsFee,
+    concessionReasonRequired,
+    feeStructureMissing,
+    feesManagedInFees,
     duplicate,
     imageUploadFailed,
     doaBeforeDob,

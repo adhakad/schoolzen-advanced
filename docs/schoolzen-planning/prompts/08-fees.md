@@ -11,6 +11,8 @@ Depends on Student and Academic Setup modules.
 
 Also read `docs/schoolzen-planning/v1/fees/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
 
+Also read `docs/schoolzen-planning/v1/fees/optimization.md` — this module's concrete caching/invalidation/pagination/idempotency catalog (extends the shared conventions in `docs/schoolzen-planning/v1/_core/module-optimization-guide.md`). Implement it as part of this build — a module isn't done until its optimization.md is wired up either, not just the happy-path CRUD.
+
 ## Build
 **Backend**: `models/fees/fee-structure.js`, `student-fee-record.js`, `fee-payment.js`, `fee-reminder-filter.js`; `controllers/fees/*.controller.js`; matching routes.
 **Frontend**: one component folder per page under `fees/`; `shared/services/fees/*.service.ts`; `shared/models/fees/*.model.ts`.

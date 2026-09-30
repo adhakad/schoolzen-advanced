@@ -1,13 +1,15 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
+import { By } from '@angular/platform-browser';
 import { DdComponent } from './dd.component';
 import { DdOption } from 'src/app/shared/models/shared-components.model';
 
 @Component({
   template: `
+    <div class="spacer" [style.height.px]="spacer"></div>
     <app-dd [options]="options" [value]="value" [disabled]="disabled"
-            [disabledHint]="disabledHint" [placeholder]="placeholder"
+            [disabledHint]="disabledHint" [placeholder]="placeholder" [invalid]="invalid" describedBy="err-x"
             (valueChange)="value = $event; changes = changes + 1" (closed)="closes = closes + 1"></app-dd>
     <button type="button" class="outside">outside</button>`
 })
@@ -23,6 +25,8 @@ class HostComponent {
   placeholder = '— Select —';
   changes = 0;
   closes = 0;
+  invalid = false;
+  spacer = 0;
 }
 
 describe('DdComponent', () => {
@@ -40,8 +44,11 @@ describe('DdComponent', () => {
   });
 
   const query = (selector: string): HTMLElement => fixture.nativeElement.querySelector(selector);
-  const options = (): HTMLElement[] =>
-    Array.from(fixture.nativeElement.querySelectorAll('.dd-option'));
+  // The menu element wherever it currently is — inside the host while closed, in <body>
+  // while open (portaled).
+  const dd = (): DdComponent => fixture.debugElement.query(By.directive(DdComponent)).componentInstance;
+  const menu = (): HTMLElement => dd().menu.nativeElement;
+  const options = (): HTMLElement[] => Array.from(menu().querySelectorAll('.dd-option'));
   const trigger = (): HTMLElement => query('.dd-trigger');
   const ddHost = (): HTMLElement => query('app-dd');
 
@@ -188,7 +195,7 @@ describe('DdComponent', () => {
   it('emits closed on pick, outside click and Escape — never while it was not open', () => {
     trigger().click();
     fixture.detectChanges();
-    (fixture.nativeElement.querySelectorAll('.dd-option')[1] as HTMLElement).click();
+    options()[1].click();
     fixture.detectChanges();
     expect(host.closes).toBe(1);
 
@@ -207,5 +214,80 @@ describe('DdComponent', () => {
     query('.outside').click();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(host.closes).toBe(3);
+  });
+
+  // design-system.md, "Menu positioning and open/close behavior".
+  describe('menu positioning', () => {
+    it('renders the open menu in <body> (never clipped by a modal), and puts it back on close', () => {
+      trigger().click();
+      fixture.detectChanges();
+      expect(menu().parentElement).toBe(document.body);
+      expect(menu().classList).toContain('dd-portal');
+      expect(getComputedStyle(menu()).position).toBe('fixed');
+
+      trigger().click();
+      fixture.detectChanges();
+      expect(ddHost().contains(menu())).toBe(true);
+      expect(menu().classList).not.toContain('dd-portal');
+    });
+
+    it('opens below the trigger when it fits', () => {
+      trigger().click();
+      fixture.detectChanges();
+      expect(dd().flipped).toBe(false);
+      expect(menu().getBoundingClientRect().top).toBeGreaterThanOrEqual(trigger().getBoundingClientRect().bottom);
+    });
+
+    it('flips upward when there is no room below', () => {
+      host.spacer = window.innerHeight - 60;
+      fixture.detectChanges();
+      trigger().click();
+      fixture.detectChanges();
+      expect(dd().flipped).toBe(true);
+      expect(menu().getBoundingClientRect().bottom).toBeLessThanOrEqual(trigger().getBoundingClientRect().top);
+      expect(menu().getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+    });
+
+    it('stays open through a scroll — it follows the trigger instead of closing', () => {
+      trigger().click();
+      fixture.detectChanges();
+      document.dispatchEvent(new Event('scroll'));
+      fixture.detectChanges();
+      expect(ddHost().classList).toContain('open');
+      expect(host.closes).toBe(0);
+    });
+
+    it('closes when focus moves to another field', () => {
+      trigger().click();
+      fixture.detectChanges();
+      query('.outside').focus();
+      fixture.detectChanges();
+      expect(ddHost().classList).not.toContain('open');
+      expect(host.closes).toBe(1);
+    });
+
+    it('a click inside the portaled menu (not on an option) does not close it', () => {
+      trigger().click();
+      fixture.detectChanges();
+      menu().click();
+      fixture.detectChanges();
+      expect(ddHost().classList).toContain('open');
+    });
+
+    it('leaves nothing in <body> when destroyed while open', () => {
+      trigger().click();
+      fixture.detectChanges();
+      const open = menu();
+      fixture.destroy();
+      expect(document.body.contains(open)).toBe(false);
+    });
+  });
+
+  it('carries aria-invalid / aria-describedby for a field in error', () => {
+    expect(trigger().getAttribute('aria-invalid')).toBeNull();
+    host.invalid = true;
+    fixture.detectChanges();
+    expect(trigger().getAttribute('aria-invalid')).toBe('true');
+    expect(trigger().getAttribute('aria-describedby')).toBe('err-x');
   });
 });

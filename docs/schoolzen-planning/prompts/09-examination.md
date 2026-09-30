@@ -11,6 +11,8 @@ Depends on Academic Setup and Student.
 
 Also read `docs/schoolzen-planning/v1/examination/errors.md` — this module's concrete error/validation catalog (field checks, duplicates, cross-field bounds, cascade blocks, bulk row-level errors, concurrency). Implement these cases as part of this build, not as a later pass — a module isn't done until its errors.md cases are covered, not just the happy path.
 
+Also read `docs/schoolzen-planning/v1/examination/optimization.md` — this module's concrete caching/invalidation/pagination/idempotency catalog (extends the shared conventions in `docs/schoolzen-planning/v1/_core/module-optimization-guide.md`). Implement it as part of this build — a module isn't done until its optimization.md is wired up either, not just the happy-path CRUD.
+
 ## Build
 **Backend**: `models/examination/marksheet-structure.js`, `admit-card-structure.js`; `controllers/examination/*.controller.js`; matching routes.
 **Frontend**: 4 page components under `examination/`; `shared/services/examination/*.service.ts`; `shared/models/examination/*.model.ts`.

@@ -6,7 +6,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { MessageResponse, StudentListResponse } from 'src/app/shared/models/student/student.model';
+import { FeeQuote, MessageResponse, StudentListResponse } from 'src/app/shared/models/student/student.model';
 import { ListQuery } from 'src/app/shared/models/student/manage-students.model';
 import { AdmissionOverview } from 'src/app/shared/models/student/admission.model';
 import { LetterheadDocument } from 'src/app/shared/models/letterhead.model';
@@ -21,6 +21,11 @@ export class AdmissionService {
 
   getAdmissions(adminId: string, query: ListQuery): Observable<StudentListResponse> {
     return this.http.get<StudentListResponse>(`${this.url}/admissions`, { params: toParams(adminId, query) });
+  }
+
+  /** The Fee Structure's admission fee + total for a placement — never typed on the form. */
+  getFeeQuote(adminId: string, query: { session: string; classId: string; streamId?: string; groupId?: string }): Observable<FeeQuote> {
+    return this.http.get<FeeQuote>(`${this.url}/admissions/fee-quote`, { params: toParams(adminId, query) });
   }
 
   getOverview(adminId: string, session: string): Observable<AdmissionOverview> {
