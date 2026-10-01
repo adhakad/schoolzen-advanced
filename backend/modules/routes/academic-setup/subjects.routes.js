@@ -5,6 +5,7 @@ const router = express.Router();
 const { isAdminAuth } = require('../../middleware/admin-auth');
 const assertAdminScope = require('../../middleware/assert-admin-scope');
 const validateRequest = require('../../middleware/validate-request');
+const idempotency = require('../../middleware/idempotency');
 const {
     createSubjectSchema,
     updateSubjectSchema,
@@ -19,10 +20,12 @@ const {
 
 // Mounted at /api/v2/academic-setup — wiring only, no logic and no Mongoose calls.
 const scope = assertAdminScope('academic-setup');
+// Double-submit backstop on Add/Edit (P1-10) — the shared Idempotency-Key middleware.
+const idem = idempotency('academic-setup');
 
 router.get('/subjects', isAdminAuth, scope, GetSubjects);
-router.post('/subjects', isAdminAuth, scope, validateRequest(createSubjectSchema, 'academic-setup'), CreateSubject);
-router.put('/subjects/:id', isAdminAuth, scope, validateRequest(updateSubjectSchema, 'academic-setup'), UpdateSubject);
+router.post('/subjects', isAdminAuth, scope, idem, validateRequest(createSubjectSchema, 'academic-setup'), CreateSubject);
+router.put('/subjects/:id', isAdminAuth, scope, idem, validateRequest(updateSubjectSchema, 'academic-setup'), UpdateSubject);
 
 // POST, not DELETE: the selection is a body (an array of ids plus the confirmation flag),
 // and a DELETE with a body is awkward through both HttpClient and proxies.

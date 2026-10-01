@@ -49,6 +49,11 @@ export interface AcademicClass {
   sections: ClassSection[];
   streams: ClassStream[];
   studentCount: number;
+  /**
+   * How many enrolled students block a delete (CLASS_HAS_STUDENTS) — returned WITH the
+   * list, so the confirmation shows it before the attempt, not after a failed delete.
+   */
+  blockingCount?: number;
 }
 
 /** One entry of the modal's Class Name dropdown: the standard names not yet configured. */
@@ -68,10 +73,21 @@ export interface SectionDraft {
   name: string;
 }
 
+/**
+ * A group as the Class modal edits it: a NAME only. Subjects are picked solely on the Subject
+ * Groups page (subject-groups.md), so this modal never sends subjectIds — `subjectCount` is
+ * display-only, driving the "No subjects assigned" tag.
+ */
 export interface GroupDraft {
   _id?: string;
   name: string;
-  subjectIds: string[];
+  subjectCount?: number;
+}
+
+/** What the save sends per group: identity and name, never subjects. */
+export interface GroupPayload {
+  _id?: string;
+  name: string;
 }
 
 export interface StreamDraft {
@@ -103,5 +119,7 @@ export interface ClassPayload {
   class?: number;
   hasStreams: boolean;
   sections: SectionDraft[];
-  streams: { _id?: string; name: string; sections: SectionDraft[]; groups: GroupDraft[] }[];
+  streams: { _id?: string; name: string; sections: SectionDraft[]; groups: GroupPayload[] }[];
+  /** Update only: the admin confirmed dropping an 11th/12th's legacy flat sections. */
+  confirmRemoveSections?: boolean;
 }

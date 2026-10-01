@@ -24,14 +24,24 @@ import {
 } from '@angular/core';
 import { Subject as RxSubject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
-import { HttpErrorResponse } from '@angular/common/http';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
-import { ApiError, ApiErrorResponse } from 'src/app/shared/models/api-error.model';
 import { ConfirmConfig, DdOption } from 'src/app/shared/models/shared-components.model';
 import { SubjectsService } from 'src/app/shared/services/academic-setup/subjects.service';
 import {
   Subject, SubjectFormValue, SubjectPayload, SubjectSummary
 } from 'src/app/shared/models/academic-setup/subject.model';
+import { BulkDeleteResult, BulkOutcomeLine } from 'src/app/shared/models/academic-setup/bulk-delete.model';
+import { bulkDeleteOutcome, countOf } from 'src/app/shared/utils/academic-setup-bulk-delete.util';
+import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
+import { inlineFormErrors } from 'src/app/shared/utils/academic-setup-errors.util';
+
+/**
+ * A subject's dependents are the Subject Groups that include it. The typed-DELETE confirm
+ * sends `confirmed: true`, so the server deletes it AND removes it from those groups in one
+ * transaction — the count is a named consequence shown upfront, not a block.
+ */
+const usedInMessage = (count: number): string =>
+  'Used in ' + countOf(count, 'subject group') + ' — deleting removes it from ' + (count === 1 ? 'that group.' : 'those groups.');
 
 const EMPTY_FORM: SubjectFormValue = {
   id: null,
@@ -52,9 +62,16 @@ const KNOWN_FIELDS: readonly string[] = ['name', 'type', 'status'];
 export class SubjectsComponent implements OnInit, OnDestroy {
   adminId = '';
   loading = true;
+  /** A failed list fetch — rendered distinctly from a genuinely empty result, with a retry. */
+  loadError = '';
   search = '';
 
   rows: Subject[] = [];
+  /**
+   * Every row seen on any page, by id: a selection survives paging, so the delete
+   * confirmation needs the name and blockingCount of rows no longer on screen.
+   */
+  private known = new Map<string, Subject>();
   page = 1;
   limit = 10;
   total = 0;
@@ -84,10 +101,19 @@ export class SubjectsComponent implements OnInit, OnDestroy {
   form: SubjectFormValue = { ...EMPTY_FORM };
   fieldErrors: Record<string, string> = {};
   formError = '';
+  /** One Idempotency-Key per modal-open, reused by every retry of that same submission. */
+  private formKey = '';
 
   confirmOpen = false;
   confirmConfig: ConfirmConfig = { title: '', message: '', confirmLabel: 'Delete' };
   private deleteIds: string[] = [];
+  /** Double-submit guard for the delete itself. */
+  deleting = false;
+
+  /** Per-row outcome of a delete that did not remove every requested row. */
+  bulkResultOpen = false;
+  bulkResultSummary = '';
+  bulkResultLines: BulkOutcomeLine[] = [];
 
   /** Typing must not fire a request per keystroke — the search is debounced through here. */
   private searchInput$ = new RxSubject<string>();
@@ -126,19 +152,28 @@ export class SubjectsComponent implements OnInit, OnDestroy {
 
   private fetchSubjects(): void {
     this.loading = true;
+    this.loadError = '';
     this.subjectsService
       .getSubjects(this.adminId, { search: this.search, page: this.page, limit: this.limit })
       .pipe(takeUntil(this.destroyed$))
       .subscribe((res) => {
         this.rows = res.rows || [];
+        this.rows.forEach((row) => this.known.set(row._id, row));
         this.total = res.total || 0;
-        this.summary = res.summary;
+        this.summary = res.summary || this.summary;
         this.loading = false;
         this.cdr.markForCheck();
       }, () => {
+        // Not the empty state: the table says the load FAILED and offers a retry.
+        this.rows = [];
+        this.loadError = "Couldn't load subjects.";
         this.loading = false;
         this.cdr.markForCheck();
       });
+  }
+
+  retryList(): void {
+    this.fetchSubjects();
   }
 
   onSearchChange(value: string): void {
@@ -191,6 +226,8 @@ export class SubjectsComponent implements OnInit, OnDestroy {
     this.formTitle = 'Add Subject';
     this.form = { ...EMPTY_FORM };
     this.clearErrors();
+    this.saving = false;
+    this.formKey = newIdempotencyKey();
     this.formOpen = true;
   }
 
@@ -198,6 +235,8 @@ export class SubjectsComponent implements OnInit, OnDestroy {
     this.formTitle = 'Edit Subject';
     this.form = { id: row._id, name: row.name, type: row.type, status: row.status };
     this.clearErrors();
+    this.saving = false;
+    this.formKey = newIdempotencyKey();
     this.formOpen = true;
   }
 
@@ -238,8 +277,8 @@ export class SubjectsComponent implements OnInit, OnDestroy {
     };
 
     const request = this.form.id
-      ? this.subjectsService.updateSubject(this.form.id, payload)
-      : this.subjectsService.createSubject(payload);
+      ? this.subjectsService.updateSubject(this.form.id, payload, this.formKey)
+      : this.subjectsService.createSubject(payload, this.formKey);
 
     request.pipe(takeUntil(this.destroyed$)).subscribe(() => {
       this.saving = false;
@@ -260,25 +299,12 @@ export class SubjectsComponent implements OnInit, OnDestroy {
     this.formError = '';
   }
 
+  /** ValidationError, and a field-naming ConflictError (SUBJECT_DUPLICATE), land inline. */
   private bindFieldErrors(error: unknown): void {
-    const apiError = this.toApiError(error);
-    if (apiError?.category !== 'ValidationError') return;
-
-    const errors: Record<string, string> = {};
-    let formError = '';
-    (apiError.fields || []).forEach((field) => {
-      if (KNOWN_FIELDS.indexOf(field.field) === -1) formError = formError || field.message;
-      else errors[field.field] = field.message;
-    });
-
-    this.fieldErrors = errors;
-    this.formError = formError || (Object.keys(errors).length ? '' : apiError.message);
-  }
-
-  private toApiError(error: unknown): ApiError | undefined {
-    const candidate = error as (ApiError & Partial<HttpErrorResponse>) | undefined;
-    if (candidate && candidate.category) return candidate as ApiError;
-    return (candidate?.error as ApiErrorResponse | undefined)?.error;
+    const inline = inlineFormErrors(error, KNOWN_FIELDS);
+    if (!inline) return;
+    this.fieldErrors = inline.fields;
+    this.formError = inline.formError;
   }
 
   // --- delete -------------------------------------------------------------------------
@@ -292,11 +318,32 @@ export class SubjectsComponent implements OnInit, OnDestroy {
     this.openDeleteConfirm(Array.from(this.selected));
   }
 
+  private labelOf(id: string): string {
+    return this.known.get(id)?.name || 'Subject';
+  }
+
+  /**
+   * The blocking count comes from the list response, so the confirmation says what will be
+   * refused BEFORE the attempt, never only after a failed delete.
+   */
   private openDeleteConfirm(ids: string[]): void {
     this.deleteIds = ids;
+    const inUse = ids.filter((id) => (this.known.get(id)?.blockingCount || 0) > 0);
+
+    let scopeNote: string | undefined;
+    if (ids.length === 1 && inUse.length === 1) {
+      scopeNote = usedInMessage(this.known.get(ids[0])?.blockingCount || 0);
+    } else if (inUse.length) {
+      const groups = inUse.reduce((sum, id) => sum + (this.known.get(id)?.blockingCount || 0), 0);
+      scopeNote = inUse.length + ' of ' + ids.length + ' selected are used in Subject Groups ('
+        + inUse.map((id) => this.labelOf(id)).join(', ') + ') — deleting removes them from '
+        + countOf(groups, 'group assignment') + '.';
+    }
+
     this.confirmConfig = {
       title: 'Delete ' + ids.length + (ids.length === 1 ? ' subject?' : ' subjects?'),
-      message: "This can't be undone. Any Subject Group that includes it will need to be updated.",
+      message: "This can't be undone.",
+      scopeNote,
       confirmLabel: 'Delete',
       variant: 'warning',
       typeToConfirm: 'DELETE'
@@ -308,15 +355,41 @@ export class SubjectsComponent implements OnInit, OnDestroy {
     this.confirmOpen = false;
     const ids = this.deleteIds;
     this.deleteIds = [];
-    if (!ids.length) return;
+    if (!ids.length || this.deleting) return;
+    this.deleting = true;
 
     this.subjectsService.bulkDelete(this.adminId, ids, true)
       .pipe(takeUntil(this.destroyed$))
-      .subscribe(() => {
-        ids.forEach((id) => this.selected.delete(id));
+      .subscribe((res) => {
+        this.deleting = false;
+        const outcome = bulkDeleteOutcome(ids, res, (id) => this.labelOf(id),
+          (result: BulkDeleteResult) => 'Used in ' + countOf(result.blockingCount || 0, 'subject group')
+            + ' — not deleted.');
+        outcome.deletedIds.forEach((id) => {
+          this.selected.delete(id);
+          this.known.delete(id);
+        });
+        if (outcome.hasDetails) this.showBulkResult(outcome.summary, outcome.lines);
         this.fetchSubjects();
+      }, () => {
+        // ErrorInterceptor has already said what went wrong; the selection is kept.
+        this.deleting = false;
+        this.cdr.markForCheck();
       });
   }
+
+  private showBulkResult(summary: string, lines: BulkOutcomeLine[]): void {
+    this.bulkResultSummary = summary;
+    this.bulkResultLines = lines;
+    this.bulkResultOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  closeBulkResult(): void {
+    this.bulkResultOpen = false;
+  }
+
+  trackByOutcome = (_index: number, line: BulkOutcomeLine): string => line.id;
 
   onConfirmCancelled(): void {
     this.confirmOpen = false;

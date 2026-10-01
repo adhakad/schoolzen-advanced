@@ -17,8 +17,10 @@
  *      modal — never the names inline in the table, which would make the column width move
  *      as a school grows. "— not applicable" and "Set per stream" are the two absence
  *      states, and they read as absence rather than as a value.
- *   2. The streams toggle is structural, not cosmetic: a class either keeps its sections
- *      directly, or keeps them under each stream. The form swaps whole regions, and the
+ *   2. Streams are structural, not cosmetic: a class either keeps its sections directly, or
+ *      keeps them under each stream. Whether it has streams is NEVER a manual toggle — it is
+ *      derived from the Class Name (On for 11th/12th only, classes-sections.md) and the
+ *      server derives and enforces the same rule. The form swaps whole regions, and the
  *      validator refuses a payload that populates both halves.
  *   3. Nothing destructive fires on a click. Every delete — one row or a whole selection —
  *      goes through the confirm modal and needs DELETE typed before the button enables.
@@ -30,10 +32,11 @@
  * would break every one of those joins. Everything else on the page matches the reference.
  *
  * Groups live with their stream (classes-sections.md; student-fix5.md #8): with streams on,
- * each stream carries an inline, mandatory (≥1) Groups sub-block — name + the live subject
- * checklist, the same SubjectGroup the Subject Groups page edits — beside its independent
- * Sections. Submit is blocked here AND on the server while any stream has no group. With
- * streams off there is no group UI; the server keeps the class's automatic "General" group.
+ * each stream carries an inline, mandatory (≥1) Groups sub-block — Group NAME only, no
+ * subject checklist (subjects are picked solely on the Subject Groups page) — beside its
+ * independent Sections. Submit is blocked here AND on the server while any stream has no
+ * group. With streams off there is no group UI; the server keeps the class's automatic
+ * "General" group.
  *
  * Every draft keeps the `_id` of what already exists and the save sends it back, so an
  * edit never re-mints a section/stream/group id that enrollments point at (fix5 #6).
@@ -55,11 +58,17 @@ import { ApiError, ApiErrorResponse } from 'src/app/shared/models/api-error.mode
 import { ConfirmConfig, DdOption } from 'src/app/shared/models/shared-components.model';
 import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 import { ClassesSectionsService } from 'src/app/shared/services/academic-setup/classes-sections.service';
-import { SubjectGroupsService } from 'src/app/shared/services/academic-setup/subject-groups.service';
-import { SubjectGroupSubject } from 'src/app/shared/models/academic-setup/subject-group.model';
 import {
   AcademicClass, ClassFormValue, ClassNameOption, ClassPayload, GroupDraft, SectionDraft, StreamDraft
 } from 'src/app/shared/models/academic-setup/class.model';
+import { BulkDeleteResult, BulkOutcomeLine } from 'src/app/shared/models/academic-setup/bulk-delete.model';
+import { bulkDeleteOutcome, countOf } from 'src/app/shared/utils/academic-setup-bulk-delete.util';
+import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
+import { inlineFormErrors } from 'src/app/shared/utils/academic-setup-errors.util';
+
+/** What blocks a class's delete (CLASS_HAS_STUDENTS), from the count the list carries. */
+const enrolledMessage = (count: number): string =>
+  countOf(count, 'student') + (count === 1 ? ' is' : ' are') + ' enrolled in this class — move them before deleting it.';
 
 /** One stream's worth of the Details modal: a heading and its section chips. */
 interface DetailGroup {
@@ -105,6 +114,14 @@ const EMPTY_FORM: ClassFormValue = {
 
 const normalise = (name: string): string => (name || '').trim().toLowerCase();
 
+/**
+ * Streaming (Science/Commerce/Arts) is a fixed fact of 11th and 12th — never a per-school
+ * choice — so hasStreams follows the class number. Mirrors the backend's classHasStreams.
+ */
+const STREAMED_CLASSES: readonly number[] = [11, 12];
+export const classHasStreams = (classNumber: number | null): boolean =>
+  classNumber !== null && STREAMED_CLASSES.indexOf(Number(classNumber)) !== -1;
+
 /** The fields this modal renders a message slot for; anything else lands on formError. */
 const KNOWN_FIELDS: readonly string[] = ['class', 'sections', 'streams', 'groups'];
 
@@ -123,6 +140,8 @@ const countLabel = (count: number, noun: string): string =>
 export class ClassesSectionsComponent implements OnInit, OnDestroy {
   adminId = '';
   loading = true;
+  /** A failed list fetch — rendered distinctly from a genuinely empty result, with a retry. */
+  loadError = '';
   search = '';
 
   /**
@@ -155,8 +174,13 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
 
   classOptions: ClassNameOption[] = [];
   classDdOptions: DdOption[] = [];
+  /** A failed /class-options fetch: the Class Name dropdown says so, with a retry. */
+  classOptionsError = '';
+  classOptionsLoading = false;
   formOpen = false;
   saving = false;
+  /** One Idempotency-Key per modal-open, reused by every retry of that same submission. */
+  private formKey = '';
   formTitle = 'Add Class';
   form: ClassFormValue = { ...EMPTY_FORM };
   /** Field -> message, straight from a ValidationError's fields. */
@@ -167,12 +191,14 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
    * the modal sitting there looking like Submit had done nothing at all.
    */
   formError = '';
+  /**
+   * An 11th/12th saved before streams were mandatory keeps sections on the class itself. A
+   * streamed save cannot store them, so they are named in the modal and Submit confirms
+   * their removal — never dropped silently. Empty for every other class.
+   */
+  legacySections: string[] = [];
   /** Per-stream "needs at least one group" messages, by stream index — set on Submit. */
   streamGroupErrors: Record<number, string> = {};
-
-  /** The live Subjects list for each group's checklist — re-read every time the modal opens. */
-  subjects: SubjectGroupSubject[] = [];
-  subjectsError = '';
 
   /** Read-only Streams & Sections breakdown, opened from a cell's tag. */
   detailsOpen = false;
@@ -185,12 +211,18 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   /** Which action the open confirmation is gating. */
   private pending: 'delete' | 'save' | null = null;
   private deleteIds: string[] = [];
+  /** Double-submit guard for the delete itself. */
+  deleting = false;
+
+  /** Per-row outcome of a delete that did not remove every requested row. */
+  bulkResultOpen = false;
+  bulkResultSummary = '';
+  bulkResultLines: BulkOutcomeLine[] = [];
 
   private destroyed$ = new Subject<void>();
 
   constructor(
     private academicSetup: ClassesSectionsService,
-    private subjectGroups: SubjectGroupsService,
     private adminAuthService: AdminAuthService,
     private shellContext: ShellContextService,
     private classSuffix: ClassSuffixPipe,
@@ -232,6 +264,7 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
 
   private fetchClasses(): void {
     this.loading = true;
+    this.loadError = '';
     this.academicSetup.getClasses(this.adminId, this.session)
       .pipe(takeUntil(this.destroyed$))
       .subscribe((res) => {
@@ -246,9 +279,17 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.cdr.markForCheck();
       }, () => {
+        // Not the empty state: the table says the load FAILED and offers a retry.
+        this.classes = [];
+        this.buildRows();
+        this.loadError = "Couldn't load classes.";
         this.loading = false;
         this.cdr.markForCheck();
       });
+  }
+
+  retryList(): void {
+    this.fetchClasses();
   }
 
   /**
@@ -349,7 +390,6 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   trackByIndex = (index: number): number => index;
   trackByName = (_index: number, name: string): string => name;
   trackByGroup = (_index: number, group: DetailGroup): string => group.name;
-  trackBySubject = (_index: number, subject: SubjectGroupSubject): string => subject._id;
 
   // --- selection ------------------------------------------------------------------------
 
@@ -409,58 +449,70 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   onAddClass(): void {
     this.formTitle = 'Add Class';
     this.form = { ...EMPTY_FORM, sections: [], streams: [] };
+    this.legacySections = [];
     this.clearErrors();
+    this.saving = false;
+    this.formKey = newIdempotencyKey();
     this.formOpen = true;
     this.loadClassOptions();
-    this.loadSubjects();
   }
 
   onEditClass(row: ClassRow): void {
     const item = row.source;
     this.formTitle = 'Edit Class';
+    // Derived from the class, never the stored flag: a document saved before the rule (a 9th
+    // with streams, say) is brought into line on its next save — and dropping its streams
+    // goes through the usual stranded-students confirmation.
+    const hasStreams = classHasStreams(item.class);
     this.form = {
       id: item._id,
       class: item.class,
-      hasStreams: item.hasStreams,
-      sections: (item.sections || []).map((section) => ({ _id: section._id, name: section.name })),
-      streams: (item.streams || []).map((stream) => ({
+      hasStreams,
+      sections: hasStreams ? [] : (item.sections || []).map((section) => ({ _id: section._id, name: section.name })),
+      streams: !hasStreams ? [] : (item.streams || []).map((stream) => ({
         _id: stream._id,
         name: this.streamTitleCase.transform(stream.name),
         sections: (stream.sections || []).map((section) => ({ _id: section._id, name: section.name })),
-        groups: (stream.groups || []).map((group) => ({ _id: group._id, name: group.name, subjectIds: [...(group.subjectIds || [])] })),
+        // Name only — subjects are edited on the Subject Groups page; the count drives the tag.
+        groups: (stream.groups || []).map((group) => ({ _id: group._id, name: group.name, subjectCount: (group.subjectIds || []).length })),
         // Carried into the draft so removing a stream can warn without another request.
         studentCount: stream.studentCount || 0
       }))
     };
+    this.legacySections = hasStreams && !item.hasStreams ? (item.sections || []).map((section) => section.name) : [];
     this.clearErrors();
+    this.saving = false;
+    this.formKey = newIdempotencyKey();
+    this.classOptionsError = '';
     this.formOpen = true;
-    this.loadSubjects();
     // The dropdown is disabled in edit mode — the class number is the record's identity —
     // so the option list is not needed here.
     this.setClassOptions([{ class: item.class, label: row.className }]);
   }
 
-  /** The live Subjects list (subject-groups.md: "never a stale copy"), with an error state. */
-  private loadSubjects(): void {
-    this.subjectsError = '';
-    this.subjectGroups.getFormOptions(this.adminId)
+  /**
+   * The Class Name options come from the API (/class-options: the standard classes this
+   * school has not configured yet) — never a hardcoded list — with an error state and retry.
+   */
+  private loadClassOptions(): void {
+    this.classOptionsError = '';
+    this.classOptionsLoading = true;
+    this.setClassOptions([]);
+    this.academicSetup.getClassNameOptions(this.adminId)
       .pipe(takeUntil(this.destroyed$))
       .subscribe((res) => {
-        this.subjects = res.subjects || [];
+        this.classOptionsLoading = false;
+        this.setClassOptions(res || []);
         this.cdr.markForCheck();
       }, () => {
-        this.subjectsError = "Couldn't load the subject list — groups can still be named and saved.";
+        this.classOptionsLoading = false;
+        this.classOptionsError = "Couldn't load the class list.";
         this.cdr.markForCheck();
       });
   }
 
-  private loadClassOptions(): void {
-    this.academicSetup.getClassNameOptions(this.adminId)
-      .pipe(takeUntil(this.destroyed$))
-      .subscribe((res) => {
-        this.setClassOptions(res || []);
-        this.cdr.markForCheck();
-      });
+  retryClassOptions(): void {
+    this.loadClassOptions();
   }
 
   private setClassOptions(options: ClassNameOption[]): void {
@@ -481,16 +533,21 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
     this.saving = false;
   }
 
+  /**
+   * Choosing the class IS the streams switch: 11th/12th turn streams on, anything else off.
+   * When that flips, the other half's draft is cleared so neither can leak into the save.
+   */
   onClassSelected(value: string): void {
-    this.form = { ...this.form, class: Number(value) };
-    delete this.fieldErrors['class'];
-  }
-
-  /** The structural switch: each branch clears the other's data so neither can leak. */
-  onStreamsToggled(hasStreams: boolean): void {
+    const classNumber = Number(value);
+    const hasStreams = classHasStreams(classNumber);
+    if (hasStreams === this.form.hasStreams) {
+      this.form = { ...this.form, class: classNumber };
+      delete this.fieldErrors['class'];
+      return;
+    }
     this.form = hasStreams
-      ? { ...this.form, hasStreams: true, sections: [] }
-      : { ...this.form, hasStreams: false, streams: [] };
+      ? { ...this.form, class: classNumber, hasStreams: true, sections: [] }
+      : { ...this.form, class: classNumber, hasStreams: false, streams: [] };
     this.clearErrors();
   }
 
@@ -528,7 +585,7 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   addStream(): void {
     // A new stream starts with one empty group row: a group is mandatory, so the modal asks
     // for it up front rather than failing Submit later.
-    const stream: StreamDraft = { name: '', sections: [], groups: [{ name: '', subjectIds: [] }], studentCount: 0 };
+    const stream: StreamDraft = { name: '', sections: [], groups: [{ name: '' }], studentCount: 0 };
     this.form = { ...this.form, streams: this.form.streams.concat([stream]) };
   }
 
@@ -557,7 +614,7 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   // --- each stream's subject groups (mandatory, ≥1) -------------------------------------
 
   addStreamGroup(index: number): void {
-    this.patchStream(index, (stream) => ({ ...stream, groups: stream.groups.concat([{ name: '', subjectIds: [] }]) }));
+    this.patchStream(index, (stream) => ({ ...stream, groups: stream.groups.concat([{ name: '' }]) }));
     delete this.streamGroupErrors[index];
   }
 
@@ -568,19 +625,6 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
 
   removeStreamGroup(index: number, groupIndex: number): void {
     this.patchStream(index, (stream) => ({ ...stream, groups: stream.groups.filter((_group, position) => position !== groupIndex) }));
-  }
-
-  isSubjectInGroup(group: GroupDraft, subjectId: string): boolean {
-    return group.subjectIds.indexOf(subjectId) !== -1;
-  }
-
-  toggleGroupSubject(index: number, groupIndex: number, subjectId: string): void {
-    this.patchStreamGroup(index, groupIndex, (group) => ({
-      ...group,
-      subjectIds: this.isSubjectInGroup(group, subjectId)
-        ? group.subjectIds.filter((id) => id !== subjectId)
-        : group.subjectIds.concat([subjectId])
-    }));
   }
 
   private patchStreamGroup(index: number, groupIndex: number, change: (group: GroupDraft) => GroupDraft): void {
@@ -650,6 +694,24 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Mutually exclusive with the case above: that one needs the class saved WITH streams.
+    if (this.legacySections.length) {
+      const one = this.legacySections.length === 1;
+      this.pending = 'save';
+      this.confirmConfig = {
+        title: 'Remove ' + (one ? 'this section' : 'these sections') + '?',
+        message: 'Section ' + this.legacySections.join(', ') + (one ? ' is' : ' are') + ' not under any stream and will be removed from '
+          + (this.classSuffix.transform(this.form.class as number) || 'this class') + '.',
+        scopeNote: 'To keep ' + (one ? 'it' : 'them') + ', cancel and add ' + (one ? 'it' : 'them') + ' under a stream first.',
+        confirmLabel: 'Save changes',
+        cancelLabel: 'Keep editing',
+        variant: 'warning',
+        typeToConfirm: 'DELETE'
+      };
+      this.confirmOpen = true;
+      return;
+    }
+
     this.save();
   }
 
@@ -684,6 +746,8 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
   }
 
   private save(): void {
+    // Double-submit guard: one save in flight at a time (the confirm path re-enters here).
+    if (this.saving) return;
     this.saving = true;
     this.clearErrors();
 
@@ -704,16 +768,20 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
               sections: cleanSections(stream.sections),
               groups: stream.groups
                 .filter((group) => group.name.trim())
-                .map((group) => ({ ...(group._id ? { _id: group._id } : {}), name: group.name.trim(), subjectIds: group.subjectIds }))
+                // Name only: the server keeps an existing group's subjects and starts a new
+                // one with none — subjects are assigned on the Subject Groups page.
+                .map((group) => ({ ...(group._id ? { _id: group._id } : {}), name: group.name.trim() }))
             }))
         : []
     };
+    // Only reached with legacy sections after the confirmation in onFormSubmit.
+    if (this.form.id && this.legacySections.length) payload.confirmRemoveSections = true;
 
     // The class number is the identity, so only a create sends it; updateClassSchema
     // forbids it outright.
     const request = this.form.id
-      ? this.academicSetup.updateClass(this.form.id, payload)
-      : this.academicSetup.createClass({ ...payload, class: this.form.class as number });
+      ? this.academicSetup.updateClass(this.form.id, payload, this.formKey)
+      : this.academicSetup.createClass({ ...payload, class: this.form.class as number }, this.formKey);
 
     request.pipe(takeUntil(this.destroyed$)).subscribe(() => {
       this.saving = false;
@@ -740,20 +808,17 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
    * that bypasses it delivers.
    */
   private bindFieldErrors(error: unknown): void {
+    // ValidationError, and a field-naming ConflictError (CLASS_DUPLICATE) — the interceptor
+    // skips its toast for the latter, so it must land here or the save looks like a no-op.
     const apiError = this.toApiError(error);
-    if (apiError?.category !== 'ValidationError') return;
+    if (!apiError) return;
+    const inline = inlineFormErrors(apiError, KNOWN_FIELDS);
+    if (!inline) return;
 
-    const errors: Record<string, string> = {};
-    let formError = '';
-    (apiError.fields || []).forEach((field) => {
-      if (KNOWN_FIELDS.indexOf(field.field) === -1) formError = formError || field.message;
-      else errors[field.field] = field.message;
-    });
-
-    this.fieldErrors = errors;
+    this.fieldErrors = inline.fields;
     // Something was rejected, so the modal always says so somewhere — even when the field
     // it names is not one this form renders.
-    this.formError = formError || (Object.keys(errors).length ? '' : apiError.message);
+    this.formError = inline.formError;
   }
 
   private toApiError(error: unknown): ApiError | undefined {
@@ -775,26 +840,43 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
     this.openDeleteConfirm(Array.from(this.selected));
   }
 
+  private classLabelOf(id: string): string {
+    const item = this.classes.find((entry) => entry._id === id);
+    return item ? (this.classSuffix.transform(item.class) || String(item.class)) : 'Class';
+  }
+
   private openDeleteConfirm(ids: string[]): void {
     this.pending = 'delete';
     this.deleteIds = ids;
 
     const chosen = this.classes.filter((item) => ids.indexOf(item._id) !== -1);
-    const students = chosen.reduce((sum, item) => sum + (item.studentCount || 0), 0);
+    // blockingCount (students enrolled — CLASS_HAS_STUDENTS) comes with the list, so what
+    // will be refused is said BEFORE the attempt, never discovered after it fails.
+    const blocked = chosen.filter((item) => (item.blockingCount || 0) > 0);
+    const allBlocked = blocked.length > 0 && blocked.length === ids.length;
+
+    let scopeNote: string | undefined;
+    if (ids.length === 1 && blocked.length === 1) {
+      scopeNote = enrolledMessage(blocked[0].blockingCount || 0);
+    } else if (blocked.length) {
+      scopeNote = blocked.length + ' of ' + ids.length + ' selected have students enrolled and will not be deleted: '
+        + blocked.map((item) => this.classLabelOf(item._id)).join(', ') + '.';
+    }
 
     this.confirmConfig = {
       title: 'Delete ' + ids.length + (ids.length === 1 ? ' class?' : ' classes?'),
-      message: "This can't be undone. All sections and stream configuration under the "
-        + (ids.length === 1 ? 'selected class' : 'selected classes') + ' will be removed.',
+      message: allBlocked
+        ? (ids.length === 1 ? 'This class is in use and cannot be deleted.' : 'Every selected class is in use — none can be deleted.')
+        : "This can't be undone. All sections and stream configuration under the "
+          + (ids.length === 1 ? 'selected class' : 'selected classes') + ' will be removed.',
       // Real dependent data, from the list response — the confirmation costs no extra request.
-      scopeNote: students > 0
-        ? students + (students === 1 ? ' student is' : ' students are') + ' enrolled and will need reassigning.'
-        : undefined,
+      scopeNote,
       confirmLabel: 'Delete',
       variant: 'warning',
       // Every destructive action on this page types DELETE — classes-sections.md calls this
       // "the pattern for any destructive action in this app".
-      typeToConfirm: 'DELETE'
+      typeToConfirm: 'DELETE',
+      blocked: allBlocked
     };
 
     this.confirmOpen = true;
@@ -812,15 +894,37 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
 
     const ids = this.deleteIds;
     this.deleteIds = [];
-    if (!ids.length) return;
+    if (!ids.length || this.deleting) return;
+    this.deleting = true;
 
     this.academicSetup.bulkDelete(this.adminId, ids, true)
       .pipe(takeUntil(this.destroyed$))
-      .subscribe(() => {
-        ids.forEach((id) => this.selected.delete(id));
+      .subscribe((res) => {
+        this.deleting = false;
+        const outcome = bulkDeleteOutcome(ids, res, (id) => this.classLabelOf(id),
+          (result: BulkDeleteResult) => enrolledMessage(result.blockingCount || 0));
+        outcome.deletedIds.forEach((id) => this.selected.delete(id));
+        if (outcome.hasDetails) this.showBulkResult(outcome.summary, outcome.lines);
         this.fetchClasses();
+      }, () => {
+        // ErrorInterceptor has already said what went wrong; the selection is kept.
+        this.deleting = false;
+        this.cdr.markForCheck();
       });
   }
+
+  private showBulkResult(summary: string, lines: BulkOutcomeLine[]): void {
+    this.bulkResultSummary = summary;
+    this.bulkResultLines = lines;
+    this.bulkResultOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  closeBulkResult(): void {
+    this.bulkResultOpen = false;
+  }
+
+  trackByOutcome = (_index: number, line: BulkOutcomeLine): string => line.id;
 
   onConfirmCancelled(): void {
     this.confirmOpen = false;

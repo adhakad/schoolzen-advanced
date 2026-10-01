@@ -48,6 +48,7 @@ export class ConfirmModalComponent implements OnChanges {
   }
 
   get confirmDisabled(): boolean {
+    if (this.config.blocked) return true;
     const required = this.config.typeToConfirm;
     return Boolean(required) && this.typed.trim() !== required;
   }

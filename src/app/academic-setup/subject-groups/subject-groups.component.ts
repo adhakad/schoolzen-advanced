@@ -29,17 +29,23 @@ import {
 } from '@angular/core';
 import { Subject as RxSubject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
-import { HttpErrorResponse } from '@angular/common/http';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { ClassSuffixPipe } from 'src/app/pipes/class-suffix.pipe';
 import { StreamTitleCasePipe } from 'src/app/pipes/stream-title-case.pipe';
-import { ApiError, ApiErrorResponse } from 'src/app/shared/models/api-error.model';
 import { ConfirmConfig, DdOption } from 'src/app/shared/models/shared-components.model';
 import { SubjectGroupsService } from 'src/app/shared/services/academic-setup/subject-groups.service';
 import {
   FormOptionClass, SubjectGroup, SubjectGroupFormOptions, SubjectGroupFormValue,
   SubjectGroupPayload, SubjectGroupSubject, SubjectGroupSummary
 } from 'src/app/shared/models/academic-setup/subject-group.model';
+import { BulkDeleteResult, BulkOutcomeLine } from 'src/app/shared/models/academic-setup/bulk-delete.model';
+import { bulkDeleteOutcome, countOf } from 'src/app/shared/utils/academic-setup-bulk-delete.util';
+import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
+import { inlineFormErrors } from 'src/app/shared/utils/academic-setup-errors.util';
+
+/** What blocks a group's delete, from the count the list already carries. */
+const placedMessage = (count: number): string =>
+  countOf(count, 'student') + (count === 1 ? ' is' : ' are') + ' placed in this group — reassign them first.';
 
 /** One table row, fully precomputed: the template calls no functions and no pipes. */
 interface GroupRow {
@@ -55,6 +61,8 @@ interface GroupRow {
    * checklist stays editable); Delete is shown but disabled; not selectable.
    */
   isSystemGroup: boolean;
+  /** Students placed in this group — what blocks its delete, known before the attempt. */
+  blockingCount: number;
   source: SubjectGroup;
 }
 
@@ -85,9 +93,13 @@ const KNOWN_FIELDS: readonly string[] = ['classId', 'streamId', 'name', 'subject
 export class SubjectGroupsComponent implements OnInit, OnDestroy {
   adminId = '';
   loading = true;
+  /** A failed list fetch — rendered distinctly from a genuinely empty result, with a retry. */
+  loadError = '';
   search = '';
 
   rows: GroupRow[] = [];
+  /** Every row seen on any page, by id — a selection's names/counts outlive paging. */
+  private known = new Map<string, GroupRow>();
   page = 1;
   limit = 10;
   total = 0;
@@ -118,12 +130,30 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   formStreamOptions: DdOption[] = [NO_SELECTION];
   /** The live checklist, re-fetched every time the modal opens. */
   subjectChecklist: SubjectGroupSubject[] = [];
+  /**
+   * The edited group's own current subjects. Merged into the checklist so one the live list
+   * no longer offers (deactivated since) still shows ticked and can be unticked — the edit
+   * round-trips exactly what the group holds.
+   */
+  private editingSubjects: SubjectGroupSubject[] = [];
+  /** A failed form-options fetch: the Class/Stream/Subject inputs say so, with a retry. */
+  optionsError = '';
+  optionsLoading = false;
   fieldErrors: Record<string, string> = {};
   formError = '';
+  /** One Idempotency-Key per modal-open, reused by every retry of that same submission. */
+  private formKey = '';
 
   confirmOpen = false;
   confirmConfig: ConfirmConfig = { title: '', message: '', confirmLabel: 'Delete' };
   private deleteIds: string[] = [];
+  /** Double-submit guard for the delete itself. */
+  deleting = false;
+
+  /** Per-row outcome of a delete that did not remove every requested row. */
+  bulkResultOpen = false;
+  bulkResultSummary = '';
+  bulkResultLines: BulkOutcomeLine[] = [];
 
   /** Classes with their streams, keyed by id — an O(1) lookup, never an array scan. */
   private classesById = new Map<string, FormOptionClass>();
@@ -170,12 +200,16 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
    * again each time the modal opens, which is what keeps the subject checklist live.
    */
   private loadFormOptions(after?: () => void): void {
+    this.optionsError = '';
+    this.optionsLoading = true;
     this.subjectGroupsService.getFormOptions(this.adminId)
       .pipe(takeUntil(this.destroyed$))
       .subscribe((options: SubjectGroupFormOptions) => {
-        this.classesById = new Map(options.classes.map((item) => [item._id, item]));
+        this.optionsLoading = false;
+        const classes = options.classes || [];
+        this.classesById = new Map(classes.map((item) => [item._id, item]));
 
-        const classOptions = options.classes.map((item) => ({
+        const classOptions = classes.map((item) => ({
           value: item._id,
           label: item.label || this.classSuffix.transform(item.class) || String(item.class)
         }));
@@ -187,14 +221,25 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
           this.classesById.get(option.value)?.hasStreams ||
           (this.formSystemGroup && option.value === this.form.classId))];
 
-        this.subjectChecklist = options.subjects || [];
+        const live = options.subjects || [];
+        const liveIds = new Set(live.map((subject) => subject._id));
+        this.subjectChecklist = live.concat(this.editingSubjects.filter((subject) => !liveIds.has(subject._id)));
 
         this.syncFilterStreamOptions();
         this.syncFormStreamOptions();
 
         if (after) after();
         this.cdr.markForCheck();
+      }, () => {
+        // Never a silently empty Class dropdown or subject checklist: say it failed.
+        this.optionsLoading = false;
+        this.optionsError = "Couldn't load classes and subjects.";
+        this.cdr.markForCheck();
       });
+  }
+
+  retryOptions(): void {
+    this.loadFormOptions(() => this.syncFormStreamOptions());
   }
 
   private streamOptionsFor(classId: string, leading: DdOption): DdOption[] {
@@ -257,6 +302,7 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
 
   private fetchGroups(): void {
     this.loading = true;
+    this.loadError = '';
     this.subjectGroupsService
       .getSubjectGroups(this.adminId, {
         classId: this.filterClassId,
@@ -268,17 +314,25 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroyed$))
       .subscribe((res) => {
         this.rows = (res.rows || []).map((row) => this.toRow(row));
+        this.rows.forEach((row) => this.known.set(row._id, row));
         this.total = res.total || 0;
-        this.summary = res.summary;
-        this.noGroupStreams = (res.summary.streamsWithoutGroups || [])
+        this.summary = res.summary || this.summary;
+        this.noGroupStreams = ((res.summary && res.summary.streamsWithoutGroups) || [])
           .map((stream) => stream.label + ' ' + this.streamTitleCase.transform(stream.streamName))
           .join(', ');
         this.loading = false;
         this.cdr.markForCheck();
       }, () => {
+        // Not the empty state: the table says the load FAILED and offers a retry.
+        this.rows = [];
+        this.loadError = "Couldn't load subject groups.";
         this.loading = false;
         this.cdr.markForCheck();
       });
+  }
+
+  retryList(): void {
+    this.fetchGroups();
   }
 
   private toRow(row: SubjectGroup): GroupRow {
@@ -289,6 +343,7 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
       streamName: row.streamName ? this.streamTitleCase.transform(row.streamName) : null,
       subjects: row.subjects || [],
       isSystemGroup: Boolean(row.isSystemGroup),
+      blockingCount: row.blockingCount || 0,
       source: row
     };
   }
@@ -347,7 +402,10 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
     this.formTitle = 'Add Subject Group';
     this.formSystemGroup = false;
     this.form = { ...EMPTY_FORM, subjectIds: new Set<string>() };
+    this.editingSubjects = [];
     this.clearErrors();
+    this.saving = false;
+    this.formKey = newIdempotencyKey();
     this.formOpen = true;
     // Re-read the options so the checklist reflects the Subjects list as it is NOW.
     this.loadFormOptions(() => this.syncFormStreamOptions());
@@ -362,9 +420,14 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
       classId: item.classId,
       streamId: item.streamId || '',
       name: item.name,
-      subjectIds: new Set(item.subjects.map((subject) => subject._id))
+      // Pre-populated from the group's CURRENT subjects; Submit sends this whole Set back
+      // and the server replaces the group's list with it — both halves of the round-trip.
+      subjectIds: new Set((item.subjects || []).map((subject) => subject._id))
     };
+    this.editingSubjects = item.subjects || [];
     this.clearErrors();
+    this.saving = false;
+    this.formKey = newIdempotencyKey();
     this.formOpen = true;
     this.loadFormOptions(() => this.syncFormStreamOptions());
   }
@@ -419,7 +482,8 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
 
   /** Class and Group Name are the two required fields; the reference gates Submit on them. */
   get submitDisabled(): boolean {
-    return this.saving || !this.form.classId || !this.form.name.trim();
+    // A failed options fetch means the class list / checklist can't be trusted: no save.
+    return this.saving || !!this.optionsError || !this.form.classId || !this.form.name.trim();
   }
 
   onFormCancel(): void {
@@ -443,8 +507,8 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
     };
 
     const request = this.form.id
-      ? this.subjectGroupsService.updateSubjectGroup(this.form.id, payload)
-      : this.subjectGroupsService.createSubjectGroup(payload);
+      ? this.subjectGroupsService.updateSubjectGroup(this.form.id, payload, this.formKey)
+      : this.subjectGroupsService.createSubjectGroup(payload, this.formKey);
 
     request.pipe(takeUntil(this.destroyed$)).subscribe(() => {
       this.saving = false;
@@ -463,25 +527,12 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
     this.formError = '';
   }
 
+  /** ValidationError, and a field-naming ConflictError (SUBJECT_GROUP_DUPLICATE), land inline. */
   private bindFieldErrors(error: unknown): void {
-    const apiError = this.toApiError(error);
-    if (apiError?.category !== 'ValidationError') return;
-
-    const errors: Record<string, string> = {};
-    let formError = '';
-    (apiError.fields || []).forEach((field) => {
-      if (KNOWN_FIELDS.indexOf(field.field) === -1) formError = formError || field.message;
-      else errors[field.field] = field.message;
-    });
-
-    this.fieldErrors = errors;
-    this.formError = formError || (Object.keys(errors).length ? '' : apiError.message);
-  }
-
-  private toApiError(error: unknown): ApiError | undefined {
-    const candidate = error as (ApiError & Partial<HttpErrorResponse>) | undefined;
-    if (candidate && candidate.category) return candidate as ApiError;
-    return (candidate?.error as ApiErrorResponse | undefined)?.error;
+    const inline = inlineFormErrors(error, KNOWN_FIELDS);
+    if (!inline) return;
+    this.fieldErrors = inline.fields;
+    this.formError = inline.formError;
   }
 
   // --- delete -------------------------------------------------------------------------
@@ -497,14 +548,38 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
     this.openDeleteConfirm(Array.from(this.selected));
   }
 
+  private labelOf(id: string): string {
+    const row = this.known.get(id);
+    return row ? row.name + ' (' + row.className + (row.streamName ? ' ' + row.streamName : '') + ')' : 'Subject group';
+  }
+
+  /**
+   * The blocking count (students placed in the group) comes from the list response, so the
+   * confirmation says what will be refused BEFORE the attempt.
+   */
   private openDeleteConfirm(ids: string[]): void {
     this.deleteIds = ids;
+    const blocked = ids.filter((id) => (this.known.get(id)?.blockingCount || 0) > 0);
+    const allBlocked = blocked.length > 0 && blocked.length === ids.length;
+
+    let scopeNote: string | undefined;
+    if (ids.length === 1 && blocked.length === 1) {
+      scopeNote = placedMessage(this.known.get(ids[0])?.blockingCount || 0);
+    } else if (blocked.length) {
+      scopeNote = blocked.length + ' of ' + ids.length + ' selected have students placed in them and will not be deleted: '
+        + blocked.map((id) => this.labelOf(id)).join(', ') + '.';
+    }
+
     this.confirmConfig = {
       title: 'Delete ' + ids.length + (ids.length === 1 ? ' group?' : ' groups?'),
-      message: "This can't be undone. Students currently on this group will need to be reassigned.",
+      message: allBlocked
+        ? (ids.length === 1 ? 'This group is in use and cannot be deleted.' : 'Every selected group is in use — none can be deleted.')
+        : "This can't be undone.",
+      scopeNote,
       confirmLabel: 'Delete',
       variant: 'warning',
-      typeToConfirm: 'DELETE'
+      typeToConfirm: 'DELETE',
+      blocked: allBlocked
     };
     this.confirmOpen = true;
   }
@@ -513,15 +588,40 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
     this.confirmOpen = false;
     const ids = this.deleteIds;
     this.deleteIds = [];
-    if (!ids.length) return;
+    if (!ids.length || this.deleting) return;
+    this.deleting = true;
 
     this.subjectGroupsService.bulkDelete(this.adminId, ids, true)
       .pipe(takeUntil(this.destroyed$))
-      .subscribe(() => {
-        ids.forEach((id) => this.selected.delete(id));
+      .subscribe((res) => {
+        this.deleting = false;
+        const outcome = bulkDeleteOutcome(ids, res, (id) => this.labelOf(id),
+          (result: BulkDeleteResult) => placedMessage(result.blockingCount || 0));
+        outcome.deletedIds.forEach((id) => {
+          this.selected.delete(id);
+          this.known.delete(id);
+        });
+        if (outcome.hasDetails) this.showBulkResult(outcome.summary, outcome.lines);
         this.fetchGroups();
+      }, () => {
+        // ErrorInterceptor has already said what went wrong; the selection is kept.
+        this.deleting = false;
+        this.cdr.markForCheck();
       });
   }
+
+  private showBulkResult(summary: string, lines: BulkOutcomeLine[]): void {
+    this.bulkResultSummary = summary;
+    this.bulkResultLines = lines;
+    this.bulkResultOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  closeBulkResult(): void {
+    this.bulkResultOpen = false;
+  }
+
+  trackByOutcome = (_index: number, line: BulkOutcomeLine): string => line.id;
 
   onConfirmCancelled(): void {
     this.confirmOpen = false;

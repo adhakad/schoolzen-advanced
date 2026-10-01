@@ -9,6 +9,8 @@ const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
 const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
 const { byClassOrder } = require('../../helpers/academic-setup/class-order');
+const { groupDuplicate, rethrowDuplicate } = require('../../helpers/academic-setup/duplicate-key');
+const { groupBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/dependents');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Subject group';
@@ -161,9 +163,14 @@ let GetSubjectGroups = async (req, res, next) => {
 
     const counts = (result && result.counts[0]) || {};
     const streamIds = (counts.streamIds || []).filter((id) => id);
+    const rows = (result && result.rows) || [];
+
+    // Each row's delete-blocking count (enrolled students), shown in the delete confirmation
+    // BEFORE the attempt — one grouped aggregation for the whole page, never one per row.
+    const blocking = await groupBlockingCounts(req.query.adminId, rows.map((row) => row._id));
 
     return res.status(200).json({
-        rows: ((result && result.rows) || []).map(shapeRow),
+        rows: rows.map((row) => ({ ...shapeRow(row), blockingCount: blocking.get(String(row._id)) || 0 })),
         total: (result && result.filteredTotal[0] && result.filteredTotal[0].value) || 0,
         page: page,
         limit: limit,
@@ -309,12 +316,7 @@ const assertNameFree = async (adminId, classId, streamId, name, excludeId) => {
         .collation({ locale: 'en', strength: 2 })
         .lean();
 
-    if (existing) {
-        throw new ConflictError(messages.groupAlreadyExists(name), {
-            module: MODULE,
-            context: { name: name, classId: classId },
-        });
-    }
+    if (existing) throw groupDuplicate(name);
 };
 
 /** Groups are only ever hand-made for a STREAMED class; a non-streamed class has "General". */
@@ -329,12 +331,6 @@ const systemGroupLocked = (group, message) => new ConflictError(message, {
     code: 'SYSTEM_GROUP_LOCKED',
     context: { id: String(group._id) },
 });
-
-/** Deleting the automatic "General" group is refused here, whatever the UI shows. */
-const assertNotSystemGroup = (group) => {
-    if (!group || !group.isSystemGroup) return;
-    throw systemGroupLocked(group, messages.systemGroupLocked());
-};
 
 /**
  * An edit of the automatic "General" group may change its SUBJECTS only — that checklist is
@@ -354,13 +350,15 @@ let CreateSubjectGroup = async (req, res, next) => {
     await assertSubjectsExist(adminId, subjectIds);
     await assertNameFree(adminId, classId, streamId, name);
 
+    // The unique index is the real guard: a concurrent create that passed the pre-check
+    // above comes back as E11000 and leaves as SUBJECT_GROUP_DUPLICATE.
     await SubjectGroupModel.create({
         adminId: adminId,
         classId: classId,
         streamId: streamId || null,
         name: name,
         subjectIds: subjectIds,
-    });
+    }).catch((error) => rethrowDuplicate(error, () => groupDuplicate(name)));
     await cacheInvalidation.onSubjectGroupsChanged(adminId);
 
     return res.status(200).json({ message: success.created(ENTITY) });
@@ -397,37 +395,50 @@ let UpdateSubjectGroup = async (req, res, next) => {
     group.streamId = streamId || null;
     group.name = name;
     group.subjectIds = subjectIds;
-    await group.save();
+    await group.save().catch((error) => rethrowDuplicate(error, () => groupDuplicate(name)));
     await cacheInvalidation.onSubjectGroupsChanged(adminId);
 
     return res.status(200).json({ message: success.updated(ENTITY) });
 };
 
-// Hard delete, one deleteMany for the whole selection. A group is configuration, and the
-// students on it are the blast radius the confirmation names — nothing in this collection
-// is a record of something that happened, so there is no soft-delete flag.
+// Hard delete, one deleteMany for the deletable part of the selection. A group is
+// configuration, so there is no soft-delete flag — but a group any StudentEnrollment is
+// placed on is NEVER deleted (SUBJECT_GROUP_IN_USE, errors.md shape 6): that would leave
+// enrollments pointing at a group that no longer exists. Same hard block as a Class with
+// students, and the mirror of Subjects' own delete guard.
+//
+// Per-row outcome, never one pass/fail for the whole selection: each requested id comes
+// back as deleted / blocked (in use, or the automatic "General" group) / not_found (missing
+// or another school's — reported identically). Every check is ONE grouped query over the
+// whole id set: one find, one enrollment $group, one deleteMany.
 let BulkDeleteSubjectGroups = async (req, res, next) => {
-    const { adminId, ids } = req.body;
+    const adminId = req.body.adminId;
+    const ids = uniqueIds(req.body.ids);
 
-    const groups = await SubjectGroupModel
-        .find({ _id: { $in: ids }, adminId: adminId }, 'isSystemGroup')
-        .lean();
-    const found = groups.length;
-    assertNotSystemGroup(groups.find((group) => group.isSystemGroup));
+    const [groups, blocking] = await Promise.all([
+        SubjectGroupModel.find({ _id: { $in: ids }, adminId: adminId }, 'isSystemGroup').lean(),
+        // Live, never from the list's copy — that can be minutes old by the time someone
+        // types DELETE.
+        groupBlockingCounts(adminId, ids),
+    ]);
+    const byId = new Map(groups.map((group) => [String(group._id), group]));
 
-    if (found !== ids.length) {
-        throw new NotFoundError(messages.groupNotFound(), {
-            module: MODULE,
-            context: { requested: ids.length, found: found },
-        });
+    const results = ids.map((id) => {
+        const group = byId.get(id);
+        if (!group) return { id, status: 'not_found', code: 'NOT_FOUND' };
+        const blockingCount = blocking.get(id) || 0;
+        if (group.isSystemGroup) return { id, status: 'blocked', code: 'SYSTEM_GROUP_LOCKED', blockingCount };
+        if (blockingCount > 0) return { id, status: 'blocked', code: 'SUBJECT_GROUP_IN_USE', blockingCount };
+        return { id, status: 'deleted', blockingCount: 0 };
+    });
+
+    const deletable = results.filter((row) => row.status === 'deleted').map((row) => row.id);
+    if (deletable.length) {
+        await SubjectGroupModel.deleteMany({ _id: { $in: deletable }, adminId: adminId });
+        await cacheInvalidation.onSubjectGroupsChanged(adminId);
     }
 
-    await SubjectGroupModel.deleteMany({ _id: { $in: ids }, adminId: adminId });
-    await cacheInvalidation.onSubjectGroupsChanged(adminId);
-
-    return res.status(200).json({
-        message: success.bulkProcessed(ids.length, 'subject group'),
-    });
+    return res.status(200).json(bulkDeleteBody(results, 'subject group'));
 };
 
 module.exports = {

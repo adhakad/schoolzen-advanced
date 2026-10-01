@@ -1,10 +1,13 @@
 'use strict';
 const SubjectModel = require('../../models/academic-setup/subject');
 const SubjectGroupModel = require('../../models/academic-setup/subject-group');
-const { NotFoundError, ConflictError } = require('../../errors');
+const { NotFoundError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
 const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
+const { withTransaction } = require('../../helpers/with-transaction');
+const { subjectDuplicate, rethrowDuplicate } = require('../../helpers/academic-setup/duplicate-key');
+const { subjectBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/dependents');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Subject';
@@ -76,9 +79,14 @@ let GetSubjects = async (req, res, next) => {
     ]).collation({ locale: 'en', strength: 2 });
 
     const counts = (result && result.counts[0]) || {};
+    const rows = (result && result.rows) || [];
+
+    // Each row's dependents (the Subject Groups that include it), shown in the delete
+    // confirmation BEFORE the attempt — one grouped aggregation for the page, never per row.
+    const blocking = await subjectBlockingCounts(adminId, rows.map((row) => row._id));
 
     return res.status(200).json({
-        rows: (result && result.rows) || [],
+        rows: rows.map((row) => ({ ...row, blockingCount: blocking.get(String(row._id)) || 0 })),
         total: (result && result.filteredTotal[0] && result.filteredTotal[0].value) || 0,
         page: page,
         limit: limit,
@@ -104,19 +112,15 @@ const assertNameFree = async (adminId, name, excludeId) => {
         .collation({ locale: 'en', strength: 2 })
         .lean();
 
-    if (existing) {
-        throw new ConflictError(messages.subjectAlreadyExists(name), {
-            module: MODULE,
-            context: { name: name },
-        });
-    }
+    if (existing) throw subjectDuplicate(name);
 };
 
 let CreateSubject = async (req, res, next) => {
     const { adminId, name } = req.body;
 
     await assertNameFree(adminId, name);
-    await SubjectModel.create(req.body);
+    // A concurrent create that passed the pre-check hits the unique index -> SUBJECT_DUPLICATE.
+    await SubjectModel.create(req.body).catch((error) => rethrowDuplicate(error, () => subjectDuplicate(name)));
     await cacheInvalidation.onSubjectsChanged(adminId);
 
     return res.status(200).json({ message: success.created(ENTITY) });
@@ -139,7 +143,7 @@ let UpdateSubject = async (req, res, next) => {
     subject.name = name;
     subject.type = type;
     subject.status = status;
-    await subject.save();
+    await subject.save().catch((error) => rethrowDuplicate(error, () => subjectDuplicate(name)));
     await cacheInvalidation.onSubjectsChanged(adminId);
 
     return res.status(200).json({ message: success.updated(ENTITY) });
@@ -152,51 +156,70 @@ let UpdateSubject = async (req, res, next) => {
 // (database-design-principles.md). Deactivating is the soft option and it already exists as
 // a status, which is why there is no `deletedAt` here.
 //
-// The blast radius is the Subject Groups that include any of these subjects, so a delete
-// that would leave a group short requires an explicit `confirmed` — the server-side backstop
-// behind the UI's type-to-DELETE gate, so calling the API directly can't skip it.
+// The blast radius is the Subject Groups that include any of these subjects (SUBJECT_IN_USE),
+// so deleting one that is in a group requires an explicit `confirmed` — the server-side
+// backstop behind the UI's type-to-DELETE gate, so calling the API directly can't skip it.
+// Unconfirmed, an in-use subject is reported `blocked` (with its group count) and the free
+// ones still go; confirmed, every found subject goes and is $pull-ed out of its groups.
+//
+// Per-row outcome: each requested id comes back deleted / blocked / not_found (missing or
+// another school's — reported identically). Every step is ONE grouped query over the set.
 let BulkDeleteSubjects = async (req, res, next) => {
-    const { adminId, ids, confirmed } = req.body;
+    const { adminId, confirmed } = req.body;
+    const ids = uniqueIds(req.body.ids);
 
-    const found = await SubjectModel.find({ _id: { $in: ids }, adminId: adminId }, '_id').lean();
-    if (found.length !== ids.length) {
-        throw new NotFoundError(messages.subjectsNotFound(ids.length - found.length), {
-            module: MODULE,
-            context: { requested: ids.length, found: found.length },
-        });
-    }
-
-    if (!confirmed) {
-        // ONE query for the whole selection, not one per subject.
-        const groupCount = await SubjectGroupModel.countDocuments({
-            adminId: adminId,
-            subjectIds: { $in: ids },
-        });
-
-        if (groupCount > 0) {
-            throw new ConflictError(messages.subjectsInGroups(groupCount, ids.length), {
-                module: MODULE,
-                context: { groupCount: groupCount, requiresConfirmation: true },
-            });
-        }
-    }
-
-    // $pull in the same breath as the delete: a group must never be left pointing at a
-    // subject that no longer exists, which is the one thing referencing (rather than
-    // copying) subject names cannot protect against on its own.
-    await Promise.all([
-        SubjectModel.deleteMany({ _id: { $in: ids }, adminId: adminId }),
-        SubjectGroupModel.updateMany(
-            { adminId: adminId, subjectIds: { $in: ids } },
-            { $pull: { subjectIds: { $in: ids } } }
-        ),
+    const [found, blocking] = await Promise.all([
+        SubjectModel.find({ _id: { $in: ids }, adminId: adminId }, '_id').lean(),
+        subjectBlockingCounts(adminId, ids),
     ]);
-    // The $pull changed groups too — their cached subject lists go with the subjects'.
-    await cacheInvalidation.onSubjectsChanged(adminId, { groupsTouched: true });
+    const foundIds = new Set(found.map((subject) => String(subject._id)));
 
-    return res.status(200).json({
-        message: success.bulkProcessed(ids.length, ENTITY.toLowerCase()),
+    const results = ids.map((id) => {
+        if (!foundIds.has(id)) return { id, status: 'not_found', code: 'NOT_FOUND' };
+        const blockingCount = blocking.get(id) || 0;
+        if (blockingCount > 0 && !confirmed) return { id, status: 'blocked', code: 'SUBJECT_IN_USE', blockingCount };
+        return { id, status: 'deleted', blockingCount };
     });
+
+    const deletable = results.filter((row) => row.status === 'deleted').map((row) => row.id);
+    let emptiedGroups = 0;
+    if (deletable.length) {
+        // ONE transaction: the delete and the $pull commit together or not at all, so a group
+        // can never be left pointing at a subject that no longer exists — the one thing
+        // referencing (rather than copying) subject names cannot protect against on its own.
+        // Sequential inside the session: one transaction cannot run two operations at once.
+        emptiedGroups = await withTransaction(async (dbSession) => {
+            const touched = await SubjectGroupModel
+                .find({ adminId: adminId, subjectIds: { $in: deletable } }, '_id')
+                .session(dbSession)
+                .lean();
+            await SubjectModel.deleteMany({ _id: { $in: deletable }, adminId: adminId }, { session: dbSession });
+            if (!touched.length) return 0;
+            const touchedIds = touched.map((group) => group._id);
+            await SubjectGroupModel.updateMany(
+                { _id: { $in: touchedIds }, adminId: adminId },
+                { $pull: { subjectIds: { $in: deletable } } },
+                { session: dbSession }
+            );
+            return SubjectGroupModel
+                .countDocuments({ _id: { $in: touchedIds }, adminId: adminId, subjectIds: { $size: 0 } })
+                .session(dbSession);
+        });
+        // The $pull changed groups too — their cached subject lists go with the subjects'.
+        await cacheInvalidation.onSubjectsChanged(adminId, { groupsTouched: true });
+    }
+
+    const body = bulkDeleteBody(results, ENTITY.toLowerCase());
+    // Non-blocking (errors.md shape 6): the delete already happened, so a group it left with
+    // no subjects is a warning to act on, not an error.
+    if (emptiedGroups > 0) {
+        body.warnings = [{
+            code: 'SUBJECT_GROUP_EMPTIED',
+            count: emptiedGroups,
+            message: `${emptiedGroups} subject ${emptiedGroups === 1 ? 'group now has' : 'groups now have'} no subjects.`,
+        }];
+    }
+    return res.status(200).json(body);
 };
 
 module.exports = {

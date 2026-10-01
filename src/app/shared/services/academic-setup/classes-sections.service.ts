@@ -23,6 +23,8 @@ import { environment } from 'src/environments/environment';
 import {
   AcademicClass, ClassNameOption, ClassPayload
 } from 'src/app/shared/models/academic-setup/class.model';
+import { BulkDeleteResponse } from 'src/app/shared/models/academic-setup/bulk-delete.model';
+import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 
 @Injectable({ providedIn: 'root' })
 export class ClassesSectionsService {
@@ -48,12 +50,13 @@ export class ClassesSectionsService {
     return this.http.get<ClassNameOption[]>(`${this.url}/class-options`, { params: { adminId } });
   }
 
-  createClass(payload: ClassPayload): Observable<unknown> {
-    return this.http.post(`${this.url}/classes`, payload);
+  /** `key`: the Idempotency-Key made when the modal opened (utils/idempotency.util.ts). */
+  createClass(payload: ClassPayload, key?: string): Observable<unknown> {
+    return this.http.post(`${this.url}/classes`, payload, { headers: idempotencyHeaders(key) });
   }
 
-  updateClass(id: string, payload: ClassPayload): Observable<unknown> {
-    return this.http.put(`${this.url}/classes/${id}`, payload);
+  updateClass(id: string, payload: ClassPayload, key?: string): Observable<unknown> {
+    return this.http.put(`${this.url}/classes/${id}`, payload, { headers: idempotencyHeaders(key) });
   }
 
   /**
@@ -72,7 +75,7 @@ export class ClassesSectionsService {
    * "Delete Selected" — the whole selection in one request, never a delete call per checked
    * row. POST rather than DELETE because the selection is a body.
    */
-  bulkDelete(adminId: string, ids: string[], confirmed: boolean): Observable<unknown> {
-    return this.http.post(`${this.url}/classes/bulk-delete`, { adminId, ids, confirmed });
+  bulkDelete(adminId: string, ids: string[], confirmed: boolean): Observable<BulkDeleteResponse> {
+    return this.http.post<BulkDeleteResponse>(`${this.url}/classes/bulk-delete`, { adminId, ids, confirmed });
   }
 }

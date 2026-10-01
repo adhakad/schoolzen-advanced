@@ -19,6 +19,11 @@ export interface Subject {
   name: string;
   type: SubjectType;
   status: SubjectStatus;
+  /**
+   * How many Subject Groups include this subject — returned WITH the list, so the delete
+   * confirmation names that consequence before the attempt (SUBJECT_IN_USE).
+   */
+  blockingCount?: number;
 }
 
 /** The side card's counts, school-wide — not narrowed by the search box. */

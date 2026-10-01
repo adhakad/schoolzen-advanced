@@ -49,6 +49,19 @@ const groupAlreadyExists = (name) => `A group called ${name} already exists for 
 
 const groupNotFound = () => 'Subject group not found';
 
+// SUBJECT_GROUP_IN_USE (errors.md shape 6) — the mirror of Subjects'/Classes' delete guard.
+const groupInUse = (count) =>
+    `${count} ${count === 1 ? 'student is' : 'students are'} placed in this group — reassign them before deleting it.`;
+
+// The one-line summary of a per-row bulk delete; the rows themselves carry the detail.
+const bulkDeleteSummary = (entity, { deleted, blocked, notFound }) => {
+    const plural = (count) => `${count} ${entity}${count === 1 ? '' : (/s$/.test(entity) ? 'es' : 's')}`;
+    const parts = [`${plural(deleted)} deleted`];
+    if (blocked) parts.push(`${blocked} blocked`);
+    if (notFound) parts.push(`${notFound} not found`);
+    return `${parts.join(', ')}.`;
+};
+
 const streamRequired = (className) =>
     `${className} has streams, so this group must belong to one of them.`;
 
@@ -75,6 +88,8 @@ module.exports = {
     subjectsNotFound,
     groupAlreadyExists,
     groupNotFound,
+    groupInUse,
+    bulkDeleteSummary,
     streamRequired,
     streamNotAllowed,
     streamNotInClass,

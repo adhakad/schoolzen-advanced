@@ -13,6 +13,8 @@ import { environment } from 'src/environments/environment';
 import {
   SubjectGroupFormOptions, SubjectGroupListResponse, SubjectGroupPayload
 } from 'src/app/shared/models/academic-setup/subject-group.model';
+import { BulkDeleteResponse } from 'src/app/shared/models/academic-setup/bulk-delete.model';
+import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 
 @Injectable({ providedIn: 'root' })
 export class SubjectGroupsService {
@@ -50,15 +52,17 @@ export class SubjectGroupsService {
     );
   }
 
-  createSubjectGroup(payload: SubjectGroupPayload): Observable<unknown> {
-    return this.http.post(`${this.url}/subject-groups`, payload);
+  /** `key`: the Idempotency-Key made when the modal opened (utils/idempotency.util.ts). */
+  createSubjectGroup(payload: SubjectGroupPayload, key?: string): Observable<unknown> {
+    return this.http.post(`${this.url}/subject-groups`, payload, { headers: idempotencyHeaders(key) });
   }
 
-  updateSubjectGroup(id: string, payload: SubjectGroupPayload): Observable<unknown> {
-    return this.http.put(`${this.url}/subject-groups/${id}`, payload);
+  /** Sends the checklist's full subjectIds — the server replaces the group's list with it. */
+  updateSubjectGroup(id: string, payload: SubjectGroupPayload, key?: string): Observable<unknown> {
+    return this.http.put(`${this.url}/subject-groups/${id}`, payload, { headers: idempotencyHeaders(key) });
   }
 
-  bulkDelete(adminId: string, ids: string[], confirmed: boolean): Observable<unknown> {
-    return this.http.post(`${this.url}/subject-groups/bulk-delete`, { adminId, ids, confirmed });
+  bulkDelete(adminId: string, ids: string[], confirmed: boolean): Observable<BulkDeleteResponse> {
+    return this.http.post<BulkDeleteResponse>(`${this.url}/subject-groups/bulk-delete`, { adminId, ids, confirmed });
   }
 }

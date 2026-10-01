@@ -5,6 +5,7 @@ const router = express.Router();
 const { isAdminAuth } = require('../../middleware/admin-auth');
 const assertAdminScope = require('../../middleware/assert-admin-scope');
 const validateRequest = require('../../middleware/validate-request');
+const idempotency = require('../../middleware/idempotency');
 const {
     createClassSchema,
     updateClassSchema,
@@ -25,11 +26,14 @@ const {
 // bearer token AdminAuthInterceptor already attaches, and assertAdminScope checks the
 // adminId in the request against that token.
 const scope = assertAdminScope('academic-setup');
+// Double-submit backstop on Add/Edit (academic-setup-critical-fixes.md P1-10): the shared
+// Idempotency-Key middleware, after scope so the key is per school.
+const idem = idempotency('academic-setup');
 
 router.get('/classes', isAdminAuth, scope, GetClasses);
 router.get('/class-options', isAdminAuth, scope, GetClassNameOptions);
-router.post('/classes', isAdminAuth, scope, validateRequest(createClassSchema, 'academic-setup'), CreateClass);
-router.put('/classes/:id', isAdminAuth, scope, validateRequest(updateClassSchema, 'academic-setup'), UpdateClass);
+router.post('/classes', isAdminAuth, scope, idem, validateRequest(createClassSchema, 'academic-setup'), CreateClass);
+router.put('/classes/:id', isAdminAuth, scope, idem, validateRequest(updateClassSchema, 'academic-setup'), UpdateClass);
 router.delete('/classes/:id', isAdminAuth, scope, DeleteClass);
 
 // POST, not DELETE: the selection is a body (an array of ids plus the confirmation

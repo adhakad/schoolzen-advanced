@@ -39,16 +39,15 @@ const sectionSchema = Joi.object({
     }),
 });
 
-// A stream's subject group, created/edited inline in the Class modal — the same
-// SubjectGroup document the Subject Groups page edits (academic-setup/subject-groups.md).
+// A stream's subject group, NAMED inline in the Class modal — the same SubjectGroup document
+// the Subject Groups page edits (academic-setup/subject-groups.md). Name only: subjects are
+// picked solely on the Subject Groups page, so any `subjectIds` sent here is stripped and the
+// controller never writes them from this payload.
 const groupSchema = Joi.object({
     _id: objectId,
     name: Joi.string().trim().max(60).required().messages({
         'string.empty': 'Group name cannot be blank',
         'any.required': 'Group name is required',
-    }),
-    subjectIds: Joi.array().items(objectId).unique().default([]).messages({
-        'array.unique': 'The same subject is listed twice',
     }),
 });
 
@@ -103,17 +102,21 @@ const createClassSchema = Joi.object({
             .required()
             .custom(uniqueByName('Two streams have the same name'))
             .messages({
-                'array.min': 'Add at least one stream, or turn the streams toggle off',
+                'array.min': 'Add at least one stream',
             }),
         otherwise: Joi.array().max(0).default([]).messages({
-            'array.max': 'Turn the streams toggle on before adding streams',
+            'array.max': 'Streams apply only to 11th and 12th',
         }),
     }),
 });
 
 // The class number is the record's identity and the join key every other collection uses,
 // so an edit may restructure everything except which class it is.
-const updateClassSchema = createClassSchema.fork(['class'], (schema) => schema.forbidden());
+// `confirmRemoveSections`: the admin has confirmed dropping an 11th/12th's legacy flat
+// sections (saved before streams were mandatory) — see assertFlatSectionsRemovable.
+const updateClassSchema = createClassSchema.fork(['class'], (schema) => schema.forbidden()).keys({
+    confirmRemoveSections: Joi.boolean().default(false),
+});
 
 // "Delete Selected" sends the whole selection in one request, so one deleteMany can serve
 // it rather than N round-trips (performance-principles.md). `confirmed` is the server-side

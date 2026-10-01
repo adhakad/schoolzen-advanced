@@ -88,6 +88,11 @@ export interface ConfirmConfig {
   typeToConfirm?: string;
   /** Optional plain-language scope line, e.g. "12 roster entries across 3 people". */
   scopeNote?: string;
+  /**
+   * The action is known up front to be refused (e.g. every selected record has dependents):
+   * the confirm button stays disabled whatever is typed, and `message`/`scopeNote` say why.
+   */
+  blocked?: boolean;
 }
 
 /* --- app-count-pill --- */

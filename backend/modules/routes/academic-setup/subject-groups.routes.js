@@ -5,6 +5,7 @@ const router = express.Router();
 const { isAdminAuth } = require('../../middleware/admin-auth');
 const assertAdminScope = require('../../middleware/assert-admin-scope');
 const validateRequest = require('../../middleware/validate-request');
+const idempotency = require('../../middleware/idempotency');
 const {
     createSubjectGroupSchema,
     updateSubjectGroupSchema,
@@ -20,6 +21,8 @@ const {
 
 // Mounted at /api/v2/academic-setup — wiring only, no logic and no Mongoose calls.
 const scope = assertAdminScope('academic-setup');
+// Double-submit backstop on Add/Edit (P1-10) — the shared Idempotency-Key middleware.
+const idem = idempotency('academic-setup');
 
 router.get('/subject-groups', isAdminAuth, scope, GetSubjectGroups);
 
@@ -31,6 +34,7 @@ router.post(
     '/subject-groups',
     isAdminAuth,
     scope,
+    idem,
     validateRequest(createSubjectGroupSchema, 'academic-setup'),
     CreateSubjectGroup
 );
@@ -38,6 +42,7 @@ router.put(
     '/subject-groups/:id',
     isAdminAuth,
     scope,
+    idem,
     validateRequest(updateSubjectGroupSchema, 'academic-setup'),
     UpdateSubjectGroup
 );

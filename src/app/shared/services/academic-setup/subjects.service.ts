@@ -17,6 +17,8 @@ import { environment } from 'src/environments/environment';
 import {
   SubjectListResponse, SubjectPayload
 } from 'src/app/shared/models/academic-setup/subject.model';
+import { BulkDeleteResponse } from 'src/app/shared/models/academic-setup/bulk-delete.model';
+import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 
 @Injectable({ providedIn: 'root' })
 export class SubjectsService {
@@ -39,12 +41,17 @@ export class SubjectsService {
     return this.http.get<SubjectListResponse>(`${this.url}/subjects`, { params });
   }
 
-  createSubject(payload: SubjectPayload): Observable<unknown> {
-    return this.http.post(`${this.url}/subjects`, payload);
+  /**
+   * `key` is the Idempotency-Key the page made when the modal opened
+   * (utils/idempotency.util.ts): a retry or double click of the same submission replays the
+   * first result instead of writing twice.
+   */
+  createSubject(payload: SubjectPayload, key?: string): Observable<unknown> {
+    return this.http.post(`${this.url}/subjects`, payload, { headers: idempotencyHeaders(key) });
   }
 
-  updateSubject(id: string, payload: SubjectPayload): Observable<unknown> {
-    return this.http.put(`${this.url}/subjects/${id}`, payload);
+  updateSubject(id: string, payload: SubjectPayload, key?: string): Observable<unknown> {
+    return this.http.put(`${this.url}/subjects/${id}`, payload, { headers: idempotencyHeaders(key) });
   }
 
   /**
@@ -54,7 +61,7 @@ export class SubjectsService {
    * server requires before removing a subject that Subject Groups still reference. The
    * UI's type-to-DELETE gate is the first check, this is the backstop behind it.
    */
-  bulkDelete(adminId: string, ids: string[], confirmed: boolean): Observable<unknown> {
-    return this.http.post(`${this.url}/subjects/bulk-delete`, { adminId, ids, confirmed });
+  bulkDelete(adminId: string, ids: string[], confirmed: boolean): Observable<BulkDeleteResponse> {
+    return this.http.post<BulkDeleteResponse>(`${this.url}/subjects/bulk-delete`, { adminId, ids, confirmed });
   }
 }

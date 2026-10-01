@@ -26,7 +26,7 @@
         </div>
         <div class="toolbar-btn-group">
           <button type="button" class="btn-danger-outline"
-                  [disabled]="!selectedCount" (click)="onDeleteSelected()">
+                  [disabled]="!selectedCount || deleting" (click)="onDeleteSelected()">
             <i class="bi bi-trash"></i> Delete Selected
           </button>
           <button type="button" class="btn-primary" (click)="onAddGroup()">
@@ -43,6 +43,11 @@
         <app-dd class="toolbar-pill" [options]="streamFilterOptions" [value]="filterStreamId"
                 [disabled]="filterStreamDisabled" [disabledHint]="filterStreamHint"
                 ariaLabel="Filter by stream" (valueChange)="onFilterStreamChange($event)"></app-dd>
+      </div>
+      <!-- A failed class/subject fetch is said out loud — never a silently empty dropdown. -->
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="retryOptions()">Retry</button>
       </div>
     </div>
 
@@ -95,7 +100,10 @@
                 <span class="tag tag-slate" *ngFor="let subject of row.subjects; trackBy: trackBySubject">
                   {{ subject.name }}
                 </span>
-                <span class="na" *ngIf="!row.subjects.length">&mdash; none yet</span>
+                <!-- e.g. a group named inline in the Class modal, which never picks subjects. -->
+                <span class="tag tag-warning no-subjects" *ngIf="!row.subjects.length">
+                  <i class="bi bi-exclamation-triangle"></i> No subjects assigned
+                </span>
               </div>
             </td>
 
@@ -121,7 +129,12 @@
       </table>
     </div>
 
-    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+    <!-- A failed fetch is NOT the empty state: it says so and offers a retry. -->
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="retryList()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
       {{ search || filterClassId ? 'No groups match those filters.' : 'No subject groups created yet.' }}
     </div>
 
@@ -166,6 +179,12 @@
                 [submitDisabled]="submitDisabled"
                 (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
   <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <!-- A failed options fetch: the Class list and checklist can't be trusted, so Submit is
+       held and the failure is said here with a retry — never a silently empty dropdown. -->
+  <p class="m-error form-level" *ngIf="optionsError" role="alert">
+    <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+    <button type="button" class="link-btn" (click)="retryOptions()">Retry</button>
+  </p>
 
   <div class="m-row">
     <div class="m-field">
@@ -209,7 +228,8 @@
                (change)="toggleSubject(subject._id)" />
         <span>{{ subject.name }}</span>
       </label>
-      <p class="m-hint no-gap" *ngIf="!subjectChecklist.length">
+      <p class="m-hint no-gap" *ngIf="optionsLoading && !subjectChecklist.length">Loading subjects&hellip;</p>
+      <p class="m-hint no-gap" *ngIf="!subjectChecklist.length && !optionsLoading && !optionsError">
         No active subjects yet &mdash; add them on the Subjects page first.
       </p>
     </div>
@@ -219,3 +239,15 @@
 
 <app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
                    (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
+
+<!-- Per-row outcome of a delete — never one pass/fail toast for a whole selection. -->
+<app-form-modal [open]="bulkResultOpen" title="Delete Subject Groups" [width]="420" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closeBulkResult()">
+  <p class="bulk-summary">{{ bulkResultSummary }}</p>
+  <ul class="result-rows">
+    <li *ngFor="let line of bulkResultLines; trackBy: trackByOutcome">
+      <span class="result-row-label">{{ line.label }}</span>
+      <span class="m-error"><i class="bi bi-exclamation-circle"></i> {{ line.message }}</span>
+    </li>
+  </ul>
+</app-form-modal>

@@ -28,7 +28,7 @@
         </div>
         <div class="toolbar-btn-group">
           <button type="button" class="btn-danger-outline"
-                  [disabled]="!selectedCount" (click)="onDeleteSelected()">
+                  [disabled]="!selectedCount || deleting" (click)="onDeleteSelected()">
             <i class="bi bi-trash"></i> Delete Selected
           </button>
           <button type="button" class="btn-primary" (click)="onAddSubject()">
@@ -93,7 +93,12 @@
       </table>
     </div>
 
-    <div class="tbl-empty" *ngIf="!rows.length && !loading">
+    <!-- A failed fetch is NOT the empty state: it says so and offers a retry. -->
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="retryList()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
       {{ search ? 'No subjects match that search.' : 'No subjects added yet.' }}
     </div>
 
@@ -170,3 +175,15 @@
 
 <app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
                    (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
+
+<!-- Per-row outcome of a delete — never one pass/fail toast for a whole selection. -->
+<app-form-modal [open]="bulkResultOpen" title="Delete Subjects" [width]="420" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closeBulkResult()">
+  <p class="bulk-summary">{{ bulkResultSummary }}</p>
+  <ul class="result-rows">
+    <li *ngFor="let line of bulkResultLines; trackBy: trackByOutcome">
+      <span class="result-row-label">{{ line.label }}</span>
+      <span class="m-error"><i class="bi bi-exclamation-circle"></i> {{ line.message }}</span>
+    </li>
+  </ul>
+</app-form-modal>

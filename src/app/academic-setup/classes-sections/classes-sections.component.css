@@ -12,9 +12,13 @@
 
 .table-scroll { min-width: 0; }
 
-/* Each stream's inline subject groups (student-fix5.md #8): a name row, then its checklist
-   — the global .subj-check-grid, capped shorter here since there can be several groups. */
+/* Each stream's inline subject groups (student-fix5.md #8): a name row only — subjects are
+   picked on the Subject Groups page — plus the "No subjects assigned" tag while it has none. */
 .group-draft { margin-bottom: 10px; }
-.subj-check-grid.compact { max-height: 150px; margin-top: 4px; }
+.group-no-subjects { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
 .sections-head { margin-top: 14px; }
+/* Read-only "streams are on" line for 11th/12th — an indicator, never a control. */
+.streams-auto { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; font-size: 13px; color: var(--ink-soft); }
+.legacy-sections { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 14px; padding: 10px 12px; border-radius: 8px; font-size: 13px; background: var(--warning-soft); color: var(--ink); }
+.legacy-sections .bi { color: var(--warning); margin-top: 2px; }
 .no-group { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }

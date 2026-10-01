@@ -61,7 +61,8 @@ describe('SubjectGroupsComponent', () => {
     api.getFormOptions.and.returnValue(of(OPTIONS));
     api.createSubjectGroup.and.returnValue(of('ok'));
     api.updateSubjectGroup.and.returnValue(of('ok'));
-    api.bulkDelete.and.returnValue(of('ok'));
+    api.bulkDelete.and.callFake((_adminId: string, ids: string[]) =>
+      of({ message: 'ok', results: ids.map((id) => ({ id, status: 'deleted' as const })) }));
 
     await TestBed.configureTestingModule({
       declarations: [SubjectGroupsComponent],
@@ -146,7 +147,7 @@ describe('SubjectGroupsComponent', () => {
 
       expect(api.updateSubjectGroup).toHaveBeenCalledWith('g1', {
         adminId: 'a1', classId: 'c9', streamId: null, name: 'General', subjectIds: ['sub2', 'sub3']
-      });
+      }, jasmine.any(String));
     });
 
     it('unlocks the modal again for a streamed group or a new one', () => {
@@ -270,7 +271,7 @@ describe('SubjectGroupsComponent', () => {
 
     expect(api.createSubjectGroup).toHaveBeenCalledWith(jasmine.objectContaining({
       streamId: 'st1'
-    }));
+    }), jasmine.any(String));
   });
 
   it('clears a stale stream when the class filter changes, and refetches', () => {
@@ -384,7 +385,7 @@ describe('SubjectGroupsComponent', () => {
       streamId: null,
       name: 'General Group',
       subjectIds: ['sub1']
-    });
+    }, jasmine.any(String));
   });
 
   it('sends the chosen stream for a streamed class', () => {
@@ -396,7 +397,7 @@ describe('SubjectGroupsComponent', () => {
 
     expect(api.createSubjectGroup).toHaveBeenCalledWith(jasmine.objectContaining({
       classId: 'c11', streamId: 'st2', subjectIds: []
-    }));
+    }), jasmine.any(String));
   });
 
   it('updates by id when the modal was opened on an existing group', () => {
@@ -406,8 +407,66 @@ describe('SubjectGroupsComponent', () => {
 
     expect(api.updateSubjectGroup).toHaveBeenCalledWith('g1', jasmine.objectContaining({
       subjectIds: ['sub1', 'sub2', 'sub3']
-    }));
+    }), jasmine.any(String));
     expect(api.createSubjectGroup).not.toHaveBeenCalled();
+  });
+
+  /** P1-8: both halves — pre-populated on open AND sent back from the checklist on Update. */
+  it('round-trips the checklist on Edit, including an unticked subject', () => {
+    component.onEditGroup(component.rows[0]);
+    expect(component.isChecked('sub1')).toBe(true);
+    expect(component.isChecked('sub2')).toBe(true);
+
+    component.toggleSubject('sub1');
+    component.onFormSubmit();
+
+    expect(api.updateSubjectGroup.calls.mostRecent().args[1].subjectIds).toEqual(['sub2']);
+  });
+
+  it('keeps a group`s subject that the live list no longer offers visible and ticked on Edit', () => {
+    api.getFormOptions.and.returnValue(of({ ...OPTIONS, subjects: [{ _id: 'sub1', name: 'Hindi' }] }));
+    component.onEditGroup(component.rows[0]);
+
+    expect(component.subjectChecklist.map((subject) => subject._id)).toEqual(['sub1', 'sub2']);
+    expect(component.isChecked('sub2')).toBe(true);
+  });
+
+  it('sends one Idempotency-Key per modal-open and reuses it when the same submit is retried', () => {
+    api.createSubjectGroup.and.returnValue(throwError(() => ({ category: 'InternalError', message: 'x', requestId: 'r' } as ApiError)));
+    component.onAddGroup();
+    component.onFormClassChange('c11');
+    component.onFormStreamChange('st1');
+    component.onFormNameChange('Science Group');
+    component.onFormSubmit();
+    component.onFormSubmit();
+
+    const [first, second] = api.createSubjectGroup.calls.allArgs().map((args) => args[1]);
+    expect(first).toBeTruthy();
+    expect(first).toBe(second);
+  });
+
+  it('says a failed form-options fetch out loud, holds Submit, and retries', () => {
+    api.getFormOptions.and.returnValue(throwError(() => new Error('down')));
+    component.onAddGroup();
+    component.onFormClassChange('c11');
+    component.onFormNameChange('Science Group');
+
+    expect(component.optionsError).toBeTruthy();
+    expect(component.submitDisabled).toBe(true);
+
+    api.getFormOptions.and.returnValue(of(OPTIONS));
+    component.retryOptions();
+    expect(component.optionsError).toBe('');
+    expect(component.subjectChecklist.length).toBe(3);
+  });
+
+  it('shows a failed list fetch as an error with Retry, never as the empty state', () => {
+    api.getSubjectGroups.and.returnValue(throwError(() => new Error('down')));
+    component.retryList();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.tbl-empty.load-error')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).not.toContain('No subject groups created yet.');
   });
 
   it('binds a ValidationError`s fields and leaves the modal open', () => {
@@ -430,14 +489,43 @@ describe('SubjectGroupsComponent', () => {
 
   // --- delete -------------------------------------------------------------------------
 
-  it('demands DELETE typed and warns about the students on the group', () => {
+  it('demands DELETE typed for a group nobody is placed in', () => {
     component.onDeleteGroup(component.rows[0]);
 
     expect(component.confirmConfig.title).toBe('Delete 1 group?');
     expect(component.confirmConfig.typeToConfirm).toBe('DELETE');
-    expect(component.confirmConfig.message)
-      .toContain('Students currently on this group will need to be reassigned.');
+    expect(component.confirmConfig.blocked).toBe(false);
     expect(api.bulkDelete).not.toHaveBeenCalled();
+  });
+
+  it('shows the blocking student count upfront, from the list, and disables confirm', () => {
+    api.getSubjectGroups.and.returnValue(of({
+      ...RESPONSE, rows: [{ ...RESPONSE.rows[1], blockingCount: 4 }]
+    }));
+    component.retryList();
+    component.onDeleteGroup(component.rows[0]);
+
+    expect(component.confirmConfig.scopeNote).toContain('4 students are placed in this group');
+    expect(component.confirmConfig.blocked).toBe(true);
+  });
+
+  it('lists each refused row after a partial bulk delete and keeps it selected', () => {
+    api.bulkDelete.and.returnValue(of({
+      results: [
+        { id: 'g1', status: 'deleted' as const },
+        { id: 'g2', status: 'blocked' as const, code: 'SUBJECT_GROUP_IN_USE', blockingCount: 3 }
+      ]
+    }));
+    component.toggleRow('g1');
+    component.toggleRow('g2');
+    component.onDeleteSelected();
+    component.onConfirmed();
+
+    expect(component.bulkResultOpen).toBe(true);
+    expect(component.bulkResultLines.length).toBe(1);
+    expect(component.bulkResultLines[0].message).toContain('3 students are placed');
+    expect(component.isSelected('g1')).toBe(false);
+    expect(component.isSelected('g2')).toBe(true);
   });
 
   it('sends a whole selection as ONE bulk request', () => {

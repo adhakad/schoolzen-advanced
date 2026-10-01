@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { ChangeDetectorRef, NO_ERRORS_SCHEMA } from '@angular/core';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { ClassSuffixPipe } from 'src/app/pipes/class-suffix.pipe';
 import { StreamTitleCasePipe } from 'src/app/pipes/stream-title-case.pipe';
@@ -30,7 +30,8 @@ describe('ClassesSectionsComponent', () => {
   let context$: BehaviorSubject<{ activeSession: string }>;
 
   const CLASSES: AcademicClass[] = [
-    classDoc({ _id: 'c6', class: 6, sections: [{ _id: 's6a', name: 'A' }, { _id: 's6b', name: 'B' }], studentCount: 72 }),
+    // blockingCount: the enrolled students that block a delete, sent WITH the list.
+    classDoc({ _id: 'c6', class: 6, sections: [{ _id: 's6a', name: 'A' }, { _id: 's6b', name: 'B' }], studentCount: 72, blockingCount: 72 }),
     // No sections and no students: the class a delete strands nobody over.
     classDoc({ _id: 'c7', class: 7, studentCount: 0 }),
     classDoc({
@@ -58,7 +59,8 @@ describe('ClassesSectionsComponent', () => {
     api.createClass.and.returnValue(of('ok'));
     api.updateClass.and.returnValue(of('ok'));
     api.deleteClass.and.returnValue(of('ok'));
-    api.bulkDelete.and.returnValue(of('ok'));
+    api.bulkDelete.and.callFake((_adminId: string, ids: string[]) =>
+      of({ message: 'ok', results: ids.map((id) => ({ id, status: 'deleted' as const })) }));
 
     await TestBed.configureTestingModule({
       declarations: [ClassesSectionsComponent],
@@ -212,18 +214,78 @@ describe('ClassesSectionsComponent', () => {
 
   // --- form ---------------------------------------------------------------------------
 
-  it('clears the other half of the form whenever the streams toggle moves', () => {
+  /** P0-1 #1: hasStreams follows the class name — never a manual toggle. */
+  it('derives streams from the chosen class: on for 11th/12th only, never toggleable', () => {
     component.onAddClass();
+    ['200', '201', '202', '1', '8', '9', '10'].forEach((value) => {
+      component.onClassSelected(value);
+      expect(component.form.hasStreams).withContext(value).toBe(false);
+    });
+    component.onClassSelected('11');
+    expect(component.form.hasStreams).toBe(true);
+    component.onClassSelected('12');
+    expect(component.form.hasStreams).toBe(true);
+
+    // No manual control exists to flip it.
+    expect((component as unknown as Record<string, unknown>)['onStreamsToggled']).toBeUndefined();
+  });
+
+  it('hides the Streams UI for a non-streamed class and shows it, with no toggle, for 11th', () => {
+    const host: HTMLElement = fixture.nativeElement;
+    // OnPush: re-render through the component's own change detector.
+    const render = () => fixture.componentRef.injector.get(ChangeDetectorRef).detectChanges();
+    component.onAddClass();
+    component.onClassSelected('9');
+    render();
+    expect(host.querySelector('.streams-auto')).toBeNull();
+    expect(host.querySelector('.toggle-row')).toBeNull();
+    expect(host.querySelector('[aria-label="Add stream"]')).toBeNull();
+
+    component.onClassSelected('11');
+    render();
+    expect(host.querySelector('.streams-auto')).toBeTruthy();
+    expect(host.querySelector('[aria-label="Add stream"]')).toBeTruthy();
+    expect(host.querySelector('.toggle-row')).toBeNull();
+  });
+
+  it('clears the other half of the form whenever the chosen class flips streams', () => {
+    component.onAddClass();
+    component.onClassSelected('8');
     component.addSection();
     component.updateSection(0, 'A');
 
-    component.onStreamsToggled(true);
+    component.onClassSelected('11');
     expect(component.form.sections).toEqual([]);
 
     component.addStream();
     component.updateStreamName(0, 'Science');
-    component.onStreamsToggled(false);
+    component.onClassSelected('8');
     expect(component.form.streams).toEqual([]);
+  });
+
+  /** P0-1 #2: each stream's sections are its own list. */
+  it('adds and removes sections per stream without touching any other stream', () => {
+    component.onAddClass();
+    component.onClassSelected('11');
+    component.addStream();
+    component.updateStreamName(0, 'Science');
+    component.addStream();
+    component.updateStreamName(1, 'Commerce');
+
+    ['A', 'B', 'C'].forEach((name, j) => {
+      component.addStreamSection(0);
+      component.updateStreamSection(0, j, name);
+    });
+    component.addStreamSection(1);
+    component.updateStreamSection(1, 0, 'A');
+
+    component.removeStreamSection(0, 1); // Science's "B", specifically
+    expect(component.form.streams[0].sections).toEqual([{ name: 'A' }, { name: 'C' }]);
+    expect(component.form.streams[1].sections).toEqual([{ name: 'A' }]);
+
+    component.addStreamSection(1);
+    expect(component.form.streams[0].sections.length).toBe(2);
+    expect(component.form.streams[1].sections.length).toBe(2);
   });
 
   it('adds, edits and removes a section row without touching its neighbours', () => {
@@ -239,7 +301,7 @@ describe('ClassesSectionsComponent', () => {
 
   it('keeps each stream`s sections attached to it through add, rename and remove', () => {
     component.onAddClass();
-    component.onStreamsToggled(true);
+    component.onClassSelected('11');
     component.addStream();
     component.updateStreamName(0, 'Science');
     component.addStreamSection(0);
@@ -288,7 +350,7 @@ describe('ClassesSectionsComponent', () => {
 
     expect(api.createClass).toHaveBeenCalledWith(jasmine.objectContaining({
       adminId: 'a1', class: 8, hasStreams: false, sections: [{ name: 'A' }]
-    }));
+    }), jasmine.any(String));
 
     component.onEditClass(row('c6'));
     component.onFormSubmit();
@@ -323,6 +385,46 @@ describe('ClassesSectionsComponent', () => {
     expect(api.updateClass).toHaveBeenCalled();
   });
 
+  // A 12th saved before streams were mandatory: its sections sit on the class, not a stream.
+  const legacyRow = () => ({
+    _id: 'c12', className: '12th',
+    source: classDoc({ _id: 'c12', class: 12, hasStreams: false, sections: [{ _id: 's12a', name: 'A' }, { _id: 's12b', name: 'B' }] })
+  }) as any;
+
+  it('names an 11th/12th`s legacy flat sections on edit instead of silently dropping them', () => {
+    component.onEditClass(legacyRow());
+    expect(component.form.hasStreams).toBe(true);
+    expect(component.legacySections).toEqual(['A', 'B']);
+
+    component.onEditClass(row('c6'));
+    expect(component.legacySections).toEqual([]);
+    component.onAddClass();
+    expect(component.legacySections).toEqual([]);
+  });
+
+  it('demands a typed confirmation before a save removes legacy flat sections, then says so to the server', () => {
+    component.onEditClass(legacyRow());
+    component.addStream();
+    component.updateStreamName(0, 'Science');
+    component.updateStreamGroupName(0, 0, 'PCM');
+    component.onFormSubmit();
+
+    expect(api.updateClass).not.toHaveBeenCalled();
+    expect(component.confirmOpen).toBe(true);
+    expect(component.confirmConfig.typeToConfirm).toBe('DELETE');
+    expect(component.confirmConfig.message).toContain('A, B');
+
+    component.onConfirmed();
+    const [, payload] = api.updateClass.calls.mostRecent().args;
+    expect(payload.confirmRemoveSections).toBe(true);
+  });
+
+  it('never sends the remove-sections confirmation for an ordinary edit', () => {
+    component.onEditClass(row('c6'));
+    component.onFormSubmit();
+    expect(api.updateClass.calls.mostRecent().args[1].confirmRemoveSections).toBeUndefined();
+  });
+
   // --- student-fix5 #6 / #8 -------------------------------------------------------------
 
   it('sends back the id of every existing section, stream and group — an edit never re-mints them', () => {
@@ -339,9 +441,10 @@ describe('ClassesSectionsComponent', () => {
     expect(payload.streams[0]).toEqual({
       _id: 'sci', name: 'Sciences',
       sections: [{ _id: 'sciA', name: 'A' }, { name: 'B' }],
-      groups: [{ _id: 'g-pcm', name: 'PCM', subjectIds: ['phy'] }]
+      // Name only — never subjectIds, so an edit can't wipe what Subject Groups assigned.
+      groups: [{ _id: 'g-pcm', name: 'PCM' }]
     });
-    expect(payload.streams[1].groups).toEqual([{ name: 'Accounts', subjectIds: [] }]);
+    expect(payload.streams[1].groups).toEqual([{ name: 'Accounts' }]);
 
     component.onEditClass(row('c6'));
     component.onFormSubmit();
@@ -359,17 +462,27 @@ describe('ClassesSectionsComponent', () => {
     expect(component.streamGroupErrors[1]).toBeUndefined();
   });
 
-  it('a new stream starts with one empty group row; each group has its own subject checklist', () => {
+  /** P0-1 #3: the inline Groups sub-block names a group — it never picks subjects. */
+  it('a new stream starts with one empty, name-only group row and no subject checklist', () => {
     component.onAddClass();
-    component.onStreamsToggled(true);
+    component.onClassSelected('11');
     component.addStream();
-    expect(component.form.streams[0].groups).toEqual([{ name: '', subjectIds: [] }]);
-    expect(component.subjects.map((subject) => subject.name)).toEqual(['Physics', 'Accounts']);
+    expect(component.form.streams[0].groups).toEqual([{ name: '' }]);
 
-    component.toggleGroupSubject(0, 0, 'phy');
-    component.toggleGroupSubject(0, 0, 'acc');
-    component.toggleGroupSubject(0, 0, 'phy');
-    expect(component.form.streams[0].groups[0].subjectIds).toEqual(['acc']);
+    fixture.componentRef.injector.get(ChangeDetectorRef).detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    expect(host.querySelector('.subj-check, .subj-check-grid')).toBeNull();
+    // A group with no subjects yet says so.
+    expect(host.querySelector('.group-no-subjects')!.textContent).toContain('No subjects assigned');
+  });
+
+  it('pre-fills an existing group`s subject count on edit, showing the tag only when it has none', () => {
+    component.onEditClass(row('c11'));
+    expect(component.form.streams[0].groups).toEqual([{ _id: 'g-pcm', name: 'PCM', subjectCount: 1 }]);
+    fixture.componentRef.injector.get(ChangeDetectorRef).detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+    // Science's PCM has a subject; Commerce has no group at all yet — so no tag either way.
+    expect(host.querySelectorAll('.group-no-subjects').length).toBe(0);
   });
 
   it('flags a stream saved without any group on its table row', () => {
@@ -425,14 +538,17 @@ describe('ClassesSectionsComponent', () => {
    * classes-sections.md calls type-to-confirm "the pattern for any destructive action in
    * this app" — so a row delete and a bulk delete both demand it, empty class or not.
    */
-  it('always demands DELETE typed, and names the real student count when there is one', () => {
+  it('always demands DELETE typed, and names the real blocking count upfront', () => {
     component.onDeleteClass(row('c7'));
     expect(component.confirmConfig.typeToConfirm).toBe('DELETE');
     expect(component.confirmConfig.scopeNote).toBeUndefined();
+    expect(component.confirmConfig.blocked).toBe(false);
 
+    // Known from the list response — the delete would be refused, so confirm is disabled.
     component.onDeleteClass(row('c6'));
     expect(component.confirmConfig.typeToConfirm).toBe('DELETE');
     expect(component.confirmConfig.scopeNote).toContain('72 students');
+    expect(component.confirmConfig.blocked).toBe(true);
   });
 
   it('sends a whole selection as ONE bulk request, not a call per row', () => {
@@ -441,8 +557,10 @@ describe('ClassesSectionsComponent', () => {
     component.onDeleteSelected();
 
     expect(component.confirmConfig.title).toBe('Delete 2 classes?');
-    // Both classes' students are counted together, not reported per row.
-    expect(component.confirmConfig.scopeNote).toContain('72 students');
+    // Which of the selection will be refused is named before the attempt.
+    expect(component.confirmConfig.scopeNote).toContain('1 of 2 selected have students enrolled');
+    expect(component.confirmConfig.scopeNote).toContain('6th');
+    expect(component.confirmConfig.blocked).toBe(false);
 
     component.onConfirmed();
 
@@ -461,6 +579,65 @@ describe('ClassesSectionsComponent', () => {
     component.onDeleteClass(row('c6'));
     component.onConfirmed();
     expect(api.bulkDelete).toHaveBeenCalledWith('a1', ['c6'], true);
+  });
+
+  it('shows the per-row outcome and keeps a refused class selected', () => {
+    api.bulkDelete.and.returnValue(of({
+      results: [
+        { id: 'c6', status: 'blocked' as const, code: 'CLASS_HAS_STUDENTS', blockingCount: 72 },
+        { id: 'c7', status: 'deleted' as const }
+      ]
+    }));
+    component.toggleRow('c6');
+    component.toggleRow('c7');
+    component.onDeleteSelected();
+    component.onConfirmed();
+
+    expect(component.bulkResultOpen).toBe(true);
+    expect(component.bulkResultSummary).toContain('1 of 2 deleted.');
+    expect(component.bulkResultLines).toEqual([
+      { id: 'c6', label: '6th', message: '72 students are enrolled in this class — move them before deleting it.' }
+    ]);
+    expect(component.isSelected('c6')).toBe(true);
+    expect(component.isSelected('c7')).toBe(false);
+  });
+
+  it('shows a failed list fetch as an error with Retry, never as the empty state', () => {
+    api.getClasses.and.returnValue(throwError(() => new Error('down')));
+    component.retryList();
+    fixture.componentRef.injector.get(ChangeDetectorRef).detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+
+    expect(component.loadError).toBeTruthy();
+    expect(host.querySelector('.tbl-empty.load-error')).toBeTruthy();
+    expect(host.textContent).not.toContain('No classes configured yet.');
+  });
+
+  it('loads the Class Name options from the API, with an error state and retry', () => {
+    api.getClassNameOptions.and.returnValue(throwError(() => new Error('down')));
+    component.onAddClass();
+    expect(component.classOptionsError).toBeTruthy();
+    expect(component.classDdOptions).toEqual([]);
+
+    api.getClassNameOptions.and.returnValue(of([{ class: 8, label: '8th' }]));
+    component.retryClassOptions();
+    expect(component.classOptionsError).toBe('');
+    expect(component.classDdOptions).toEqual([{ value: '8', label: '8th' }]);
+  });
+
+  it('sends one Idempotency-Key per modal-open on create', () => {
+    component.onAddClass();
+    component.onClassSelected('8');
+    component.onFormSubmit();
+    const first = api.createClass.calls.mostRecent().args[1];
+
+    component.onAddClass();
+    component.onClassSelected('8');
+    component.onFormSubmit();
+    const second = api.createClass.calls.mostRecent().args[1];
+
+    expect(first).toBeTruthy();
+    expect(second).not.toBe(first);
   });
 
   it('clears a deleted id from the selection so Delete Selected disarms', () => {

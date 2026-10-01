@@ -31,7 +31,7 @@
         </div>
         <div class="toolbar-btn-group">
           <button type="button" class="btn-danger-outline"
-                  [disabled]="!selectedCount" (click)="onDeleteSelected()">
+                  [disabled]="!selectedCount || deleting" (click)="onDeleteSelected()">
             <i class="bi bi-trash"></i> Delete Selected
           </button>
           <button type="button" class="btn-primary" (click)="onAddClass()">
@@ -108,7 +108,14 @@
       </table>
     </div>
 
-    <div class="tbl-empty" *ngIf="!rows.length && !loading">No classes configured yet.</div>
+    <!-- A failed fetch is NOT the empty state: it says so and offers a retry. -->
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="retryList()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search ? 'No classes match that search.' : 'No classes configured yet.' }}
+    </div>
 
     <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
                         (pageChange)="onPageChange($event)"
@@ -150,8 +157,8 @@
   </div>
 </div>
 
-<!-- Add / Edit. The streams toggle restructures the whole lower half of this form: a class
-     either keeps its sections directly, or keeps them under each stream. -->
+<!-- Add / Edit. The chosen class restructures the whole lower half of this form: 11th/12th
+     keep their sections under each stream, every other class keeps them directly. -->
 <app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit"
                 [submitDisabled]="submitDisabled"
                 (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
@@ -166,19 +173,41 @@
             placeholder="Choose a class" ariaLabel="Class name"
             [disabled]="!!form.id"
             (valueChange)="onClassSelected($event)"></app-dd>
+    <!-- Options come from /class-options; a failed fetch is said, never a silently empty list. -->
+    <p class="m-hint" *ngIf="!form.id && classOptionsLoading">Loading classes&hellip;</p>
+    <p class="m-error" *ngIf="!form.id && classOptionsError" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ classOptionsError }}
+      <button type="button" class="link-btn" (click)="retryClassOptions()">Retry</button>
+    </p>
+    <p class="m-hint" *ngIf="!form.id && !classOptionsLoading && !classOptionsError && !classDdOptions.length">
+      Every standard class is already configured.
+    </p>
     <!-- The class number is the record's identity and the key every other collection joins
          on, so an edit may restructure everything except which class it is. -->
     <p class="m-hint" *ngIf="form.id">A class cannot be changed after it is created.</p>
-    <p class="m-hint" *ngIf="!form.hasStreams">Students of a class without streams all share its automatic "General" subject group.</p>
+    <p class="m-hint" *ngIf="form.class !== null && !form.hasStreams">Students of a class without streams all share its automatic "General" subject group.</p>
     <p class="m-error" *ngIf="fieldErrors['class']">{{ fieldErrors['class'] }}</p>
   </div>
 
-  <label class="toggle-row">
-    <input type="checkbox" [checked]="form.hasStreams"
-           (change)="onStreamsToggled($any($event.target).checked)" />
-    This class has streams (e.g. Science, Commerce)
-  </label>
-  <div class="m-hint tight">Streams are typically only used for 11th and 12th.</div>
+  <!-- No streams toggle: whether a class has streams follows from its name alone (11th/12th
+       on, everything else off — classes-sections.md), so there is nothing to switch. For a
+       streamed class this read-only line says why the Streams block appeared. -->
+  <div class="streams-auto" *ngIf="form.hasStreams">
+    <i class="bi bi-diagram-3"></i> Streams are on &mdash; 11th and 12th always split into streams.
+  </div>
+
+  <!-- An 11th/12th saved before streams were mandatory: its class-level sections cannot be
+       kept by a streamed save, so they are named here and Submit asks before removing them. -->
+  <div class="legacy-sections" *ngIf="form.hasStreams && legacySections.length" role="alert">
+    <i class="bi bi-exclamation-triangle"></i>
+    <span>
+      This class still has section{{ legacySections.length === 1 ? '' : 's' }}
+      <strong>{{ legacySections.join(', ') }}</strong> outside any stream, saved before streams were required.
+      Add {{ legacySections.length === 1 ? 'it' : 'them' }} under a stream below to keep {{ legacySections.length === 1 ? 'it' : 'them' }};
+      otherwise saving removes {{ legacySections.length === 1 ? 'it' : 'them' }}.
+    </span>
+  </div>
+  <p class="m-error" *ngIf="form.hasStreams && fieldErrors['sections']" role="alert">{{ fieldErrors['sections'] }}</p>
 
   <div class="sec-block" *ngIf="!form.hasStreams">
     <div class="sec-head">
@@ -213,9 +242,10 @@
       <p class="m-error" *ngIf="fieldErrors['streams']">{{ fieldErrors['streams'] }}</p>
     </div>
 
-    <!-- One bordered block per stream: its subject GROUPS (mandatory, at least one — name +
-         the live subject checklist, the same SubjectGroup the Subject Groups page edits) and,
-         independently, its SECTIONS (a seating division; zero is valid). -->
+    <!-- One bordered block per stream: its subject GROUPS (mandatory, at least one — a NAME
+         only; which subjects a group holds is picked on the Subject Groups page, never here)
+         and, independently, its own SECTIONS (a seating division; zero is valid). Every +/×
+         below is bound to this stream's index, so it only ever changes this stream's lists. -->
     <div class="stream-block" *ngFor="let stream of form.streams; let i = index; trackBy: trackByIndex">
       <div class="sec-head">
         <span class="stream-block-title">{{ stream.name || 'Stream ' + (i + 1) }} &mdash; Subject Groups <span class="req-star">*</span></span>
@@ -230,19 +260,11 @@
           <button type="button" class="sec-remove" [attr.aria-label]="'Remove group ' + (g + 1)"
                   (click)="removeStreamGroup(i, g)">&times;</button>
         </div>
-        <div class="subj-check-grid compact">
-          <label class="subj-check" [class.checked]="isSubjectInGroup(group, subject._id)"
-                 *ngFor="let subject of subjects; trackBy: trackBySubject">
-            <input type="checkbox" [checked]="isSubjectInGroup(group, subject._id)"
-                   (change)="toggleGroupSubject(i, g, subject._id)" />
-            <span>{{ subject.name }}</span>
-          </label>
-          <p class="m-hint no-gap" *ngIf="!subjects.length && !subjectsError">
-            No active subjects yet &mdash; add them on the Subjects page.
-          </p>
-        </div>
+        <span class="tag tag-warning group-no-subjects" *ngIf="!group.subjectCount">
+          <i class="bi bi-exclamation-triangle"></i> No subjects assigned
+        </span>
       </div>
-      <p class="m-hint no-gap" *ngIf="subjectsError" role="alert">{{ subjectsError }}</p>
+      <p class="m-hint no-gap">Pick each group's subjects on the Subject Groups page.</p>
       <p class="m-error" *ngIf="streamGroupErrors[i]" role="alert">
         <i class="bi bi-exclamation-circle"></i> {{ streamGroupErrors[i] }}
       </p>
@@ -291,3 +313,15 @@
 <!-- Delete, and the submit-time guard for a save that would strand a stream's students. -->
 <app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
                    (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
+
+<!-- Per-row outcome of a delete — never one pass/fail toast for a whole selection. -->
+<app-form-modal [open]="bulkResultOpen" title="Delete Classes" [width]="420" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closeBulkResult()">
+  <p class="bulk-summary">{{ bulkResultSummary }}</p>
+  <ul class="result-rows">
+    <li *ngFor="let line of bulkResultLines; trackBy: trackByOutcome">
+      <span class="result-row-label">{{ line.label }}</span>
+      <span class="m-error"><i class="bi bi-exclamation-circle"></i> {{ line.message }}</span>
+    </li>
+  </ul>
+</app-form-modal>

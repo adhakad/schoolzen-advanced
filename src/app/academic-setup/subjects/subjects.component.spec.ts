@@ -31,7 +31,8 @@ describe('SubjectsComponent', () => {
     api.getSubjects.and.returnValue(of(RESPONSE));
     api.createSubject.and.returnValue(of('ok'));
     api.updateSubject.and.returnValue(of('ok'));
-    api.bulkDelete.and.returnValue(of('ok'));
+    api.bulkDelete.and.callFake((_adminId: string, ids: string[]) =>
+      of({ message: 'ok', results: ids.map((id) => ({ id, status: 'deleted' as const })) }));
 
     await TestBed.configureTestingModule({
       declarations: [SubjectsComponent],
@@ -151,7 +152,33 @@ describe('SubjectsComponent', () => {
 
     expect(api.createSubject).toHaveBeenCalledWith({
       adminId: 'a1', name: 'Biology', type: 'elective', status: 'inactive'
-    });
+    }, jasmine.any(String));
+  });
+
+  it('sends one Idempotency-Key per modal-open, reused when the same submission is retried', () => {
+    api.createSubject.and.returnValue(throwError(() => ({ category: 'InternalError', message: 'x', requestId: 'r' } as ApiError)));
+    component.onAddSubject();
+    component.onNameChange('Biology');
+    component.onFormSubmit();
+    component.onFormSubmit();
+
+    const keys = api.createSubject.calls.allArgs().map((args) => args[1]);
+    expect(keys.length).toBe(2);
+    expect(keys[0]).toBe(keys[1]);
+
+    component.onAddSubject();
+    component.onNameChange('Biology');
+    component.onFormSubmit();
+    expect(api.createSubject.calls.mostRecent().args[1]).not.toBe(keys[0]);
+  });
+
+  it('ignores a second Submit while the first is still in flight', () => {
+    component.onAddSubject();
+    component.onNameChange('Biology');
+    component.saving = true;
+    component.onFormSubmit();
+
+    expect(api.createSubject).not.toHaveBeenCalled();
   });
 
   it('updates by id when the modal was opened on an existing subject', () => {
@@ -161,7 +188,7 @@ describe('SubjectsComponent', () => {
 
     expect(api.updateSubject).toHaveBeenCalledWith('s1', jasmine.objectContaining({
       name: 'Hindi Literature', type: 'core', status: 'active'
-    }));
+    }), jasmine.any(String));
     expect(api.createSubject).not.toHaveBeenCalled();
   });
 
@@ -197,6 +224,23 @@ describe('SubjectsComponent', () => {
     expect(component.saving).toBe(false);
   });
 
+  it('binds a field-naming SUBJECT_DUPLICATE conflict inline (the interceptor skips its toast)', () => {
+    api.createSubject.and.returnValue(throwError(() => ({
+      category: 'ConflictError',
+      code: 'SUBJECT_DUPLICATE',
+      message: 'A subject with this name already exists.',
+      fields: [{ field: 'name', code: 'SUBJECT_DUPLICATE', message: '' }],
+      requestId: 'r3'
+    } as ApiError)));
+
+    component.onAddSubject();
+    component.onNameChange('Hindi');
+    component.onFormSubmit();
+
+    expect(component.fieldErrors['name']).toBe('A subject with this name already exists.');
+    expect(component.formOpen).toBe(true);
+  });
+
   it('leaves a non-validation rejection to the interceptor and just stops saving', () => {
     api.createSubject.and.returnValue(throwError(() => ({
       category: 'ConflictError',
@@ -215,15 +259,55 @@ describe('SubjectsComponent', () => {
 
   // --- delete -------------------------------------------------------------------------
 
-  it('demands DELETE typed and warns about the groups that use the subject', () => {
+  it('demands DELETE typed and names the groups that use the subject BEFORE the attempt', () => {
+    // The count comes with the list row — no extra request when the confirmation opens.
+    api.getSubjects.and.returnValue(of({ ...RESPONSE, rows: [{ ...RESPONSE.rows[0], blockingCount: 2 }] }));
+    component.retryList();
+    api.getSubjects.calls.reset();
     component.onDeleteSubject(RESPONSE.rows[0]);
+    expect(api.getSubjects).not.toHaveBeenCalled();
 
     expect(component.confirmOpen).toBe(true);
     expect(component.confirmConfig.title).toBe('Delete 1 subject?');
     expect(component.confirmConfig.typeToConfirm).toBe('DELETE');
-    expect(component.confirmConfig.message)
-      .toContain('Any Subject Group that includes it will need to be updated.');
+    expect(component.confirmConfig.scopeNote).toContain('Used in 2 subject groups');
     expect(api.bulkDelete).not.toHaveBeenCalled();
+  });
+
+  it('shows the per-row outcome when some of a selection was not deleted', () => {
+    api.bulkDelete.and.returnValue(of({
+      message: '1 of 2', results: [
+        { id: 's1', status: 'deleted' as const },
+        { id: 's3', status: 'not_found' as const, code: 'NOT_FOUND' }
+      ]
+    }));
+    component.toggleRow('s1');
+    component.toggleRow('s3');
+    component.onDeleteSelected();
+    component.onConfirmed();
+
+    expect(component.bulkResultOpen).toBe(true);
+    expect(component.bulkResultSummary).toContain('1 of 2 deleted.');
+    expect(component.bulkResultLines).toEqual([{ id: 's3', label: 'Sanskrit', message: 'This record no longer exists.' }]);
+    // Only the row that really went leaves the selection.
+    expect(component.isSelected('s1')).toBe(false);
+    expect(component.isSelected('s3')).toBe(true);
+  });
+
+  it('shows a failed list fetch as an error with Retry, never as the empty state', () => {
+    api.getSubjects.and.returnValue(throwError(() => new Error('down')));
+    component.retryList();
+    fixture.detectChanges();
+    const host: HTMLElement = fixture.nativeElement;
+
+    expect(component.loadError).toBeTruthy();
+    expect(host.querySelector('.tbl-empty.load-error')).toBeTruthy();
+    expect(host.textContent).not.toContain('No subjects added yet.');
+
+    api.getSubjects.and.returnValue(of(RESPONSE));
+    component.retryList();
+    expect(component.loadError).toBe('');
+    expect(component.rows.length).toBe(3);
   });
 
   it('sends a whole selection as ONE bulk request, not a call per row', () => {

@@ -6,12 +6,14 @@ const StudentProfileModel = require('../../models/student/student');
 const { withTransaction } = require('../../helpers/with-transaction');
 const { findSessionId } = require('../../helpers/academic-session/session-resolver');
 const { classOrderOf, byClassOrder } = require('../../helpers/academic-setup/class-order');
-const { planStructure, syncClassGroups } = require('../../helpers/academic-setup/class-structure');
-const { NotFoundError, ConflictError } = require('../../errors');
+const { planStructure, assertFlatSectionsRemovable, syncClassGroups, classHasStreams } = require('../../helpers/academic-setup/class-structure');
+const { NotFoundError, ConflictError, ValidationError } = require('../../errors');
 const { getClassDisplayName } = require('../../helpers/format-class-name');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
 const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
+const { classDuplicate, rethrowDuplicate } = require('../../helpers/academic-setup/duplicate-key');
+const { classBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/dependents');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Class';
@@ -99,11 +101,18 @@ let GetClasses = async (req, res, next) => {
         groupsByStream.get(key).push({ _id: group._id, name: group.name, subjectIds: group.subjectIds || [] });
     });
 
+    // Each row's delete-blocking count — students placed in the class in ANY session plus
+    // students first enrolled in it, exactly what the delete guard (CLASS_HAS_STUDENTS)
+    // counts. Unlike `studentCount` (this session only), so the confirmation can show the
+    // real number before anyone types DELETE. One grouped aggregation per collection.
+    const blocking = await classBlockingCounts(adminId, classList.map((item) => item._id));
+
     // Class.order — Nursery → 12th — never insertion order or alphabetical.
     const withCounts = classList.sort(byClassOrder).map((item) => {
         return {
             ...item,
             studentCount: counts.byClass.get(String(item._id)) || 0,
+            blockingCount: blocking.get(String(item._id)) || 0,
             streams: (item.streams || []).map((stream) => {
                 const streamGroups = groupsByStream.get(String(stream._id)) || [];
                 return {
@@ -140,16 +149,32 @@ let GetClassNameOptions = async (req, res, next) => {
     return res.status(200).json(options);
 };
 
-let CreateClass = async (req, res, next) => {
-    const { adminId, class: className } = req.body;
-
-    const existing = await AcademicClassModel.findOne({ adminId: adminId, class: className });
-    if (existing) {
-        throw new ConflictError(messages.classAlreadySetUp(getClassDisplayName(className)), {
+// hasStreams is DERIVED from the class number — On for 11th/12th, Off for everything else
+// (classes-sections.md) — never taken from the client. A payload that disagrees is rejected
+// rather than silently reshaped, since its sections/streams were built for the wrong half.
+const resolveHasStreams = (className, body) => {
+    const hasStreams = classHasStreams(className);
+    if (Boolean(body.hasStreams) !== hasStreams) {
+        const message = hasStreams
+            ? `${getClassDisplayName(className)} always has streams — add its streams and their sections.`
+            : 'Streams apply only to 11th and 12th — add sections to this class directly.';
+        throw new ValidationError(message, {
             module: MODULE,
-            context: { class: className },
+            code: 'CLASS_STRUCTURE_MISMATCH',
+            fields: [{ field: 'streams', message }],
         });
     }
+    return hasStreams;
+};
+
+let CreateClass = async (req, res, next) => {
+    const { adminId, class: className } = req.body;
+    const hasStreams = resolveHasStreams(className, req.body);
+
+    // Fast-path message only — the (adminId, class) unique index is the real guard, and a
+    // concurrent create that slips past this comes back from the write below as E11000.
+    const existing = await AcademicClassModel.findOne({ adminId: adminId, class: className });
+    if (existing) throw classDuplicate(className);
 
     // The class and its subject groups in ONE transaction: a streamed class never exists
     // without its (mandatory) groups, a non-streamed one never without its "General" group.
@@ -159,12 +184,12 @@ let CreateClass = async (req, res, next) => {
             adminId,
             class: className,
             order: classOrderOf(className),
-            hasStreams: Boolean(req.body.hasStreams),
+            hasStreams,
             sections: plan.sections,
             streams: plan.streams,
         }], { session: dbSession });
         await syncClassGroups({ dbSession, adminId, classId: created._id, hasStreams: created.hasStreams, groupsByStream: plan.groupsByStream });
-    });
+    }).catch((error) => rethrowDuplicate(error, () => classDuplicate(className)));
     // Write-through: other modules read this school's classes and groups from the cache.
     await Promise.all([cacheInvalidation.onClassesChanged(adminId), cacheInvalidation.onSubjectGroupsChanged(adminId)]);
     return res.status(200).json({ message: success.created(ENTITY) });
@@ -183,20 +208,27 @@ let UpdateClass = async (req, res, next) => {
         throw new NotFoundError(messages.classNotFound(), { module: MODULE, context: { id: req.params.id } });
     }
 
+    // The class number can't change on edit, so neither can whether it has streams.
+    const hasStreams = resolveHasStreams(singleClass.class, req.body);
+    // An 11th/12th saved before streams were mandatory would lose its flat sections here.
+    await assertFlatSectionsRemovable(req.body.adminId, singleClass, hasStreams, req.body.confirmRemoveSections);
+
     // Existing sections/streams KEEP their ids (helpers/academic-setup/class-structure.js):
     // every enrollment, subject group and fee structure points at them.
     const plan = planStructure(singleClass.toObject(), req.body);
     await withTransaction(async (dbSession) => {
-        await AcademicClassModel.updateOne({ _id: singleClass._id }, {
+        await AcademicClassModel.updateOne({ _id: singleClass._id, adminId: req.body.adminId }, {
             $set: {
-                hasStreams: Boolean(req.body.hasStreams),
+                hasStreams,
                 order: classOrderOf(singleClass.class),
                 sections: plan.sections,
                 streams: plan.streams,
             },
         }, { session: dbSession });
-        await syncClassGroups({ dbSession, adminId: req.body.adminId, classId: singleClass._id, hasStreams: Boolean(req.body.hasStreams), groupsByStream: plan.groupsByStream });
-    });
+        await syncClassGroups({ dbSession, adminId: req.body.adminId, classId: singleClass._id, hasStreams, groupsByStream: plan.groupsByStream });
+        // The class number never changes here, so an E11000 can only be a duplicate group
+        // name within one stream — rethrowDuplicate reads which index fired.
+    }).catch((error) => rethrowDuplicate(error));
     await Promise.all([cacheInvalidation.onClassesChanged(req.body.adminId), cacheInvalidation.onSubjectGroupsChanged(req.body.adminId)]);
 
     return res.status(200).json({ message: success.updated(ENTITY) });
@@ -247,37 +279,37 @@ let DeleteClass = async (req, res, next) => {
 // "Delete Selected" — the whole selection in ONE request and ONE deleteMany, never a delete
 // call per checked row (performance-principles.md).
 //
-// Same hard block as the single delete, asked once for the whole set. The count is done
-// here rather than trusted from the list response because the UI's copy of it can be
-// minutes old by the time someone types DELETE.
+// Same hard block as the single delete, asked once for the whole set with ONE grouped count
+// per dependent collection. The count is done here rather than trusted from the list
+// response because the UI's copy of it can be minutes old by the time someone types DELETE.
+//
+// Per-row outcome, never one pass/fail for the whole selection: each requested id comes
+// back deleted / blocked (CLASS_HAS_STUDENTS, with its count) / not_found (missing or
+// another school's — reported identically). The free classes go in one transaction.
 let BulkDeleteClasses = async (req, res, next) => {
-    const { adminId, ids } = req.body;
+    const adminId = req.body.adminId;
+    const ids = uniqueIds(req.body.ids);
 
-    const classes = await AcademicClassModel
-        .find({ _id: { $in: ids }, adminId: adminId }, 'class')
-        .lean();
+    const [classes, blocking] = await Promise.all([
+        AcademicClassModel.find({ _id: { $in: ids }, adminId: adminId }, '_id').lean(),
+        classBlockingCounts(adminId, ids),
+    ]);
+    const foundIds = new Set(classes.map((item) => String(item._id)));
 
-    if (classes.length !== ids.length) {
-        throw new NotFoundError(messages.classNotFound(), {
-            module: MODULE,
-            context: { requested: ids.length, found: classes.length },
-        });
+    const results = ids.map((id) => {
+        if (!foundIds.has(id)) return { id, status: 'not_found', code: 'NOT_FOUND' };
+        const blockingCount = blocking.get(id) || 0;
+        if (blockingCount > 0) return { id, status: 'blocked', code: 'CLASS_HAS_STUDENTS', blockingCount };
+        return { id, status: 'deleted', blockingCount: 0 };
+    });
+
+    const deletable = results.filter((row) => row.status === 'deleted').map((row) => row.id);
+    if (deletable.length) {
+        await deleteClassesWithGroups(adminId, deletable);
+        await Promise.all([cacheInvalidation.onClassesChanged(adminId), cacheInvalidation.onSubjectGroupsChanged(adminId)]);
     }
 
-    const classIds = classes.map((item) => item._id);
-    const studentCount = await countDependents(adminId, classIds);
-    if (studentCount > 0) {
-        throw new ConflictError(messages.classesBlockedByStudents(studentCount), {
-            module: MODULE,
-            code: 'CLASS_HAS_STUDENTS',
-            context: { studentCount },
-        });
-    }
-
-    await deleteClassesWithGroups(adminId, classIds);
-    await Promise.all([cacheInvalidation.onClassesChanged(adminId), cacheInvalidation.onSubjectGroupsChanged(adminId)]);
-
-    return res.status(200).json({ message: success.bulkProcessed(ids.length, ENTITY.toLowerCase()) });
+    return res.status(200).json(bulkDeleteBody(results, ENTITY.toLowerCase()));
 };
 
 module.exports = {

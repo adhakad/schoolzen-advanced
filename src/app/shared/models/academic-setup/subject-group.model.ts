@@ -31,6 +31,11 @@ export interface SubjectGroup {
    * actions, not bulk-selectable — only its Class's delete removes it.
    */
   isSystemGroup?: boolean;
+  /**
+   * How many students are placed in this group — returned WITH the list, so the delete
+   * confirmation shows it before the attempt (SUBJECT_GROUP_IN_USE).
+   */
+  blockingCount?: number;
 }
 
 /** A stream with zero groups (saved before groups were mandatory) — the warning strip. */
