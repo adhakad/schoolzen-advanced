@@ -57,6 +57,11 @@ export class ConfirmModalComponent implements OnChanges {
     this.confirmed.emit();
   }
 
+  /** The backdrop itself, not a click that started or bubbled from inside the box. */
+  onBackdrop(event: MouseEvent): void {
+    if (event.target === event.currentTarget) this.onCancel();
+  }
+
   onCancel(): void {
     this.cancelled.emit();
   }

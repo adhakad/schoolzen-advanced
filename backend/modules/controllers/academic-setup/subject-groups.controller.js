@@ -113,7 +113,8 @@ const shapeRow = (row) => ({
     hasStreams: !!row.hasStreams,
     streamId: row.streamId,
     streamName: row.stream ? row.stream.name : null,
-    // The automatic "General" group: no edit/delete, not bulk-selectable.
+    // The automatic "General" group: its subjects are editable, its name/class/stream are
+    // not, it can't be deleted from this page, and it isn't bulk-selectable.
     isSystemGroup: Boolean(row.isSystemGroup),
     subjects: (row.subjects || []).sort((a, b) => a.name.localeCompare(b.name)),
 });
@@ -323,14 +324,27 @@ const assertStreamedClass = (classDoc) => {
     throw new ValidationError(message, { module: MODULE, fields: [{ field: 'classId', message }] });
 };
 
-/** The automatic "General" group is refused here, whatever the UI shows. */
+const systemGroupLocked = (group, message) => new ConflictError(message, {
+    module: MODULE,
+    code: 'SYSTEM_GROUP_LOCKED',
+    context: { id: String(group._id) },
+});
+
+/** Deleting the automatic "General" group is refused here, whatever the UI shows. */
 const assertNotSystemGroup = (group) => {
     if (!group || !group.isSystemGroup) return;
-    throw new ConflictError(messages.systemGroupLocked(), {
-        module: MODULE,
-        code: 'SYSTEM_GROUP_LOCKED',
-        context: { id: String(group._id) },
-    });
+    throw systemGroupLocked(group, messages.systemGroupLocked());
+};
+
+/**
+ * An edit of the automatic "General" group may change its SUBJECTS only — that checklist is
+ * how a non-streamed class gets its subjects at all (subject-groups.md). A rename, or a move
+ * to another class or onto a stream, is refused, whatever the UI shows.
+ */
+const assertSystemGroupIdentityKept = (group, { classId, streamId, name }) => {
+    const renamed = String(name || '').trim() !== group.name;
+    const moved = String(classId) !== String(group.classId) || Boolean(streamId);
+    if (renamed || moved) throw systemGroupLocked(group, messages.systemGroupIdentityLocked());
 };
 
 let CreateSubjectGroup = async (req, res, next) => {
@@ -365,7 +379,15 @@ let UpdateSubjectGroup = async (req, res, next) => {
             context: { id: req.params.id },
         });
     }
-    assertNotSystemGroup(group);
+
+    if (group.isSystemGroup) {
+        assertSystemGroupIdentityKept(group, { classId, streamId, name });
+        await assertSubjectsExist(adminId, subjectIds);
+        group.subjectIds = subjectIds;
+        await group.save();
+        await cacheInvalidation.onSubjectGroupsChanged(adminId);
+        return res.status(200).json({ message: success.updated(ENTITY) });
+    }
 
     assertStreamedClass(await resolveClassAndStream(adminId, classId, streamId));
     await assertSubjectsExist(adminId, subjectIds);

@@ -84,4 +84,18 @@ describe('FormModalComponent', () => {
     query('.modal-box').click();
     expect(host.cancels).toBe(0);
   });
+
+  /** An open app-dd / app-dp is portaled to <body> and closes on a document click — a click
+      in the modal body (outside that menu) must still reach document. */
+  it('lets a click inside the box reach document, without cancelling', () => {
+    host.open = true;
+    fixture.detectChanges();
+    let reached = 0;
+    const listener = (): void => { reached++; };
+    document.addEventListener('click', listener);
+    query('.projected-field').click();
+    document.removeEventListener('click', listener);
+    expect(reached).toBe(1);
+    expect(host.cancels).toBe(0);
+  });
 });

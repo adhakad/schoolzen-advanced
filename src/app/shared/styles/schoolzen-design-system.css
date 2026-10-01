@@ -415,6 +415,11 @@
 .dd-menu.dd-portal.full-width { min-width: 0; max-width: none; }
 .dd-menu.dd-portal.flipped { box-shadow: 0 -10px 26px rgba(30, 23, 48, 0.14); }
 
+/* An OPEN app-dp panel is portaled to <body> the same way (class `dp-portal`). Its look,
+   position and z-index live in the component's own CSS (the encapsulation attributes travel
+   with it); this restates only what .sz used to supply to its text. */
+.dp-panel.dp-portal { font-size: 14px; color: var(--ink); line-height: normal; }
+
 .sz .drop-school {
   display: flex;
   align-items: center;

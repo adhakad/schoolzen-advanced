@@ -368,9 +368,14 @@ concerns:
   embed GPS coordinates — a real privacy leak for a student photo).
 - **Double-submit needs a backend guard, not just the frontend
   `isClick` flag.** An `Idempotency-Key` header (client-generated UUID
-  per form-open), checked server-side with a short TTL (30s, Redis),
-  makes a network-retry-triggered double machine-submit a no-op instead
-  of a duplicate student.
+  per form-open), checked server-side with a **24-hour TTL** (Redis,
+  matching `module-optimization-guide.md` §3's canonical value —
+  standard practice for this pattern, e.g. Stripe's own idempotency
+  keys use 24h; a short handful-of-seconds TTL only protects against an
+  immediate network retry, not a person reopening the same stale tab
+  and resubmitting later, which is the more realistic double-submit
+  case), makes a network-retry-triggered double machine-submit a no-op
+  instead of a duplicate student.
 - **Debounce, not per-keystroke validation**, on any pattern check —
   150–300ms, otherwise a fast typist sees the error flash on and off
   distractingly on every character.

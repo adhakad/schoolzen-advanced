@@ -33,8 +33,9 @@
  *     placementIncomplete (a promotion into 11th/12th that still needs them).
  */
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, Input, OnChanges, OnDestroy, SimpleChanges
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, Input, OnChanges, OnDestroy, SimpleChanges
 } from '@angular/core';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { DdOption } from 'src/app/shared/models/shared-components.model';
@@ -43,11 +44,12 @@ import {
 } from 'src/app/shared/models/student/student.model';
 import { AdmissionService } from 'src/app/shared/services/student/admission.service';
 import { buildMessage, failureOf, fieldValidator, prepareValue } from 'src/app/shared/utils/field-rules.util';
+import { PHOTO_ACCEPT, photoFileError } from 'src/app/shared/utils/photo-file.util';
 
 export type StudentFormMode = 'create' | 'edit' | 'admission';
 
-/** Largest photo the server accepts (middleware/single-upload.js imageFile). */
-export const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+/** Largest photo the server accepts — one rule, shared with Manage Students' row avatar. */
+export { MAX_PHOTO_BYTES } from 'src/app/shared/utils/photo-file.util';
 /** How long typing must pause before a pattern error shows (student/errors.md: 150–300ms). */
 export const VALIDATION_DEBOUNCE_MS = 250;
 
@@ -108,6 +110,10 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
 
   photoFile: File | null = null;
   photoPreview: string | null = null;
+  /** photoPreview for [src]: Angular's URL sanitizer rejects blob: URLs as unsafe. */
+  photoPreviewSrc: SafeUrl | null = null;
+  private sanitizer = inject(DomSanitizer);
+  readonly photoAccept = PHOTO_ACCEPT;
 
   /** The school's own custom fields, in config order — the "Additional Info" group. */
   customFields: FieldConfigField[] = [];
@@ -415,18 +421,17 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
     const file = input.files && input.files[0];
     input.value = '';
     if (!file) return;
-    if (!/^image\/(png|jpe?g)$/.test(file.type)) {
-      this.clientErrors['photo'] = 'Only JPG/PNG images are allowed.';
-      return;
-    }
-    if (file.size > MAX_PHOTO_BYTES) {
-      this.clientErrors['photo'] = 'Image must be under 2MB.';
+    const problem = photoFileError(file);
+    if (problem) {
+      this.clientErrors['photo'] = problem;
+      this.cdr.markForCheck();
       return;
     }
     delete this.clientErrors['photo'];
     this.photoFile = file;
     if (this.photoPreview) URL.revokeObjectURL(this.photoPreview);
     this.photoPreview = URL.createObjectURL(file);
+    this.photoPreviewSrc = this.sanitizer.bypassSecurityTrustUrl(this.photoPreview);
     this.cdr.markForCheck();
   }
 
@@ -464,6 +469,7 @@ export class StudentFormComponent implements OnChanges, OnDestroy {
     this.typing.clear();
     this.photoFile = null;
     this.photoPreview = null;
+    this.photoPreviewSrc = null;
     this.feeQuote = null;
     this.feeQuoteKey = '';
   }

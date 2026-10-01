@@ -42,9 +42,10 @@ const SubjectGroupModel = mongoose.model('academic-subject-group', {
     }],
     isSystemGroup: {
         // true ONLY for the automatic "General" group every non-streamed class gets on save
-        // (academic-setup/classes-sections.md). It can't be edited or deleted on its own —
-        // only its Class's delete removes it — and the backend refuses a direct attempt,
-        // whatever the UI shows.
+        // (academic-setup/classes-sections.md). Its subjectIds are editable (that is how a
+        // non-streamed class gets its subjects), but it can't be renamed, moved or deleted on
+        // its own — only its Class's delete removes it — and the backend refuses a direct
+        // attempt, whatever the UI shows.
         type: Boolean,
         default: false,
     },

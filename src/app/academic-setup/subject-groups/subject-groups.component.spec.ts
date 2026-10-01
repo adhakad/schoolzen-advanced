@@ -96,11 +96,70 @@ describe('SubjectGroupsComponent', () => {
 
     const tableRows = (): HTMLElement[] => Array.from(fixture.nativeElement.querySelectorAll('tbody tr'));
 
-    it('gives a "General" row no edit/delete actions at all, and a disabled checkbox', () => {
+    it('gives a "General" row an enabled Edit, a shown-but-disabled Delete, and a disabled checkbox', () => {
       const [general, normal] = tableRows();
-      expect(general.querySelector('.actions')).toBeNull();
+      const [edit, del] = Array.from(general.querySelectorAll('.actions .icon-btn')) as HTMLButtonElement[];
+      expect(edit.disabled).toBe(false);
+      expect(del).toBeTruthy();
+      expect(del.disabled).toBe(true);
       expect((general.querySelector('.row-check') as HTMLInputElement).disabled).toBe(true);
-      expect(normal.querySelectorAll('.actions .icon-btn').length).toBe(2);
+
+      const normalButtons = Array.from(normal.querySelectorAll('.actions .icon-btn')) as HTMLButtonElement[];
+      expect(normalButtons.length).toBe(2);
+      expect(normalButtons.every((button) => !button.disabled)).toBe(true);
+    });
+
+    it('never opens a delete confirmation for a "General" row, even if called directly', () => {
+      component.onDeleteGroup(component.rows[0]);
+      expect(component.confirmOpen).toBe(false);
+      component.onConfirmed();
+      expect(api.bulkDelete).not.toHaveBeenCalled();
+    });
+
+    it('opens the normal modal on Edit with Name and Class locked, showing its non-streamed class', () => {
+      component.onEditGroup(component.rows[0]);
+      fixture.detectChanges();
+
+      expect(component.formOpen).toBe(true);
+      expect(component.formSystemGroup).toBe(true);
+      expect(component.form.name).toBe('General');
+      // The non-streamed class is offered (read-only) so the locked dropdown can show it.
+      expect(component.formClassOptions.map((option) => option.label)).toEqual(['— Select —', '9th', '11th']);
+      expect(component.formStreamDisabled).toBe(true);
+
+      const nameInput = fixture.nativeElement.querySelector('#group-name') as HTMLInputElement;
+      expect(nameInput.readOnly).toBe(true);
+
+      component.onFormNameChange('Renamed');
+      component.onFormClassChange('c11');
+      component.onFormStreamChange('st1');
+      expect(component.form.name).toBe('General');
+      expect(component.form.classId).toBe('c9');
+      expect(component.form.streamId).toBe('');
+    });
+
+    it('keeps the subject checklist fully editable and saves it on the same name/class', () => {
+      component.onEditGroup(component.rows[0]);
+      component.toggleSubject('sub1');
+      component.toggleSubject('sub3');
+      component.onFormSubmit();
+
+      expect(api.updateSubjectGroup).toHaveBeenCalledWith('g1', {
+        adminId: 'a1', classId: 'c9', streamId: null, name: 'General', subjectIds: ['sub2', 'sub3']
+      });
+    });
+
+    it('unlocks the modal again for a streamed group or a new one', () => {
+      component.onEditGroup(component.rows[0]);
+      component.onEditGroup(component.rows[1]);
+      expect(component.formSystemGroup).toBe(false);
+      component.onFormNameChange('Renamed');
+      expect(component.form.name).toBe('Renamed');
+
+      component.onEditGroup(component.rows[0]);
+      component.onAddGroup();
+      expect(component.formSystemGroup).toBe(false);
+      expect(component.formClassOptions.map((option) => option.label)).toEqual(['— Select —', '11th']);
     });
 
     it('never bulk-selects it — select-all takes the editable rows only', () => {

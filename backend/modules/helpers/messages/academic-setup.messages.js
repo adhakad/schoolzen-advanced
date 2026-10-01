@@ -17,6 +17,8 @@ const classNotFound = () => 'Class not found';
 // The automatic "General" group of a non-streamed class (classes-sections.md).
 const systemGroupLocked = () =>
     'This is the automatic "General" group of a class without streams — it can only be removed by deleting the class.';
+const systemGroupIdentityLocked = () =>
+    'The automatic "General" group cannot be renamed or moved — only its subjects can change.';
 const groupsOnlyForStreams = (className) =>
     `${className} has no streams — its students all use the automatic "General" group, so there's nothing to add here.`;
 
@@ -63,6 +65,7 @@ module.exports = {
     classesHaveStudents,
     classBlockedByStudents,
     systemGroupLocked,
+    systemGroupIdentityLocked,
     groupsOnlyForStreams,
     classesBlockedByStudents,
     classNotFound,

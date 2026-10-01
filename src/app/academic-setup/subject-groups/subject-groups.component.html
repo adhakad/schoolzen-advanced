@@ -100,13 +100,17 @@
             </td>
 
             <td class="act">
-              <!-- An automatic "General" group has NO actions at all (not disabled ones). -->
-              <div class="actions" *ngIf="!row.isSystemGroup">
+              <!-- An automatic "General" group: Edit works (its subjects are editable, its
+                   name is not); Delete is shown for row consistency but disabled — only its
+                   Class's delete removes it. -->
+              <div class="actions">
                 <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name"
                         (click)="onEditGroup(row)">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        [disabled]="row.isSystemGroup"
+                        [title]="row.isSystemGroup ? 'Automatic group — removed only with its class' : ''"
                         (click)="onDeleteGroup(row)">
                   <i class="bi bi-trash"></i>
                 </button>
@@ -167,6 +171,7 @@
     <div class="m-field">
       <label for="group-class">Class <span class="req-star">*</span></label>
       <app-dd id="group-class" [options]="formClassOptions" [value]="form.classId"
+              [disabled]="formSystemGroup"
               ariaLabel="Class" (valueChange)="onFormClassChange($event)"></app-dd>
       <p class="m-error" *ngIf="fieldErrors['classId']">{{ fieldErrors['classId'] }}</p>
     </div>
@@ -183,8 +188,13 @@
   <div class="m-field">
     <label for="group-name">Group Name <span class="req-star">*</span></label>
     <input id="group-name" type="text" placeholder="Mathematics Group" maxlength="60"
+           [readOnly]="formSystemGroup" [class.locked]="formSystemGroup"
            [value]="form.name" (input)="onFormNameChange($any($event.target).value)" />
-    <div class="m-hint">A student picks one group; it decides their full subject set.</div>
+    <div class="m-hint" *ngIf="!formSystemGroup">A student picks one group; it decides their full subject set.</div>
+    <div class="m-hint" *ngIf="formSystemGroup">
+      <i class="bi bi-lock"></i> Automatic group of a class without streams &mdash; its name can't change.
+      Tick the subjects every student of this class studies.
+    </div>
     <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
   </div>
 

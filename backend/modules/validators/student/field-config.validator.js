@@ -1,6 +1,7 @@
 'use strict';
 const Joi = require('joi');
 const { OPTIONS, NAME_PATTERN } = require('../../helpers/student/student.constants');
+const { SENSITIVE_FIELDS, isMaskedValue } = require('../../helpers/student/student-mask');
 
 // THE one validator for a student record's profile fields.
 //
@@ -413,6 +414,16 @@ const validateStudentRecord = (record, config, opts = {}) => {
             // attempt to clear it.
             if (field.required) errors.push({ field: field.fieldKey, missing: true, message: buildMessage(field, 'required') });
             else if (present) put(field, null);
+            continue;
+        }
+
+        // Masking is display-only (student-critical-fixes.md P0-2): a masked placeholder
+        // ("XXXX-XXXX-6241") in a sensitive field is never a value to store. Every write path
+        // validates here, so none can persist one; a caller that holds the stored value drops
+        // an exact echo of its mask first (student-mask.js keepStoredForMasks) = "unchanged".
+        if (SENSITIVE_FIELDS.includes(field.fieldKey) && isMaskedValue(raw)) {
+            errors.push({ field: field.fieldKey, code: 'MASKED_VALUE',
+                message: `${field.label} is a masked value (${String(raw).trim()}), not the real one — enter the full value.` });
             continue;
         }
 

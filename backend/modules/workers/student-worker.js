@@ -13,7 +13,7 @@ const {
 } = require('../helpers/student/student.utils');
 const studentMessages = require('../helpers/messages/student.messages');
 const { invalidateClassStats } = require('../helpers/student/student-write');
-const { SENSITIVE_FIELDS, isMaskedValue } = require('../helpers/student/student-mask');
+const { keepStoredForMasks } = require('../helpers/student/student-mask');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 
@@ -58,16 +58,29 @@ const fieldError = (field, code, message) => ({ field, ...(code ? { code } : {})
 
 // bulkWrite with ordered:false writes every valid op and reports the rest; turn that into
 // a per-op-index Map of field errors instead of losing the whole batch to one duplicate.
-const bulkWriteCollectingErrors = async (model, ops) => {
-    if (ops.length === 0) return new Map();
+// The driver's BulkWriteResult comes back too (also on a partial failure): the import's
+// counts are built from what the write REPORTED, never from how many rows went in
+// (student-critical-fixes.md P0-1).
+//
+// A write error is mapped back to its op by the op's FILTER (`keyOf`), never by the
+// driver's index: mongoose 6's unordered bulkWrite re-orders the ops before sending them
+// (validOps.sort() — a string sort, so op 10 goes before op 2), and the driver's indexes
+// refer to that re-ordered list. Trusting them pinned failures on the wrong rows.
+const bulkWriteCollectingErrors = async (model, ops, keyOf) => {
+    if (ops.length === 0) return { failed: new Map(), result: null };
     try {
-        await model.bulkWrite(ops, { ordered: false });
-        return new Map();
+        const result = await model.bulkWrite(ops, { ordered: false });
+        return { failed: new Map(), result };
     } catch (error) {
         if (!error.writeErrors) throw error;
+        const indexByKey = new Map(ops.map((op, index) => [keyOf(op.updateOne.filter), index]));
         const failed = new Map();
         [].concat(error.writeErrors).forEach((writeError) => {
-            const index = writeError.index != null ? writeError.index : writeError.err && writeError.err.index;
+            const op = typeof writeError.getOperation === 'function' ? writeError.getOperation() : null;
+            const filter = op && (op.q || op.filter);
+            const index = filter && indexByKey.has(keyOf(filter))
+                ? indexByKey.get(keyOf(filter))
+                : (writeError.index != null ? writeError.index : writeError.err && writeError.err.index);
             const isDuplicate = writeError.code === 11000 || /E11000/.test(writeError.errmsg || '');
             const field = isDuplicate ? duplicateFieldOf(writeError) : null;
             const rule = field && DUPLICATE_RULES[field];
@@ -75,8 +88,44 @@ const bulkWriteCollectingErrors = async (model, ops) => {
                 ? fieldError(rule.field, rule.code, studentMessages.duplicate[rule.code]())
                 : fieldError('row', 'ROW_NOT_SAVED', 'This row could not be saved.'));
         });
-        return failed;
+        return { failed, result: error.result || null };
     }
+};
+
+/** The _ids a BulkWriteResult says it upserted (by id, not index — see above). */
+const upsertedIdSet = (result) => new Set(Object.values((result && result.upsertedIds) || {}).map(String));
+
+// A document as comparable data — ids and dates as strings, null ≡ missing, bookkeeping
+// timestamps ignored — so "did this row change anything?" is read off the stored document
+// before and after the write, never assumed from the sheet.
+const BOOKKEEPING_KEYS = ['_id', '__v', 'createdAt', 'updatedAt'];
+const canonical = (value) => {
+    if (value === null || value === undefined) return undefined;
+    if (value instanceof Date) return value.toISOString();
+    if (value._bsontype) return String(value);
+    if (Array.isArray(value)) return value.map(canonical);
+    if (typeof value === 'object') {
+        const out = {};
+        Object.keys(value).sort().forEach((key) => {
+            const item = canonical(value[key]);
+            if (item !== undefined) out[key] = item;
+        });
+        return Object.keys(out).length ? out : undefined;
+    }
+    return value;
+};
+const fingerprint = (doc) => {
+    if (!doc) return null;
+    const copy = { ...doc };
+    BOOKKEEPING_KEYS.forEach((key) => { delete copy[key]; });
+    return JSON.stringify(canonical(copy) || {});
+};
+
+// The Admission No. as the validator will read it — for looking the student up BEFORE
+// validation (their stored identifiers decide what a masked cell means).
+const admissionNoOf = (raw) => {
+    const number = Number(String(raw == null ? '' : raw).replace(/[,\s]/g, ''));
+    return Number.isInteger(number) && number > 0 ? number : null;
 };
 
 // The unique fields a sheet can repeat within itself (student/errors.md, Bulk Import):
@@ -115,6 +164,15 @@ const processImport = async (job) => {
     const generalGroup = groups.find((group) => group.isSystemGroup);
     const groupByName = new Map(streamGroups.map((group) => [group.name.toLowerCase(), group._id]));
 
+    // Every student this sheet could touch, as stored right now. Read ONCE, before
+    // validation: it decides what a masked identifier means for a row (below), and it is the
+    // "before" side of the created/updated/unchanged counts.
+    const candidateNos = [...new Set(rows.map(({ values }) => admissionNoOf(values.admissionNo)).filter(Boolean))];
+    const existingProfiles = candidateNos.length
+        ? await StudentProfileModel.find({ adminId, admissionNo: { $in: candidateNos } }).lean()
+        : [];
+    const existingByNo = new Map(existingProfiles.map((item) => [item.admissionNo, item]));
+
     // Every failing row, in the catalog's shape #7: { row, fields:[{field, code?, message}] }.
     // ALL rows are validated before anything is written, and one bad row never stops the
     // rest — rows that pass are still committed.
@@ -141,8 +199,11 @@ const processImport = async (job) => {
         const fields = [];
         const admissionClassText = String(values.admissionClass == null ? '' : values.admissionClass).trim();
         const record = { ...values };
-        // A Masked export re-imported: masked identifiers mean "unchanged", not new data.
-        SENSITIVE_FIELDS.forEach((key) => { if (isMaskedValue(record[key])) delete record[key]; });
+        // A Masked export re-imported: the exact mask of an EXISTING student's stored
+        // identifier means "unchanged" and is dropped here. Any other masked cell (a new
+        // student, nothing stored, a mask of a different number) is failed by the validator
+        // as MASKED_VALUE — a mask is never written (P0-2).
+        keepStoredForMasks(record, existingByNo.get(admissionNoOf(values.admissionNo)) || null);
         // A sheet row with no Admission Type is an existing student when it gives a real
         // admission date (the usual mid-session onboarding sheet), else a new admission.
         if (record.admissionType == null || String(record.admissionType).trim() === '') {
@@ -156,12 +217,12 @@ const processImport = async (job) => {
                 fields.push(fieldError('admissionClass', 'CLASS_NAME_UNRECOGNIZED', studentMessages.classNameUnrecognized(admissionClassText)));
             }
         }
+        // 'new' is admitted TODAY (student/errors.md, admissionType) — same rule as the form: a
+        // sheet date on a 'new' row is ignored, so it can neither set the date nor fail
+        // DOA_BEFORE_DOB. Today is applied on insert only (below), so re-importing an export
+        // never rewrites an existing student's recorded date.
+        if (String(record.admissionType).trim().toLowerCase() === 'new') delete record.doa;
         const { value, errors } = validateStudentRecord(record, config);
-        // 'new' is admitted today (student/errors.md, admissionType) — same rule as the form.
-        if (value.admissionType === 'new' && value.doa == null) {
-            const now = new Date();
-            value.doa = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-        }
         if (value.admissionType === 'old' && value.doa == null && !errors.some((error) => error.field === 'doa')) {
             errors.push({ field: 'doa', message: studentMessages.doaRequired() });
         }
@@ -222,18 +283,15 @@ const processImport = async (job) => {
 
     // "Add or update within this class(+stream)" — a student already placed in a DIFFERENT
     // class this session is reported, never silently moved.
-    const existing = await StudentProfileModel
-        .find({ adminId, admissionNo: { $in: valid.map((item) => item.value.admissionNo) } }, '_id admissionNo')
-        .lean();
-    const existingIdByNo = new Map(existing.map((item) => [item.admissionNo, item._id]));
-    const existingEnrollments = await StudentEnrollmentModel
-        .find({ adminId, sessionId, studentId: { $in: existing.map((item) => item._id) } }, 'studentId classId streamId')
-        .lean();
+    const existing = valid.map((item) => existingByNo.get(item.value.admissionNo)).filter(Boolean);
+    const existingEnrollments = existing.length
+        ? await StudentEnrollmentModel.find({ adminId, sessionId, studentId: { $in: existing.map((item) => item._id) } }).lean()
+        : [];
     const enrollmentByStudent = new Map(existingEnrollments.map((item) => [String(item.studentId), item]));
 
     const writable = valid.filter((item) => {
-        const studentId = existingIdByNo.get(item.value.admissionNo);
-        const enrollment = studentId && enrollmentByStudent.get(String(studentId));
+        const before = existingByNo.get(item.value.admissionNo);
+        const enrollment = before && enrollmentByStudent.get(String(before._id));
         const moved = enrollment && (String(enrollment.classId) !== String(placement.classId)
             || String(enrollment.streamId || '') !== String(placement.streamId || ''));
         if (moved) {
@@ -246,6 +304,9 @@ const processImport = async (job) => {
         return !moved;
     });
 
+    // updatedAt is NOT in the $set: a row that changes nothing must leave its document
+    // exactly as it was, so "unchanged" is something the database confirms. It is bumped
+    // below for the rows that really changed.
     const now = new Date();
     const studentOps = writable.map(({ value }) => {
         const profile = {};
@@ -257,17 +318,22 @@ const processImport = async (job) => {
         });
         // A blank First Enrolled Class on a NEW student means the class being imported into;
         // an existing student's recorded value is never overwritten by a blank.
-        const onInsert = { adminId, createdAt: now };
+        const onInsert = { adminId, createdAt: now, updatedAt: now };
         if (profile.admissionClass == null) {
             delete profile.admissionClass;
             onInsert.admissionClass = toObjectId(placement.classId);
+        }
+        if (value.admissionType === 'new') {
+            delete profile.doa;
+            const today = new Date();
+            onInsert.doa = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
         }
         return {
             updateOne: {
                 filter: { adminId, admissionNo: value.admissionNo },
                 update: {
                     // bulkWrite skips mongoose middleware, so the derived fields are set here.
-                    $set: { ...profile, nameLower: String(value.name).toLowerCase(), status: 'admitted', updatedAt: now },
+                    $set: { ...profile, nameLower: String(value.name).toLowerCase(), status: 'admitted' },
                     // No session on the profile — the enrollment below carries it.
                     $setOnInsert: onInsert,
                 },
@@ -275,18 +341,32 @@ const processImport = async (job) => {
             },
         };
     });
-    const studentFailures = await bulkWriteCollectingErrors(StudentProfileModel, studentOps);
+    const { failed: studentFailures, result: studentResult } = await bulkWriteCollectingErrors(
+        StudentProfileModel, studentOps, (filter) => `no:${filter.admissionNo}`);
+    // "Created" is exactly what the driver says it upserted — matched to rows by _id below.
+    const upsertedIds = upsertedIdSet(studentResult);
 
-    const savedRows = writable.filter((item, index) => {
-        if (!studentFailures.has(index)) return true;
-        rowErrors.push({ row: item.rowNumber, fields: [studentFailures.get(index)] });
-        return false;
+    const savedRows = [];
+    writable.forEach((item, index) => {
+        if (studentFailures.has(index)) {
+            rowErrors.push({ row: item.rowNumber, fields: [studentFailures.get(index)] });
+            return;
+        }
+        savedRows.push(item);
     });
+    // The write must account for every op it was given: upserted + matched + failed.
+    if (studentResult && studentResult.upsertedCount + studentResult.matchedCount + studentFailures.size !== studentOps.length) {
+        logger.warn('student-worker.import.countMismatch', {
+            jobId: job.id, ops: studentOps.length, upserted: studentResult.upsertedCount,
+            matched: studentResult.matchedCount, failed: studentFailures.size,
+        });
+    }
 
     const saved = await StudentProfileModel
         .find({ adminId, admissionNo: { $in: savedRows.map((item) => item.value.admissionNo) } }, '_id admissionNo')
         .lean();
     const idByNo = new Map(saved.map((item) => [item.admissionNo, item._id]));
+    savedRows.forEach((item) => { item.inserted = upsertedIds.has(String(idByNo.get(item.value.admissionNo))); });
 
     const enrollmentOps = savedRows.map(({ value, sectionId, groupId }) => ({
         updateOne: {
@@ -300,29 +380,72 @@ const processImport = async (job) => {
                     sectionId: sectionId || null,
                     rollNumber: value.rollNumber != null ? value.rollNumber : null,
                     placementIncomplete: Boolean(classEntry.doc.hasStreams && !groupId),
-                    updatedAt: now,
                 },
-                $setOnInsert: { entryType: 'import', createdAt: now },
+                $setOnInsert: { entryType: 'import', createdAt: now, updatedAt: now },
             },
             upsert: true,
         },
     }));
-    const enrollmentFailures = await bulkWriteCollectingErrors(StudentEnrollmentModel, enrollmentOps);
+    const { failed: enrollmentFailures } = await bulkWriteCollectingErrors(
+        StudentEnrollmentModel, enrollmentOps, (filter) => `student:${filter.studentId}`);
+    // A student this run INSERTED whose enrollment then failed is removed again — never a
+    // student without a placement (the form's transaction rule), and never a row reported
+    // as failed that is nonetheless sitting in v2-student.
+    const orphanIds = [];
     enrollmentFailures.forEach((error, index) => {
         rowErrors.push({ row: savedRows[index].rowNumber, fields: [error] });
+        if (savedRows[index].inserted) orphanIds.push(idByNo.get(savedRows[index].value.admissionNo));
     });
+    if (orphanIds.length) await StudentProfileModel.deleteMany({ adminId, _id: { $in: orphanIds } });
+
+    // Created / updated / unchanged per row, off the STORED documents: "created" per the
+    // driver's upserts; otherwise "updated" only when the profile or this session's
+    // enrollment now reads differently than it did before the write.
+    const succeeded = savedRows.filter((item, index) => !enrollmentFailures.has(index));
+    const succeededIds = succeeded.map((item) => idByNo.get(item.value.admissionNo));
+    const [afterProfiles, afterEnrollments] = succeeded.length
+        ? await Promise.all([
+            StudentProfileModel.find({ adminId, _id: { $in: succeededIds } }).lean(),
+            StudentEnrollmentModel.find({ adminId, sessionId, studentId: { $in: succeededIds } }).lean(),
+        ])
+        : [[], []];
+    const profileAfter = new Map(afterProfiles.map((item) => [String(item._id), item]));
+    const enrollmentAfter = new Map(afterEnrollments.map((item) => [String(item.studentId), item]));
+
+    let created = 0;
+    let updated = 0;
+    const changedProfiles = [];
+    const changedEnrollments = [];
+    succeeded.forEach((item) => {
+        if (item.inserted) {
+            created += 1;
+            return;
+        }
+        const studentId = idByNo.get(item.value.admissionNo);
+        const key = String(studentId);
+        const profileChanged = fingerprint(existingByNo.get(item.value.admissionNo)) !== fingerprint(profileAfter.get(key));
+        const beforeEnrollment = enrollmentByStudent.get(key);
+        const enrollmentChanged = fingerprint(beforeEnrollment) !== fingerprint(enrollmentAfter.get(key));
+        if (profileChanged) changedProfiles.push(studentId);
+        // A brand-new enrollment already carries its own updatedAt ($setOnInsert).
+        if (enrollmentChanged && beforeEnrollment) changedEnrollments.push(beforeEnrollment._id);
+        if (profileChanged || enrollmentChanged) updated += 1;
+    });
+    await Promise.all([
+        changedProfiles.length && StudentProfileModel.updateMany({ adminId, _id: { $in: changedProfiles } }, { $set: { updatedAt: now } }),
+        changedEnrollments.length && StudentEnrollmentModel.updateMany({ adminId, _id: { $in: changedEnrollments } }, { $set: { updatedAt: now } }),
+    ]);
 
     // Enrollments were created/updated — Academic Setup's enrolled count is stale.
     await invalidateClassStats(adminId);
     rowErrors.sort((a, b) => a.row - b.row);
-    const succeeded = savedRows.filter((item, index) => !enrollmentFailures.has(index));
-    const created = succeeded.filter((item) => !existingIdByNo.has(item.value.admissionNo)).length;
     // Rows that passed are summarized as counts; only failures are listed (design-system.md,
-    // bulk/import result panel).
+    // bulk/import result panel). created + updated + unchanged + failedCount = total.
     return {
         total: rows.length,
         created,
-        updated: succeeded.length - created,
+        updated,
+        unchanged: succeeded.length - created - updated,
         failedCount: rowErrors.length,
         code: rowErrors.length ? 'BULK_ROWS_FAILED' : null,
         message: rowErrors.length ? studentMessages.bulkRowsFailed(rowErrors.length, rows.length) : null,

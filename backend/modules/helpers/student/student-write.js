@@ -7,6 +7,7 @@ const { resolveFeeStructure } = require('../fees/fee-structure-resolver');
 const { CONCESSION_REASON_THRESHOLD } = require('./student.constants');
 const { ValidationError, NotFoundError, ConflictError } = require('../../errors');
 const { getStudentFieldConfig, validateStudentRecord } = require('../../validators/student/field-config.validator');
+const { keepStoredForMasks } = require('./student-mask');
 const { uploadImageBuffer, destroyImages } = require('../../services/media/cloudinary.service');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
@@ -175,7 +176,11 @@ const createStudentRecord = async ({ adminId, body, file, entryType }) => {
     // The admission's session is a REFERENCE on the enrollment — never a label on Student.
     const sessionId = await ensureSessionId(adminId, body.session);
     const config = await getStudentFieldConfig(adminId);
-    const { value, errors } = validateStudentRecord(body, config);
+    // 'new' is admitted today whatever was sent (set below) — so a stray DOA can't fail
+    // DOA_BEFORE_DOB on a date that is about to be replaced.
+    const input = { ...body };
+    if (String(input.admissionType == null ? 'new' : input.admissionType).trim().toLowerCase() !== 'old') delete input.doa;
+    const { value, errors } = validateStudentRecord(input, config);
     if (errors.length) failFields(errors);
 
     const classIndex = await loadClassIndex(adminId);
@@ -264,6 +269,9 @@ const updateStudentRecord = async ({ adminId, studentId, body, file }) => {
     // An Aadhar re-sent exactly as stored isn't re-checked: a record saved before the
     // checksum rule must stay editable; only a NEW value has to be a valid Aadhar.
     const input = { ...body };
+    // The displayed mask of what's stored, posted back = "unchanged" (masking is display-
+    // only, P0-2); any other masked value is rejected by the validator, never written.
+    keepStoredForMasks(input, student);
     if (input.aadharNumber != null && student.aadharNumber
         && String(input.aadharNumber).replace(/[\s-]/g, '') === student.aadharNumber) delete input.aadharNumber;
     const { value, errors } = validateStudentRecord(input, config, { partial: true });

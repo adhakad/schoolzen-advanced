@@ -9,10 +9,18 @@
  * Value in, value out: an ISO calendar date 'YYYY-MM-DD' ('' = nothing chosen). Never a Date
  * object — a Date carries a time zone, and a date of birth must not drift a day across one.
  *
- * Positioning and closing behave exactly like `.dd`: the panel opens below the field, one
- * open at a time, and it closes on select, outside click or Escape. Every close emits
- * `closed`, because a `.dp` gets no native blur either — the bound form control has to be
- * marked touched from here or a required, never-opened date would never show its error.
+ * Positioning and closing behave exactly like `.dd` (design-system.md, "Menu positioning and
+ * open/close behavior"):
+ *   - The open panel is PORTALED to document.body (class `dp-portal`, position: fixed), so
+ *     no modal body's overflow can clip it and no sticky modal head/foot can sit over it.
+ *   - It opens below the field and FLIPS upward when it doesn't fit below but does above;
+ *     it is clamped inside the viewport either way.
+ *   - It stays open until a resolution: a day is picked or cleared, a click lands outside
+ *     (trigger and portaled panel both count as inside), Escape, or focus moves to another
+ *     field. Scrolling or resizing only REPOSITIONS it.
+ * Every close emits `closed`, because a `.dp` gets no native blur either — the bound form
+ * control has to be marked touched from here or a required, never-opened date would never
+ * show its error.
  *
  * Month/year navigation is by chevrons only (no native select inside). Clicking the month
  * label switches to a 12-year grid, so a date of birth fifteen years back is a few clicks,
@@ -20,8 +28,12 @@
  */
 import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostBinding,
-  HostListener, Input, OnChanges, Output
+  HostListener, Input, OnChanges, OnDestroy, Output, ViewChild
 } from '@angular/core';
+
+/** Gap between trigger and panel, and the minimum margin kept from the viewport edge. */
+const GAP = 8;
+const EDGE = 8;
 
 interface DayCell {
   iso: string;
@@ -59,7 +71,7 @@ const todayIso = (): string => {
   styleUrls: ['./dp.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DpComponent implements OnChanges {
+export class DpComponent implements OnChanges, OnDestroy {
   /** 'YYYY-MM-DD', or '' for nothing chosen. */
   @Input() value = '';
   @Input() placeholder = 'Select date';
@@ -76,11 +88,15 @@ export class DpComponent implements OnChanges {
   /** Every close — select, outside click, Escape. Parent marks its control touched here. */
   @Output() closed = new EventEmitter<void>();
 
+  @ViewChild('panel', { static: true }) panel!: ElementRef<HTMLElement>;
+
   @HostBinding('class.dp') readonly dpClass = true;
   @HostBinding('class.open') get openClass(): boolean { return this.open; }
   @HostBinding('class.disabled') get disabledClass(): boolean { return this.disabled; }
 
   open = false;
+  /** Opened upward (didn't fit below) — styles the shadow, and asserted in tests. */
+  flipped = false;
   mode: 'days' | 'years' = 'days';
   viewYear = new Date().getFullYear();
   viewMonth = new Date().getMonth();
@@ -93,6 +109,12 @@ export class DpComponent implements OnChanges {
   ngOnChanges(): void {
     if (this.disabled && this.open) this.close();
     if (!this.open) this.syncViewToValue();
+  }
+
+  ngOnDestroy(): void {
+    this.detach();
+    // A panel left in <body> would outlive its component.
+    this.panel.nativeElement.remove();
   }
 
   /** "12 Mar 2013" — the label the trigger shows. */
@@ -120,7 +142,7 @@ export class DpComponent implements OnChanges {
       this.syncViewToValue();
       this.mode = 'days';
       this.buildDays();
-      this.open = true;
+      this.openPanel();
     }
   }
 
@@ -128,22 +150,24 @@ export class DpComponent implements OnChanges {
     event.stopPropagation();
     if (this.mode === 'years') {
       this.buildYears(this.years[0] - YEARS_PER_PAGE);
-      return;
+    } else {
+      this.viewMonth -= 1;
+      if (this.viewMonth < 0) { this.viewMonth = 11; this.viewYear -= 1; }
+      this.buildDays();
     }
-    this.viewMonth -= 1;
-    if (this.viewMonth < 0) { this.viewMonth = 11; this.viewYear -= 1; }
-    this.buildDays();
+    this.relayout();
   }
 
   next(event: Event): void {
     event.stopPropagation();
     if (this.mode === 'years') {
       this.buildYears(this.years[0] + YEARS_PER_PAGE);
-      return;
+    } else {
+      this.viewMonth += 1;
+      if (this.viewMonth > 11) { this.viewMonth = 0; this.viewYear += 1; }
+      this.buildDays();
     }
-    this.viewMonth += 1;
-    if (this.viewMonth > 11) { this.viewMonth = 0; this.viewYear += 1; }
-    this.buildDays();
+    this.relayout();
   }
 
   /** Month label → year grid (and back). */
@@ -156,6 +180,7 @@ export class DpComponent implements OnChanges {
       this.mode = 'years';
       this.buildYears(this.viewYear - (this.viewYear % YEARS_PER_PAGE));
     }
+    this.relayout();
   }
 
   pickYear(event: Event, year: number): void {
@@ -163,6 +188,7 @@ export class DpComponent implements OnChanges {
     this.viewYear = year;
     this.mode = 'days';
     this.buildDays();
+    this.relayout();
   }
 
   pick(event: Event, cell: DayCell): void {
@@ -187,17 +213,18 @@ export class DpComponent implements OnChanges {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.open) return;
-    if (this.host.nativeElement.contains(event.target as Node)) return;
-    this.close();
-    this.cdr.markForCheck();
+    if (this.open && !this.contains(event.target)) this.close();
+  }
+
+  /** Focus moving to a different field is a resolution too (Tab past the dp). */
+  @HostListener('document:focusin', ['$event'])
+  onFocusIn(event: FocusEvent): void {
+    if (this.open && !this.contains(event.target)) this.close();
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    if (!this.open) return;
-    this.close();
-    this.cdr.markForCheck();
+    if (this.open) this.close();
   }
 
   isYearSelected(year: number): boolean {
@@ -207,13 +234,91 @@ export class DpComponent implements OnChanges {
   trackByIso = (_index: number, cell: DayCell): string => cell.iso;
   trackByYear = (_index: number, year: number): number => year;
 
+  private contains(target: EventTarget | null): boolean {
+    const node = target as Node | null;
+    return Boolean(node) && (this.host.nativeElement.contains(node) || this.panel.nativeElement.contains(node));
+  }
+
+  private openPanel(): void {
+    this.open = true;
+    const panel = this.panel.nativeElement;
+    panel.classList.add('dp-portal');
+    document.body.appendChild(panel);
+    // The grid only renders while open — render it NOW, so the height the flip decision
+    // measures is the real panel's, not an empty one's.
+    this.cdr.detectChanges();
+    this.position();
+    // Scroll events don't bubble, so the capture phase is the only way to hear a modal body
+    // move the trigger. Attached only while open.
+    document.addEventListener('scroll', this.reposition, true);
+    window.addEventListener('resize', this.reposition);
+  }
+
   private close(): void {
     this.open = false;
+    this.detach();
+    const panel = this.panel.nativeElement;
+    panel.classList.remove('dp-portal', 'flipped');
+    panel.removeAttribute('style');
+    // Back into the host: the panel's bindings are the host's, and a closed panel has no
+    // reason to sit in <body>.
+    this.host.nativeElement.appendChild(panel);
     this.closed.emit();
+    this.cdr.markForCheck();
+  }
+
+  private detach(): void {
+    document.removeEventListener('scroll', this.reposition, true);
+    window.removeEventListener('resize', this.reposition);
+  }
+
+  private reposition = (): void => {
+    if (this.open) this.position();
+  };
+
+  /** Month ↔ year grid and the Clear row change the panel's height — re-place it. */
+  private relayout(): void {
+    if (!this.open) return;
+    this.cdr.detectChanges();
+    this.position();
+  }
+
+  /**
+   * Below the trigger if the whole panel fits; else above it if it fits there; else whichever
+   * side has more room, with the panel's height capped to that room (it scrolls). Left-aligned
+   * with the field and clamped inside the viewport.
+   */
+  private position(): void {
+    const panel = this.panel.nativeElement;
+    const rect = this.host.nativeElement.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+
+    panel.style.position = 'fixed';
+    panel.style.maxHeight = '';
+
+    const height = panel.offsetHeight;
+    const width = panel.offsetWidth;
+    const below = viewportH - rect.bottom - GAP - EDGE;
+    const above = rect.top - GAP - EDGE;
+
+    this.flipped = height > below && (height <= above || above > below);
+    const room = this.flipped ? above : below;
+    if (height > room) panel.style.maxHeight = `${Math.max(160, room)}px`;
+    const finalHeight = Math.min(height, Math.max(160, room));
+    const top = this.flipped ? rect.top - GAP - finalHeight : rect.bottom + GAP;
+    const left = Math.min(Math.max(EDGE, rect.left), viewportW - width - EDGE);
+
+    panel.style.top = `${Math.min(Math.max(EDGE, top), Math.max(EDGE, viewportH - finalHeight - EDGE))}px`;
+    panel.style.left = `${Math.max(EDGE, left)}px`;
+    panel.classList.toggle('flipped', this.flipped);
   }
 
   private syncViewToValue(): void {
-    const parts = parseIso(this.value) || parseIso(this.max && this.max < todayIso() ? this.max : '');
+    // No value: the month of `max` if that is already past, else this month — never the
+    // month an earlier, abandoned open was left browsing.
+    const today = todayIso();
+    const parts = parseIso(this.value) || parseIso(this.max && this.max < today ? this.max : today);
     if (parts) {
       this.viewYear = parts.year;
       this.viewMonth = parts.month;

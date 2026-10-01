@@ -93,11 +93,25 @@
 .btn-primary.full { width: 100%; justify-content: center; }
 .import-btn { margin-top: 10px; }
 
-/* Card column: masked by default, per-row eye to show the full number (student-fix5.md #3). */
-.card-cell { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.card-eye {
-  border: 0; background: transparent; padding: 2px 4px; border-radius: 5px;
-  color: var(--ink-faint); cursor: pointer; line-height: 1;
+/* Card column: masked by default; ONE toggle in its header flips every row at once
+   (manage-students.md). A shield, never the eye — that's View Profile's logged reveal. */
+.card-mask-toggle {
+  border: 0; background: transparent; padding: 2px 4px; margin-left: 4px; border-radius: 5px;
+  color: var(--ink-faint); cursor: pointer; line-height: 1; font-size: 12px;
 }
-.card-eye:hover, .card-eye[aria-pressed="true"] { color: var(--brand); background: var(--brand-soft); }
-.card-eye:focus-visible { outline: 2px solid var(--brand-soft); outline-offset: 1px; }
+.card-mask-toggle:hover, .card-mask-toggle[aria-pressed="true"] { color: var(--brand); background: var(--brand-soft); }
+.card-mask-toggle:focus-visible { outline: 2px solid var(--brand-soft); outline-offset: 1px; }
+
+/* Photo cell: the avatar is a button — click it to upload/replace the photo. A camera shows
+   on hover/focus; a spinner stays over it while that row's upload is in flight. */
+.avatar-btn {
+  position: relative; display: inline-flex; border: 0; background: transparent; padding: 0;
+  border-radius: 50%; cursor: pointer; vertical-align: middle;
+}
+.avatar-btn:disabled { cursor: progress; }
+.avatar-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.avatar-overlay {
+  position: absolute; inset: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .45); color: #fff; font-size: 13px; opacity: 0; transition: opacity .15s;
+}
+.avatar-btn:hover .avatar-overlay, .avatar-btn:focus-visible .avatar-overlay, .avatar-overlay.busy { opacity: 1; }

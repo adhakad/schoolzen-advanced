@@ -1,6 +1,6 @@
 /* `.dp` — design-system.md "Date picker component". Hairline border, 6px radius, Inter /
-   Fraunces, today ringed, the selected day filled brand purple. Opens below the field with
-   the same positioning as `.dd-menu`. */
+   Fraunces, today ringed, the selected day filled brand purple. Opens below the field (or
+   flips above) with the same positioning as `.dd-menu`. */
 
 :host { display: block; position: relative; }
 
@@ -17,13 +17,20 @@
 .dp-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 :host(.disabled) .dp-trigger { background: var(--paper); color: #B7B0C9; cursor: not-allowed; }
 
+/* Hidden while closed. An OPEN panel is portaled to <body> (class dp-portal, see the
+   component note): position: fixed with top/left set inline, pinned over every modal
+   (z-index 60-70) including its sticky head and foot. The emulated-encapsulation attributes
+   travel with the element, so these rules still match it in <body>. */
 .dp-panel {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 65;
-  width: 272px; padding: 10px; box-sizing: border-box;
+  display: none; position: fixed; z-index: 1000;
+  width: 272px; padding: 10px; box-sizing: border-box; overflow-y: auto;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: 0 10px 26px rgba(30, 23, 48, 0.14);
   font-family: 'Inter', sans-serif;
 }
+.dp-panel.dp-portal { display: block; }
+.dp-panel.dp-portal.flipped { box-shadow: 0 -10px 26px rgba(30, 23, 48, 0.14); }
+.dp-panel * { box-sizing: border-box; }
 
 .dp-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .dp-nav-btn {

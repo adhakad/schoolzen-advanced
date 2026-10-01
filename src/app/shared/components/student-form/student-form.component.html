@@ -196,16 +196,22 @@
 <div class="group-title">Student Info</div>
 
 <div class="photo-upload">
-  <div class="photo-circle">
+  <!-- The circle opens the same picker as the button beside it (manage-students.md: click the
+       avatar to upload). The button stays the keyboard/screen-reader path, so the circle is a
+       pointer shortcut only — not a second tab stop announcing the same action. -->
+  <button type="button" class="photo-circle" tabindex="-1" aria-hidden="true"
+          [title]="(photoPreview || detail?.student?.photoUrl) ? 'Change photo' : 'Upload photo'"
+          (click)="photoInput.click()">
     <img *ngIf="photoPreview || detail?.student?.photoUrl; else noPhoto"
-         [src]="photoPreview || detail?.student?.photoUrl" alt="" />
+         [src]="photoPreviewSrc || detail?.student?.photoUrl" alt="" />
     <ng-template #noPhoto><i class="bi bi-person"></i></ng-template>
-  </div>
-  <button type="button" class="btn-secondary" (click)="photoInput.click()"
+    <span class="photo-circle-hover"><i class="bi bi-camera"></i></span>
+  </button>
+  <button type="button" class="btn-secondary photo-btn" (click)="photoInput.click()"
           [attr.aria-invalid]="!!error('photo') || null" [attr.aria-describedby]="describedBy('photo')">
     {{ (photoPreview || detail?.student?.photoUrl) ? 'Change Photo' : 'Upload Photo' }} (JPG/PNG, up to 2MB)
   </button>
-  <input #photoInput type="file" accept="image/png,image/jpeg" hidden (change)="onPhotoPicked($event)" />
+  <input #photoInput type="file" [accept]="photoAccept" hidden (change)="onPhotoPicked($event)" />
 </div>
 <p class="m-error photo-error" id="err-photo" *ngIf="error('photo')"><i class="bi bi-exclamation-circle"></i> {{ error('photo') }}</p>
 

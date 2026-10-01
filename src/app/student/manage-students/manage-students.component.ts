@@ -16,7 +16,7 @@
  *      largest list (performance-principles.md).
  */
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, Subject } from 'rxjs';
@@ -32,7 +32,7 @@ import {
   StudentListRow
 } from 'src/app/shared/models/student/student.model';
 import {
-  DeviceSyncResult, ImportResult, ListQuery, ManageStudentsOverview, VERIFY_MODE_OPTIONS
+  DeviceSyncResult, ImportResult, ImportRowError, ListQuery, ManageStudentsOverview, VERIFY_MODE_OPTIONS
 } from 'src/app/shared/models/student/manage-students.model';
 import {
   describeClassScope, isClassScopeComplete
@@ -41,6 +41,7 @@ import { StudentFormComponent, StudentFormMode } from 'src/app/shared/components
 import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 import { errorMessageOf, rowErrorsOf, validationErrorsOf } from 'src/app/shared/utils/api-error.util';
 import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
+import { PHOTO_ACCEPT, photoFileError } from 'src/app/shared/utils/photo-file.util';
 import { saveMessage } from 'src/app/shared/utils/save-message.util';
 import { compareText, DEFAULT_TEXT_CASE, SortDir, TextCase } from 'src/app/shared/utils/text-case.util';
 
@@ -52,6 +53,8 @@ export const MANAGE_STUDENTS_FIELDS = 'name,admissionNo,status,photo,father,moth
 
 /** One line of the bulk-result panel: which record, and what happened to it. */
 interface BulkResultLine {
+  /** The record's id — the list's trackBy key. */
+  key: string;
   label: string;
   message: string;
 }
@@ -60,7 +63,7 @@ interface BulkResultLine {
 interface StudentRow extends StudentListRow {
   initials: string;
   gradient: string;
-  /** "•• 8821" — the Card column's default (student-fix5.md #3); null when no card. */
+  /** "•• 8821" — the Card column's default (manage-students.md); null when no card. */
   cardMasked: string | null;
 }
 
@@ -68,9 +71,10 @@ interface StudentRow extends StudentListRow {
 const maskCard = (card: string | null): string | null => (card ? '•• ' + card.slice(-4) : null);
 
 /**
- * The header controls' final spec (student-fix4.md H): a sort arrow on Admission No.,
+ * The header controls' final spec (manage-students.md): a sort arrow on Admission No.,
  * Student and Roll No.; the "Aa" text-case trigger on Student only. Father and Mother are
- * plain header text with neither control.
+ * plain header text with neither control — they follow the case only through the Student
+ * menu's "Apply to all fields".
  */
 export type SortColumn = 'admissionNo' | 'name' | 'rollNumber';
 
@@ -126,10 +130,11 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
    */
   busyRows = new Set<string>();
   /**
-   * Rows whose card number is shown in full, by studentId — the eye toggle on that one row.
-   * Local only: unlike Aadhar/bank/PEN, revealing a card isn't logged (student-fix5.md #3).
+   * The Card column's ONE header toggle (manage-students.md): false = every row masked
+   * ("•• 8821", the page-load state), true = every row in full. Display only — no API
+   * call, and unlike Aadhar/bank/PEN, showing a card isn't logged.
    */
-  revealedCards = new Set<string>();
+  cardsRevealed = false;
   overview: ManageStudentsOverview = { totalStudents: 0, cardsAssigned: 0 };
 
   /**
@@ -138,12 +143,23 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
    */
   nameCase: TextCase = DEFAULT_TEXT_CASE;
   /**
+   * Father/Mother's display case: null = exactly as stored (page load). They have no "Aa"
+   * of their own — only the Student menu's "Apply to all fields" sets this; a direct pick
+   * there re-cases Student alone. Same rules as nameCase: never saved, never exported.
+   */
+  parentCase: TextCase | null = null;
+  /**
    * Header sort (Ascending ↔ Descending), applied to the rows on screen. null = the list's
    * own order until a header is clicked. The list pages by keyset, so this orders the loaded
    * page; it is kept across page turns and re-applied to every page that arrives.
    */
   sortColumn: SortColumn | null = null;
   sortDir: SortDir = 'asc';
+
+  /** The row whose avatar opened the photo picker — the upload's target. */
+  private photoTarget: StudentRow | null = null;
+  readonly photoAccept = PHOTO_ACCEPT;
+  @ViewChild('rowPhotoInput') rowPhotoInput?: ElementRef<HTMLInputElement>;
 
   // Create / Update
   formOpen = false;
@@ -432,9 +448,13 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
 
   trackByRow = (_index: number, row: StudentRow): string => row.enrollmentId;
 
-  toggleCardReveal(row: StudentRow): void {
-    if (this.revealedCards.has(row.studentId)) this.revealedCards.delete(row.studentId);
-    else this.revealedCards.add(row.studentId);
+  trackByImportRow = (_index: number, failure: ImportRowError): number => failure.row;
+  trackByImportField = (_index: number, field: ImportRowError['fields'][number]): string => field.field + '|' + field.message;
+  trackByBulkLine = (_index: number, line: BulkResultLine): string => line.key;
+
+  /** The Card header's toggle: the whole column masked ↔ full at once, never per row. */
+  toggleCardsRevealed(): void {
+    this.cardsRevealed = !this.cardsRevealed;
   }
 
   // --- header: sort + display case (frontend only, no API call) -------------------------
@@ -458,8 +478,15 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
     return this.sortDir === 'asc' ? 'ascending' : 'descending';
   }
 
+  /** A direct pick in Student's "Aa" menu: re-cases Student only. */
   setNameCase(mode: TextCase): void {
     this.nameCase = mode;
+  }
+
+  /** "Apply to all fields": Student, Father and Mother take the same case together. */
+  applyCaseToAll(mode: TextCase): void {
+    this.nameCase = mode;
+    this.parentCase = mode;
   }
 
   private sorted(rows: StudentRow[]): StudentRow[] {
@@ -496,6 +523,56 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
 
   get selectedCount(): number {
     return this.selected.size;
+  }
+
+  // --- photo from the row avatar (manage-students.md) --------------------------------------
+
+  /**
+   * Clicking a row's avatar opens the picker for THAT student; the pick uploads straight
+   * away — no separate save. Same endpoint and field as the Edit form's photo
+   * (PUT /students/:id, multipart `photo`), so the two paths never disagree.
+   */
+  onAvatarClick(row: StudentRow): void {
+    if (this.busyRows.has(row.studentId) || !this.rowPhotoInput) return;
+    this.photoTarget = row;
+    this.rowPhotoInput.nativeElement.click();
+  }
+
+  onRowPhotoPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    input.value = '';
+    const row = this.photoTarget;
+    this.photoTarget = null;
+    if (!file || !row || this.busyRows.has(row.studentId)) return;
+    // Checked here first: a file the server would refuse is never sent.
+    const problem = photoFileError(file);
+    if (problem) {
+      this.snackBar.open(problem, 'Close', { duration: 4000 });
+      return;
+    }
+
+    const body = new FormData();
+    body.append('adminId', this.adminId);
+    body.append('session', this.session);
+    body.append('photo', file, file.name);
+
+    const id = row.studentId;
+    this.setBusy([id], true);
+    this.api.updateStudent(id, body).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+      this.setBusy([id], false);
+      // IMAGE_UPLOAD_FAILED comes back as a warning on a 200 — shown, never hidden.
+      this.snackBar.open(res.warnings?.length || res.warning ? saveMessage(res) : 'Photo updated for ' + row.name + '.',
+        'Close', { duration: res.warnings?.length || res.warning ? 8000 : 3000 });
+      if (res.student) this.writeBackUpdated(res.student);
+      else this.refresh();
+      this.cdr.markForCheck();
+    }, (error: unknown) => {
+      this.setBusy([id], false);
+      // ValidationError is the one category the ErrorInterceptor leaves to the page.
+      const validation = validationErrorsOf(error);
+      if (validation) this.snackBar.open(validation.fields['photo'] || validation.message, 'Close', { duration: 5000 });
+    });
   }
 
   // --- view -----------------------------------------------------------------------------
@@ -788,7 +865,9 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
       if (res.rows && res.rows.length) {
         // Per-row outcome — some of the selection could not be deleted; list which.
         this.showBulkResult('Delete Selected', `${res.deleted} of ${pending.ids.length} deleted.`,
-          res.rows.map((row) => ({ label: nameById.get(row.id || '') || row.id || 'Student', message: row.message })));
+          res.rows.map((row, index) => ({
+            key: row.id || String(index), label: nameById.get(row.id || '') || row.id || 'Student', message: row.message
+          })));
       } else {
         this.snackBar.open(res.message, 'Close', { duration: 3000 });
       }

@@ -29,3 +29,6 @@
   margin: 0 0 12px; padding: 10px 12px; border-radius: 8px;
   background: var(--warning-soft); color: var(--warning); font-size: 12.5px;
 }
+
+/* The automatic "General" group's Name field in the Edit modal — shown, not editable. */
+.m-field input.locked { background: var(--paper); color: var(--ink-soft); cursor: not-allowed; }

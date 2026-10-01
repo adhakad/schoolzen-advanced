@@ -50,7 +50,10 @@ interface GroupRow {
   /** "Science", or null for a class with no streams (the "— not applicable" cell). */
   streamName: string | null;
   subjects: SubjectGroupSubject[];
-  /** The automatic "General" group — no actions, not selectable. */
+  /**
+   * The automatic "General" group: Edit opens the modal with Name/Class locked (its subject
+   * checklist stays editable); Delete is shown but disabled; not selectable.
+   */
   isSystemGroup: boolean;
   source: SubjectGroup;
 }
@@ -107,6 +110,11 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   formTitle = 'Add Subject Group';
   form: SubjectGroupFormValue = { ...EMPTY_FORM, subjectIds: new Set<string>() };
   formClassOptions: DdOption[] = [NO_SELECTION];
+  /**
+   * Editing an automatic "General" group: Name, Class and Stream are locked (the backend
+   * refuses a rename or move with SYSTEM_GROUP_LOCKED); only the subject checklist changes.
+   */
+  formSystemGroup = false;
   formStreamOptions: DdOption[] = [NO_SELECTION];
   /** The live checklist, re-fetched every time the modal opens. */
   subjectChecklist: SubjectGroupSubject[] = [];
@@ -173,8 +181,11 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
         }));
         this.classFilterOptions = [ALL_CLASSES, ...classOptions];
         // The Add/Edit modal only offers STREAMED classes: a class without streams has its
-        // automatic "General" group and nothing to add here (subject-groups.md).
-        this.formClassOptions = [NO_SELECTION, ...classOptions.filter((option) => this.classesById.get(option.value)?.hasStreams)];
+        // automatic "General" group and nothing to add here (subject-groups.md). Editing that
+        // General group still has to SHOW its (non-streamed) class, read-only.
+        this.formClassOptions = [NO_SELECTION, ...classOptions.filter((option) =>
+          this.classesById.get(option.value)?.hasStreams ||
+          (this.formSystemGroup && option.value === this.form.classId))];
 
         this.subjectChecklist = options.subjects || [];
 
@@ -334,6 +345,7 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
 
   onAddGroup(): void {
     this.formTitle = 'Add Subject Group';
+    this.formSystemGroup = false;
     this.form = { ...EMPTY_FORM, subjectIds: new Set<string>() };
     this.clearErrors();
     this.formOpen = true;
@@ -344,6 +356,7 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   onEditGroup(row: GroupRow): void {
     const item = row.source;
     this.formTitle = 'Edit Subject Group';
+    this.formSystemGroup = row.isSystemGroup;
     this.form = {
       id: item._id,
       classId: item.classId,
@@ -357,6 +370,7 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   }
 
   onFormClassChange(value: string): void {
+    if (this.formSystemGroup) return;
     // A stream belongs to one class, so changing the class clears it rather than carrying
     // over an id that now points into a different class's streams[].
     this.form = { ...this.form, classId: value, streamId: '' };
@@ -366,11 +380,13 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   }
 
   onFormStreamChange(value: string): void {
+    if (this.formSystemGroup) return;
     this.form = { ...this.form, streamId: value };
     delete this.fieldErrors['streamId'];
   }
 
   onFormNameChange(value: string): void {
+    if (this.formSystemGroup) return;
     this.form = { ...this.form, name: value };
     delete this.fieldErrors['name'];
   }
@@ -395,6 +411,7 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   }
 
   get formStreamHint(): string {
+    if (this.formSystemGroup) return '— not applicable';
     if (!this.form.classId) return 'Select a class first';
     const chosen = this.classesById.get(this.form.classId);
     return chosen && !chosen.hasStreams ? 'This class has no streams — leave as-is' : '';
@@ -470,6 +487,8 @@ export class SubjectGroupsComponent implements OnInit, OnDestroy {
   // --- delete -------------------------------------------------------------------------
 
   onDeleteGroup(row: GroupRow): void {
+    // Only its Class's delete removes a "General" group; the button is disabled anyway.
+    if (row.isSystemGroup) return;
     this.openDeleteConfirm([row._id]);
   }
 

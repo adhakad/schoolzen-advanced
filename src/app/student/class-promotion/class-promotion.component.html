@@ -143,7 +143,7 @@
     <div class="carryover-row"><i class="bi bi-check-circle ok"></i> Roll Number is cleared — assign fresh in the new class via Manage Students.</div>
     <div class="carryover-row"><i class="bi bi-check-circle ok"></i> Leave balances reset per {{ preview.nextSession }}'s own Leave Limit config.</div>
     <!-- One row per warning, each with its type's own icon — never one collapsed banner. -->
-    <div class="carryover-row warn" *ngFor="let warning of preview.warnings" [attr.data-warning]="warning.type">
+    <div class="carryover-row warn" *ngFor="let warning of preview.warnings; trackBy: trackByWarning" [attr.data-warning]="warning.type">
       <i class="bi" [ngClass]="'bi-' + warningIcon(warning.type)"></i> {{ warning.message }}
     </div>
 

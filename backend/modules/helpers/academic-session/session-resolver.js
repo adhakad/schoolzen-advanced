@@ -1,7 +1,6 @@
 'use strict';
 const mongoose = require('mongoose');
 const AcademicSessionV2Model = require('../../models/settings/academic-session');
-const LegacyAcademicSessionModel = require('../../models/academic-session');
 const { parseSession, isValidSession } = require('../academic-session-format');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
@@ -15,8 +14,9 @@ const cacheKeys = require('../../services/cache/cache-keys');
 //   ensureSessionId  — writes: the session is created on first use, from the label
 //
 // On-demand creation stands in for Settings → Academic Sessions until that module is built.
-// A created session's status follows the legacy global document: the legacy current session
-// is `active`, earlier ones `closed`, later ones `upcoming`.
+// A created session's status comes from the calendar — the academic year runs 1 April to
+// 31 March, so today's year is `active`, earlier ones `closed`, later ones `upcoming`. Never
+// from the legacy global academic-session document (database-design-principles.md §0).
 
 // The whole school's label→id map, cached near-static (sessions change a few times a year).
 const loadSessionMap = (adminId) => cacheService.wrap(
@@ -37,10 +37,14 @@ const findSessionId = async (adminId, label) => {
     return toObjectId(map[label]);
 };
 
+/** "2026-2027" for any date from 1 Apr 2026 to 31 Mar 2027. */
+const currentSessionLabel = (now = new Date()) => {
+    const start = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    return `${start}-${start + 1}`;
+};
+
 const statusFor = async (label) => {
-    const legacy = await LegacyAcademicSessionModel.findOne({}, 'academicSession').lean();
-    const current = legacy && legacy.academicSession;
-    if (!current || !isValidSession(current)) return 'active';
+    const current = currentSessionLabel();
     if (label === current) return 'active';
     return label < current ? 'closed' : 'upcoming';
 };

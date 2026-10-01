@@ -51,6 +51,8 @@ export interface ImportResult {
   total: number;
   created: number;
   updated: number;
+  /** Rows that matched an existing student with nothing to change. */
+  unchanged?: number;
   failedCount: number;
   code: string | null;
   message: string | null;

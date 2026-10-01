@@ -1,8 +1,10 @@
 <!-- The reference's `.confirm-overlay` markup, class-for-class:
      docs/schoolzen-planning/v1/academic-setup/classes-sections.html. Nothing renders until
      `open` — no hidden modal DOM sitting under a page full of action buttons. -->
-<div class="sz-confirm-overlay open" *ngIf="open" (click)="onCancel()">
-  <div class="confirm-modal" (click)="$event.stopPropagation()">
+<!-- Only a click ON the backdrop cancels. Clicks inside the box are not stopped: they must
+     reach document so an open app-dd / app-dp (portaled to <body>) closes on them. -->
+<div class="sz-confirm-overlay open" *ngIf="open" (click)="onBackdrop($event)">
+  <div class="confirm-modal">
     <div class="confirm-head">
       <div class="confirm-icon" [class.neutral]="config.variant !== 'warning'">
         <i class="bi bi-exclamation-triangle"></i>

@@ -20,8 +20,9 @@
  * stays open until a pick-and-apply, an outside click, Escape or focus leaving — a scroll
  * or resize only moves it with its trigger.
  *
- * `showApplyAll` drops the "Apply to all fields" row where the table has only ONE
- * case-toggleable column (Manage Students: Student only, student-fix4.md H).
+ * `showApplyAll` drops the "Apply to all fields" row where there is nothing else to apply
+ * the case to. A column that follows only via Apply-to-all (Manage Students' Father/Mother:
+ * no trigger of their own) still counts as "something else" — there the row stays.
  */
 import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, Output,

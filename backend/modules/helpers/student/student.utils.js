@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 const AcademicClassModel = require('../../models/academic-setup/class');
 const SubjectGroupModel = require('../../models/academic-setup/subject-group');
-const AcademicSessionModel = require('../../models/academic-session');
+const AcademicSessionV2Model = require('../../models/settings/academic-session');
 const StudentProfileModel = require('../../models/student/student');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const BiometricMappingModel = require('../../models/biometric-mapping');
@@ -48,11 +48,16 @@ const escapeRegex = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'
  * (helpers/academic-session-format.js) — read-only, nothing is written to the legacy
  * collection.
  */
-const getNextSession = async (session) => {
-    const doc = await AcademicSessionModel.findOne({}, 'allSession').lean();
-    const known = (doc && doc.allSession) || [];
-    const later = known.filter((label) => isValidSession(label) && label > session).sort();
-    return later[0] || nextSessionLabel(session);
+// The school's own next v2 session after `session` (it may skip a year), else the next
+// label — never the legacy global academic-session document (database-design-principles.md §0).
+const getNextSession = async (adminId, session) => {
+    const later = await AcademicSessionV2Model
+        .find({ adminId, label: { $gt: session } }, 'label')
+        .sort({ label: 1 })
+        .limit(1)
+        .lean();
+    const next = later.find((item) => isValidSession(item.label));
+    return next ? next.label : nextSessionLabel(session);
 };
 
 // --------------------------------------------------------------------------------------

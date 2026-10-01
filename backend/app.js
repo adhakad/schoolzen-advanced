@@ -20,9 +20,13 @@ const cookieParser = require("cookie-parser");
 const path = require('path');
 const requestId = require('./modules/middleware/requestId');
 const errorHandler = require('./modules/middleware/errorHandler');
+const compression = require('./modules/middleware/compression');
 const { NotFoundError } = require('./modules/errors');
 require('./cron-job');
 
+// First, so every response below (routes, static files, error bodies) is compressed —
+// Brotli when the client accepts it, else gzip.
+app.use(compression());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());

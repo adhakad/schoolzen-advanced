@@ -339,6 +339,9 @@ export class ClassPromotionComponent implements OnInit, OnDestroy {
     return WARNING_ICON[type] || 'exclamation-triangle';
   }
 
+  /** type + message: a type can repeat (e.g. one fee-structure warning per target class). */
+  trackByWarning = (_index: number, warning: PromotionWarning): string => `${warning.type}:${warning.message}`;
+
   closeConfirm(): void {
     this.confirmOpen = false;
     this.preview = null;

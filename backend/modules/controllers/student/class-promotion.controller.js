@@ -121,7 +121,7 @@ let GetPromotionRoster = async (req, res) => {
 
     // Labels in, references out: the header's label resolves to this school's session id,
     // and the NEXT session's id is looked up (not created — a roster only reads).
-    const [sessionId, nextSession] = await Promise.all([findSessionId(adminId, session), getNextSession(session)]);
+    const [sessionId, nextSession] = await Promise.all([findSessionId(adminId, session), getNextSession(adminId, session)]);
     const [nextSessionId, enrollments] = await Promise.all([
         findSessionId(adminId, nextSession),
         sessionId ? loadRosterEnrollments(adminId, sessionId, req.query) : [],
@@ -176,7 +176,7 @@ const buildPromotionPlan = async (body) => {
         throw new ValidationError(messages.classNotConfigured(), { module: MODULE, fields: [{ field: 'classId', message: messages.classNotConfigured() }] });
     }
 
-    const [sessionId, nextSession] = await Promise.all([findSessionId(adminId, session), getNextSession(session)]);
+    const [sessionId, nextSession] = await Promise.all([findSessionId(adminId, session), getNextSession(adminId, session)]);
     const [nextSessionId, enrollments] = await Promise.all([
         findSessionId(adminId, nextSession),
         sessionId

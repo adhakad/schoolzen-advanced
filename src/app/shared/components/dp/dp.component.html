@@ -1,5 +1,5 @@
 <!-- design-system.md's `.dp` markup: a trigger shaped like the form's inputs, and a panel
-     that opens below it exactly like `.dd-menu`. -->
+     that opens below it (or flips above) exactly like `.dd-menu`. -->
 <div class="dp-trigger field-input" role="button" tabindex="0"
      [class.is-invalid]="invalid"
      [class.placeholder]="!hasValue"
@@ -15,7 +15,9 @@
   <span class="dp-label">{{ label }}</span><i class="bi bi-calendar3"></i>
 </div>
 
-<div class="dp-panel" *ngIf="open" role="dialog" [attr.aria-label]="ariaLabel || 'Choose a date'">
+<!-- Portaled to <body> while open (see the component note); lives here, hidden, while closed. -->
+<div #panel class="dp-panel" role="dialog" [attr.aria-label]="ariaLabel || 'Choose a date'">
+  <ng-container *ngIf="open">
   <div class="dp-nav">
     <button type="button" class="dp-nav-btn" aria-label="Previous" (click)="prev($event)">
       <i class="bi bi-chevron-left"></i>
@@ -49,4 +51,5 @@
   <div class="dp-foot" *ngIf="hasValue">
     <button type="button" class="dp-clear" (click)="clear($event)">Clear</button>
   </div>
+  </ng-container>
 </div>

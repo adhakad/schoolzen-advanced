@@ -34,7 +34,8 @@ describe('ManageStudentsComponent', () => {
 
   beforeEach(async () => {
     api = jasmine.createSpyObj<ManageStudentsService>('ManageStudentsService', [
-      'getStudents', 'getOverview', 'getStudent', 'bulkDelete', 'assignCards', 'resyncCard', 'exportExcel', 'importExcel'
+      'getStudents', 'getOverview', 'getStudent', 'bulkDelete', 'assignCards', 'resyncCard', 'exportExcel', 'importExcel',
+      'updateStudent'
     ]);
     api.getStudents.and.returnValue(of({ rows: [ROW], nextCursor: null, total: 1 }));
     api.getOverview.and.returnValue(of({ totalStudents: 1, cardsAssigned: 1 }));
@@ -103,13 +104,14 @@ describe('ManageStudentsComponent', () => {
 
   describe('header sort + display case (student-fix4.md H, frontend only)', () => {
     const ROWS: StudentListRow[] = [
-      { ...ROW, enrollmentId: 'e1', studentId: 'st1', name: 'ROHAN KAPOOR', admissionNo: 300, rollNumber: 7, fatherName: 'suresh kapoor' },
-      { ...ROW, enrollmentId: 'e2', studentId: 'st2', name: 'ananya sharma', admissionNo: null, rollNumber: 2, fatherName: 'Vikas Sharma' },
-      { ...ROW, enrollmentId: 'e3', studentId: 'st3', name: 'Kabir Mehta', admissionNo: 100, rollNumber: null, fatherName: null }
+      { ...ROW, enrollmentId: 'e1', studentId: 'st1', name: 'ROHAN KAPOOR', admissionNo: 300, rollNumber: 7, fatherName: 'suresh kapoor', motherName: 'SUNITA KAPOOR' },
+      { ...ROW, enrollmentId: 'e2', studentId: 'st2', name: 'ananya sharma', admissionNo: null, rollNumber: 2, fatherName: 'Vikas Sharma', motherName: 'neha sharma' },
+      { ...ROW, enrollmentId: 'e3', studentId: 'st3', name: 'Kabir Mehta', admissionNo: 100, rollNumber: null, fatherName: null, motherName: null }
     ];
     // Columns: 0 check, 1 photo, 2 adm no, 3 Student, 4 class, 5 Father, 6 Mother, 7 Roll
     const STUDENT = 3;
     const FATHER = 5;
+    const MOTHER = 6;
     const cells = (col: number): string[] => (Array.from(fixture.nativeElement.querySelectorAll('tbody tr')) as HTMLElement[])
       .map((tr) => (tr.children[col] as HTMLElement).textContent!.trim());
     const headers = (): HTMLElement[] => Array.from(fixture.nativeElement.querySelectorAll('thead th')) as HTMLElement[];
@@ -138,27 +140,65 @@ describe('ManageStudentsComponent', () => {
       expect(headers().length).toBe(11);
     });
 
-    it('offers no "Apply to all fields" — Student is the only case-toggleable column', () => {
+    const openCaseMenu = (): void => {
       fixture.nativeElement.querySelector('app-column-case-menu .case-trigger').click();
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('.apply-all')).toBeNull();
-      expect(fixture.nativeElement.querySelectorAll('.case-menu .dd-option').length).toBe(3);
+    };
+    const clickOption = (label: string): void => {
+      (Array.from(fixture.nativeElement.querySelectorAll('.case-menu .dd-option')) as HTMLElement[])
+        .find((option) => option.textContent!.trim().startsWith(label))!.click();
+      fixture.detectChanges();
+    };
+
+    it('offers "Apply to all fields" again in the Student "Aa" menu', () => {
+      openCaseMenu();
+      expect(fixture.nativeElement.querySelector('.case-menu .apply-all')).not.toBeNull();
+      expect(fixture.nativeElement.querySelectorAll('.case-menu .dd-option').length).toBe(4);
     });
 
-    it('shows Student in Title Case on load; Father is shown exactly as stored', () => {
+    it('shows Student in Title Case on load; Father and Mother exactly as stored', () => {
       expect(cells(STUDENT)).toEqual(['Rohan Kapoor', 'Ananya Sharma', 'Kabir Mehta']);
       expect(cells(FATHER)).toEqual(['suresh kapoor', 'Vikas Sharma', '—']);
+      expect(cells(MOTHER)).toEqual(['SUNITA KAPOOR', 'neha sharma', '—']);
     });
 
-    it("changes the Student column's case without an API call or touching the data", () => {
-      fixture.nativeElement.querySelector('app-column-case-menu .case-trigger').click();
-      fixture.detectChanges();
-      fixture.nativeElement.querySelectorAll('.case-menu .dd-option')[1].click(); // UPPERCASE
-      fixture.detectChanges();
+    it('a direct pick re-cases ONLY Student — no API call, the data untouched', () => {
+      openCaseMenu();
+      clickOption('UPPERCASE');
       expect(cells(STUDENT)).toEqual(['ROHAN KAPOOR', 'ANANYA SHARMA', 'KABIR MEHTA']);
-      expect(fixture.nativeElement.querySelector('.case-menu')).toBeNull();
+      expect(cells(FATHER)).toEqual(['suresh kapoor', 'Vikas Sharma', '—']);
+      expect(cells(MOTHER)).toEqual(['SUNITA KAPOOR', 'neha sharma', '—']);
       expect(component.rows[1].name).toBe('ananya sharma');
       expect(api.getStudents).not.toHaveBeenCalled();
+    });
+
+    it('"Apply to all fields" re-cases Student, Father and Mother together, then closes', () => {
+      openCaseMenu();
+      clickOption('lowercase');
+      clickOption('Apply to all fields');
+      expect(fixture.nativeElement.querySelector('.case-menu')).toBeNull();
+      expect(cells(STUDENT)).toEqual(['rohan kapoor', 'ananya sharma', 'kabir mehta']);
+      expect(cells(FATHER)).toEqual(['suresh kapoor', 'vikas sharma', '—']);
+      expect(cells(MOTHER)).toEqual(['sunita kapoor', 'neha sharma', '—']);
+      expect(component.rows[0].fatherName).toBe('suresh kapoor');
+      expect(api.getStudents).not.toHaveBeenCalled();
+
+      // A later direct pick moves Student alone; Father/Mother keep the applied case.
+      openCaseMenu();
+      clickOption('Title Case');
+      expect(cells(STUDENT)).toEqual(['Rohan Kapoor', 'Ananya Sharma', 'Kabir Mehta']);
+      expect(cells(MOTHER)).toEqual(['sunita kapoor', 'neha sharma', '—']);
+    });
+
+    it('Apply-to-all leaves the sort arrows working exactly as before', () => {
+      openCaseMenu();
+      clickOption('UPPERCASE');
+      clickOption('Apply to all fields');
+      clickSort('Student');
+      expect(cells(STUDENT)).toEqual(['ANANYA SHARMA', 'KABIR MEHTA', 'ROHAN KAPOOR']);
+      expect(cells(FATHER)).toEqual(['VIKAS SHARMA', '—', 'SURESH KAPOOR']);
+      clickSort('Roll No.');
+      expect(component.rows.map((row) => row.rollNumber)).toEqual([2, 7, null]);
     });
 
     it('sorts Student A→Z then Z→A, case-insensitively', () => {
@@ -233,18 +273,149 @@ describe('ManageStudentsComponent', () => {
     });
   });
 
-  it('shows the card masked by default; the row eye reveals that row only, with no API call (fix5 #3)', () => {
-    fixture.detectChanges();
-    const cardText = (): string => fixture.nativeElement.querySelector('tbody .card-tag').textContent.trim();
-    expect(cardText()).toBe('•• 8821');
-    api.getStudents.calls.reset();
-    fixture.nativeElement.querySelector('tbody .card-eye').click();
-    fixture.detectChanges();
-    expect(cardText()).toBe('88218821');
-    fixture.nativeElement.querySelector('tbody .card-eye').click();
-    fixture.detectChanges();
-    expect(cardText()).toBe('•• 8821');
-    expect(api.getStudents).not.toHaveBeenCalled();
+  describe('Card column — one header toggle for the whole column', () => {
+    // Columns: … 9 Card
+    const CARD = 9;
+    const cards = (): string[] => (Array.from(fixture.nativeElement.querySelectorAll('tbody tr')) as HTMLElement[])
+      .map((tr) => (tr.children[CARD] as HTMLElement).textContent!.trim());
+    const toggle = (): HTMLButtonElement => fixture.nativeElement.querySelector('thead .card-mask-toggle');
+
+    beforeEach(() => {
+      api.getStudents.and.returnValue(of({ rows: [
+        ROW,
+        { ...ROW, enrollmentId: 'e2', studentId: 'st2', name: 'Priya Joshi', card: '55501234' },
+        { ...ROW, enrollmentId: 'e3', studentId: 'st3', name: 'Kabir Mehta', card: null }
+      ], nextCursor: null, total: 3 }));
+      component.onFilterChange({ classId: '', streamId: '', groupId: '', sectionId: '' });
+      fixture.detectChanges();
+      api.getStudents.calls.reset();
+    });
+
+    it('masks every row by default, with no per-row control and no eye icon', () => {
+      expect(cards()).toEqual(['•• 8821', '•• 1234', 'Not assigned']);
+      expect(fixture.nativeElement.querySelector('tbody .card-eye, tbody .card-mask-toggle')).toBeNull();
+      expect(toggle().getAttribute('aria-pressed')).toBe('false');
+      expect(toggle().getAttribute('aria-label')).toBe('Show all card numbers in full');
+      expect(toggle().querySelector('.bi-shield-lock')).not.toBeNull();
+      expect(toggle().querySelector('.bi-eye, .bi-eye-slash')).toBeNull();
+    });
+
+    it('flips the WHOLE column full and back at once; "Not assigned" untouched; no API call', () => {
+      toggle().click();
+      fixture.detectChanges();
+      expect(cards()).toEqual(['88218821', '55501234', 'Not assigned']);
+      expect(toggle().getAttribute('aria-pressed')).toBe('true');
+      expect(toggle().getAttribute('aria-label')).toBe('Mask all card numbers');
+      expect(toggle().querySelector('.bi-shield-slash')).not.toBeNull();
+
+      toggle().click();
+      fixture.detectChanges();
+      expect(cards()).toEqual(['•• 8821', '•• 1234', 'Not assigned']);
+      expect(api.getStudents).not.toHaveBeenCalled();
+      expect(api.updateStudent).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('photo upload from the row avatar', () => {
+    let snack: jasmine.Spy;
+    const avatar = (): HTMLButtonElement => fixture.nativeElement.querySelector('tbody .avatar-btn');
+    const input = (): HTMLInputElement => fixture.nativeElement.querySelector('input.row-photo-input');
+    /** Puts `file` in the hidden input and fires its change, as a real pick does. */
+    const pick = (file: File): void => {
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input().files = transfer.files;
+      input().dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+    };
+
+    beforeEach(() => {
+      snack = spyOn(TestBed.inject(MatSnackBar), 'open');
+      fixture.detectChanges();
+    });
+
+    it('is a real button named for the student, and opens the JPG/PNG picker', () => {
+      const opened = spyOn(input(), 'click');
+      expect(avatar().tagName).toBe('BUTTON');
+      expect(avatar().getAttribute('aria-label')).toBe('Change photo for Rohan Kapoor');
+      expect(input().accept).toBe('image/png,image/jpeg');
+      avatar().click();
+      expect(opened).toHaveBeenCalled();
+    });
+
+    it('uploads straight away as multipart `photo`, busy on that row, then writes the row back', () => {
+      spyOn(input(), 'click');
+      const pending = new Subject<{ message: string; student: StudentListRow; warnings: never[] }>();
+      api.updateStudent.and.returnValue(pending.asObservable());
+      api.getStudents.calls.reset();
+
+      avatar().click();
+      pick(new File(['x'], 'rohan.png', { type: 'image/png' }));
+
+      expect(api.updateStudent).toHaveBeenCalledTimes(1);
+      const [id, body] = api.updateStudent.calls.mostRecent().args;
+      expect(id).toBe('st1');
+      expect(body.get('photo')).toEqual(jasmine.any(File));
+      expect((body.get('photo') as File).name).toBe('rohan.png');
+      expect(body.get('adminId')).toBe('a1');
+      expect(body.get('session')).toBe('2026-2027');
+
+      // Busy: the avatar and this row's actions wait; a spinner shows over the avatar.
+      expect(avatar().disabled).toBe(true);
+      expect(avatar().getAttribute('aria-busy')).toBe('true');
+      expect(avatar().querySelector('.bi-arrow-repeat.spinning')).not.toBeNull();
+      expect(component.isBusy(ROW)).toBe(true);
+
+      pending.next({ message: 'Student updated', student: { ...ROW, photoUrl: 'https://cdn.test/rohan.png' }, warnings: [] });
+      fixture.detectChanges();
+      expect(component.isBusy(ROW)).toBe(false);
+      expect(avatar().disabled).toBe(false);
+      expect(fixture.nativeElement.querySelector('tbody .st-avatar img').getAttribute('src')).toBe('https://cdn.test/rohan.png');
+      expect(snack).toHaveBeenCalledWith('Photo updated for Rohan Kapoor.', 'Close', jasmine.any(Object));
+      expect(api.getStudents).not.toHaveBeenCalled();
+    });
+
+    it("shows the server's warning when the save went through but the image didn't", () => {
+      spyOn(input(), 'click');
+      api.updateStudent.and.returnValue(of({
+        message: 'Student updated', student: ROW,
+        warnings: [{ code: 'IMAGE_UPLOAD_FAILED', message: "The photo couldn't be uploaded." }]
+      }));
+      avatar().click();
+      pick(new File(['x'], 'rohan.jpg', { type: 'image/jpeg' }));
+      expect(snack.calls.mostRecent().args[0]).toContain("The photo couldn't be uploaded.");
+    });
+
+    it("shows the server's photo error and clears the busy state", () => {
+      spyOn(input(), 'click');
+      api.updateStudent.and.returnValue(throwError(() => ({
+        category: 'ValidationError', message: 'Please correct the highlighted fields.',
+        fields: [{ field: 'photo', message: 'Only JPG/PNG images are allowed.' }]
+      })));
+      avatar().click();
+      pick(new File(['x'], 'rohan.png', { type: 'image/png' }));
+      expect(component.isBusy(ROW)).toBe(false);
+      expect(snack).toHaveBeenCalledWith('Only JPG/PNG images are allowed.', 'Close', jasmine.any(Object));
+    });
+
+    it('rejects a non-JPG/PNG or over-2MB file before anything is sent', () => {
+      spyOn(input(), 'click');
+      avatar().click();
+      pick(new File(['x'], 'notes.pdf', { type: 'application/pdf' }));
+      expect(snack).toHaveBeenCalledWith('Only JPG/PNG images are allowed.', 'Close', jasmine.any(Object));
+
+      avatar().click();
+      pick(new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'big.jpg', { type: 'image/jpeg' }));
+      expect(snack).toHaveBeenCalledWith('Image must be under 2MB.', 'Close', jasmine.any(Object));
+      expect(api.updateStudent).not.toHaveBeenCalled();
+      expect(component.isBusy(ROW)).toBe(false);
+    });
+
+    it('leaves the row actions (View, Assign, Resync, Edit, Delete) in place', () => {
+      const labels = (Array.from(fixture.nativeElement.querySelectorAll('tbody .actions .icon-btn')) as HTMLElement[])
+        .map((button) => button.getAttribute('aria-label'));
+      expect(labels).toEqual(['View Rohan Kapoor', 'Assign card to Rohan Kapoor', 'Resync Rohan Kapoor', 'Edit Rohan Kapoor', 'Delete Rohan Kapoor']);
+    });
   });
 
   it('asks the server only for the columns the table renders', () => {
@@ -333,7 +504,7 @@ describe('ManageStudentsComponent', () => {
     component.onDeleteSelected();
     component.onConfirmed();
     expect(component.bulkResultOpen).toBe(true);
-    expect(component.bulkResultLines).toEqual([{ label: 'Gone Student', message: 'Student not found' }]);
+    expect(component.bulkResultLines).toEqual([{ key: 'st9', label: 'Gone Student', message: 'Student not found' }]);
   });
 
   it('ignores a second delete while one is in flight (double-submit guard)', () => {

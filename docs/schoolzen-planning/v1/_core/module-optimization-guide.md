@@ -180,13 +180,7 @@ use:
 covers lookups. This adds the rendering-cost side, consistent with
 `state-management.md`'s `signal()`/`computed()` approach (no NgRx):
 
-- **`@for` loops always carry a `track` expression** (Angular's control
-  flow — the modern replacement for `*ngFor` + `trackBy`) keyed on the
-  record's stable `_id`, never on array index — an index-keyed track
-  makes Angular re-render every row below an insert/delete/reorder
-  instead of just the changed one. Every table in this package
-  (Manage Students, Manage Staff, Attendance grid, any `.dd` list) is
-  affected the moment its data can change while mounted.
+- **Every repeated-row render tracks by the record's stable `_id`, never array index** — `@for` with a `track` expression on Angular 17+, or `*ngFor` with a `trackBy` function returning `_id` on earlier Angular (confirm the actual project's Angular version before assuming `@for` is available — this package's own reference build is on Angular 14.3, which has no `@for`; don't flag `*ngFor`+`trackBy` as "not done" just because it isn't the newer syntax). An index-keyed track makes Angular re-render every row below an insert/delete/reorder instead of just the changed one. Every table in this package (Manage Students, Manage Staff, Attendance grid, any `.dd` list) is affected the moment its data can change while mounted — **this includes small result/warning lists** (e.g. Bulk Import's per-row error list), not just the main data tables; a short list is just as easy to leave without a `trackBy` and just as wrong once it does.
 - **`ChangeDetectionStrategy.OnPush` on every list/table component.**
   With `signal()`-based state (already this app's pattern), a
   `computed()`/signal read already only notifies on genuine value

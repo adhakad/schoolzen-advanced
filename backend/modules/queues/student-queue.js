@@ -45,8 +45,24 @@ const enqueue = async (name, jobId, data) => {
 
 // The scope is part of the key: the same file imported into a DIFFERENT class/session is a
 // different job, while a double-submit of the same file into the same scope collapses.
-const addImportJob = (data, fileBuffer) =>
-    enqueue('import', `import-${data.adminId}-${hashOf([data.session, data.placement, hashOf(fileBuffer)])}`, data);
+//
+// …but only while that first run is still waiting/running. A FINISHED job with the same key
+// is removed and the upload enqueued afresh: otherwise re-importing an unchanged file hands
+// back the old job, and the page instantly shows the FIRST run's "102 added" for a run that
+// never happened (student-critical-fixes.md P0-1). The new run reports what IT did.
+const FINISHED_STATES = new Set(['completed', 'failed']);
+const importJobId = (data, fileBuffer) => `import-${data.adminId}-${hashOf([data.session, data.placement, hashOf(fileBuffer)])}`;
+
+const addImportJob = async (data, fileBuffer) => {
+    const jobId = importJobId(data, fileBuffer);
+    const prior = await studentQueue.getJob(jobId);
+    if (prior && FINISHED_STATES.has(await prior.getState())) {
+        // A concurrent submit may have removed/replaced it already — then add() below
+        // simply collapses onto that one, which is the dedup we want.
+        await prior.remove().catch((error) => logger.warn('student-queue.import.removeFinished', { jobId, reason: error.message }));
+    }
+    return enqueue('import', jobId, data);
+};
 
 // Includes a timestamp bucket: re-assigning the SAME cards a minute later is a legitimate
 // "push again", while a double-submit inside the same minute collapses into one job.
@@ -60,6 +76,7 @@ module.exports = {
     QUEUE_NAME,
     studentQueue,
     hashOf,
+    importJobId,
     addImportJob,
     addDeviceSyncJob,
     addPromotionJob,

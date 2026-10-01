@@ -1,11 +1,10 @@
 'use strict';
 const AcademicClassModel = require('../../models/academic-setup/class');
-const ClassModel = require('../../models/class');
-const StudentModel = require('../../models/student');
 const SubjectGroupModel = require('../../models/academic-setup/subject-group');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const StudentProfileModel = require('../../models/student/student');
 const { withTransaction } = require('../../helpers/with-transaction');
+const { findSessionId } = require('../../helpers/academic-session/session-resolver');
 const { classOrderOf, byClassOrder } = require('../../helpers/academic-setup/class-order');
 const { planStructure, syncClassGroups } = require('../../helpers/academic-setup/class-structure');
 const { NotFoundError, ConflictError } = require('../../errors');
@@ -31,9 +30,10 @@ const ENTITY = 'Class';
 // The standard class names every school picks from: Nursery/LKG/UKG (the 200/201/202
 // sentinels the whole codebase uses) followed by 1-12.
 //
-// This is the fallback for a school whose GLOBAL `class` collection has not been seeded —
-// without it the Add Class dropdown comes back empty and the page cannot be used at all,
-// which is not a state the admin can fix from here.
+// This is THE master list for the Add Class dropdown. It used to be read from the legacy
+// GLOBAL `class` collection (models/class.js), falling back to this list when that was
+// empty — but a v2 page must never read a legacy school-management collection
+// (database-design-principles.md §0), so the list lives here instead.
 const STANDARD_CLASSES = [200, 201, 202, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 // INTERNAL — how many students sit in each class and each stream, for the whole school.
@@ -42,32 +42,34 @@ const STANDARD_CLASSES = [200, 201, 202, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 // fifteen classes would otherwise cost fifteen round-trips to render one screen (the same
 // reasoning as holiday-template's getAssignedCounts).
 //
-// `session` is optional. The class/stream/section STRUCTURE is session-independent — a
-// school runs 11th Science whichever year it is — but the head-counts beside it are not,
-// so the header's session selector narrows this aggregation and leaves everything else
-// alone. Omitting it counts every session, which is what legacy countStudent /
-// GetStudentPagination do.
+// Counts v2 StudentEnrollment placements ONLY — never the legacy `student` collection
+// (database-design-principles.md §0). Keyed on the ids the enrollment stores (classId,
+// streamId), not a class number or stream name, so a renamed stream keeps its count.
+//
+// The class/stream/section STRUCTURE is session-independent — a school runs 11th Science
+// whichever year it is — but the head-counts beside it are not: a student has one
+// enrollment per session, so the header's session label is resolved to this school's
+// AcademicSession id and the counts are for that session alone. A label this school has no
+// session for (or no label at all) has no enrollments against it — every count is 0.
 const getStudentCounts = async (adminId, session) => {
-    const match = { adminId: adminId };
-    if (session) match.session = session;
-
-    const groups = await StudentModel.aggregate([
-        { $match: match },
-        { $group: { _id: { class: '$class', stream: '$stream' }, total: { $sum: 1 } } },
-    ]);
-
-    // byClass: '11' -> 98        byStream: '11::science' -> 42
+    // byClass: '<classId>' -> 98        byStream: '<streamId>' -> 42
     const byClass = new Map();
     const byStream = new Map();
 
+    const sessionId = session ? await findSessionId(adminId, session) : null;
+    if (!sessionId) return { byClass, byStream };
+
+    const groups = await StudentEnrollmentModel.aggregate([
+        { $match: { adminId: adminId, sessionId: sessionId } },
+        { $group: { _id: { classId: '$classId', streamId: '$streamId' }, total: { $sum: 1 } } },
+    ]);
+
     for (const group of groups) {
-        const classKey = String(group._id.class);
+        const classKey = String(group._id.classId);
         byClass.set(classKey, (byClass.get(classKey) || 0) + group.total);
 
-        // 'n/a' is the sentinel a class below 11 stores; it is not a real stream.
-        const stream = String(group._id.stream || '').toLowerCase();
-        if (stream && stream !== 'n/a') {
-            const streamKey = classKey + '::' + stream;
+        if (group._id.streamId) {
+            const streamKey = String(group._id.streamId);
             byStream.set(streamKey, (byStream.get(streamKey) || 0) + group.total);
         }
     }
@@ -99,17 +101,16 @@ let GetClasses = async (req, res, next) => {
 
     // Class.order — Nursery → 12th — never insertion order or alphabetical.
     const withCounts = classList.sort(byClassOrder).map((item) => {
-        const classKey = String(item.class);
         return {
             ...item,
-            studentCount: counts.byClass.get(classKey) || 0,
+            studentCount: counts.byClass.get(String(item._id)) || 0,
             streams: (item.streams || []).map((stream) => {
                 const streamGroups = groupsByStream.get(String(stream._id)) || [];
                 return {
                     ...stream,
                     groups: streamGroups,
                     groupCount: streamGroups.length,
-                    studentCount: counts.byStream.get(classKey + '::' + stream.name) || 0,
+                    studentCount: counts.byStream.get(String(stream._id)) || 0,
                 };
             }),
         };
@@ -122,26 +123,15 @@ let GetClasses = async (req, res, next) => {
 // already configured — a class is configured once, and the unique index would reject a
 // second attempt anyway.
 //
-// Reads the GLOBAL models/class.js collection, which is the existing master list of
-// standard names every school picks from. Read-only: nothing here writes to it. When that
-// collection is empty (a database where nobody has opened the legacy Class page yet) it
-// falls back to STANDARD_CLASSES, so this page never hands the admin an empty dropdown and
-// no legacy row has to be created to make the new page usable.
+// The master list is STANDARD_CLASSES — never the legacy global `class` collection.
 let GetClassNameOptions = async (req, res, next) => {
     const adminId = req.query.adminId;
 
-    const [standardClasses, configured] = await Promise.all([
-        ClassModel.find({}).lean(),
-        AcademicClassModel.find({ adminId: adminId }, 'class').lean(),
-    ]);
-
-    const fromMaster = standardClasses
-        .map((item) => Number(item.class))
-        .filter((value) => Number.isFinite(value));
+    const configured = await AcademicClassModel.find({ adminId: adminId }, 'class').lean();
 
     const taken = new Set(configured.map((item) => Number(item.class)));
 
-    const options = (fromMaster.length ? fromMaster : STANDARD_CLASSES)
+    const options = STANDARD_CLASSES
         .filter((value) => !taken.has(value))
         .sort((a, b) => classOrderOf(a) - classOrderOf(b))
         .map((value) => ({ class: value, label: getClassDisplayName(value) }))
