@@ -47,6 +47,7 @@ import { StudentProfileViewComponent } from './components/student-profile-view/s
 import { StudentFormComponent } from './components/student-form/student-form.component';
 import { DpComponent } from './components/dp/dp.component';
 import { ColumnCaseMenuComponent } from './components/column-case-menu/column-case-menu.component';
+import { MonthNavComponent } from './components/month-nav/month-nav.component';
 import { TextCasePipe } from './pipes/text-case.pipe';
 
 const COMPONENTS = [
@@ -79,6 +80,8 @@ const COMPONENTS = [
   // The "Aa" per-column text-case control + its display pipe (manage-students.md,
   // "Per-column text-case + sort") — any table with free-text name columns can reuse them.
   ColumnCaseMenuComponent,
+  // The toolbar month navigator — Attendance Overview, Roster and Leave Requests.
+  MonthNavComponent,
   TextCasePipe
 ];
 

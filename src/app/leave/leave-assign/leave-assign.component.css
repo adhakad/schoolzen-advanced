@@ -1,0 +1,31 @@
+/* Leave Assign reference styles the global design system doesn't carry. */
+.grid-scroll { overflow-x: auto; }
+th, td { white-space: nowrap; }
+td { font-size: 13px; color: var(--ink-soft); }
+th.chk, td.chk { width: 38px; text-align: center; }
+.type-col { min-width: 120px; }
+.la-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+.la-code { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+.not-set { font-size: 12px; color: var(--ink-faint); }
+.set-link { margin-left: 6px; font-size: 12px; }
+.days-btn { background: none; border: none; padding: 0; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
+.days-btn:hover:not(:disabled) { color: var(--brand); text-decoration: underline; }
+.days-btn:disabled { cursor: default; }
+.override-pill { display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; color: var(--slate); border: 1px solid var(--slate-soft); }
+.heading-row td { background: var(--paper); font-weight: 600; }
+.expand-btn { background: none; border: none; padding: 0 6px 0 0; cursor: pointer; color: var(--ink-faint); font-size: 12px; }
+.students-row > td { background: var(--paper); padding: 6px 12px 10px 48px; }
+.student-table { width: 100%; }
+.student-table td { border-bottom: 1px solid var(--line-soft); padding: 7px 8px; }
+
+.btn-assign:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Set Leave Limit modal */
+.m-sub { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 14px; }
+.m-hint { font-size: 11px; color: var(--ink-faint); margin-top: 8px; line-height: 1.4; }
+.choice-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+.choice-check { display: flex; align-items: center; gap: 10px; cursor: pointer; margin: 0; }
+.choice-name { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.choice-days { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-faint); }
+.choice-days input { width: 72px; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius); font-family: inherit; font-size: 13px; }
+.choice-days input:disabled { background: var(--paper); color: var(--ink-faint); }

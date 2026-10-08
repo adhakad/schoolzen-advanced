@@ -69,6 +69,8 @@ module.exports = app => {
     app.use('/api/v2/staff', require('./modules/routes/staff/staff.routes'));
     // Module 4 — Attendance. Overview, Manage Shifts and Roster in one route file.
     app.use('/api/v2/attendance', require('./modules/routes/attendance/attendance.routes'));
+    // Module 5 — Leave. Requests, Leave Create and Leave Assign in one route file.
+    app.use('/api/v2/leave', require('./modules/routes/leave/leave.routes'));
     // Module 12 — Settings. Four disjoint pages under one base path, each its own route file.
     app.use('/api/v2/settings', require('./modules/routes/settings/academic-sessions.routes'));
     app.use('/api/v2/settings', require('./modules/routes/settings/admission-form-fields.routes'));

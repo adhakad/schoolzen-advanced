@@ -10,10 +10,9 @@ import { AttendanceRoutingModule } from './attendance-routing.module';
 import { AttendanceOverviewComponent } from './attendance-overview/attendance-overview.component';
 import { ManageShiftsComponent } from './manage-shifts/manage-shifts.component';
 import { RosterComponent } from './roster/roster.component';
-import { MonthNavComponent } from './month-nav/month-nav.component';
 
 @NgModule({
-  declarations: [AttendanceOverviewComponent, ManageShiftsComponent, RosterComponent, MonthNavComponent],
+  declarations: [AttendanceOverviewComponent, ManageShiftsComponent, RosterComponent],
   imports: [SharedComponentsModule, AttendanceRoutingModule]
 })
 export class AttendanceModule {}

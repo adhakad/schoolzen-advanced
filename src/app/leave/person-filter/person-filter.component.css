@@ -1,0 +1,11 @@
+/* Both rows share the reference's 6-column grid, so row 2's pills line up under row 1's. */
+.toolbar-row2.lv-filter-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+/* Projected pills (Leave Type, Status, month) carry the page's scope, hence ::ng-deep. */
+:host ::ng-deep .lv-filter-grid > * { min-width: 0; }
+
+@media (max-width: 991px) {
+  .toolbar-row2.lv-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .toolbar-row2.lv-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

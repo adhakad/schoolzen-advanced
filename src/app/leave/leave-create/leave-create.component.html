@@ -1,0 +1,134 @@
+<!-- Leave Create.
+     Reference: docs/schoolzen-planning/v1/leave/leave-create.html
+     ONE plain toolbar row: search + Create. No filter row. -->
+
+<div class="page-head">
+  <div>
+    <h1>Leave Create</h1>
+    <div class="subtitle">Define the types of leave your school offers, and whether each is paid.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search leave types" aria-label="Search leave types"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-primary" (click)="onCreate()">
+            <i class="bi bi-plus-lg"></i> Create
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Who Can Take It</th><th>Assigned Days</th><th>Paid</th><th>Status</th><th class="act">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td><div class="lv-name">{{ row.name }}</div></td>
+            <td><span class="tag tag-slate">{{ whoLabels[row.whoCanTake] }}</span></td>
+            <td>{{ row.defaultDays }}</td>
+            <td>
+              <span class="tag" [class.tag-paid]="row.isPaid" [class.tag-unpaid]="!row.isPaid">{{ row.isPaid ? 'Paid' : 'Unpaid' }}</span>
+            </td>
+            <td>
+              <span class="tag status-tag" [class.tag-success]="row.status === 'active'" [class.tag-muted]="row.status === 'inactive'">
+                {{ row.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name" (click)="onEdit(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        [attr.title]="inUseText(row) ? 'Used by ' + inUseText(row) : null"
+                        [disabled]="deleting || confirmOpen" (click)="onDelete(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search ? 'No leave types match that search.' : 'No leave types created yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Leave Types</span><span class="stat-value">{{ summary.total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Active</span><span class="stat-value">{{ summary.active }}</span></div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Assigned Days here is just the default &mdash; it can be changed per person on Leave Assign.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Turning Paid off means these days get deducted from salary when payroll runs.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Marking a type Inactive keeps it on old requests but hides it from new ones.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit" [width]="460"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <div class="m-field">
+    <label for="lt-name">Name <span class="req-star">*</span></label>
+    <input id="lt-name" type="text" placeholder="Sick Leave" maxlength="60"
+           [value]="form.name" (input)="onNameChange($any($event.target).value)" />
+    <div class="m-hint">For example Sick Leave, Casual Leave, Maternity Leave.</div>
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+  <div class="m-field">
+    <label for="lt-who">Who can take this leave</label>
+    <app-dd id="lt-who" [options]="whoOptions" [value]="form.whoCanTake"
+            ariaLabel="Who can take this leave" (valueChange)="onWhoChange($event)"></app-dd>
+    <div class="m-hint">Only these people will see this leave on the apply form.</div>
+    <p class="m-error" *ngIf="fieldErrors['whoCanTake']">{{ fieldErrors['whoCanTake'] }}</p>
+  </div>
+  <div class="m-field">
+    <label for="lt-days">Assigned Days per year <span class="req-star">*</span></label>
+    <input id="lt-days" type="number" min="1" max="366" placeholder="12"
+           [value]="form.defaultDays" (input)="onDaysChange($any($event.target).value)" />
+    <div class="m-hint">Can be changed per person on the Leave Assign page.</div>
+    <p class="m-error" *ngIf="fieldErrors['defaultDays'] || (form.defaultDays !== '' && !daysValid)">
+      {{ fieldErrors['defaultDays'] || 'Enter a valid number of days.' }}
+    </p>
+  </div>
+  <div class="m-field">
+    <app-toggle-switch [checked]="form.isPaid" label="Salary is paid for these days"
+                       (checkedChange)="onPaidChange($event)"></app-toggle-switch>
+    <div class="m-hint">Turn this off and the days are deducted from salary when payroll is generated.</div>
+  </div>
+  <div class="m-field">
+    <label for="lt-status">Status</label>
+    <app-dd id="lt-status" [options]="statusOptions" [value]="form.status"
+            ariaLabel="Leave type status" (valueChange)="onStatusChange($event)"></app-dd>
+    <div class="m-hint">Inactive keeps this leave on old requests but hides it from new ones.</div>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

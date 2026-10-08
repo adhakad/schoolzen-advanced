@@ -1,0 +1,56 @@
+/* Leave Requests reference styles the global design system doesn't carry. */
+.grid-scroll { overflow-x: auto; }
+th, td { white-space: nowrap; }
+td { font-size: 13px; color: var(--ink-soft); }
+th.act, td.act { text-align: right; }
+.actions { justify-content: flex-end; }
+
+.name-cell { display: flex; align-items: center; gap: 10px; }
+.req-avatar { width: 30px; height: 30px; border-radius: var(--radius); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.req-text { min-width: 0; }
+.req-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+.req-code { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+
+.tag-type { color: var(--brand); border-color: var(--brand-soft); background: var(--brand-soft); }
+.tag-status { width: 84px; justify-content: center; }
+.tag-pending { color: var(--warning); border-color: #E9D6A0; }
+.tag-approved { color: var(--success); border-color: #BFE0CC; }
+.tag-rejected { color: var(--danger); border-color: #E0BDB4; }
+.tag-cancelled { color: var(--ink-faint); border-color: var(--line); }
+.icon-btn.approve:hover:not(:disabled) { border-color: var(--success); color: var(--success); }
+.icon-btn.reject:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+.icon-btn:disabled { opacity: .5; cursor: not-allowed; }
+.no-action { color: var(--ink-faint); }
+.tbl-note { font-size: 12px; color: var(--ink-faint); padding: 8px 4px; }
+
+/* Apply Leave modal */
+.person-search { margin-bottom: 8px; }
+.m-hint { font-size: 11px; color: var(--ink-faint); margin-top: 6px; line-height: 1.4; }
+.cal-hint { margin: 0 0 10px; }
+.balance-note { background: var(--brand-soft); border-radius: var(--radius); padding: 10px 14px; font-size: 12.5px; color: var(--brand-deep); font-weight: 500; margin-bottom: 16px; }
+.m-field textarea { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 12px; font-size: 13.5px; color: var(--ink); outline: none; font-family: inherit; box-sizing: border-box; resize: vertical; }
+.m-field textarea:focus { border-color: var(--brand); }
+.m-lead { font-size: 14px; font-weight: 600; color: var(--ink); margin: 0 0 6px; }
+.m-sub { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 14px; }
+
+.range-cal-box { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
+.range-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.range-cal-nav { width: 28px; height: 28px; border-radius: var(--radius); border: none; background: var(--ink); color: #ae86ff; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; flex-shrink: 0; }
+.range-cal-nav:hover { background: #2A3242; }
+.range-cal-title { font-family: 'Fraunces', Georgia, serif; font-size: 13px; font-weight: 500; color: var(--ink); }
+.range-cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 6px; }
+.range-cal-dow span { font-size: 9.5px; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; }
+.range-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; row-gap: 2px; }
+.range-day { height: 32px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; }
+.range-day.empty { cursor: default; }
+.range-day-num { position: relative; z-index: 1; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--ink-soft); }
+.range-day.in-range::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 0; right: 0; background: var(--brand-soft); z-index: 0; }
+.range-day.band-l::before { left: 4px; border-radius: 13px 0 0 13px; }
+.range-day.band-r::before { right: 4px; border-radius: 0 13px 13px 0; }
+.range-day.band-l.band-r::before { left: 4px; right: 4px; border-radius: 13px; }
+.range-day.chain-endpoint .range-day-num { background: var(--brand); color: #fff; font-weight: 600; }
+.range-day.today .range-day-num { border: 1.5px solid var(--brand); }
+.range-day.disabled { cursor: not-allowed; }
+.range-day.disabled .range-day-num { color: #D3CEE0; }
+.range-cal-summary { font-size: 12.5px; color: var(--brand-deep); font-weight: 500; background: var(--brand-soft); border-radius: var(--radius); padding: 9px 12px; margin-top: 10px; text-align: center; }
+.range-cal-summary.over { color: var(--warning); }

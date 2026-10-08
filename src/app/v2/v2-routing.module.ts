@@ -42,6 +42,12 @@ const routes: Routes = [
         loadChildren: () => import('src/app/attendance/attendance.module')
           .then((m) => m.AttendanceModule)
       },
+      // Module 5 — Leave.
+      {
+        path: 'leave',
+        loadChildren: () => import('src/app/leave/leave.module')
+          .then((m) => m.LeaveModule)
+      },
       // Module 12 — Settings.
       {
         path: 'settings',

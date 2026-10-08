@@ -1,0 +1,26 @@
+<!-- Row 1: the 6-column grid. Row 2: Section + the page's own filters (projected). -->
+<div class="toolbar-row2 lv-filter-grid">
+  <app-dd [options]="personTypeOptions" [value]="value.personType"
+          ariaLabel="Person type" (valueChange)="onPersonTypeChange($event)"></app-dd>
+  <app-dd [options]="departmentOptions" [value]="value.departmentId" [disabled]="!isStaff"
+          disabledHint="Staff only" ariaLabel="Filter by department"
+          (valueChange)="onDepartmentChange($event)"></app-dd>
+  <app-dd [options]="designationOptions" [value]="value.designationId" [disabled]="designationDisabled"
+          disabledHint="Select a department first" ariaLabel="Filter by designation"
+          (valueChange)="onDesignationChange($event)"></app-dd>
+  <app-dd [options]="classOptions" [value]="value.classId" [disabled]="isStaff"
+          disabledHint="Students only" ariaLabel="Filter by class"
+          (valueChange)="onClassChange($event)"></app-dd>
+  <app-dd [options]="streamOptions" [value]="value.streamId" [disabled]="streamDisabled"
+          disabledHint="Only 11th/12th have streams" ariaLabel="Filter by stream"
+          (valueChange)="onStreamChange($event)"></app-dd>
+  <app-dd [options]="groupOptions" [value]="value.groupId" [disabled]="groupDisabled || !showGroup"
+          disabledHint="Select a class first" ariaLabel="Filter by group"
+          (valueChange)="onGroupChange($event)"></app-dd>
+</div>
+<div class="toolbar-row2 lv-filter-grid">
+  <app-dd [options]="sectionOptions" [value]="value.sectionId" [disabled]="sectionDisabled"
+          disabledHint="Select a class first" ariaLabel="Filter by section"
+          (valueChange)="onSectionChange($event)"></app-dd>
+  <ng-content></ng-content>
+</div>

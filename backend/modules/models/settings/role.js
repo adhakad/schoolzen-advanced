@@ -8,7 +8,9 @@ const mongoose = require('mongoose');
 // Modules are the permission keys `requirePermission(module, 'view'|'edit')` checks; the
 // spec's View/Edit pair (canView/canEdit) is the model, per the .md (authoritative over the
 // reference .html's four mini-switches).
-const PERMISSION_MODULES = Object.freeze(['student', 'attendance', 'marksheet', 'leave', 'fees', 'payroll', 'settings']);
+// 'leave-limit' is separate from 'leave' on purpose: viewing/actioning requests and setting
+// people's yearly allowances are different jobs (Leave Assign is gated on its edit).
+const PERMISSION_MODULES = Object.freeze(['student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'fees', 'payroll', 'settings']);
 
 const RoleSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },

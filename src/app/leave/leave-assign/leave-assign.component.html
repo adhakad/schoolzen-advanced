@@ -1,0 +1,199 @@
+<!-- Leave Assign.
+     Reference: docs/schoolzen-planning/v1/leave/leave-assign.html
+     Toolbar: search + Set Leave Limit; the shared Person Type filter rows. The table has
+     ONE COLUMN PER ACTIVE LEAVE TYPE (from the API) — no fixed column set. -->
+
+<div class="page-head">
+  <div>
+    <h1>Leave Assign</h1>
+    <div class="subtitle">Give each person their yearly leave allowance, per leave type.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" [placeholder]="isStaff ? 'Search staff by name or ID' : 'Students are assigned by class'"
+                 aria-label="Search staff" [disabled]="!isStaff"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group" *ngIf="canAssign">
+          <button type="button" class="btn-assign" [disabled]="!selectedCount || assignOpen" (click)="onAssignOpen()">
+            <i class="bi bi-calendar-check"></i> Set Leave Limit
+          </button>
+        </div>
+      </div>
+      <app-person-filter [options]="filterOptions" [value]="filter" (valueChange)="onFilterChange($event)"></app-person-filter>
+      <div class="fetch-error" *ngIf="lookupError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
+        <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
+      </div>
+    </div>
+
+    <!-- Staff: one row per person -->
+    <div class="grid-scroll" *ngIf="isStaff">
+      <table>
+        <thead>
+          <tr>
+            <th class="chk" *ngIf="canAssign"><input type="checkbox" aria-label="Select all on this page" [checked]="allSelected" (change)="toggleAll()" /></th>
+            <th>Name</th>
+            <th>Department</th>
+            <th *ngFor="let type of leaveTypes; trackBy: trackByType" class="type-col">{{ type.name }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of staffRows; trackBy: trackByStaff">
+            <td class="chk" *ngIf="canAssign"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="selected.has(row._id)" (change)="toggleRow(row._id)" /></td>
+            <td><div class="la-name">{{ row.name }}</div><div class="la-code" *ngIf="row.code">{{ row.code }}</div></td>
+            <td>{{ row.department || '—' }}</td>
+            <td *ngFor="let type of leaveTypes; trackBy: trackByType" class="type-col">
+              <ng-container *ngIf="row.limits[type._id] as cell; else notSetStaff">
+                <button type="button" class="days-btn" [disabled]="!canAssign" (click)="onStaffCellSet(row, type)"
+                        [attr.title]="cell.used + ' used'">{{ cell.allocated }} days</button>
+              </ng-container>
+              <ng-template #notSetStaff>
+                <span class="not-set">Not set</span>
+                <button type="button" class="link-btn set-link" *ngIf="canAssign" (click)="onStaffCellSet(row, type)">Set</button>
+              </ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Students: one row per class / stream / section, expandable to its students -->
+    <div class="grid-scroll" *ngIf="!isStaff">
+      <table>
+        <thead>
+          <tr>
+            <th class="chk" *ngIf="canAssign"><input type="checkbox" aria-label="Select all classes" [checked]="allSelected" (change)="toggleAll()" /></th>
+            <th>Class</th>
+            <th>Students</th>
+            <th *ngFor="let type of leaveTypes; trackBy: trackByType" class="type-col">{{ type.name }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let row of classRows; trackBy: trackByClass">
+            <tr [class.heading-row]="!row.selectable">
+              <td class="chk" *ngIf="canAssign">
+                <input type="checkbox" *ngIf="row.selectable" [attr.aria-label]="'Select ' + row.label" [checked]="selected.has(row.key)" (change)="toggleRow(row.key)" />
+              </td>
+              <td [style.padding-left.px]="14 + row.level * 18">
+                <button type="button" class="expand-btn" *ngIf="row.selectable" [attr.aria-expanded]="expandedKey === row.key"
+                        [attr.aria-label]="'Show students of ' + row.label" (click)="toggleExpand(row)">
+                  <i class="bi" [class.bi-chevron-right]="expandedKey !== row.key" [class.bi-chevron-down]="expandedKey === row.key"></i>
+                </button>
+                <span class="la-name">{{ row.label }}</span>
+              </td>
+              <td>{{ row.selectable ? row.students : '' }}</td>
+              <td *ngFor="let type of leaveTypes; trackBy: trackByType" class="type-col">
+                <ng-container *ngIf="row.selectable">
+                  <ng-container *ngIf="row.limits[type._id]?.allocated != null; else notSetClass">
+                    <button type="button" class="days-btn" [disabled]="!canAssign" (click)="onClassCellSet(row, type)">{{ row.limits[type._id].allocated }} days</button>
+                    <span class="override-pill" *ngIf="row.limits[type._id].overrides" title="Students with their own limit">{{ row.limits[type._id].overrides }} own</span>
+                  </ng-container>
+                  <ng-template #notSetClass>
+                    <span class="not-set">Not set</span>
+                    <button type="button" class="link-btn set-link" *ngIf="canAssign" (click)="onClassCellSet(row, type)">Set</button>
+                  </ng-template>
+                </ng-container>
+              </td>
+            </tr>
+            <tr *ngIf="expandedKey === row.key" class="students-row">
+              <td [attr.colspan]="3 + leaveTypes.length + (canAssign ? 1 : 0)">
+                <div class="tbl-empty" *ngIf="expandedLoading">Loading students&hellip;</div>
+                <div class="tbl-empty" *ngIf="!expandedLoading && !expandedStudents.length">No students in this class this session.</div>
+                <table class="student-table" *ngIf="!expandedLoading && expandedStudents.length">
+                  <tbody>
+                    <tr *ngFor="let student of expandedStudents; trackBy: trackByStudent">
+                      <td><div class="la-name">{{ student.name }}</div><div class="la-code" *ngIf="student.code">Adm. {{ student.code }}</div></td>
+                      <td *ngFor="let type of leaveTypes; trackBy: trackByType" class="type-col">
+                        <ng-container *ngIf="student.limits[type._id] as cell; else notSetStudent">
+                          <button type="button" class="days-btn" [disabled]="!canAssign" (click)="onStudentCellSet(student, type)">{{ cell.allocated }} days</button>
+                          <span class="override-pill" *ngIf="cell.source === 'override'">own</span>
+                          <span class="la-code" *ngIf="cell.used">{{ cell.used }} used</span>
+                        </ng-container>
+                        <ng-template #notSetStudent>
+                          <span class="not-set">Not set</span>
+                          <button type="button" class="link-btn set-link" *ngIf="canAssign" (click)="onStudentCellSet(student, type)">Set</button>
+                        </ng-template>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !leaveTypes.length">No active leave types yet &mdash; create one on Leave Create first.</div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && leaveTypes.length && (isStaff ? !staffRows.length : !classRows.length)">
+      {{ isStaff ? 'No staff match these filters.' : 'No classes match these filters.' }}
+    </div>
+
+    <app-pagination-bar *ngIf="isStaff" [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row accent" *ngIf="isStaff"><span class="stat-label">Staff Set</span><span class="stat-value">{{ staffSummary.fullySet }} / {{ staffSummary.people }}</span></div>
+      <div class="stat-row accent" *ngIf="!isStaff"><span class="stat-label">Classes Set</span><span class="stat-value">{{ classSummary.fullySet }} / {{ classSummary.classes }}</span></div>
+      <div class="stat-row"><span class="stat-label">Leave Types</span><span class="stat-value">{{ leaveTypes.length }}</span></div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Days here default from Leave Create &mdash; this is where you override them per person.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Anyone who already has a leave type keeps the days they've already taken &mdash; nothing resets.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Students are assigned by class, not one at a time &mdash; one row here covers the whole class. Open a class to give one student their own limit.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Set Leave Limit (bulk) -->
+<app-form-modal [open]="assignOpen" title="Set Leave Limit" submitLabel="Save" [width]="460"
+                [submitDisabled]="assignDisabled" (submitted)="onAssignSubmit()" (cancelled)="onAssignCancel()">
+  <p class="m-sub">{{ assignSummary }}</p>
+  <p class="m-error form-level" *ngIf="assignError">{{ assignError }}</p>
+  <div class="choice-row" *ngFor="let choice of choices">
+    <label class="choice-check">
+      <input type="checkbox" [checked]="choice.checked" (change)="onChoiceToggle(choice)" />
+      <span class="choice-name">{{ choice.type.name }}</span>
+    </label>
+    <div class="choice-days">
+      <input type="number" min="0" max="366" [attr.aria-label]="choice.type.name + ' days per year'"
+             [disabled]="!choice.checked" [value]="choice.days" (input)="onChoiceDays(choice, $any($event.target).value)" />
+      <span>days/year</span>
+    </div>
+  </div>
+  <p class="m-hint">Anyone who already has one of these keeps the days they have already taken &mdash; nothing is reset.<ng-container *ngIf="isStaff"> Staff who already have a limit for a ticked leave keep it; change theirs from the table.</ng-container></p>
+</app-form-modal>
+
+<!-- One person's limit -->
+<app-form-modal [open]="editOpen" [title]="edit?.title || ''" submitLabel="Save" [width]="400"
+                [submitDisabled]="editDisabled" (submitted)="onEditSubmit()" (cancelled)="onEditCancel()">
+  <ng-container *ngIf="edit">
+    <div class="m-field">
+      <label for="la-days">Days per year <span class="req-star">*</span></label>
+      <input id="la-days" type="number" min="0" max="366" [value]="edit.days" (input)="onEditDays($any($event.target).value)" />
+      <div class="m-hint" *ngIf="edit.used">Already taken: {{ edit.used }} &mdash; the limit can't go below that.</div>
+      <div class="m-hint" *ngIf="edit.personType === 'student'">This becomes this student's own limit &mdash; a later class re-assign leaves it alone unless you confirm overwriting it.</div>
+      <p class="m-error" *ngIf="editError">{{ editError }}</p>
+    </div>
+  </ng-container>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onOverwriteConfirmed()" (cancelled)="onOverwriteCancelled()"></app-confirm-modal>

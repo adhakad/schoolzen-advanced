@@ -1,0 +1,189 @@
+<!-- Leave Requests.
+     Reference: docs/schoolzen-planning/v1/leave/leave-requests.html
+     Toolbar: search + Apply Leave; the shared 6-column Person Type grid; then Section +
+     Leave Type + Status + month. Each row shows ONLY the action its status allows. -->
+
+<div class="page-head">
+  <div>
+    <h1>Leave Requests</h1>
+    <div class="subtitle">Every leave request across staff and students, in one place.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or ID" aria-label="Search by name or ID"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-primary" [disabled]="rowActionsLocked" (click)="onApplyOpen()">
+            <i class="bi bi-plus-lg"></i> Apply Leave
+          </button>
+        </div>
+      </div>
+      <app-person-filter [options]="filterOptions" [value]="filter" (valueChange)="onFilterChange($event)">
+        <app-dd [options]="leaveTypeOptions" [value]="leaveTypeId" ariaLabel="Filter by leave type"
+                (valueChange)="onLeaveTypeChange($event)"></app-dd>
+        <app-dd [options]="statusOptions" [value]="status" ariaLabel="Filter by status"
+                (valueChange)="onStatusChange($event)"></app-dd>
+        <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
+      </app-person-filter>
+      <div class="fetch-error" *ngIf="lookupError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
+        <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Leave Type</th><th>From &ndash; To</th><th>Days</th><th>Status</th><th class="act">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackById">
+            <td class="name-cell">
+              <span class="req-avatar" [style.background]="avatarBg(row)">{{ initials(row.name) }}</span>
+              <div class="req-text">
+                <span class="req-name">{{ row.name }}</span>
+                <div class="req-code">{{ personLine(row) }}</div>
+              </div>
+            </td>
+            <td>
+              <span class="tag tag-type" *ngIf="!row.leaveTypeMissing">{{ row.leaveTypeName }}</span>
+              <span class="tag tag-muted" *ngIf="row.leaveTypeMissing" title="This leave type was removed">Removed type</span>
+            </td>
+            <td>{{ rangeLabel(row) }}</td>
+            <td>{{ row.days }}</td>
+            <td>
+              <span class="tag tag-status" [ngClass]="'tag-' + row.status.toLowerCase()">{{ statusLabel(row.status) }}</span>
+            </td>
+            <td class="act">
+              <div class="actions">
+                <ng-container *ngIf="can(row, 'approve')">
+                  <button type="button" class="icon-btn approve" [attr.aria-label]="'Approve leave for ' + row.name"
+                          title="Approve" [disabled]="rowActionsLocked" (click)="onApprove(row)"><i class="bi bi-check-lg"></i></button>
+                  <button type="button" class="icon-btn reject" [attr.aria-label]="'Reject leave for ' + row.name"
+                          title="Reject" [disabled]="rowActionsLocked" (click)="onReject(row)"><i class="bi bi-x-lg"></i></button>
+                </ng-container>
+                <button type="button" class="icon-btn" *ngIf="can(row, 'cancel')" [attr.aria-label]="'Take back leave for ' + row.name"
+                        title="Take back" [disabled]="rowActionsLocked" (click)="onCancel(row)"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button type="button" class="icon-btn danger" *ngIf="can(row, 'delete')" [attr.aria-label]="'Delete request for ' + row.name"
+                        title="Delete" [disabled]="rowActionsLocked" (click)="onDelete(row)"><i class="bi bi-trash"></i></button>
+                <span class="no-action" *ngIf="!row.actions.length">&mdash;</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">No leave requests match these filters.</div>
+    <div class="tbl-note" *ngIf="truncated">Showing the first matches only &mdash; narrow the filters to see everyone.</div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">This Month</span></div>
+      <div class="stat-row accent"><span class="stat-label">Pending</span><span class="stat-value">{{ summary.Pending }}</span></div>
+      <div class="stat-row"><span class="stat-label">Approved</span><span class="stat-value">{{ summary.Approved }}</span></div>
+      <div class="stat-row"><span class="stat-label">Rejected</span><span class="stat-value">{{ summary.Rejected }}</span></div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Approving marks those days as leave on the attendance register, straight away.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Rejecting doesn't touch attendance &mdash; the request just stays here, marked Rejected.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Taking back an approved leave removes the marks and returns the days to their balance.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Apply Leave -->
+<app-form-modal [open]="applyOpen" title="Apply Leave" submitLabel="Apply for Leave" [width]="480"
+                [submitDisabled]="applyDisabled" (submitted)="onApplySubmit()" (cancelled)="onApplyCancel()">
+  <p class="m-error form-level" *ngIf="applyError">{{ applyError }}</p>
+  <div class="m-field">
+    <label for="ap-who">Who is this leave for?</label>
+    <app-dd id="ap-who" [options]="applyPersonTypeOptions" [value]="applyPersonType"
+            ariaLabel="Who is this leave for" (valueChange)="onApplyPersonTypeChange($event)"></app-dd>
+  </div>
+  <div class="m-field">
+    <label for="ap-search">Name <span class="req-star">*</span></label>
+    <input id="ap-search" type="text" class="person-search" placeholder="Search by name or ID"
+           [value]="peopleSearch" (input)="onPeopleSearch($any($event.target).value)" />
+    <app-dd [options]="peopleOptions" [value]="applyPersonId" placeholder="— Select a person —"
+            ariaLabel="Person" [invalid]="!!applyFieldErrors['personId']"
+            (valueChange)="onApplyPersonChange($event)"></app-dd>
+    <p class="m-error" *ngIf="applyFieldErrors['personId']">{{ applyFieldErrors['personId'] }}</p>
+  </div>
+  <div class="m-field">
+    <label for="ap-type">Type of leave <span class="req-star">*</span></label>
+    <app-dd id="ap-type" [options]="applicableTypeOptions" [value]="applyLeaveTypeId" placeholder="— Select leave type —"
+            ariaLabel="Type of leave" [invalid]="!!applyFieldErrors['leaveTypeId']"
+            (valueChange)="onApplyTypeChange($event)"></app-dd>
+    <p class="m-error" *ngIf="applyFieldErrors['leaveTypeId']">{{ applyFieldErrors['leaveTypeId'] }}</p>
+  </div>
+  <div class="balance-note" *ngIf="balance">
+    <ng-container *ngIf="balance.assigned">{{ balance.remaining }} days remaining of {{ balance.allocated }} assigned this year.</ng-container>
+    <ng-container *ngIf="!balance.assigned">Not assigned yet &mdash; up to {{ balance.allocated }} days (the type's default). Approval needs a limit set on Leave Assign.</ng-container>
+  </div>
+  <div class="m-field">
+    <label>Leave Dates <span class="req-star">*</span></label>
+    <div class="m-hint cal-hint">Click a date to start, then click a second date to set the end. A single click and re-click makes it a one-day leave.</div>
+    <div class="range-cal-box">
+      <div class="range-cal-head">
+        <button type="button" class="range-cal-nav" aria-label="Previous month" (click)="onCalStep(-1)"><i class="bi bi-chevron-left"></i></button>
+        <span class="range-cal-title">{{ calLabel }}</span>
+        <button type="button" class="range-cal-nav" aria-label="Next month" (click)="onCalStep(1)"><i class="bi bi-chevron-right"></i></button>
+      </div>
+      <div class="range-cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+      <div class="range-cal-grid">
+        <div *ngFor="let cell of calCells; trackBy: trackByIndex" [class]="cell.cls"
+             [attr.role]="cell.day ? 'button' : null" [attr.aria-label]="cell.key || null"
+             (click)="onCalPick(cell)">
+          <span class="range-day-num" *ngIf="cell.day">{{ cell.day }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="range-cal-summary" [class.over]="overBalance">
+      {{ calNote }}
+      <ng-container *ngIf="overBalance"> More than their remaining balance.</ng-container>
+    </div>
+    <button type="button" class="link-btn" *ngIf="applyFrom" (click)="onCalReset()">Change dates</button>
+    <p class="m-error" *ngIf="applyFieldErrors['fromDate'] || applyFieldErrors['toDate']">{{ applyFieldErrors['fromDate'] || applyFieldErrors['toDate'] }}</p>
+  </div>
+  <div class="m-field">
+    <label for="ap-reason">Reason</label>
+    <textarea id="ap-reason" rows="2" maxlength="300" placeholder="Optional"
+              [value]="applyReason" (input)="onReasonChange($any($event.target).value)"></textarea>
+  </div>
+</app-form-modal>
+
+<!-- Take Back -->
+<app-form-modal [open]="cancelOpen" title="Take Back Leave" submitLabel="Take Back Leave" [width]="440"
+                [submitDisabled]="acting" (submitted)="onCancelSubmit()" (cancelled)="onCancelDismiss()">
+  <ng-container *ngIf="cancelTarget">
+    <p class="m-lead">Take back this approved leave?</p>
+    <p class="m-sub">The leave marks will be removed from the attendance register for {{ shortDate(cancelTarget.fromDate) }} to {{ shortDate(cancelTarget.toDate) }}, and those days go back to {{ cancelTarget.name }}'s balance.</p>
+    <div class="m-field">
+      <label for="cb-reason">Why is it being taken back?</label>
+      <textarea id="cb-reason" rows="2" maxlength="300" placeholder="Optional"
+                [value]="cancelReason" (input)="onCancelReasonChange($any($event.target).value)"></textarea>
+    </div>
+  </ng-container>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

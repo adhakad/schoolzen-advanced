@@ -52,6 +52,13 @@ const keys = {
         shiftsPattern: (adminId) => `${adminId}:attendance:shifts*`,
         liveStatus: (adminId, dateKey) => `${adminId}:attendance:live-status:${dateKey}`,
     },
+    // Leave (leave/optimization.md). Only the Leave Type list — never a LeaveLimit, request
+    // or the assign grid (balances change on every approval).
+    leave: {
+        types: (adminId) => `${adminId}:leave:types`,
+        typesApplicable: (adminId, personType) => `${adminId}:leave:types:applicable:${personType}`,
+        typesPattern: (adminId) => `${adminId}:leave:types*`,
+    },
 };
 
 // Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write

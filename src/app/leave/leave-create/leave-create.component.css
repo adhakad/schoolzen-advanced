@@ -1,0 +1,10 @@
+/* Leave Create reference styles the global design system doesn't carry. */
+.grid-scroll { overflow-x: auto; }
+th, td { white-space: nowrap; }
+td { font-size: 13px; color: var(--ink-soft); }
+th.act, td.act { text-align: right; }
+.lv-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+.tag-paid { color: var(--success); border-color: #BFE0CC; }
+.tag-unpaid { color: var(--ink-faint); border-color: var(--line); }
+.status-tag { width: 78px; justify-content: center; }
+.m-hint { font-size: 11px; color: var(--ink-faint); margin-top: 6px; line-height: 1.4; }
