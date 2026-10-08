@@ -1,0 +1,176 @@
+<!-- Manage Shifts.
+     Reference: docs/schoolzen-planning/v1/attendance/manage-shifts.html
+     ONE toolbar row: search + Create Shift. No filter row. -->
+
+<div class="page-head">
+  <div>
+    <h1>Manage Shifts</h1>
+    <div class="subtitle">Define punch-in windows, grace periods and half-day rules for staff and students.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search shifts" aria-label="Search shifts"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-primary" (click)="onCreate()">
+            <i class="bi bi-plus-lg"></i> Create Shift
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Start</th><th>End</th><th>Early In</th><th>Grace</th>
+            <th>Half Day After</th><th>Early Out</th><th>Late Out</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td><div class="sh-name">{{ row.name }}</div></td>
+            <td>{{ formatTime(row.startTime) }}</td>
+            <td>{{ formatTime(row.endTime) }}</td>
+            <td>{{ minutes(row.earlyInMinutes) }}</td>
+            <td>{{ minutes(row.graceMinutes) }}</td>
+            <td><ng-container *ngIf="row.halfDayAfterMinutes != null; else dash">{{ minutes(row.halfDayAfterMinutes) }}</ng-container></td>
+            <td><ng-container *ngIf="row.earlyOutMinutes != null; else dash">{{ minutes(row.earlyOutMinutes) }}</ng-container></td>
+            <td><ng-container *ngIf="row.lateOutMinutes != null; else dash">{{ minutes(row.lateOutMinutes) }}</ng-container></td>
+            <td>
+              <span class="tag status-tag" [class.tag-success]="row.status === 'active'"
+                    [class.tag-muted]="row.status === 'inactive'">
+                {{ row.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name" (click)="onEdit(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        [attr.title]="inUseText(row) ? 'Assigned to ' + inUseText(row) : null"
+                        [disabled]="deleting" (click)="onDelete(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #dash><span class="dash">&mdash;</span></ng-template>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search ? 'No shifts match that search.' : 'No shifts created yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Total Shifts</span><span class="stat-value">{{ summary.total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Active</span><span class="stat-value">{{ summary.active }}</span></div>
+      <div class="stat-row"><span class="stat-label">Inactive</span><span class="stat-value">{{ summary.inactive }}</span></div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Punch-in settings apply to both staff and students on this shift.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Half day, early/late checkout only affect staff &mdash; a student's day is decided by arrival punch alone.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deactivating a shift keeps its history but stops new assignments.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit" [width]="480"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <div class="m-field">
+    <label for="shift-name">Name <span class="req-star">*</span></label>
+    <input id="shift-name" type="text" placeholder="Morning Shift" maxlength="60"
+           [value]="form.name" (input)="onFieldChange('name', $any($event.target).value)" />
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+  <div class="m-row">
+    <div class="m-field">
+      <label for="shift-start">Start Time <span class="req-star">*</span></label>
+      <input id="shift-start" type="text" placeholder="08:00 AM"
+             [value]="form.startTime" (input)="onFieldChange('startTime', $any($event.target).value)" />
+      <p class="m-error" *ngIf="fieldErrors['startTime']">{{ fieldErrors['startTime'] }}</p>
+    </div>
+    <div class="m-field">
+      <label for="shift-end">End Time <span class="req-star">*</span></label>
+      <input id="shift-end" type="text" placeholder="02:00 PM"
+             [value]="form.endTime" (input)="onFieldChange('endTime', $any($event.target).value)" />
+      <p class="m-error" *ngIf="fieldErrors['endTime']">{{ fieldErrors['endTime'] }}</p>
+    </div>
+  </div>
+
+  <div class="group-title">Punch-In Settings</div>
+  <p class="group-note">Applies to staff and students.</p>
+  <div class="m-row">
+    <div class="m-field">
+      <label for="shift-early">Early Punch (min)</label>
+      <input id="shift-early" type="number" min="0" placeholder="15"
+             [value]="form.earlyInMinutes" (input)="onFieldChange('earlyInMinutes', $any($event.target).value)" />
+      <div class="m-hint">How early before start time an arrival punch is accepted.</div>
+      <p class="m-error" *ngIf="fieldErrors['earlyInMinutes']">{{ fieldErrors['earlyInMinutes'] }}</p>
+    </div>
+    <div class="m-field">
+      <label for="shift-grace">Grace (min)</label>
+      <input id="shift-grace" type="number" min="0" placeholder="10"
+             [value]="form.graceMinutes" (input)="onFieldChange('graceMinutes', $any($event.target).value)" />
+      <div class="m-hint">Minutes after start time before a punch counts as Late.</div>
+      <p class="m-error" *ngIf="fieldErrors['graceMinutes']">{{ fieldErrors['graceMinutes'] }}</p>
+    </div>
+  </div>
+
+  <div class="group-title">Staff Only</div>
+  <p class="group-note">Optional &mdash; these don't apply to students. A student's day is decided by their arrival punch alone; leave blank for a class-only shift.</p>
+  <div class="m-field">
+    <label for="shift-halfday">Half Day After (min)</label>
+    <input id="shift-halfday" type="number" min="0" placeholder="120"
+           [value]="form.halfDayAfterMinutes" (input)="onFieldChange('halfDayAfterMinutes', $any($event.target).value)" />
+    <div class="m-hint">Minutes after start time past which an arrival counts as Half Day.</div>
+    <p class="m-error" *ngIf="fieldErrors['halfDayAfterMinutes']">{{ fieldErrors['halfDayAfterMinutes'] }}</p>
+  </div>
+  <div class="m-row">
+    <div class="m-field">
+      <label for="shift-earlyout">Early Checkout (min)</label>
+      <input id="shift-earlyout" type="number" min="0" placeholder="30"
+             [value]="form.earlyOutMinutes" (input)="onFieldChange('earlyOutMinutes', $any($event.target).value)" />
+      <p class="m-error" *ngIf="fieldErrors['earlyOutMinutes']">{{ fieldErrors['earlyOutMinutes'] }}</p>
+    </div>
+    <div class="m-field">
+      <label for="shift-lateout">Late Checkout (min)</label>
+      <input id="shift-lateout" type="number" min="0" placeholder="60"
+             [value]="form.lateOutMinutes" (input)="onFieldChange('lateOutMinutes', $any($event.target).value)" />
+      <p class="m-error" *ngIf="fieldErrors['lateOutMinutes']">{{ fieldErrors['lateOutMinutes'] }}</p>
+    </div>
+  </div>
+  <div class="m-field">
+    <label for="shift-status">Status</label>
+    <app-dd id="shift-status" [options]="statusOptions" [value]="form.status"
+            ariaLabel="Shift status" (valueChange)="onStatusChange($event)"></app-dd>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

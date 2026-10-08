@@ -39,3 +39,13 @@ cron.schedule(SYNC_CRON, () => {
 cron.schedule('*/5 * * * *', () => {
   scheduleReconcileSweep();
 });
+
+// --- v2 Attendance --------------------------------------------------------------------
+// Opt-in (ATTENDANCE_V2_AUTO_SYNC=true) so a school isn't pulled by both pipelines at once.
+// Each school's job is staggered inside SYNC_WINDOW_MINUTES by the queue itself.
+if (process.env.ATTENDANCE_V2_AUTO_SYNC === 'true') {
+  const { scheduleV2AutoSync } = require('./modules/services/attendance-v2/auto-sync');
+  cron.schedule(process.env.ATTENDANCE_V2_SYNC_CRON || '*/15 7-19 * * *', () => {
+    scheduleV2AutoSync();
+  });
+}

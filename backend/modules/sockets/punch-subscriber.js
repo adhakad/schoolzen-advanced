@@ -1,6 +1,14 @@
 'use strict';
 const { CHANNEL } = require('../services/punch-publisher');
 const { RECONCILE_CHANNEL } = require('../services/reconcile-publisher');
+const V2 = require('../services/attendance-v2/publisher');
+
+// The v2 Attendance pages' channels — re-emitted school-wide under their own event names, so a
+// v2 page never receives legacy person ids and vice versa.
+const V2_EVENTS = {
+    [V2.PUNCH_CHANNEL]: 'attendance-v2:punch',
+    [V2.RECONCILE_CHANNEL]: 'attendance-v2:reconciled',
+};
 const logger = require('../helpers/logger');
 
 // The API-side half of the seam services/punch-publisher.js describes.
@@ -67,20 +75,25 @@ const startPunchSubscriber = (io) => {
 
         subscriber.on('error', (error) => logger.error('punch-subscriber.error', error));
 
-        subscriber.subscribe(CHANNEL, RECONCILE_CHANNEL, (error) => {
+        subscriber.subscribe(CHANNEL, RECONCILE_CHANNEL, ...Object.keys(V2_EVENTS), (error) => {
             if (error) return logger.error('punch-subscriber.subscribeFailed', error);
             logger.info('punch-subscriber.subscribed', {
-                channels: [CHANNEL, RECONCILE_CHANNEL],
+                channels: [CHANNEL, RECONCILE_CHANNEL, ...Object.keys(V2_EVENTS)],
             });
         });
 
         subscriber.on('message', (channel, raw) => {
-            if (channel !== CHANNEL && channel !== RECONCILE_CHANNEL) return;
+            if (channel !== CHANNEL && channel !== RECONCILE_CHANNEL && !V2_EVENTS[channel]) return;
             try {
                 const payload = JSON.parse(raw);
                 // No adminId means no room to deliver to. Dropping it is correct: broadcasting
                 // to every school is the one thing this layer must never do.
                 if (!payload || !payload.adminId) return;
+
+                if (V2_EVENTS[channel]) {
+                    io.to(`${ROOM_PREFIX}${payload.adminId}`).emit(V2_EVENTS[channel], payload);
+                    return;
+                }
 
                 // Reconcile is school-wide — its summary has no per-class dimension, and every
                 // page that cares responds by refetching its own scope anyway.

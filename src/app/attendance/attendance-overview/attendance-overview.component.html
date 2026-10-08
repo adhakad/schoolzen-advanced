@@ -1,0 +1,227 @@
+<!-- Attendance Overview.
+     Reference: docs/schoolzen-planning/v1/attendance/attendance-overview.html
+     THREE toolbar rows, this page's own shape: search + Generate Report + Sync now; a
+     6-column GRID of cascading .dd filters; the month navigator. -->
+
+<div class="page-head">
+  <div>
+    <h1>Attendance</h1>
+    <div class="subtitle">Live status, daily grid and recent check-ins across staff and students.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search staff or student" aria-label="Search staff or student"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="sw-report-btn" [disabled]="!selected.size" (click)="generateReport()">
+            <i class="bi bi-file-earmark-text"></i> Generate Report
+          </button>
+          <button type="button" class="btn-primary" [disabled]="syncing" (click)="onSyncClick()">
+            <i class="bi bi-arrow-repeat" [class.spinning]="syncing"></i> Sync now
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2 ov-filter-grid">
+        <app-dd [options]="personTypeOptions" [value]="personType"
+                ariaLabel="Person type" (valueChange)="onPersonTypeChange($event)"></app-dd>
+        <app-dd [options]="departmentOptions" [value]="departmentId" [disabled]="departmentDisabled"
+                disabledHint="Staff only" ariaLabel="Filter by department"
+                (valueChange)="onDepartmentChange($event)"></app-dd>
+        <app-dd [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
+                disabledHint="Select a department first" ariaLabel="Filter by designation"
+                (valueChange)="onDesignationChange($event)"></app-dd>
+        <app-dd [options]="classOptions" [value]="classId" [disabled]="classDisabled"
+                disabledHint="Students only" ariaLabel="Filter by class"
+                (valueChange)="onClassChange($event)"></app-dd>
+        <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
+                disabledHint="Only 11th/12th have streams" ariaLabel="Filter by stream"
+                (valueChange)="onStreamChange($event)"></app-dd>
+        <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
+                disabledHint="Select a class first" ariaLabel="Filter by section"
+                (valueChange)="onSectionChange($event)"></app-dd>
+      </div>
+      <div class="toolbar-row3">
+        <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
+      </div>
+      <div class="fetch-error" *ngIf="lookupError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
+        <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
+      </div>
+    </div>
+
+    <div class="grid-scroll" #gridScroll>
+      <table class="att-grid">
+        <thead>
+          <tr>
+            <th class="check-col"><input type="checkbox" aria-label="Select all on this page" [checked]="allSelected" (change)="toggleAll()" /></th>
+            <th class="name-col">Name</th>
+            <th class="type-col">Type</th>
+            <th class="day-cell" *ngFor="let col of days; trackBy: trackByDate" [class.today-col]="col.isToday">
+              {{ col.dow }}<span class="dow">{{ col.day }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pageRows; trackBy: trackById">
+            <td class="check-cell"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="selected.has(row._id)" (change)="toggleRow(row._id)" /></td>
+            <td class="name-cell">
+              <div class="name-inner">
+                <div class="g-avatar" [class.student]="row.type === 'student'">{{ initials(row.name) }}</div>
+                <div class="name-text">
+                  <div class="g-name">{{ row.name }}</div>
+                  <div class="g-shift">{{ row.shift || row.sub }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="type-cell">
+              <span class="type-tag" [class.brand]="row.type === 'staff'" [class.slate]="row.type === 'student'">
+                {{ row.type === 'staff' ? 'Staff' : 'Student' }}
+              </span>
+            </td>
+            <td *ngFor="let col of days; trackBy: trackByDate" [class.today-col]="col.isToday">
+              <div class="pulse-cell" *ngIf="isLiveCell(row, col); else staticCell" title="Punched in — live">
+                <span class="pring"><span class="ring"></span><span class="pdot2"></span></span>
+              </div>
+              <ng-template #staticCell>
+                <button type="button" class="chip" *ngIf="row.cells[col.dateKey] as cell"
+                        [ngClass]="chipClass(cell.s)" [attr.aria-label]="row.name + ', ' + col.dow + ' ' + col.day"
+                        (click)="openDay(row, col)">
+                  <span class="s">{{ cell.s }}</span><span class="t" *ngIf="cell.t">{{ cell.t }}</span>
+                </button>
+              </ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetchGrid()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search ? 'No one matches that search.' : (isStaff ? 'No staff match these filters.' : 'No students match these filters.') }}
+    </div>
+    <div class="tbl-empty" *ngIf="truncated">Showing the first 1,000 people &mdash; narrow the filters to see the rest.</div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="rows.length"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head">
+        <span class="stats-card-title">Live Status</span>
+        <span class="ls-badge"><span class="ls-dot"></span>Live</span>
+      </div>
+      <div class="stat-row"><span class="stat-label">Present</span><span class="stat-value">{{ liveCounts.Present }}</span></div>
+      <div class="stat-row"><span class="stat-label">Late</span><span class="stat-value">{{ liveCounts.Late }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Punched</span><span class="stat-value">{{ liveCounts.live }}</span></div>
+      <div class="stat-row"><span class="stat-label">Absent</span><span class="stat-value">{{ liveCounts.Absent }}</span></div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Recent arrivals</div>
+      <div class="arrivals-scroll">
+        <div class="fetch-error" *ngIf="arrivalsError" role="alert">
+          <i class="bi bi-exclamation-circle"></i> {{ arrivalsError }}
+          <button type="button" class="link-btn" (click)="fetchSidePanel()">Retry</button>
+        </div>
+        <ng-container *ngIf="!arrivalsError">
+          <div class="arrival-section-title">Staff</div>
+          <div class="arrival-empty" *ngIf="!arrivals.staff.length">No staff punches yet today.</div>
+          <ng-container *ngFor="let row of arrivals.staff; trackBy: trackByPerson">
+            <ng-container *ngTemplateOutlet="arrivalTpl; context: { $implicit: row }"></ng-container>
+          </ng-container>
+          <div class="arrival-section-title second">Student</div>
+          <div class="arrival-empty" *ngIf="!arrivals.student.length">No student punches yet today.</div>
+          <ng-container *ngFor="let row of arrivals.student; trackBy: trackByPerson">
+            <ng-container *ngTemplateOutlet="arrivalTpl; context: { $implicit: row }"></ng-container>
+          </ng-container>
+        </ng-container>
+      </div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>The Live Status card updates in real time as punches come in through the day.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Click any staff or student in Recent Arrivals to see their ID and month-to-date attendance.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Once attendance is recorded for a day, that day's roster can no longer be changed.</div>
+    </div>
+  </div>
+</div>
+
+<ng-template #arrivalTpl let-row>
+  <div class="arrival-row" role="button" tabindex="0" [attr.aria-expanded]="expandedArrival === row.personId"
+       (click)="toggleArrival(row)" (keydown.enter)="toggleArrival(row)">
+    <span class="pdot"></span><span class="aname">{{ row.name }}</span><span class="atime">{{ row.time }}</span>
+  </div>
+  <div class="arrival-info" *ngIf="expandedArrival === row.personId">
+    <div class="role-line">{{ row.role }}</div>
+    <div class="id-line" *ngIf="row.code"><span class="id-label">{{ row.idLabel }}</span><span class="id-value">{{ row.code }}</span></div>
+    <ng-container *ngIf="row.shift">{{ row.shift }} &middot; </ng-container>{{ row.presentThisMonth }} present this month
+  </div>
+</ng-template>
+
+<!-- Monthly report: built from the chips currently rendered. -->
+<div class="sz-modal-overlay open report-overlay" *ngIf="reportOpen" (click)="$event.target === $event.currentTarget && closeReport()">
+  <div class="report-modal" role="dialog" aria-label="Monthly Attendance Report">
+    <div class="report-modal-head">
+      <div>
+        <div class="report-modal-title">Monthly Attendance Report</div>
+        <div class="report-modal-sub">{{ reportSub }}</div>
+      </div>
+      <button type="button" class="report-close" aria-label="Close" (click)="closeReport()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="report-modal-body">
+      <div class="report-row" *ngFor="let row of reportRows; trackBy: trackByIndex">
+        <div class="g-avatar">{{ row.initials }}</div>
+        <div>
+          <div class="report-row-name">{{ row.name }}</div>
+          <div class="report-row-sub">{{ row.sub }}</div>
+        </div>
+        <div class="report-stats">
+          <div class="report-stat p"><b>{{ row.present }}</b><span>Present</span></div>
+          <div class="report-stat l"><b>{{ row.late }}</b><span>Late</span></div>
+          <div class="report-stat a"><b>{{ row.absent }}</b><span>Absent</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="report-modal-foot">
+      <button type="button" class="btn-primary" (click)="closeReport()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day detail: the punch trail. A load failure is its own state, never an empty list. -->
+<app-form-modal [open]="dayOpen" [title]="dayTitle" cancelLabel="Close" [showSubmit]="false" [width]="420"
+                (cancelled)="closeDay()">
+  <div class="day-loading" *ngIf="dayLoading">Loading&hellip;</div>
+  <div class="fetch-error" *ngIf="dayError" role="alert">
+    <i class="bi bi-exclamation-circle"></i> {{ dayError }}
+    <button type="button" class="link-btn" (click)="loadDay()">Retry</button>
+  </div>
+  <ng-container *ngIf="dayData">
+    <div class="day-status" *ngIf="dayData.record">
+      <b>{{ dayData.record.status === 'HalfDay' ? 'Half Day' : dayData.record.status }}</b>
+      <span *ngIf="dayData.record.inTime"> &middot; in {{ dayData.record.inTime }}</span>
+      <span *ngIf="dayData.record.outTime"> &middot; out {{ dayData.record.outTime }}</span>
+      <span class="override" *ngIf="dayData.record.isOverridden"> &middot; manually set</span>
+    </div>
+    <div class="day-punch" *ngFor="let punch of dayData.punches; trackBy: trackByIndex">
+      <i class="bi bi-fingerprint"></i> {{ punch.time }}<span class="terminal" *ngIf="punch.terminalSn"> &middot; {{ punch.terminalSn }}</span>
+    </div>
+    <div class="arrival-empty" *ngIf="!dayData.punches.length">No punches recorded this day.</div>
+  </ng-container>
+</app-form-modal>
+
+<app-confirm-modal [open]="syncConfirmOpen" [config]="syncConfirm"
+                   (confirmed)="onSyncConfirmed()" (cancelled)="onSyncCancelled()"></app-confirm-modal>

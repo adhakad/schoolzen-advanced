@@ -10,6 +10,7 @@ const { connection } = require('./modules/queues/connection');
 const startAttendanceSyncWorker = require('./modules/workers/attendance-sync-worker');
 const startAttendanceReconcileWorker = require('./modules/workers/attendance-reconcile-worker');
 const startStudentWorker = require('./modules/workers/student-worker');
+const startAttendanceV2Worker = require('./modules/workers/attendance-v2-worker');
 const { stopHeartbeats } = require('./modules/workers/heartbeat');
 const logger = require('./modules/helpers/logger');
 
@@ -27,6 +28,8 @@ const workers = [
     startAttendanceReconcileWorker(),
     // v2 Student module: Excel import, card device-sync, Class Promotion.
     startStudentWorker(),
+    // v2 Attendance: WDMS sync (fast path) + reconcile (slow path).
+    startAttendanceV2Worker(),
 ];
 
 logger.info('worker.started', { pid: process.pid, workers: workers.length });

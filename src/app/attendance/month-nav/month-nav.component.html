@@ -1,0 +1,23 @@
+<div class="dd" [class.open]="open">
+  <div class="month-nav dd-trigger" role="button" tabindex="0" [attr.aria-expanded]="open"
+       aria-label="Choose month" (click)="toggle($event)" (keydown.enter)="toggle($event)">
+    <i class="bi bi-chevron-left" role="button" aria-label="Previous month" (click)="step($event, -1)"></i>
+    <span class="dd-label">{{ label }}</span>
+    <i class="bi bi-chevron-right" role="button" aria-label="Next month" (click)="step($event, 1)"></i>
+  </div>
+  <div class="dd-menu align-left cal-menu" (click)="$event.stopPropagation()">
+    <div class="range-cal-head">
+      <button type="button" class="range-cal-nav" aria-label="Previous month" (click)="step($event, -1)"><i class="bi bi-chevron-left"></i></button>
+      <span class="range-cal-title">{{ label }}</span>
+      <button type="button" class="range-cal-nav" aria-label="Next month" (click)="step($event, 1)"><i class="bi bi-chevron-right"></i></button>
+    </div>
+    <div class="range-cal">
+      <div class="range-cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+      <div class="range-cal-grid">
+        <div *ngFor="let cell of days; trackBy: trackByIndex" [class]="cell.cls">
+          <span class="range-day-num" *ngIf="cell.day">{{ cell.day }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

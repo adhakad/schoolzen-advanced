@@ -77,4 +77,17 @@ export class AttendanceSocketService {
   onConnected(): Observable<boolean> {
     return this.connected.asObservable();
   }
+
+  /**
+   * Any other event on the same shared connection — the v2 Attendance pages listen to
+   * `attendance-v2:punch` / `attendance-v2:reconciled` here rather than opening a second socket.
+   */
+  onEvent<T>(event: string): Observable<T> {
+    return new Observable<T>((subscriber) => {
+      this.connect();
+      const handler = (payload: T) => subscriber.next(payload);
+      this.socket?.on(event, handler);
+      return () => { this.socket?.off(event, handler); };
+    });
+  }
 }

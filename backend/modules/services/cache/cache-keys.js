@@ -45,6 +45,13 @@ const keys = {
         departmentsPattern: (adminId) => `${adminId}:staff:departments*`,
         designationsPattern: (adminId) => `${adminId}:staff:designations*`,
     },
+    // Attendance (attendance/optimization.md). Only the Shift list (near-static) and the
+    // day's precomputed live counts — never an AttendanceRecord or PunchLog document.
+    attendance: {
+        shifts: (adminId) => `${adminId}:attendance:shifts`,
+        shiftsPattern: (adminId) => `${adminId}:attendance:shifts*`,
+        liveStatus: (adminId, dateKey) => `${adminId}:attendance:live-status:${dateKey}`,
+    },
 };
 
 // Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write
