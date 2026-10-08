@@ -146,11 +146,7 @@ const resolveForState = (config, state) => {
  * The field config for one school, resolved for the school's state, cached near-static
  * under `{adminId}:student:field-config` (student/optimization.md) — Admission's form and a
  * 500-row Excel import both validate against ONE read, never a re-fetch per row. Settings'
- * Admission Form Fields page (the write path, not built yet) must invalidate the same key.
- *
- * Today every school gets the seeded defaults; when Settings adds the FieldConfig
- * collection, this merges that school's saved rows (custom fields included) over them —
- * the only line that changes.
+ * Admission Form Fields page (the write path) invalidates the same key on every save.
  */
 const getStudentFieldConfig = async (adminId) => {
     // Required lazily: this module is also loaded by scripts that have no Redis/cache setup.
@@ -159,8 +155,16 @@ const getStudentFieldConfig = async (adminId) => {
     const SchoolModel = require('../../models/school');
     return cacheService.wrap(cacheKeys.student.fieldConfig(adminId), cacheService.TTL.NEAR_STATIC_30, async () => {
         // The school record is legacy and only READ here, for its state.
-        const school = await SchoolModel.findOne({ adminId }, 'state').lean();
-        return resolveForState(DEFAULT_STUDENT_FIELD_CONFIG, school && school.state);
+        const FieldConfigModel = require('../../models/settings/field-config');
+        const { mergeFieldConfig } = require('../../helpers/settings/field-config.utils');
+        const [school, savedRows] = await Promise.all([
+            SchoolModel.findOne({ adminId }, 'state').lean(),
+            FieldConfigModel.find({ adminId }).lean(),
+        ]);
+        // Settings → Admission Form Fields' saved rows (overrides + custom fields) over the seed.
+        const merged = mergeFieldConfig(DEFAULT_STUDENT_FIELD_CONFIG, savedRows)
+            .map(({ version, ...field }) => field);
+        return resolveForState(merged, school && school.state);
     });
 };
 

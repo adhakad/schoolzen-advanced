@@ -19,12 +19,28 @@ const keys = {
         subjectsPattern: (adminId) => `${adminId}:academic-setup:subjects*`,
         subjectGroupsPattern: (adminId) => `${adminId}:academic-setup:subject-groups*`,
     },
-    student: {
-        fieldConfig: (adminId) => `${adminId}:student:field-config`,
-    },
+    // Settings owns these; other modules READ them (settings/optimization.md). One key per
+    // piece of data, so the one write path that changes it is the one place that invalidates.
     settings: {
+        // label → id map (session-resolver) — rebuilt whenever any session changes.
         sessions: (adminId) => `${adminId}:settings:sessions`,
+        activeSession: (adminId) => `${adminId}:settings:academic-session:active`,
+        sessionsList: (adminId) => `${adminId}:settings:academic-sessions:list`,
+        sessionsPattern: (adminId) => `${adminId}:settings:academic-session*`,
+        fieldConfig: (adminId) => `${adminId}:settings:field-config`,
+        fieldConfigPattern: (adminId) => `${adminId}:settings:field-config*`,
+        roles: (adminId) => `${adminId}:settings:roles`,
+        staffPermissions: (adminId, staffId) => `${adminId}:settings:role:${staffId}:permissions`,
+        permissionsPattern: (adminId) => `${adminId}:settings:role:*:permissions`,
+        ownerStaff: (adminId) => `${adminId}:settings:owner-staff`,
+        // The seeded catalog is identical for every school — one global key, invalidated
+        // only by a seed deploy (settings/optimization.md, module notes).
+        marksheetCatalog: () => 'global:settings:marksheet-templates',
     },
 };
+
+// Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write
+// invalidation reaches the Admission form and the Excel import with no second key to miss.
+keys.student = { fieldConfig: keys.settings.fieldConfig };
 
 module.exports = keys;

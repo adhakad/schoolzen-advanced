@@ -1,0 +1,122 @@
+<!-- Marksheet Templates. Reference: docs/schoolzen-planning/v1/settings/settings-marksheet-templates.html -->
+
+<div class="page-head">
+  <div>
+    <h1>Marksheet Templates</h1>
+    <div class="subtitle">Pick the marksheet layout and grading rules your school uses — then assign it to a class in Examination › Marksheet Structure.</div>
+  </div>
+</div>
+
+<div class="info-strip">
+  <i class="bi bi-info-circle"></i>
+  <span>These are fixed, ready-made designs — each one's layout and grading logic is built in and can't be edited here. Need a design that isn't listed?
+    <a routerLink="/contact" class="request-link">Request a new template</a> and our team will add it.</span>
+</div>
+
+<div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+  <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+  <button type="button" class="link-btn" (click)="fetchTemplates()">Retry</button>
+</div>
+<div class="tbl-empty" *ngIf="loading && !templates.length">Loading templates…</div>
+<div class="tbl-empty" *ngIf="!loading && !loadError && !templates.length">No templates are available yet.</div>
+
+<div class="tpl-grid" *ngIf="templates.length">
+  <div class="tpl-card" *ngFor="let t of templates; trackBy: trackById" [class.selected]="t.usedBy > 0"
+       role="button" tabindex="0" [attr.aria-label]="t.code + (t.usedBy ? ', in use' : '')"
+       (click)="onCardClick(t)" (keydown.enter)="onCardClick(t)">
+    <div class="tpl-thumb">
+      <span class="tpl-badge current" *ngIf="t.usedBy > 0">In use</span>
+      <div class="tpl-thumb-inner">
+        <div class="mini-title"></div>
+        <div class="mini-line" style="width:70%;"></div>
+        <div class="mini-line" style="width:50%; margin-bottom:8px;"></div>
+        <div class="mini-row" *ngFor="let r of thumbRows">
+          <div class="mini-cell"></div><div class="mini-cell"></div><div class="mini-cell narrow"></div>
+        </div>
+      </div>
+      <button type="button" class="tpl-eye" [attr.aria-label]="'Preview ' + t.code"
+              (click)="$event.stopPropagation(); openView(t)"><i class="bi bi-eye"></i></button>
+    </div>
+    <div class="tpl-info">
+      <div class="tpl-name">{{ t.name }}</div>
+      <div class="tpl-meta">{{ t.terms.join(' + ') }} &middot; {{ t.gradeScale }}</div>
+      <div class="tpl-meta">{{ t.usedBy ? 'Used by ' + t.usedBy + (t.usedBy === 1 ? ' class' : ' classes') : 'Not used yet' }}</div>
+      <div class="tpl-select-row" [class.is-current]="t.usedBy > 0" [class.is-not]="!t.usedBy">
+        <i class="bi" [ngClass]="t.usedBy ? 'bi-check-circle-fill' : 'bi-circle'"></i> {{ t.usedBy ? 'In use' : 'Select' }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview -->
+<app-form-modal [open]="viewOpen" [title]="(viewing?.name || '') + ' — Template Preview'" submitLabel="Use This Template"
+                cancelLabel="Close" (submitted)="useFromView()" (cancelled)="closeView()">
+  <ng-container *ngIf="viewing as t">
+    <div class="view-section-title">Terms</div>
+    <div class="view-grid">
+      <div class="view-item"><label>Terms in this Template</label><div>{{ t.terms.join(', ') }}</div></div>
+      <div class="view-item"><label>Grading Scale</label><div>{{ t.gradeScale }}</div></div>
+    </div>
+    <div class="view-section-title">Marks (per term)</div>
+    <div class="view-grid">
+      <div class="view-item"><label>Theory Max</label><div>{{ t.theoryMax }}</div></div>
+      <div class="view-item"><label>Theory Pass</label><div>{{ t.theoryPass }}</div></div>
+      <div class="view-item" *ngIf="t.practicalMax"><label>Practical Max</label><div>{{ t.practicalMax }}</div></div>
+      <div class="view-item"><label>Supply Subject Limit</label><div>{{ t.supplyLimit }}</div></div>
+    </div>
+    <div class="view-section-title">Grade Scale</div>
+    <table class="view-table">
+      <tr><th>Grade</th><th>Min</th><th>Max</th></tr>
+      <tr *ngFor="let row of t.gradeRows"><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td>{{ row[2] }}</td></tr>
+    </table>
+    <div class="view-section-title">Co-Scholastic Activities</div>
+    <div><span class="co-chip" *ngFor="let area of t.coScholasticAreas">{{ area }}</span></div>
+    <ng-container *ngIf="t.usedByClasses.length">
+      <div class="view-section-title">Used By</div>
+      <div><span class="co-chip muted" *ngFor="let cls of t.usedByClasses">{{ cls }}</span></div>
+    </ng-container>
+  </ng-container>
+</app-form-modal>
+
+<!-- Use This Template -->
+<app-form-modal [open]="assignOpen" [title]="'Use ' + (assigning?.name || '') + '?'" submitLabel="Use This Template"
+                [width]="440" [submitDisabled]="submitDisabled"
+                (submitted)="onAssignSubmit()" (cancelled)="onAssignCancel()">
+  <p class="assign-body">
+    This becomes the marksheet layout and grading rule for the class you pick, in the active session.
+  </p>
+  <p class="m-hint" *ngIf="!classes.length">No classes yet — set them up in Academic Setup first.</p>
+  <div class="m-row">
+    <div class="m-field">
+      <label>Class <span class="req-star">*</span></label>
+      <app-dd [options]="classOptions" [value]="classId" ariaLabel="Class" (valueChange)="onClassChange($event)"></app-dd>
+    </div>
+    <div class="m-field">
+      <label>Stream <span class="req-star" *ngIf="needsStream">*</span></label>
+      <app-dd [options]="streamOptions" [value]="streamId" ariaLabel="Stream" [disabled]="!needsStream"
+              (valueChange)="onStreamChange($event)"></app-dd>
+    </div>
+  </div>
+
+  <p class="m-hint" *ngIf="previewLoading"><i class="bi bi-arrow-repeat spinning"></i> Checking this class…</p>
+  <p class="m-error" *ngIf="previewError">{{ previewError }}</p>
+  <p class="m-error form-level" *ngIf="assignError" role="alert">{{ assignError }}</p>
+
+  <ng-container *ngIf="preview as p">
+    <div class="warn-box" *ngIf="p.subjectGroupMissing">
+      <b>{{ p.subjectGroupMissing.message }}</b>
+    </div>
+    <div class="warn-note" *ngIf="alreadyThisTemplate">This class already uses {{ assigning?.name }}.</div>
+    <ng-container *ngIf="p.existing && !alreadyThisTemplate">
+      <div class="warn-note">
+        {{ p.existing.message }}<ng-container *ngIf="p.existing.templateCode"> (currently {{ p.existing.templateCode }})</ng-container>
+        <div class="note-sub">{{ p.existing.note }}</div>
+      </div>
+      <label class="ack-check">
+        <input type="checkbox" [checked]="replaceConfirmed" (change)="replaceConfirmed = $any($event.target).checked" />
+        Replace this class's template
+      </label>
+    </ng-container>
+    <div class="warn-note" *ngIf="p.reassignWarning && !p.subjectGroupMissing && !alreadyThisTemplate">{{ p.reassignWarning.message }}</div>
+  </ng-container>
+</app-form-modal>

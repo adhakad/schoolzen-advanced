@@ -30,6 +30,12 @@ const routes: Routes = [
         loadChildren: () => import('src/app/student/student.module')
           .then((m) => m.StudentModule)
       },
+      // Module 12 — Settings.
+      {
+        path: 'settings',
+        loadChildren: () => import('src/app/settings/settings.module')
+          .then((m) => m.SettingsModule)
+      },
       // Sidebar entries whose pages don't exist yet land here rather than 404-ing.
       { path: '**', component: NotBuiltComponent }
     ]

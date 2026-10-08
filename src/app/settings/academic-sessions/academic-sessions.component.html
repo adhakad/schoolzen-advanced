@@ -1,0 +1,161 @@
+<!-- Academic Sessions. Reference: docs/schoolzen-planning/v1/settings/academic-sessions.html -->
+
+<div class="page-head">
+  <div>
+    <h1>Academic Sessions</h1>
+    <div class="subtitle">The school year that all new admissions, attendance, fees, and payroll are recorded against.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar sess-toolbar">
+      <button type="button" class="btn-primary" (click)="onCreateSession()">
+        <i class="bi bi-plus-lg"></i> Create Session
+      </button>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Session</th><th>Start Date</th><th>End Date</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td><span class="sess-label">{{ row.label }}</span></td>
+            <td>{{ formatDate(row.startDate) }}</td>
+            <td>{{ formatDate(row.endDate) }}</td>
+            <td>
+              <span class="status-chip" [ngClass]="row.status">
+                <span class="dot"></span>{{ statusLabel(row.status) }}
+              </span>
+            </td>
+            <td>
+              <span class="not-set" *ngIf="row.status === 'active'">Currently active</span>
+              <div class="actions" *ngIf="row.status === 'closed'">
+                <button type="button" class="icon-btn" title="View this session's records read-only"
+                        [attr.aria-label]="'View ' + row.label + ' read-only'" (click)="onViewSession(row)">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="actions" *ngIf="row.status === 'upcoming'">
+                <button type="button" class="set-active-btn" (click)="onSetActive(row)">Set as Active</button>
+                <button type="button" class="icon-btn danger" title="Delete"
+                        [attr.aria-label]="'Delete ' + row.label"
+                        [disabled]="deletingId === row._id" (click)="onDeleteSession(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetchSessions()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      No academic sessions yet — create the first one to start recording.
+    </div>
+
+    <app-pagination-bar *ngIf="total > limit" [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Total Sessions</span><span class="stat-value">{{ total }}</span></div>
+      <div class="stat-row accent">
+        <span class="stat-label">Active Session</span>
+        <span class="stat-value active-label">{{ activeLabel || '—' }}</span>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Only one session can be active at a time — every new record (admission, attendance, fee, payroll) is saved against it.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A Closed session stays fully browsable, read-only — nothing is deleted when you move on.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Create an Upcoming session ahead of time and copy forward last year's structures, so it's ready the day you activate it.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create -->
+<app-form-modal [open]="createOpen" title="Create Academic Session" submitLabel="Create Session"
+                [submitDisabled]="createDisabled"
+                (submitted)="onCreateSubmit()" (cancelled)="onCreateCancel()">
+  <p class="m-error form-level" *ngIf="createFormError">{{ createFormError }}</p>
+
+  <div class="m-field">
+    <label>Session Label</label>
+    <div class="label-preview" [class.empty]="!labelPreview">{{ labelPreview || 'Set from the dates below' }}</div>
+  </div>
+  <div class="m-row">
+    <div class="m-field">
+      <label for="sess-start">Start Date <span class="req-star">*</span></label>
+      <app-dp id="sess-start" [value]="startDate" placeholder="dd/mm/yyyy" ariaLabel="Start date"
+              [invalid]="!!createErrors['startDate']" (valueChange)="onStartChange($event)"></app-dp>
+      <p class="m-error" *ngIf="createErrors['startDate']">{{ createErrors['startDate'] }}</p>
+    </div>
+    <div class="m-field">
+      <label for="sess-end">End Date <span class="req-star">*</span></label>
+      <app-dp id="sess-end" [value]="endDate" [min]="startDate" placeholder="dd/mm/yyyy" ariaLabel="End date"
+              [invalid]="!!createErrors['endDate']" (valueChange)="onEndChange($event)"></app-dp>
+      <p class="m-error" *ngIf="createErrors['endDate']">{{ createErrors['endDate'] }}</p>
+    </div>
+  </div>
+  <p class="m-hint">This creates the session as <b>Upcoming</b> — it won't become the active session (and no new records will be saved to it) until you explicitly set it active, typically once the current session ends.</p>
+
+  <div class="copy-forward-block">
+    <div class="copy-forward-title">Copy forward{{ copySource ? ' from ' + copySource : '' }} (optional)</div>
+    <p class="m-error" *ngIf="copyLoadError">Couldn't load what can be copied — the session can still be created.</p>
+    <p class="m-hint no-gap" *ngIf="!copyLoadError && copySource === null && copyOptions.length">
+      There is no active session to copy from yet.
+    </p>
+    <label class="copy-check" *ngFor="let option of copyOptions; trackBy: trackByKey"
+           [class.unavailable]="!option.available" [title]="option.reason || ''">
+      <input type="checkbox" [checked]="isCopyChecked(option.key)" [disabled]="!option.available"
+             (change)="toggleCopy(option)" />
+      {{ option.label }}
+      <span class="copy-reason" *ngIf="!option.available">— {{ option.reason }}</span>
+    </label>
+  </div>
+  <p class="m-hint">Copies the configuration only, as a starting point you can edit — never student placements or financial records. Class Promotion is still a separate, explicit step for moving students into this session.</p>
+</app-form-modal>
+
+<!-- Set as Active -->
+<app-form-modal [open]="activateOpen" [title]="'Set ' + (activateTarget?.label || '') + ' as Active'"
+                submitLabel="Set as Active" [width]="420" [submitDisabled]="activateDisabled"
+                (submitted)="onActivateSubmit()" (cancelled)="onActivateCancel()">
+  <div class="warn-box">
+    <b>This changes where every new record in the app is saved</b> — every admission, attendance punch, fee
+    payment, and payroll run from this point on goes into {{ activateTarget?.label }}<ng-container
+    *ngIf="activeLabel"> instead of {{ activeLabel }}</ng-container>, for every user at this school, immediately.
+    <ng-container *ngIf="activeLabel">{{ activeLabel }} becomes Closed and stays fully browsable read-only.</ng-container>
+  </div>
+  <div class="confirm-field">
+    <label for="activate-confirm">Type <b>{{ activateTarget?.label }}</b> to confirm</label>
+    <input id="activate-confirm" type="text" class="confirm-input" autocomplete="off"
+           [class.match]="confirmMatches" [placeholder]="activateTarget?.label || ''"
+           [value]="confirmText" (input)="onConfirmTextChange($any($event.target).value)" />
+    <p class="m-error" *ngIf="activateError">{{ activateError }}</p>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onDeleteConfirmed()" (cancelled)="onDeleteCancelled()"></app-confirm-modal>
+
+<!-- SESSION_COPY_FORWARD_PARTIAL: the session exists; these types failed. -->
+<app-form-modal [open]="partialOpen" title="Session Created" [width]="420" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closePartial()">
+  <p class="bulk-summary">{{ partialMessage }}</p>
+  <ul class="result-rows">
+    <li *ngFor="let line of partialRows">
+      <span class="result-row-label">{{ line.label }}</span>
+      <span class="m-error"><i class="bi bi-exclamation-circle"></i> {{ line.message }}</span>
+    </li>
+  </ul>
+</app-form-modal>

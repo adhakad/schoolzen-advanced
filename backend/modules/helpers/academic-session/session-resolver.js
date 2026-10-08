@@ -13,10 +13,14 @@ const cacheKeys = require('../../services/cache/cache-keys');
 //   findSessionId    — reads: a label with no session yet simply matches nothing
 //   ensureSessionId  — writes: the session is created on first use, from the label
 //
-// On-demand creation stands in for Settings → Academic Sessions until that module is built.
-// A created session's status comes from the calendar — the academic year runs 1 April to
-// 31 March, so today's year is `active`, earlier ones `closed`, later ones `upcoming`. Never
-// from the legacy global academic-session document (database-design-principles.md §0).
+// Settings → Academic Sessions owns create / Set-as-Active. On-demand creation remains for a
+// write path that names a session label no document exists for yet (Class Promotion's next
+// session, an import for a given year) — but it NEVER creates a second `active` session:
+// exactly-one-active is the activation transaction's job. A created session's status comes
+// from the calendar — the academic year runs 1 April to 31 March, so an earlier year is
+// `closed`, a later one `upcoming`, and today's year is `active` only while the school has no
+// active session at all (its very first one). Never from the legacy global academic-session
+// document (database-design-principles.md §0).
 
 // The whole school's label→id map, cached near-static (sessions change a few times a year).
 const loadSessionMap = (adminId) => cacheService.wrap(
@@ -43,11 +47,35 @@ const currentSessionLabel = (now = new Date()) => {
     return `${start}-${start + 1}`;
 };
 
-const statusFor = async (label) => {
+const isDuplicateKey = (error) => Boolean(error)
+    && (error.code === 11000 || /E11000/.test(String(error.message || '')));
+
+const statusFor = async (adminId, label) => {
     const current = currentSessionLabel();
-    if (label === current) return 'active';
-    return label < current ? 'closed' : 'upcoming';
+    if (label < current) return 'closed';
+    if (label > current) return 'upcoming';
+    const hasActive = await AcademicSessionV2Model.exists({ adminId, status: 'active' });
+    return hasActive ? 'upcoming' : 'active';
 };
+
+const upsertSession = (adminId, label, parsed, status) => AcademicSessionV2Model.findOneAndUpdate(
+    { adminId, label },
+    {
+        $setOnInsert: {
+            adminId,
+            label,
+            // Indian school year: 1 April → 31 March, at UTC midnight (date-only values).
+            startDate: new Date(Date.UTC(parsed.startYear, 3, 1)),
+            endDate: new Date(Date.UTC(parsed.endYear, 2, 31)),
+            status,
+            createdBy: 'system',
+            updatedBy: 'system',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        },
+    },
+    { upsert: true, new: true }
+).lean();
 
 /**
  * The session's _id for a label, creating the session on first use. Race-safe: the upsert
@@ -62,27 +90,73 @@ const ensureSessionId = async (adminId, label) => {
     const parsed = parseSession(label);
     if (!parsed) throw new Error(`Invalid session label: ${label}`);
 
-    const status = await statusFor(label);
-    const session = await AcademicSessionV2Model.findOneAndUpdate(
-        { adminId, label },
-        {
-            $setOnInsert: {
-                adminId,
-                label,
-                // Indian school year: 1 April → 31 March, at UTC midnight (date-only values).
-                startDate: new Date(Date.UTC(parsed.startYear, 3, 1)),
-                endDate: new Date(Date.UTC(parsed.endYear, 2, 31)),
-                status,
-                createdBy: 'system',
-                createdAt: new Date(),
-            },
-        },
-        { upsert: true, new: true }
-    ).lean();
+    const status = await statusFor(adminId, label);
+    let session;
+    try {
+        session = await upsertSession(adminId, label, parsed, status);
+    } catch (error) {
+        if (!isDuplicateKey(error)) throw error;
+        // Either a concurrent first call created this label (the (adminId, label) index) or
+        // another session became active in between (the one-active index). Re-read; if the
+        // label still doesn't exist, it can only be created as non-active.
+        session = await AcademicSessionV2Model.findOne({ adminId, label }).lean()
+            || await upsertSession(adminId, label, parsed, status === 'active' ? 'upcoming' : status);
+    }
 
-    // Same request as the write: the next read recomputes the map with this session in it.
-    await cacheService.del(cacheKeys.settings.sessions(adminId));
+    // Same request as the write: every cached session read (the label map, Settings' list
+    // and its active-session key) recomputes with this session in it.
+    await invalidateSessions(adminId);
     return session._id;
+};
+
+const invalidateSessions = (adminId) => cacheService.del(
+    cacheKeys.settings.sessions(adminId),
+    cacheKeys.settings.sessionsList(adminId),
+    cacheKeys.settings.activeSession(adminId)
+);
+
+/**
+ * Flip `isLocked` the first time another collection writes a record against this session
+ * (settings/academic-sessions.md) — after that its date range is immutable. A conditional
+ * update, so the steady state (already locked) is one indexed no-op write, never a scan.
+ * Call it from a write path right after it saves a record carrying `sessionId`.
+ */
+const markSessionLocked = async (adminId, sessionId) => {
+    if (!sessionId) return;
+    const result = await AcademicSessionV2Model.updateOne(
+        { _id: toObjectId(sessionId), adminId, isLocked: false },
+        { $set: { isLocked: true, updatedAt: new Date() } }
+    );
+    if (result.modifiedCount) await invalidateSessions(adminId);
+};
+
+/**
+ * The school's active session — `{ _id, label, startDate, endDate, status, isLocked }`, or
+ * null. Cached near-static under `{adminId}:settings:academic-session:active`
+ * (settings/optimization.md): it is read on nearly every write path in the app, and
+ * Set-as-Active invalidates it in the same request, so the long TTL is safe.
+ *
+ * A school with NO sessions at all (first-ever visit) gets today's calendar session created
+ * as active, so the app always has a current year. A school whose sessions are all
+ * closed/upcoming gets null — choosing which one is active is the admin's decision.
+ */
+const getActiveSession = async (adminId) => {
+    const read = () => cacheService.wrap(
+        cacheKeys.settings.activeSession(adminId),
+        cacheService.TTL.NEAR_STATIC_45,
+        async () => {
+            const active = await AcademicSessionV2Model
+                .findOne({ adminId, status: 'active' }, 'label startDate endDate status isLocked')
+                .lean();
+            return active ? { ...active, _id: String(active._id) } : null;
+        }
+    );
+    const active = await read();
+    if (active) return active;
+    const any = await AcademicSessionV2Model.exists({ adminId });
+    if (any) return null;
+    await ensureSessionId(adminId, currentSessionLabel());
+    return read();
 };
 
 /** The label for a session id (for responses), or null. */
@@ -93,4 +167,12 @@ const labelOfSessionId = async (adminId, sessionId) => {
     return Object.keys(map).find((label) => map[label] === wanted) || null;
 };
 
-module.exports = { findSessionId, ensureSessionId, labelOfSessionId, loadSessionMap };
+module.exports = {
+    findSessionId,
+    ensureSessionId,
+    labelOfSessionId,
+    loadSessionMap,
+    markSessionLocked,
+    getActiveSession,
+    currentSessionLabel,
+};

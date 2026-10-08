@@ -141,7 +141,8 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
     items: [
       { label: 'Academic Sessions', route: '/v2/settings/academic-sessions' },
       { label: 'Admission Form Fields', route: '/v2/settings/admission-form-fields' },
-      { label: 'Roles & Permissions', route: '/v2/settings/roles-permissions' }
+      { label: 'Roles & Permissions', route: '/v2/settings/roles-permissions' },
+      { label: 'Marksheet Templates', route: '/v2/settings/marksheet-templates' }
     ]
   }
 ];

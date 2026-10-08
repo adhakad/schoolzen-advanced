@@ -65,4 +65,9 @@ module.exports = app => {
     app.use('/api/v2/student', require('./modules/routes/student/manage-students.routes'));
     app.use('/api/v2/student', require('./modules/routes/student/admission.routes'));
     app.use('/api/v2/student', require('./modules/routes/student/class-promotion.routes'));
+    // Module 12 — Settings. Four disjoint pages under one base path, each its own route file.
+    app.use('/api/v2/settings', require('./modules/routes/settings/academic-sessions.routes'));
+    app.use('/api/v2/settings', require('./modules/routes/settings/admission-form-fields.routes'));
+    app.use('/api/v2/settings', require('./modules/routes/settings/roles-permissions.routes'));
+    app.use('/api/v2/settings', require('./modules/routes/settings/marksheet-templates.routes'));
 };

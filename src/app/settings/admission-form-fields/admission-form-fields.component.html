@@ -1,0 +1,210 @@
+<!-- Admission Form Fields. Reference: docs/schoolzen-planning/v1/settings/admission-form-fields.html -->
+
+<div class="page-head">
+  <div>
+    <h1>Admission Form Fields</h1>
+    <div class="subtitle">Which fields show on the Admission form, whether each is required, and any validation rules.</div>
+  </div>
+</div>
+
+<!-- One field row — shared by every group. -->
+<ng-template #fieldRow let-field>
+  <div class="field-row" [class.locked]="field.locked" [class.staged]="isStaged(field)">
+    <div class="field-name">
+      {{ view(field).label }}<span class="staged-dot" *ngIf="isStaged(field)" title="Unsaved change"></span>
+      <small>{{ field.locked ? 'Default (fixed): ' : '' }}{{ describe(field) }}</small>
+      <small class="row-error" *ngIf="rowErrors[field.fieldKey]" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ rowErrors[field.fieldKey] }}
+      </small>
+    </div>
+
+    <span class="lock-tag" *ngIf="field.locked"><i class="bi bi-lock-fill"></i> Always shown</span>
+
+    <label class="req-toggle" *ngIf="!field.locked">
+      <input type="checkbox" [checked]="view(field).required" [disabled]="field.fixed"
+             (change)="onRequiredToggle(field, $any($event.target).checked)" /> Required
+    </label>
+
+    <button type="button" class="edit-field-btn" [attr.aria-label]="'Edit rules for ' + field.label"
+            (click)="onEditField(field)"><i class="bi bi-gear"></i></button>
+
+    <button type="button" class="show-switch" *ngIf="!field.locked" role="switch"
+            [class.on]="view(field).visible" [class.fixed]="field.fixed" [disabled]="field.fixed"
+            [attr.aria-checked]="view(field).visible" [attr.aria-label]="'Show ' + field.label"
+            (click)="onVisibleToggle(field)"></button>
+
+    <button type="button" class="icon-btn danger del-btn" *ngIf="field.isCustom"
+            [attr.aria-label]="'Delete ' + field.label" [disabled]="deletingKey === field.fieldKey"
+            (click)="onDeleteField(field)"><i class="bi bi-trash"></i></button>
+  </div>
+</ng-template>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetchFields()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="loading && !fields.length">Loading fields…</div>
+
+    <ng-container *ngIf="!loadError && fields.length">
+      <div class="grp-title">Always Required — can't be hidden or made optional, but you can add extra rules on top of the default one</div>
+      <div class="field-row locked">
+        <div class="field-name">Class<small>Default (fixed): must match a class from Academic Setup</small></div>
+        <span class="lock-tag"><i class="bi bi-lock-fill"></i> Always shown</span>
+        <span class="edit-field-btn disabled" title="Classes come from Academic Setup"><i class="bi bi-gear"></i></span>
+      </div>
+      <ng-container *ngFor="let field of inGroup('always'); trackBy: trackByField">
+        <ng-container *ngTemplateOutlet="fieldRow; context: { $implicit: field }"></ng-container>
+      </ng-container>
+
+      <div class="grp-title">Student Info</div>
+      <ng-container *ngFor="let field of inGroup('student'); trackBy: trackByField">
+        <ng-container *ngTemplateOutlet="fieldRow; context: { $implicit: field }"></ng-container>
+      </ng-container>
+
+      <div class="grp-title">
+        State-Specific
+        <app-dd class="state-select-pill" [options]="stateOptions" [value]="selectedState" triggerIcon="geo-alt"
+                [fullWidth]="false" ariaLabel="State" (valueChange)="onStateChange($event)"></app-dd>
+      </div>
+      <ng-container *ngFor="let field of stateFields; trackBy: trackByField">
+        <ng-container *ngTemplateOutlet="fieldRow; context: { $implicit: field }"></ng-container>
+      </ng-container>
+      <div class="field-row inactive-state" *ngFor="let field of otherStateFields; trackBy: trackByField">
+        <div class="field-name">{{ field.label }}<small>{{ field.stateSpecific }} only &middot; not shown — school is in {{ selectedState }}</small></div>
+        <span class="not-applicable-tag">Not applicable</span>
+      </div>
+      <button type="button" class="add-custom-btn" [disabled]="!selectedState" (click)="onAddStateField()">
+        <i class="bi bi-plus-lg"></i> Add State-Specific Field
+      </button>
+
+      <div class="grp-title">Parents Info</div>
+      <ng-container *ngFor="let field of inGroup('parents'); trackBy: trackByField">
+        <ng-container *ngTemplateOutlet="fieldRow; context: { $implicit: field }"></ng-container>
+      </ng-container>
+
+      <div class="grp-title">Parents Contact</div>
+      <ng-container *ngFor="let field of inGroup('parentsContact'); trackBy: trackByField">
+        <ng-container *ngTemplateOutlet="fieldRow; context: { $implicit: field }"></ng-container>
+      </ng-container>
+
+      <div class="grp-title">Admission Info</div>
+      <ng-container *ngFor="let field of inGroup('admission'); trackBy: trackByField">
+        <ng-container *ngTemplateOutlet="fieldRow; context: { $implicit: field }"></ng-container>
+      </ng-container>
+
+      <button type="button" class="add-custom-btn" (click)="onAddCustomField()">
+        <i class="bi bi-plus-lg"></i> Add Custom Field
+      </button>
+
+      <div class="save-bar">
+        <button type="button" class="btn-brand" [disabled]="!dirtyCount || saving" (click)="onSaveChanges()">
+          {{ saving ? 'Saving…' : 'Save Changes' }}
+        </button>
+        <button type="button" class="btn-plain" *ngIf="dirtyCount && !saving" (click)="discardChanges()">Discard</button>
+        <span class="dirty-note" *ngIf="dirtyCount">{{ dirtyCount }} unsaved {{ dirtyCount === 1 ? 'change' : 'changes' }}</span>
+      </div>
+      <p class="save-error" *ngIf="saveError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ saveError }}
+        <button type="button" class="link-btn" *ngIf="configChanged" (click)="refreshAfterConflict()">Refresh</button>
+      </p>
+    </ng-container>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Total Fields</span><span class="stat-value">{{ summary.total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Custom Fields</span><span class="stat-value">{{ summary.custom }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Name, Class, Date of Birth and Gender are always required — Schoolzen needs them to create the student record itself.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Hiding a field only affects new admissions — it doesn't remove data already saved for existing students.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Add a custom field for anything your school tracks that isn't listed — with its own type and validation rules.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>State-specific fields (like Samagra ID) follow your school's state, set in School Profile — only the ones for your state ever show here.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Gear / Add Custom / Add State-Specific -->
+<app-form-modal [open]="modalOpen" [title]="modalTitle" [submitLabel]="modalSubmitLabel"
+                [submitDisabled]="modalSubmitDisabled"
+                (submitted)="onModalSubmit()" (cancelled)="onModalCancel()">
+  <p class="m-error form-level" *ngIf="mFormError">{{ mFormError }}</p>
+
+  <div class="m-field">
+    <label for="field-label">Field Label <span class="req-star">*</span></label>
+    <input id="field-label" type="text" maxlength="60" placeholder="e.g. Blood Group"
+           [class.is-invalid]="!!mFieldErrors['label']"
+           [value]="mLabel" (input)="onLabelChange($any($event.target).value)" />
+    <p class="m-error" *ngIf="mFieldErrors['label']">{{ mFieldErrors['label'] }}</p>
+  </div>
+
+  <ng-container *ngIf="modalMode !== 'state'">
+    <div class="m-field">
+      <label>Field Type</label>
+      <app-dd *ngIf="typeEditable" [options]="typeOptions" [value]="mType" ariaLabel="Field type"
+              [invalid]="!!mFieldErrors['type']" (valueChange)="onTypeChange($event)"></app-dd>
+      <div class="fixed-value" *ngIf="!typeEditable">{{ typeLabel(mType) }}</div>
+      <p class="m-error" *ngIf="mFieldErrors['type']">{{ mFieldErrors['type'] }}</p>
+    </div>
+
+    <div class="m-field" *ngIf="modalMode === 'custom'">
+      <label>Section</label>
+      <app-dd [options]="groupOptions" [value]="mGroup" ariaLabel="Section" (valueChange)="onGroupChange($event)"></app-dd>
+    </div>
+
+    <div class="m-field" *ngIf="mType === 'dropdown'">
+      <label>Options</label>
+      <app-inline-list-editor [bare]="true" [items]="mOptions" placeholder="Add an option"
+                              emptyText="No options yet" (itemsChange)="onOptionsChange($event)"></app-inline-list-editor>
+    </div>
+
+    <div class="m-field">
+      <label>Validation Rules</label>
+      <div class="rule-row" *ngFor="let row of mRules; let i = index; trackBy: trackByIndex">
+        <app-dd class="rule-key" [options]="ruleKeyOptions(row)" [value]="row.key" ariaLabel="Rule"
+                (valueChange)="setRuleKey(i, $event)"></app-dd>
+        <input *ngIf="ruleKind(row.key) !== 'flag'" type="text" placeholder="Value"
+               [attr.inputmode]="ruleKind(row.key) === 'number' ? 'decimal' : null"
+               [value]="row.value" (input)="setRuleValue(i, $any($event.target).value)" />
+        <span class="flag-on" *ngIf="ruleKind(row.key) === 'flag'">On</span>
+        <button type="button" class="rule-remove" aria-label="Remove rule" (click)="removeRule(i)">×</button>
+      </div>
+      <p class="m-hint no-gap" *ngIf="!availableRuleKeys.length">No extra rules for this field type.</p>
+      <button type="button" class="add-rule-btn" *ngIf="canAddRule" (click)="addRule()">
+        <i class="bi bi-plus-lg"></i> {{ mRules.length ? 'Add another rule' : 'Add a rule' }}
+      </button>
+    </div>
+  </ng-container>
+
+  <!-- Live consequence of a pending type/options change, before anything is staged. -->
+  <p class="m-hint" *ngIf="impactLoading"><i class="bi bi-arrow-repeat spinning"></i> Checking existing student records…</p>
+  <div class="warn-box" *ngIf="impact?.typeChange as change">
+    <b>{{ change.count }} student {{ change.count === 1 ? 'record holds' : 'records hold' }} a value in this field.</b>
+    {{ change.message }}
+    <ng-container *ngIf="change.blocked"> Changing to this type is blocked while that data exists — only a change to Text keeps every value readable.</ng-container>
+  </div>
+  <label class="ack-check" *ngIf="impact?.typeChange && !impactBlocks">
+    <input type="checkbox" [checked]="ackTypeChange" (change)="ackTypeChange = $any($event.target).checked" />
+    I've reviewed the affected records — change the type anyway.
+  </label>
+  <div class="warn-box" *ngIf="impact?.optionRemoval as removal">
+    <b>{{ removal.message }}</b> Removing: {{ removal.removed.join(', ') }}.
+  </div>
+  <label class="ack-check" *ngIf="impact?.optionRemoval">
+    <input type="checkbox" [checked]="ackOptionRemoval" (change)="ackOptionRemoval = $any($event.target).checked" />
+    Remove these options anyway.
+  </label>
+
+  <ul class="m-problems" *ngIf="mProblems.length">
+    <li class="m-error" *ngFor="let problem of mProblems">{{ problem }}</li>
+  </ul>
+  <p class="m-hint" *ngIf="modalMode === 'edit'">Applied when you click <b>Save Changes</b>.</p>
+  <p class="m-hint" *ngIf="modalMode === 'state'">Shown only to schools in {{ selectedState }}, as a text field you can add rules to later.</p>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onDeleteConfirmed()" (cancelled)="onDeleteCancelled()"></app-confirm-modal>

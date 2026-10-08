@@ -1,0 +1,261 @@
+<!-- Roles & Permissions. Reference: docs/schoolzen-planning/v1/settings/roles-permissions.html -->
+
+<div class="page-head">
+  <div>
+    <h1>Roles &amp; Permissions</h1>
+    <div class="subtitle">Two steps: set up what each role can do, then say who holds it for which class.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="main-col">
+
+    <!-- ============ Step 1 ============ -->
+    <div class="sw-card-main step1">
+      <div class="sw-title">Step 1 — What can each role do?</div>
+      <div class="sw-sub">Pick a role, then switch on whatever it should be allowed to do. The sidebar preview shows what that role would see — locked items are modules it has no View access to.</div>
+
+      <div class="tbl-empty load-error" *ngIf="rolesError && !rolesLoading" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ rolesError }}
+        <button type="button" class="link-btn" (click)="fetchRoles()">Retry</button>
+      </div>
+
+      <ng-container *ngIf="!rolesError && roles.length">
+        <div class="role-pills">
+          <button type="button" class="role-pill" *ngFor="let role of roles; trackBy: trackById"
+                  [class.locked]="role.isSuperAdmin" [class.active]="role._id === selectedRoleId"
+                  (click)="selectRole(role)">
+            <i class="bi bi-lock-fill" *ngIf="role.isSuperAdmin"></i> {{ role.name }}
+          </button>
+          <button type="button" class="role-pill-add" (click)="onNewRole()"><i class="bi bi-plus-lg"></i> New Role</button>
+        </div>
+
+        <div class="locked-note" *ngIf="selectedRole?.isSuperAdmin">
+          <i class="bi bi-lock-fill"></i> Super Admin always has full access to everything and can't be changed — every school needs one role that can never be locked out.
+        </div>
+        <div class="locked-note" *ngIf="selectedRole && !selectedRole.isSuperAdmin && selectedRole.isScoped">
+          <i class="bi bi-info-circle"></i> This role can be limited to specific classes — set per staff member in Step 2 below, since different people with this role may teach different classes.
+        </div>
+
+        <div class="step1-body">
+          <div class="perm-simple-list">
+            <div class="perm-simple-row" *ngFor="let perm of draft; trackBy: trackByModule">
+              <span class="perm-simple-name">{{ moduleLabel(perm.module) }}</span>
+              <div class="perm-actions">
+                <button type="button" class="perm-action" [class.on]="perm.canView"
+                        [disabled]="selectedRole?.isSuperAdmin" role="switch" [attr.aria-checked]="perm.canView"
+                        [attr.aria-label]="moduleLabel(perm.module) + ' view'"
+                        (click)="togglePermission(perm.module, 'view')">
+                  <span class="mini-switch" [class.on]="perm.canView" [class.locked]="selectedRole?.isSuperAdmin"></span>
+                  <span class="perm-action-label">View</span>
+                </button>
+                <button type="button" class="perm-action" [class.on]="perm.canEdit"
+                        [disabled]="selectedRole?.isSuperAdmin" role="switch" [attr.aria-checked]="perm.canEdit"
+                        [attr.aria-label]="moduleLabel(perm.module) + ' edit'"
+                        (click)="togglePermission(perm.module, 'edit')">
+                  <span class="mini-switch" [class.on]="perm.canEdit" [class.locked]="selectedRole?.isSuperAdmin"></span>
+                  <span class="perm-action-label">Edit</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live sidebar preview for the selected role -->
+          <div class="nav-preview" aria-label="Sidebar preview">
+            <div class="nav-preview-title">{{ selectedRole?.name }} sees</div>
+            <div class="nav-preview-item" *ngFor="let module of modules" [class.locked]="previewLocked(module)">
+              <i class="bi icon" [ngClass]="'bi-' + moduleIcon(module)"></i>
+              <span>{{ moduleLabel(module) }}</span>
+              <i class="bi bi-lock-fill lock" *ngIf="previewLocked(module)"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-row">
+          <button type="button" class="del-role-link" *ngIf="selectedRole && !selectedRole.isSuperAdmin"
+                  [disabled]="savingRole" (click)="onRemoveRole()">Remove this role</button>
+          <span *ngIf="selectedRole?.isSuperAdmin"></span>
+          <button type="button" class="btn-brand" [disabled]="!permsDirty || savingRole" (click)="onSaveRole()">
+            Save Changes to {{ selectedRole?.name }}
+          </button>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- ============ Step 2 ============ -->
+    <div class="sw-card-main">
+      <div class="sw-title">Step 2 — Who covers which class?</div>
+      <div class="sw-sub">Every staff member as a row, every role as its own column — click a chip to edit its class, or the + to add one.</div>
+
+      <div class="staff-toolbar">
+        <div class="toolbar-row1">
+          <div class="search">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="Search staff" aria-label="Search staff"
+                   [value]="search" (input)="onSearchChange($any($event.target).value)" />
+          </div>
+          <button type="button" class="btn-secondary danger" [disabled]="!selectedCount || isBusy('bulk')" (click)="onBulkDelete()">
+            <i class="bi bi-trash"></i> Selected Delete ({{ selectedCount }})
+          </button>
+        </div>
+        <div class="toolbar-row2">
+          <app-dd [options]="departmentOptions" [value]="department" [fullWidth]="false" ariaLabel="Department"
+                  (valueChange)="onDepartmentChange($event)"></app-dd>
+          <app-dd [options]="designationOptions" [value]="designation" [fullWidth]="false" ariaLabel="Designation"
+                  [disabled]="!department" disabledHint="Pick a department first"
+                  (valueChange)="onDesignationChange($event)"></app-dd>
+          <app-dd [options]="roleOptions" [value]="roleFilter" [fullWidth]="false" ariaLabel="Role"
+                  (valueChange)="onRoleFilterChange($event)"></app-dd>
+          <app-dd [options]="assignedOptions" [value]="assignedFilter" [fullWidth]="false" ariaLabel="Assigned status"
+                  (valueChange)="onAssignedFilterChange($event)"></app-dd>
+        </div>
+      </div>
+
+      <div class="role-col-scroll">
+        <table class="staff-role-table" *ngIf="rows.length">
+          <thead>
+            <tr>
+              <th class="chk"><input type="checkbox" aria-label="Select all staff" [checked]="allSelected" (change)="toggleAll()" /></th>
+              <th class="staff-col-head">Staff</th>
+              <th *ngFor="let role of roles; trackBy: trackById">{{ role.name }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rows; trackBy: trackById">
+              <td class="chk">
+                <input type="checkbox" [attr.aria-label]="'Select ' + row.name"
+                       [checked]="isSelected(row._id)" (change)="toggleRow(row._id)" />
+              </td>
+              <td class="staff-col">
+                <span class="st-avatar" [style.background]="gradient(row._id)">{{ initials(row.name) }}</span>
+                <span class="staff-name">{{ row.name }}</span>
+                <span class="owner-tag" *ngIf="row.isOwner">Owner</span>
+                <div class="staff-sub">{{ staffSub(row) }}</div>
+              </td>
+              <td class="role-cell" *ngFor="let role of roles; trackBy: trackById">
+                <div class="role-perm-chips-wrap">
+                  <span class="no-access-lock" *ngIf="!chipsFor(row, role).length" [title]="'No ' + role.name + ' access yet'">
+                    <i class="bi bi-lock-fill"></i> No access
+                  </span>
+                  <span class="role-perm-chip" *ngFor="let chip of chipsFor(row, role); trackBy: trackById"
+                        [class.whole]="chip.scope === 'school'" [class.busy]="isBusy('chip:' + chip._id)"
+                        [attr.role]="chip.scope === 'class' ? 'button' : null"
+                        [attr.tabindex]="chip.scope === 'class' ? 0 : null"
+                        (click)="onEditChip(row, role, chip)" (keydown.enter)="onEditChip(row, role, chip)">
+                    {{ chipLabel(role, chip) }}
+                    <i class="bi bi-lock-fill owner-lock" *ngIf="isOwnerChip(row, role)"
+                       title="The account owner's Super Admin access can't be removed"></i>
+                    <button type="button" class="remove" *ngIf="!isOwnerChip(row, role)"
+                            [disabled]="isBusy('chip:' + chip._id)" [attr.aria-label]="'Remove ' + chipLabel(role, chip)"
+                            (click)="$event.stopPropagation(); onRemoveChip(row, role, chip)">×</button>
+                  </span>
+                  <button type="button" class="add-perm-cell" *ngIf="canAdd(row, role)"
+                          [disabled]="isBusy('cell:' + row._id + ':' + role._id)"
+                          [title]="'Add ' + role.name + (role.isScoped ? ' class' : '')"
+                          [attr.aria-label]="'Add ' + role.name + ' for ' + row.name"
+                          (click)="onAddChip(row, role)"><i class="bi bi-plus-lg"></i></button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tbl-empty load-error" *ngIf="matrixError && !matrixLoading" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ matrixError }}
+        <button type="button" class="link-btn" (click)="fetchMatrix()">Retry</button>
+      </div>
+      <div class="tbl-empty" *ngIf="!rows.length && !matrixLoading && !matrixError">
+        {{ search || department || roleFilter || assignedFilter ? 'No staff match these filters.' : 'No staff added yet — add staff to assign them roles.' }}
+      </div>
+      <div class="load-more" *ngIf="nextCursor">
+        <button type="button" class="btn-secondary" [disabled]="loadingMore" (click)="loadMore()">
+          {{ loadingMore ? 'Loading…' : 'Load more staff' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Roles</span><span class="stat-value">{{ roles.length }}</span></div>
+      <div class="stat-row"><span class="stat-label">Total Staff</span><span class="stat-value">{{ summary.totalStaff }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Fully Assigned</span><span class="stat-value">{{ summary.assigned }}</span></div>
+      <div class="stat-row"><span class="stat-label">No Role Yet</span><span class="stat-value">{{ summary.unassigned }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Step 1 sets what a role can do. Step 2 sets which class each person with that role actually covers.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>The same class + section can't be given to two people for the same role.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A role can't be removed while staff still hold it — reassign them first.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Click any chip to edit its class, or the × to remove it. The dotted + adds another role without disturbing what they already hold.</div>
+    </div>
+  </div>
+</div>
+
+<!-- New Role -->
+<app-form-modal [open]="newRoleOpen" title="New Role" submitLabel="Create Role" [width]="420"
+                [submitDisabled]="newRoleDisabled" (submitted)="onNewRoleSubmit()" (cancelled)="newRoleOpen = false">
+  <p class="m-error form-level" *ngIf="newRoleFormError">{{ newRoleFormError }}</p>
+  <div class="m-field">
+    <label for="role-name">Role Name <span class="req-star">*</span></label>
+    <input id="role-name" type="text" placeholder="Librarian" maxlength="40"
+           [class.is-invalid]="!!newRoleErrors['name']"
+           [value]="newRoleName" (input)="onNewRoleNameChange($any($event.target).value)" />
+    <p class="m-error" *ngIf="newRoleErrors['name']">{{ newRoleErrors['name'] }}</p>
+  </div>
+  <label class="scoped-check">
+    <input type="checkbox" [checked]="newRoleScoped" (change)="newRoleScoped = $any($event.target).checked" />
+    Limited to specific classes (set per person in Step 2)
+  </label>
+  <p class="m-hint">This can't be changed later — a class-scoped role's assignments depend on it.</p>
+</app-form-modal>
+
+<!-- Add a Class / Edit a chip's class -->
+<app-form-modal [open]="scopeOpen" [title]="scopeTitle" [submitLabel]="scopeMode === 'add' ? 'Add' : 'Save'"
+                [submitDisabled]="scopeSubmitDisabled" (submitted)="onScopeSubmit()" (cancelled)="onScopeCancel()">
+  <p class="m-error form-level" *ngIf="scopeFormError" role="alert">{{ scopeFormError }}</p>
+  <p class="m-error" *ngIf="classTreeError">Couldn't load classes. <button type="button" class="link-btn" (click)="openScopeRetry()">Retry</button></p>
+  <p class="m-hint" *ngIf="classTreeLoaded && !classTree.length">No classes yet — set them up in Academic Setup first.</p>
+  <div class="m-row">
+    <div class="m-field">
+      <label>Class <span class="req-star">*</span></label>
+      <app-dd [options]="classOptions" [value]="scopeClassId" ariaLabel="Class" [invalid]="!!scopeErrors['classId']"
+              (valueChange)="onScopeClassChange($event)"></app-dd>
+      <p class="m-error" *ngIf="scopeErrors['classId']">{{ scopeErrors['classId'] }}</p>
+    </div>
+    <div class="m-field">
+      <label>Stream</label>
+      <app-dd [options]="streamOptions" [value]="scopeStreamId" ariaLabel="Stream" [disabled]="streamDisabled"
+              [invalid]="!!scopeErrors['streamId']" (valueChange)="onScopeStreamChange($event)"></app-dd>
+      <p class="m-error" *ngIf="scopeErrors['streamId']">{{ scopeErrors['streamId'] }}</p>
+    </div>
+  </div>
+  <div class="m-field">
+    <label>Section</label>
+    <app-dd [options]="sectionOptions" [value]="scopeSectionId" ariaLabel="Section" [disabled]="sectionDisabled"
+            [invalid]="!!scopeErrors['sectionId']" (valueChange)="onScopeSectionChange($event)"></app-dd>
+    <p class="m-error" *ngIf="scopeErrors['sectionId']">{{ scopeErrors['sectionId'] }}</p>
+  </div>
+  <div class="m-field" *ngIf="scopeMode === 'add'">
+    <label>Assign to <span class="req-star">*</span></label>
+    <app-dd [options]="staffOptions" [value]="scopeStaffId" ariaLabel="Staff member"
+            (valueChange)="onScopeStaffChange($event)"></app-dd>
+  </div>
+  <p class="m-hint">The same class + section can't be given to two people for the same role.</p>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
+
+<app-form-modal [open]="bulkResultOpen" title="Selected Delete" [width]="420" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closeBulkResult()">
+  <p class="bulk-summary">{{ bulkResultSummary }}</p>
+  <ul class="result-rows">
+    <li *ngFor="let line of bulkResultLines">
+      <span class="result-row-label">{{ line.label }}</span>
+      <span class="m-error"><i class="bi bi-exclamation-circle"></i> {{ line.message }}</span>
+    </li>
+  </ul>
+</app-form-modal>

@@ -35,6 +35,24 @@ const nextSessionLabel = (label) => {
     return parsed ? formatSession(parsed.startYear + 1) : null;
 };
 
+/**
+ * The label for a session's date range — `${startYear}-${endYear}` (settings/academic-sessions.md:
+ * the label is SERVER-COMPUTED from the dates, never typed). Accepts 'YYYY-MM-DD' strings or
+ * Dates; years are read from the calendar string / UTC so no time zone can shift them.
+ * Returns null when either date is unreadable. The result may still be an invalid label
+ * (e.g. "2026-2028") — callers check it with isValidSession().
+ */
+const yearOf = (value) => {
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.getUTCFullYear();
+    const match = /^(\d{4})-\d{2}-\d{2}/.exec(String(value || ''));
+    return match ? Number(match[1]) : null;
+};
+const labelFromDates = (startDate, endDate) => {
+    const startYear = yearOf(startDate);
+    const endYear = yearOf(endDate);
+    return startYear && endYear ? `${startYear}-${endYear}` : null;
+};
+
 module.exports = {
     SESSION_PATTERN,
     SESSION_EXAMPLE,
@@ -42,4 +60,5 @@ module.exports = {
     parseSession,
     isValidSession,
     nextSessionLabel,
+    labelFromDates,
 };
