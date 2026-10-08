@@ -30,6 +30,12 @@ const routes: Routes = [
         loadChildren: () => import('src/app/student/student.module')
           .then((m) => m.StudentModule)
       },
+      // Module 3 — Staff.
+      {
+        path: 'staff',
+        loadChildren: () => import('src/app/staff/staff.module')
+          .then((m) => m.StaffModule)
+      },
       // Module 12 — Settings.
       {
         path: 'settings',

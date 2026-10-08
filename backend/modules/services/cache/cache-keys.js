@@ -37,6 +37,14 @@ const keys = {
         // only by a seed deploy (settings/optimization.md, module notes).
         marksheetCatalog: () => 'global:settings:marksheet-templates',
     },
+    // Staff's two near-static lookup lists (staff/optimization.md). Manage Staff's dependent
+    // Department → Designation dropdown reads these SAME keys, never its own copy.
+    staff: {
+        departments: (adminId) => `${adminId}:staff:departments`,
+        designations: (adminId) => `${adminId}:staff:designations`,
+        departmentsPattern: (adminId) => `${adminId}:staff:departments*`,
+        designationsPattern: (adminId) => `${adminId}:staff:designations*`,
+    },
 };
 
 // Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write

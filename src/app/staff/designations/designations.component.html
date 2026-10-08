@@ -1,0 +1,123 @@
+<!-- Designations.
+     Reference: docs/schoolzen-planning/v1/staff/designations.html
+     TWO toolbar rows: search + Create, then the Department filter on its own row. -->
+
+<div class="page-head">
+  <div>
+    <h1>Designations</h1>
+    <div class="subtitle">Job titles staff hold, optionally grouped under a department.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search designations" aria-label="Search designations"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <button type="button" class="btn-primary" (click)="onCreate()">
+          <i class="bi bi-plus-lg"></i> Create
+        </button>
+      </div>
+      <div class="toolbar-row2">
+        <app-dd class="toolbar-pill" [options]="filterOptions" [value]="departmentFilter"
+                ariaLabel="Filter by department" (valueChange)="onDepartmentFilter($event)"></app-dd>
+      </div>
+      <!-- A failed department fetch is said out loud — never a silently empty dropdown. -->
+      <div class="fetch-error" *ngIf="departmentsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ departmentsError }}
+        <button type="button" class="link-btn" (click)="loadDepartments()">Retry</button>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Title</th><th>Department</th><th>Status</th><th class="act">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow" [attr.data-linked]="row.staffCount ? 1 : 0">
+            <td><div class="lm-name">{{ row.title }}</div></td>
+            <td>
+              <ng-container *ngIf="row.department; else notSet">{{ row.department }}</ng-container>
+              <ng-template #notSet><span class="not-set">Not set</span></ng-template>
+            </td>
+            <td>
+              <span class="tag status-tag" [class.tag-success]="row.status === 'active'"
+                    [class.tag-muted]="row.status === 'inactive'">
+                {{ row.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.title" (click)="onEdit(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.title"
+                        [disabled]="deleting" (click)="onDelete(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search || departmentFilter ? 'No designations match these filters.' : 'No designations added yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Designations</span><span class="stat-value">{{ summary.total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Active</span><span class="stat-value">{{ summary.active }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Department is optional here &mdash; a designation can stand on its own.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a designation still assigned to staff needs typed confirmation.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <div class="m-field">
+    <label for="desig-title">Title <span class="req-star">*</span></label>
+    <input id="desig-title" type="text" placeholder="Primary Teacher" maxlength="60"
+           [value]="form.title" (input)="onTitleChange($any($event.target).value)" />
+    <p class="m-error" *ngIf="fieldErrors['title']">{{ fieldErrors['title'] }}</p>
+  </div>
+  <div class="m-field">
+    <label for="desig-dept">Department</label>
+    <app-dd id="desig-dept" [options]="formDepartmentOptions" [value]="form.departmentId"
+            ariaLabel="Designation department" [invalid]="!!fieldErrors['departmentId']"
+            (valueChange)="onFormDepartmentChange($event)"></app-dd>
+    <p class="m-error" *ngIf="fieldErrors['departmentId']">{{ fieldErrors['departmentId'] }}</p>
+    <p class="m-error" *ngIf="departmentsError">{{ departmentsError }}</p>
+  </div>
+  <div class="m-field">
+    <label for="desig-status">Status</label>
+    <app-dd id="desig-status" [options]="statusOptions" [value]="form.status"
+            ariaLabel="Designation status" (valueChange)="onStatusChange($event)"></app-dd>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

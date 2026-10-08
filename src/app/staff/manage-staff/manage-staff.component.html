@@ -1,0 +1,237 @@
+<!-- Manage Staff.
+     Reference: docs/schoolzen-planning/v1/staff/manage-staff.html
+     TWO toolbar rows: search + actions, then Department → Designation → Status. -->
+
+<div class="page-head">
+  <div>
+    <h1>Manage Staff</h1>
+    <div class="subtitle">Everyone on payroll &mdash; teaching and non-teaching alike.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or employee code" aria-label="Search staff"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-warn" [disabled]="!selectedCount || deleting" (click)="onDeleteSelected()">
+            <i class="bi bi-trash"></i> Delete Selected
+          </button>
+          <button type="button" class="btn-assign" [disabled]="!selectedCount" (click)="onAssignCardSelected()">
+            <i class="bi bi-credit-card"></i> Assign Card to Selected
+          </button>
+          <button type="button" class="btn-primary" (click)="onCreate()">
+            <i class="bi bi-plus-lg"></i> Create
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2">
+        <app-dd class="toolbar-pill" [options]="departmentFilterOptions" [value]="filterDepartmentId"
+                ariaLabel="Filter by department" (valueChange)="onDepartmentFilter($event)"></app-dd>
+        <!-- Always present, disabled until a department is chosen. -->
+        <app-dd class="toolbar-pill" [options]="designationFilterOptions" [value]="filterDesignationId"
+                [disabled]="designationFilterDisabled" disabledHint="Select a department first"
+                ariaLabel="Filter by designation" (valueChange)="onDesignationFilter($event)"></app-dd>
+        <app-dd class="toolbar-pill" [options]="statusFilterOptions" [value]="filterStatus"
+                ariaLabel="Filter by status" (valueChange)="onStatusFilter($event)"></app-dd>
+      </div>
+      <div class="fetch-error" *ngIf="lookupError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
+        <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="check-col">
+              <input type="checkbox" aria-label="Select all staff" [checked]="allSelected" (change)="toggleAll()" />
+            </th>
+            <th>Name</th><th>Emp Code</th><th>Department</th><th>Designation</th>
+            <th>Joining Date</th><th>Status</th><th>Card</th><th class="act">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td class="check-col">
+              <input type="checkbox" [attr.aria-label]="'Select ' + row.name"
+                     [checked]="isSelected(row._id)" (change)="toggleRow(row._id)" />
+            </td>
+            <td class="name-cell">
+              <span class="st-avatar" [style.background]="gradient(row._id)">{{ initials(row.name) }}</span>
+              <span class="st-name">{{ row.name }}</span>
+              <span class="tag tag-brand owner-tag" *ngIf="row.isOwner">Owner</span>
+            </td>
+            <td>
+              <span class="emp-code" *ngIf="row.empCode; else noCode">{{ row.empCode }}</span>
+              <ng-template #noCode><span class="not-set">&mdash;</span></ng-template>
+            </td>
+            <td>
+              <ng-container *ngIf="row.department; else notSet">{{ row.department }}</ng-container>
+            </td>
+            <td>
+              <ng-container *ngIf="row.designation; else notSet">{{ row.designation }}</ng-container>
+            </td>
+            <td>
+              <ng-container *ngIf="row.joiningDate; else notSet">{{ row.joiningDate | date: 'dd MMM yyyy' }}</ng-container>
+            </td>
+            <td>
+              <span class="tag status-tag" [class.tag-success]="row.status === 'active'"
+                    [class.tag-muted]="row.status === 'inactive'">
+                {{ row.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <span class="card-tag" *ngIf="row.card; else noCard">{{ row.card }}</span>
+              <ng-template #noCard><span class="not-set">Not assigned</span></ng-template>
+            </td>
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="(row.card ? 'Change card for ' : 'Assign card to ') + row.name"
+                        (click)="onAssignCard(row)">
+                  <i class="bi bi-credit-card"></i>
+                </button>
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name" (click)="onEdit(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        [disabled]="row.isOwner || deleting" (click)="onDelete(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #notSet><span class="not-set">Not set</span></ng-template>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search || filterDepartmentId || filterStatus ? 'No staff match these filters.' : 'No staff added yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Total Staff</span><span class="stat-value">{{ summary.total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Cards Assigned</span><span class="stat-value">{{ summary.cardsAssigned }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Employee Code is used to match staff in bulk card-upload CSVs &mdash; set it if you plan to use that.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a staff member also removes their login access and attendance history.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Edit -->
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <div class="m-field">
+    <label for="staff-name">Name <span class="req-star">*</span></label>
+    <input id="staff-name" type="text" placeholder="Priya Sharma" maxlength="80"
+           [value]="form.name" (input)="onFieldChange('name', $any($event.target).value)" />
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+  <div class="m-field">
+    <label for="staff-code">Employee Code (optional)</label>
+    <input id="staff-code" type="text" placeholder="STF-0142" maxlength="20"
+           [value]="form.empCode" (input)="onFieldChange('empCode', $any($event.target).value)" />
+    <div class="m-hint">Used to match this staff in bulk card-upload CSVs.</div>
+    <p class="m-error" *ngIf="fieldErrors['empCode']">{{ fieldErrors['empCode'] }}</p>
+  </div>
+  <div class="m-field">
+    <label for="staff-dept">Department</label>
+    <app-dd id="staff-dept" [options]="formDepartmentOptions" [value]="form.departmentId"
+            ariaLabel="Department" [invalid]="!!fieldErrors['departmentId']"
+            (valueChange)="onFormDepartmentChange($event)"></app-dd>
+    <p class="m-error" *ngIf="fieldErrors['departmentId']">{{ fieldErrors['departmentId'] }}</p>
+    <p class="m-error" *ngIf="lookupError">{{ lookupError }}</p>
+  </div>
+  <div class="m-field">
+    <label for="staff-desig">Designation</label>
+    <app-dd id="staff-desig" [options]="formDesignationOptions" [value]="form.designationId"
+            [disabled]="formDesignationDisabled" placeholder="-- Select --"
+            disabledHint="Select a department first"
+            ariaLabel="Designation" [invalid]="!!fieldErrors['designationId']"
+            (valueChange)="onFormDesignationChange($event)"></app-dd>
+    <div class="m-hint" *ngIf="formDesignationDisabled">Select a department first.</div>
+    <p class="m-error" *ngIf="fieldErrors['designationId']">{{ fieldErrors['designationId'] }}</p>
+  </div>
+  <div class="m-row">
+    <div class="m-field">
+      <label for="staff-join">Joining Date</label>
+      <app-dp id="staff-join" [value]="form.joiningDate" placeholder="dd/mm/yyyy" ariaLabel="Joining date"
+              [invalid]="!!fieldErrors['joiningDate']" (valueChange)="onFieldChange('joiningDate', $event)"></app-dp>
+      <p class="m-error" *ngIf="fieldErrors['joiningDate']">{{ fieldErrors['joiningDate'] }}</p>
+    </div>
+    <div class="m-field">
+      <label for="staff-status">Status</label>
+      <app-dd id="staff-status" [options]="statusOptions" [value]="form.status" [disabled]="form.isOwner"
+              disabledHint="The school owner is always active"
+              ariaLabel="Status" (valueChange)="onFormStatusChange($event)"></app-dd>
+      <p class="m-error" *ngIf="fieldErrors['status']">{{ fieldErrors['status'] }}</p>
+    </div>
+  </div>
+</app-form-modal>
+
+<!-- Assign Card -->
+<app-form-modal [open]="cardOpen" [title]="cardTitle" submitLabel="Assign & Sync" [width]="420"
+                [submitDisabled]="cardSubmitDisabled"
+                (submitted)="onCardSubmit()" (cancelled)="onCardCancel()">
+  <p class="m-error form-level" *ngIf="cardError">{{ cardError }}</p>
+  <div class="m-field card-info" *ngIf="cardTargets.length === 1">
+    <b>{{ cardTargets[0].name }}</b>
+    <span *ngIf="cardTargets[0].empCode"> &middot; {{ cardTargets[0].empCode }}</span>
+    <span *ngIf="cardTargets[0].card"> &middot; current card {{ cardTargets[0].card }}</span>
+  </div>
+  <div class="m-field" *ngFor="let row of cardTargets; trackBy: trackByRow">
+    <label [attr.for]="'card-' + row._id">{{ cardTargets.length === 1 ? 'Card Number' : row.name }}</label>
+    <input [id]="'card-' + row._id" type="text" inputmode="numeric" maxlength="10" placeholder="Scan or type card number"
+           [value]="cardNumbers[row._id] || ''" (input)="onCardNumberChange(row._id, $any($event.target).value)" />
+    <p class="m-error" *ngIf="cardRowError(row._id)">{{ cardRowError(row._id) }}</p>
+  </div>
+  <div class="m-field">
+    <label for="card-mode">Verify Mode</label>
+    <app-dd id="card-mode" [options]="verifyModeOptions" [value]="cardVerifyMode"
+            ariaLabel="Verify mode" (valueChange)="onVerifyModeChange($event)"></app-dd>
+    <div class="m-hint">Applies to everyone here. Submitting pushes this straight to every biometric device &mdash; no separate resync needed.</div>
+  </div>
+  <div class="m-field" *ngIf="cardTargets.length === 1 && cardTargets[0].card">
+    <button type="button" class="link-btn danger-link" [disabled]="cardSaving" (click)="onRemoveCard()">
+      <i class="bi bi-x-circle"></i> Remove card from this staff member
+    </button>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
+
+<!-- Per-row outcome of a delete that did not remove everyone. -->
+<app-form-modal [open]="resultOpen" title="Delete Staff" [width]="420" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="closeResult()">
+  <p class="bulk-summary">{{ resultSummary }}</p>
+  <ul class="result-rows">
+    <li *ngFor="let line of resultLines; trackBy: trackByLine">
+      <span class="result-row-label">{{ line.label }}</span>
+      <span class="m-error"><i class="bi bi-exclamation-circle"></i> {{ line.message }}</span>
+    </li>
+  </ul>
+</app-form-modal>

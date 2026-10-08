@@ -1,0 +1,103 @@
+<!-- Departments.
+     Reference: docs/schoolzen-planning/v1/staff/departments.html
+     ONE toolbar row: search + Create, no filters. -->
+
+<div class="page-head">
+  <div>
+    <h1>Departments</h1>
+    <div class="subtitle">The departments staff are grouped under &mdash; used across Designations and staff filters.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search departments" aria-label="Search departments"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <button type="button" class="btn-primary" (click)="onCreate()">
+          <i class="bi bi-plus-lg"></i> Create
+        </button>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Status</th><th class="act">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow" [attr.data-linked]="inUse(row) ? 1 : 0">
+            <td><div class="lm-name">{{ row.name }}</div></td>
+            <td>
+              <span class="tag status-tag" [class.tag-success]="row.status === 'active'"
+                    [class.tag-muted]="row.status === 'inactive'">
+                {{ row.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name" (click)="onEdit(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        [disabled]="deleting" (click)="onDelete(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search ? 'No departments match that search.' : 'No departments added yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Departments</span><span class="stat-value">{{ summary.total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Active</span><span class="stat-value">{{ summary.active }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Marking a department Inactive hides it from new staff and designation forms &mdash; existing staff keep it.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a department that still has staff or designations needs typed confirmation.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <div class="m-field">
+    <label for="dept-name">Name <span class="req-star">*</span></label>
+    <input id="dept-name" type="text" placeholder="Teaching" maxlength="60"
+           [value]="form.name" (input)="onNameChange($any($event.target).value)" />
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+  <div class="m-field">
+    <label for="dept-status">Status</label>
+    <app-dd id="dept-status" [options]="statusOptions" [value]="form.status"
+            ariaLabel="Department status" (valueChange)="onStatusChange($event)"></app-dd>
+    <p class="m-error" *ngIf="fieldErrors['status']">{{ fieldErrors['status'] }}</p>
+  </div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

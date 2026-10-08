@@ -457,10 +457,40 @@ const processImport = async (job) => {
 // device-sync (Assign Card / Resync)
 // ---------------------------------------------------------------------------------------
 
+// Students and Staff share this one handler — the only difference is which collection the
+// person comes from and the mapping's personType. A staff job carries
+// `{ personType: 'staff', personIds }`; a student job keeps its original `studentIds` shape.
+const DEVICE_PEOPLE = {
+    student: () => StudentProfileModel,
+    staff: () => require('../models/staff/staff'),
+};
+
+/** reason 'remove': blank the card on WDMS, then drop the mapping (Staff's Remove Card). */
+const removeDeviceCards = async (adminId, personType, personIds) => {
+    const failed = [];
+    let synced = 0;
+    const mappings = await BiometricMappingModel.find({ adminId, personType, personId: { $in: personIds } }).lean();
+    for (const mapping of mappings) {
+        try {
+            if (mapping.wdmsId) await updateWdmsEmployee(mapping.wdmsId, { empCode: mapping.wdmsEmpCode, name: mapping.wdmsEmpCode, cardNo: null, verifyMode: mapping.verifyMode });
+            await BiometricMappingModel.deleteOne({ _id: mapping._id });
+            synced += 1;
+        } catch (error) {
+            failed.push({ personId: mapping.personId, reason: error.message });
+        }
+    }
+    const pushed = synced > 0 ? await resyncWdmsDevices() : true;
+    return { requested: personIds.length, synced, pushedToDevices: pushed, failed };
+};
+
 const processDeviceSync = async (job) => {
-    const { adminId, studentIds } = job.data;
-    const students = await StudentProfileModel
-        .find({ adminId, _id: { $in: studentIds }, cardNumber: { $type: 'string' } }, 'name cardNumber verifyMode')
+    const { adminId, reason } = job.data;
+    const personType = job.data.personType || 'student';
+    const personIds = job.data.personIds || job.data.studentIds;
+    if (reason === 'remove') return removeDeviceCards(adminId, personType, personIds);
+
+    const people = await DEVICE_PEOPLE[personType]()
+        .find({ adminId, _id: { $in: personIds }, cardNumber: { $type: 'string' } }, 'name cardNumber verifyMode')
         .lean();
 
     const failed = [];
@@ -468,44 +498,45 @@ const processDeviceSync = async (job) => {
 
     // Sequential on purpose: WDMS is an external box with its own rate tolerance, and a
     // bulk assign of 40 cards finishing in a few seconds is fine for a background job.
-    for (const student of students) {
-        const personId = String(student._id);
+    for (const person of people) {
+        const personId = String(person._id);
         try {
             // Same convention as controllers/biometric-mapping.js: the Schoolzen person id
             // IS the WDMS emp code, so punch ingest resolves it back without a lookup table.
             const mapping = await BiometricMappingModel.findOneAndUpdate(
-                { adminId, personType: 'student', personId },
+                { adminId, personType, personId },
                 {
-                    $set: { cardNo: student.cardNumber, verifyMode: student.verifyMode, wdmsEmpCode: personId },
-                    $setOnInsert: { adminId, personType: 'student', personId, createdAt: new Date() },
+                    $set: { cardNo: person.cardNumber, verifyMode: person.verifyMode, wdmsEmpCode: personId },
+                    $setOnInsert: { adminId, personType, personId, createdAt: new Date() },
                 },
                 { upsert: true, new: true }
             );
 
-            const person = {
+            const payload = {
                 empCode: mapping.wdmsEmpCode,
-                name: student.name,
-                cardNo: student.cardNumber,
-                verifyMode: student.verifyMode,
+                name: person.name,
+                cardNo: person.cardNumber,
+                verifyMode: person.verifyMode,
             };
             if (mapping.wdmsId) {
-                await updateWdmsEmployee(mapping.wdmsId, person);
+                await updateWdmsEmployee(mapping.wdmsId, payload);
             } else {
-                const created = await createWdmsEmployee(person);
+                const created = await createWdmsEmployee(payload);
                 if (created && created.id != null) {
                     await BiometricMappingModel.updateOne({ _id: mapping._id }, { $set: { wdmsId: String(created.id) } });
                 }
             }
             synced += 1;
         } catch (error) {
-            failed.push({ studentId: personId, name: student.name, reason: error.message });
+            // `studentId` kept for the Student page's existing contract.
+            failed.push({ studentId: personId, personId, name: person.name, reason: error.message });
         }
     }
 
     // Best-effort, never throws — see services/wdms-employee.js.
     const pushed = synced > 0 ? await resyncWdmsDevices() : false;
 
-    return { requested: studentIds.length, synced, pushedToDevices: pushed, failed };
+    return { requested: personIds.length, synced, pushedToDevices: pushed, failed };
 };
 
 // ---------------------------------------------------------------------------------------

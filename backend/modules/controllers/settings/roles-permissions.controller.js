@@ -268,9 +268,12 @@ let CreateAssignment = async (req, res) => {
     const { adminId, staffId, roleId } = req.body;
     const actor = req.staffId || 'system';
     const [staff, role] = await Promise.all([
-        findOwn(StaffV2Model, adminId, staffId, '_id'),
+        findOwn(StaffV2Model, adminId, staffId, '_id status'),
         findOwn(RoleModel, adminId, roleId, 'isScoped isSuperAdmin name'),
     ]);
+    // A terminated staff member (Staff module's soft delete) had their access revoked —
+    // reads exactly like a missing one, so it can't be quietly re-granted.
+    if (staff.status === 'terminated') throw notFound();
     const scope = await scopeFor(adminId, role, req.body);
 
     // Friendlier fast path; the partial unique indexes are the real guard (shape 9).

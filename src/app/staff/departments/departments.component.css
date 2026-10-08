@@ -1,0 +1,7 @@
+/* Everything else comes from the global design system; only the reference's own row name
+   style and the fixed-width status tag are left here. */
+.table-scroll { min-width: 0; }
+
+.lm-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+
+.status-tag { width: 88px; justify-content: center; }

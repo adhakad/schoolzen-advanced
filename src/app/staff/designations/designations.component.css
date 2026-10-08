@@ -1,0 +1,10 @@
+/* Everything else comes from the global design system. */
+.table-scroll { min-width: 0; }
+
+.lm-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+
+.status-tag { width: 88px; justify-content: center; }
+
+
+/* Filter pills: fixed width, per design-system.md. */
+.toolbar-pill { width: 180px; }

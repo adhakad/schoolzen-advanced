@@ -11,7 +11,8 @@ const logger = require('../helpers/logger');
 // writes that must never block an HTTP request — additional-technical-considerations.md,
 // Background job queue):
 //   import      — Excel Import rows, validated + bulk-written
-//   device-sync — push cards/verify-mode to WDMS for a set of students (assign & resync)
+//   device-sync — push cards/verify-mode to WDMS for a set of students, or of staff when
+//                 `personType: 'staff'` (assign, resync & remove)
 //   promotion   — Class Promotion, processed in bounded, per-chunk transactions
 //
 // Every job's jobId is its natural idempotency key, so a double-click or a client retry
@@ -67,7 +68,7 @@ const addImportJob = async (data, fileBuffer) => {
 // Includes a timestamp bucket: re-assigning the SAME cards a minute later is a legitimate
 // "push again", while a double-submit inside the same minute collapses into one job.
 const addDeviceSyncJob = (data) =>
-    enqueue('device-sync', `cards-${data.adminId}-${hashOf([data.studentIds, data.reason, Math.floor(Date.now() / 60000)])}`, data);
+    enqueue('device-sync', `cards-${data.adminId}-${hashOf([data.studentIds || data.personIds, data.personType || 'student', data.reason, Math.floor(Date.now() / 60000)])}`, data);
 
 const addPromotionJob = (data) =>
     enqueue('promotion', `promo-${data.adminId}-${data.fromSession}-${data.classId}-${hashOf(data.items)}`, data);
