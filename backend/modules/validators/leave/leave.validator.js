@@ -77,6 +77,9 @@ const peopleOptionsSchema = Joi.object({ adminId, session, personType: personTyp
 
 const balanceSchema = Joi.object({
     adminId, session, personType: personType.required(), personId: objectId.required(), leaveTypeId: objectId.required(),
+    // Optional range: the answer then also carries the working days it would be charged.
+    fromDate: dateKey.allow('').default(''),
+    toDate: dateKey.allow('').default(''),
 });
 
 const createRequestSchema = Joi.object({

@@ -32,8 +32,8 @@ import { FilterClass } from 'src/app/shared/models/student/student.model';
 import { initialsOf } from 'src/app/shared/utils/avatar.util';
 import { currentMonthKey, monthLabel } from 'src/app/shared/utils/attendance-time.util';
 
-const CHIP_CLASS: Record<ChipStatus, string> = { P: 'present', L: 'late', HD: 'halfday', A: 'absent', LV: 'leave', H: 'holiday' };
-const EMPTY_COUNTS: LiveCounts = { Present: 0, Late: 0, HalfDay: 0, Absent: 0, Leave: 0, Holiday: 0, live: 0 };
+const CHIP_CLASS: Record<ChipStatus, string> = { P: 'present', L: 'late', HD: 'halfday', A: 'absent', LV: 'leave', H: 'holiday', WO: 'weekoff' };
+const EMPTY_COUNTS: LiveCounts = { Present: 0, Late: 0, HalfDay: 0, Absent: 0, Leave: 0, Holiday: 0, WeeklyOff: 0, live: 0 };
 
 interface ReportRow {
   name: string;

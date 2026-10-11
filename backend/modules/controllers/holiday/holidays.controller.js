@@ -146,16 +146,28 @@ const loadSystemHolidays = (state, year) => cacheService.wrap(
     }
 );
 
+const systemDataMissing = (state, year) =>
+    new NotFoundError(messages.systemDataMissing(), { module: MODULE, code: 'SYSTEM_HOLIDAY_DATA_MISSING', context: { state, year } });
+
+/** The Generate modal's preview list + calendar: one state's official holidays for a year. */
+let GetSystemHolidays = async (req, res) => {
+    const { state, year } = req.query;
+    const entries = await loadSystemHolidays(state, Number(year));
+    if (!entries || !entries.length) throw systemDataMissing(state, year);
+    return res.status(200).json({ rows: [...entries].sort((a, b) => a.date.localeCompare(b.date)) });
+};
+
 /**
  * One-time clone of a state's official holidays into this school's own rows (source 'auto'),
- * deduped per (name, start) against what already exists — re-running is a no-op.
+ * deduped per (name, start) against what already exists — re-running is a no-op. With
+ * `selected`, only the ticked rows of the preview list are cloned.
  */
 let GenerateFromPublic = async (req, res) => {
-    const { adminId, state, year } = req.body;
-    const entries = await loadSystemHolidays(state, year);
-    if (!entries || !entries.length) {
-        throw new NotFoundError(messages.systemDataMissing(), { module: MODULE, code: 'SYSTEM_HOLIDAY_DATA_MISSING', context: { state, year } });
-    }
+    const { adminId, state, year, selected } = req.body;
+    const all = await loadSystemHolidays(state, year);
+    if (!all || !all.length) throw systemDataMissing(state, year);
+    const ticked = selected ? new Set(selected) : null;
+    const entries = ticked ? all.filter((row) => ticked.has(`${row.name}|${row.date}`)) : all;
     const dates = [...new Set(entries.map((row) => row.date))];
     const existing = await HolidayV2Model.find({ adminId, startDateKey: { $in: dates } }, 'name startDateKey').lean();
     const { fresh, skipped } = dedupePublic(existing, entries);
@@ -189,5 +201,6 @@ module.exports = {
     UpdateHoliday,
     DeleteHoliday,
     GetSystemStates,
+    GetSystemHolidays,
     GenerateFromPublic,
 };

@@ -18,7 +18,7 @@ const { getSchoolTerminalSns } = require('../../services/attendance-v2/ingest');
 const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
 const { shiftIndex, getStaffShiftIdsForDate, getStudentShiftIds } = require('../../services/attendance-v2/shift-lookup');
 const liveStats = require('../../services/attendance-v2/live-stats');
-const { getOffKeysForPeople } = require('../../services/holiday/holiday-calendar');
+const { DAY_TYPE, resolveDays } = require('../../services/calendar/working-day');
 const { logActivity } = require('../../services/activity-log.service');
 const { STATUSES } = AttendanceRecordV2Model;
 
@@ -28,7 +28,9 @@ const { STATUSES } = AttendanceRecordV2Model;
 
 const MAX_PEOPLE = 1000;
 const { ObjectId } = mongoose.Types;
-const CHIP = { Present: 'P', Late: 'L', HalfDay: 'HD', Absent: 'A', Leave: 'LV', Holiday: 'H' };
+const CHIP = { Present: 'P', Late: 'L', HalfDay: 'HD', Absent: 'A', Leave: 'LV', Holiday: 'H', WeeklyOff: 'WO' };
+// A non-working day as the shared resolver decides it → its chip.
+const OFF_CHIP = { [DAY_TYPE.HOLIDAY]: 'H', [DAY_TYPE.LEAVE]: 'LV', [DAY_TYPE.WEEKLY_OFF]: 'WO' };
 const COUNTS_AS_PRESENT = ['Present', 'Late', 'HalfDay'];
 
 /** Today's (or the month's first day's) expected shift name per person — the grid's sub-line. */
@@ -93,7 +95,7 @@ let GetGrid = async (req, res) => {
     const [records, pending] = await Promise.all([
         AttendanceRecordV2Model.find(
             { adminId, personType, personId: { $in: ids }, date: { $gte: toUtcMidnight(keys[0]), $lte: toUtcMidnight(keys[keys.length - 1]) }, deletedAt: null },
-            { personId: 1, dateKey: 1, status: 1, inTime: 1, outTime: 1 }
+            { personId: 1, dateKey: 1, status: 1, inTime: 1, outTime: 1, isOverridden: 1, updatedBy: 1 }
         ).lean(),
         includesToday
             ? PunchLogV2Model.distinct('personId', { adminId, dateKey: today, reconciled: false, personId: { $in: ids } })
@@ -101,21 +103,29 @@ let GetGrid = async (req, res) => {
     ]);
 
     const cellsByPerson = new Map(ids.map((id) => [id, {}]));
+    const manualByPerson = new Map(ids.map((id) => [id, new Set()]));
     const live = new Set(pending.map(String));
     records.forEach((record) => {
         const cells = cellsByPerson.get(record.personId);
         if (!cells) return;
-        cells[record.dateKey] = { s: CHIP[record.status] || 'A', t: record.inTime && record.status !== 'Absent' ? chipTime(record.inTime) : null };
+        const timed = ['Present', 'Late', 'HalfDay'].includes(record.status);
+        cells[record.dateKey] = { s: CHIP[record.status] || 'A', t: record.inTime && timed ? chipTime(record.inTime) : null };
+        // An admin's manual correction outranks the calendar; a leave's own marks do not.
+        if (record.isOverridden && record.updatedBy !== 'leave') manualByPerson.get(record.personId).add(record.dateKey);
         // Staff punched in today with no punch-out yet → the live ring.
         if (record.dateKey === today && personType === 'staff' && record.inTime && !record.outTime) live.add(record.personId);
     });
 
     const columns = monthColumns(month);
-    // Off-days come from each person's Holiday calendar, not a fixed weekday.
-    const offKeys = await getOffKeysForPeople(adminId, sessionId, ids.map((personId) => ({ personType, personId })), keys[0], keys[keys.length - 1]);
+    // Holiday > Leave > WeeklyOff come from the shared resolver — the same answer Leave and
+    // the reconcile worker get — so a day off reads the same here whatever a record says.
+    const dayTypes = await resolveDays(adminId, { sessionId, people: ids.map((personId) => ({ personType, personId })), fromKey: keys[0], toKey: keys[keys.length - 1] });
     const result = rows.map((row) => {
         const cells = cellsByPerson.get(row._id);
-        (offKeys.get(`${personType}|${row._id}`) || new Set()).forEach((key) => { if (!cells[key]) cells[key] = { s: 'H', t: null }; });
+        const manual = manualByPerson.get(row._id);
+        (dayTypes.get(`${personType}|${row._id}`) || new Map()).forEach((type, key) => {
+            if (OFF_CHIP[type] && !manual.has(key)) cells[key] = { s: OFF_CHIP[type], t: null };
+        });
         const presentCount = Object.values(cells).filter((cell) => ['P', 'L', 'HD'].includes(cell.s)).length;
         return { ...row, type: personType, cells, live: includesToday && live.has(row._id), presentCount };
     });
@@ -245,7 +255,7 @@ let SaveManualAttendance = async (req, res) => {
     await assertPerson(adminId, personType, personId);
 
     const day = toUtcMidnight(date);
-    const timed = !['Absent', 'Leave', 'Holiday'].includes(status);
+    const timed = !['Absent', 'Leave', 'Holiday', 'WeeklyOff'].includes(status);
     const inAt = timed && inTime ? atWallClock(day, inTime) : null;
     const outAt = timed && outTime && personType === 'staff' ? atWallClock(day, outTime) : null;
     const punches = [];

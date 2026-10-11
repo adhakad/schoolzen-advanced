@@ -66,7 +66,6 @@ const keys = {
         listPattern: (adminId) => `${adminId}:holiday:list*`,
         templates: (adminId) => `${adminId}:holiday:templates`,
         template: (adminId, templateId) => `${adminId}:holiday:templates:${templateId}`,
-        defaultTemplate: (adminId) => `${adminId}:holiday:templates:default`,
         templatesPattern: (adminId) => `${adminId}:holiday:templates*`,
         // The one non-tenant key: SystemHoliday is shared, Compass-maintained data.
         system: (state, year) => `system:holiday:${state}:${year}`,

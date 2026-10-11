@@ -33,8 +33,8 @@
           <tr *ngFor="let row of rows; trackBy: trackByRow" [attr.data-linked]="inUse(row) ? 1 : 0">
             <td><div class="lm-name">{{ row.name }}</div></td>
             <td>
-              <span class="tag status-tag" [class.tag-success]="row.status === 'active'"
-                    [class.tag-muted]="row.status === 'inactive'">
+              <span class="tag status-tag" [class.tag-active]="row.status === 'active'"
+                    [class.tag-inactive]="row.status === 'inactive'">
                 {{ row.status === 'active' ? 'Active' : 'Inactive' }}
               </span>
             </td>

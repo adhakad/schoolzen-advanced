@@ -7,7 +7,6 @@ const { findSessionId, getActiveSession } = require('../academic-session/session
 const { COLLATION } = require('../staff/lookups');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
-const { ensureDefaultTemplate } = require('../../services/holiday/holiday-calendar');
 const { holidayDays } = require('./holiday-rules');
 
 // Shared pieces of the three Holiday controllers: the cached Holiday and Template lists,
@@ -51,20 +50,15 @@ const toTemplateRow = (row) => ({
     _id: String(row._id),
     name: row.name,
     holidayIds: (row.holidayIds || []).map(String),
-    weeklyOffDays: row.weeklyOffDays || [],
-    isDefault: Boolean(row.isDefault),
     createdAt: row.createdAt,
 });
 
-/** Every template, Default first — `{adminId}:holiday:templates`. Seeds the Default. */
-const loadTemplates = async (adminId) => {
-    await ensureDefaultTemplate(adminId);
-    return cacheService.wrap(
-        cacheKeys.holiday.templates(adminId),
-        cacheService.TTL.NEAR_STATIC_45,
-        async () => (await HolidayTemplateV2Model.find({ adminId }).sort({ isDefault: -1, name: 1 }).collation(COLLATION).lean()).map(toTemplateRow)
-    );
-};
+/** Every template, by name — `{adminId}:holiday:templates`. */
+const loadTemplates = (adminId) => cacheService.wrap(
+    cacheKeys.holiday.templates(adminId),
+    cacheService.TTL.NEAR_STATIC_45,
+    async () => (await HolidayTemplateV2Model.find({ adminId }).sort({ name: 1 }).collation(COLLATION).lean()).map(toTemplateRow)
+);
 
 const invalidateHolidays = (adminId) => Promise.all([
     cacheService.delPattern(cacheKeys.holiday.listPattern(adminId)),

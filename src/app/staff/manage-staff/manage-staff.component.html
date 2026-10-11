@@ -82,8 +82,8 @@
               <ng-container *ngIf="row.joiningDate; else notSet">{{ row.joiningDate | date: 'dd MMM yyyy' }}</ng-container>
             </td>
             <td>
-              <span class="tag status-tag" [class.tag-success]="row.status === 'active'"
-                    [class.tag-muted]="row.status === 'inactive'">
+              <span class="tag status-tag" [class.tag-active]="row.status === 'active'"
+                    [class.tag-inactive]="row.status === 'inactive'">
                 {{ row.status === 'active' ? 'Active' : 'Inactive' }}
               </span>
             </td>

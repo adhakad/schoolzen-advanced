@@ -13,10 +13,11 @@ const {
     MODULE, todayKey, actorOf, resolveSessionId, loadLeaveTypes, typeNotFound, findPeople, describePeople, resolveEffectiveLimits,
 } = require('../../helpers/leave/context');
 const {
-    MAX_RANGE_DAYS, eachDayKey, expandWorkingDays, actionsForStatus, isApplicable, effectiveLimit, remainingOf, exceedsBalance,
+    MAX_RANGE_DAYS, eachDayKey, actionsForStatus, isApplicable, effectiveLimit, remainingOf, exceedsBalance,
 } = require('../../helpers/leave/leave-rules');
 const liveStats = require('../../services/attendance-v2/live-stats');
-const { getOffKeysForPerson } = require('../../services/holiday/holiday-calendar');
+const { workingDayKeys } = require('../../services/calendar/working-day');
+const { enqueueReconcile } = require('../../helpers/attendance/context');
 const { logActivity } = require('../../services/activity-log.service');
 const logger = require('../../helpers/logger');
 
@@ -142,9 +143,12 @@ let GetPeopleOptions = async (req, res) => {
     });
 };
 
-/** Apply Leave's balance hint — the live effective limit, never cached. */
+/**
+ * Apply Leave's balance hint — the live effective limit, never cached. With a range it also
+ * returns the working days that range would be charged, from the same resolver Apply uses.
+ */
 let GetBalance = async (req, res) => {
-    const { adminId, session, personType, personId, leaveTypeId } = req.query;
+    const { adminId, session, personType, personId, leaveTypeId, fromDate, toDate } = req.query;
     const sessionId = await resolveSessionId(adminId, session);
     const people = await describePeople(adminId, sessionId, [{ personType, personId }]);
     const person = people.get(`${personType}|${personId}`);
@@ -156,14 +160,22 @@ let GetBalance = async (req, res) => {
     // Unassigned: the request is filed against the type's school-wide default (errors.md shape 3).
     const allocated = effective ? effective.allocatedDays : type.defaultDays;
     const used = effective ? effective.usedDays : 0;
-    return res.status(200).json({ allocated, used, remaining: allocated - used, assigned: Boolean(effective) });
+    const span = fromDate && toDate ? eachDayKey(fromDate, toDate) : [];
+    const days = span.length && span.length <= MAX_RANGE_DAYS
+        ? (await workingDaysFor(adminId, sessionId, personType, personId, fromDate, toDate)).length
+        : null;
+    return res.status(200).json({ allocated, used, remaining: allocated - used, assigned: Boolean(effective), days });
 };
 
 // ---- apply ----------------------------------------------------------------------------------
 
-/** The person's working days in a range — their Holiday calendar decides what is off. */
-const workingDaysFor = async (adminId, sessionId, personType, personId, fromDate, toDate) =>
-    expandWorkingDays(fromDate, toDate, await getOffKeysForPerson(adminId, sessionId, personType, personId, fromDate, toDate));
+/**
+ * The days a leave over this range is charged for — the shared resolver's working days
+ * (holidays and roster weekly offs excluded). Other approved leaves are left out: overlaps
+ * are rejected separately, and the request being approved isn't Approved yet.
+ */
+const workingDaysFor = (adminId, sessionId, personType, personId, fromDate, toDate) =>
+    workingDayKeys(adminId, { sessionId, personType, personId, fromKey: fromDate, toKey: toDate, includeLeave: false });
 
 /** Field checks on the range itself, before anything is read. */
 const validateRange = (fromDate, toDate, allowPastDates) => {
@@ -322,7 +334,7 @@ let ApproveRequest = async (req, res) => {
         const marked = await markAttendance({ adminId, request, dateKeys, dbSession });
         await LeaveRequestV2Model.updateOne(
             { _id: request._id, adminId },
-            { $set: { days: dateKeys.length, chargedDays: dateKeys.length, attendanceDateKeys: marked, forceApproved: Boolean(forceApprove) } },
+            { $set: { days: dateKeys.length, chargedDays: dateKeys.length, dateKeys, attendanceDateKeys: marked, forceApproved: Boolean(forceApprove) } },
             { session: dbSession }
         );
         return { request, dateKeys, charged };
@@ -388,6 +400,8 @@ let CancelRequest = async (req, res) => {
     });
 
     await refreshLiveStats(adminId, result.request.attendanceDateKeys);
+    // Today is no longer Leave for this person — let the worker decide it from the punches.
+    if ((result.request.dateKeys || result.request.attendanceDateKeys || []).includes(todayKey())) await enqueueReconcile(adminId, todayKey());
     await logActivity(req, {
         module: MODULE, action: 'leave.request.cancel', targetId: id, meta: { reason: reason || null, days: result.request.chargedDays },
         changes: { before: { status: 'Approved' }, after: { status: 'Cancelled', usedDays: result.limit ? result.limit.usedDays : null } },

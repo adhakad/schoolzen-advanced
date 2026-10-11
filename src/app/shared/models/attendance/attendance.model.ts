@@ -3,12 +3,12 @@ import { MonthColumn } from './roster.model';
 
 export type PersonType = 'staff' | 'student';
 
-/** Chip status code: Present, Late, Half Day, Absent, Leave, Holiday. */
-export type ChipStatus = 'P' | 'L' | 'HD' | 'A' | 'LV' | 'H';
+/** Chip status code: Present, Late, Half Day, Absent, Leave, Holiday, Weekly Off (the person's Roster WO). */
+export type ChipStatus = 'P' | 'L' | 'HD' | 'A' | 'LV' | 'H' | 'WO';
 
 export interface GridCell {
   s: ChipStatus;
-  /** "8:23" — arrival time; null for Absent/Holiday. */
+  /** "8:23" — arrival time; null for Absent/Holiday/Leave/Weekly Off. */
   t: string | null;
 }
 
@@ -54,6 +54,7 @@ export interface LiveCounts {
   Absent: number;
   Leave: number;
   Holiday: number;
+  WeeklyOff: number;
   live: number;
 }
 

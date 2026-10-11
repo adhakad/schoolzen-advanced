@@ -16,8 +16,8 @@
       <div class="toolbar-row1">
         <div class="search">
           <i class="bi bi-search"></i>
-          <input type="text" [placeholder]="isStaff ? 'Search staff by name or ID' : 'Students are assigned by class'"
-                 aria-label="Search staff" [disabled]="!isStaff"
+          <input type="text" [placeholder]="isStaff ? 'Search by name or ID' : 'Students are assigned by class'"
+                 aria-label="Search by name or ID" [disabled]="!isStaff"
                  (input)="onSearchChange($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group" *ngIf="canAssign">

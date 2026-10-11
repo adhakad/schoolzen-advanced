@@ -1,13 +1,11 @@
 /**
- * Templates — bundle holidays (by reference) plus the weekly off-days into a named
- * calendar, then assign it on the Assign page.
+ * Templates — bundle holidays (by reference) into a named template, then assign it on the
+ * Assign page. Dated holidays only: weekly offs come from each person's Roster.
  *
  * Reference: docs/schoolzen-planning/v1/holiday/templates.html
  *
  * ONE plain toolbar row (search + Add Template). Editing a template changes everyone already
- * assigned to it straight away — the API stores holiday ids, never copies. The Default
- * template (Sunday off) is what anyone without a template follows; it can be edited but
- * never deleted.
+ * assigned to it straight away — the API stores holiday ids, never copies.
  */
 import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit
@@ -20,24 +18,20 @@ import { ConfirmConfig, DdOption } from 'src/app/shared/models/shared-components
 import { HolidaysService } from 'src/app/shared/services/holiday/holidays.service';
 import { HolidayTemplatesService } from 'src/app/shared/services/holiday/holiday-templates.service';
 import { Holiday, HolidaySource } from 'src/app/shared/models/holiday/holiday.model';
-import {
-  HolidayTemplate, HolidayTemplatePayload, WEEKDAY_SHORT
-} from 'src/app/shared/models/holiday/holiday-template.model';
+import { HolidayTemplate, HolidayTemplatePayload } from 'src/app/shared/models/holiday/holiday-template.model';
 import { validationErrorsOf } from 'src/app/shared/utils/api-error.util';
 
 interface TemplateForm {
   id: string | null;
   name: string;
   holidayIds: Set<string>;
-  weeklyOffDays: Set<number>;
-  isDefault: boolean;
 }
 
-const KNOWN_FIELDS = ['name', 'holidayIds', 'weeklyOffDays'];
+const KNOWN_FIELDS = ['name', 'holidayIds'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const shortDate = (key: string): string => `${key.slice(8, 10)} ${MONTHS[Number(key.slice(5, 7)) - 1]}`;
 
-const emptyForm = (): TemplateForm => ({ id: null, name: '', holidayIds: new Set(), weeklyOffDays: new Set([0]), isDefault: false });
+const emptyForm = (): TemplateForm => ({ id: null, name: '', holidayIds: new Set() });
 
 @Component({
   selector: 'app-holiday-templates',
@@ -65,7 +59,6 @@ export class HolidayTemplatesComponent implements OnInit, OnDestroy {
     { value: 'manual', label: 'Manual' },
     { value: 'auto', label: 'Auto-generated' }
   ];
-  readonly weekdays = WEEKDAY_SHORT.map((label, value) => ({ value, label }));
 
   formOpen = false;
   /** Double-submit guard. */
@@ -157,10 +150,6 @@ export class HolidayTemplatesComponent implements OnInit, OnDestroy {
     return `${String(date.getDate()).padStart(2, '0')} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
   }
 
-  offDaysText(row: HolidayTemplate): string {
-    return row.weeklyOffDays.length ? row.weeklyOffDays.map((day) => WEEKDAY_SHORT[day]).join(', ') + ' off' : 'No weekly off';
-  }
-
   trackByRow = (_index: number, row: HolidayTemplate): string => row._id;
   trackByHoliday = (_index: number, row: Holiday): string => row._id;
 
@@ -174,9 +163,7 @@ export class HolidayTemplatesComponent implements OnInit, OnDestroy {
     this.openForm('Edit Template', {
       id: row._id,
       name: row.name,
-      holidayIds: new Set(row.holidayIds),
-      weeklyOffDays: new Set(row.weeklyOffDays),
-      isDefault: row.isDefault
+      holidayIds: new Set(row.holidayIds)
     });
   }
 
@@ -235,12 +222,6 @@ export class HolidayTemplatesComponent implements OnInit, OnDestroy {
     this.visibleHolidays.forEach((row) => (check ? this.form.holidayIds.add(row._id) : this.form.holidayIds.delete(row._id)));
   }
 
-  toggleWeekday(day: number): void {
-    if (this.form.weeklyOffDays.has(day)) this.form.weeklyOffDays.delete(day);
-    else if (this.form.weeklyOffDays.size < 6) this.form.weeklyOffDays.add(day);
-    delete this.fieldErrors['weeklyOffDays'];
-  }
-
   get submitDisabled(): boolean {
     return this.saving || !this.form.name.trim();
   }
@@ -257,8 +238,7 @@ export class HolidayTemplatesComponent implements OnInit, OnDestroy {
     return {
       adminId: this.adminId,
       name: this.form.name.trim(),
-      holidayIds: Array.from(this.form.holidayIds).filter((id) => !this.holidays.length || known.has(id)),
-      weeklyOffDays: Array.from(this.form.weeklyOffDays).sort()
+      holidayIds: Array.from(this.form.holidayIds).filter((id) => !this.holidays.length || known.has(id))
     };
   }
 
@@ -296,13 +276,7 @@ export class HolidayTemplatesComponent implements OnInit, OnDestroy {
     if (this.confirmOpen) return;
     this.deleteTarget = row;
     const assigned = row.assignedCount || 0;
-    if (row.isDefault) {
-      this.confirmConfig = {
-        title: 'Delete Template',
-        message: 'The Default template applies to everyone without a template, so it can\'t be deleted. You can still edit it.',
-        confirmLabel: 'Delete', variant: 'warning', blocked: true
-      };
-    } else if (assigned) {
+    if (assigned) {
       this.confirmConfig = {
         title: 'Delete Template',
         message: `${assigned} ${assigned === 1 ? 'person is' : 'people are'} still using this template. Change their template on the Assign page first.`,
@@ -311,8 +285,8 @@ export class HolidayTemplatesComponent implements OnInit, OnDestroy {
     } else {
       this.confirmConfig = {
         title: 'Delete Template',
-        message: `Delete "${row.name}"? The holidays themselves stay in your list.`,
-        confirmLabel: 'Delete', variant: 'warning'
+        message: `Delete "${row.name}"? The holidays themselves stay in your list. This can't be undone.`,
+        confirmLabel: 'Delete', variant: 'warning', typeToConfirm: 'DELETE'
       };
     }
     this.confirmOpen = true;
@@ -322,7 +296,7 @@ export class HolidayTemplatesComponent implements OnInit, OnDestroy {
     this.confirmOpen = false;
     const row = this.deleteTarget;
     this.deleteTarget = null;
-    if (!row || this.deleting || row.isDefault || row.assignedCount) return;
+    if (!row || this.deleting || row.assignedCount) return;
     this.deleting = true;
     this.api.deleteTemplate(this.adminId, row._id)
       .pipe(takeUntil(this.destroyed$))

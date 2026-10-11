@@ -10,8 +10,6 @@
   </div>
 </div>
 
-<app-holiday-coverage-banner [session]="session"></app-holiday-coverage-banner>
-
 <div class="layout-row">
   <div class="sw-card-main">
     <div class="sw-toolbar">
@@ -143,27 +141,12 @@
   </div>
   <div class="m-field">
     <label>Leave Dates <span class="req-star">*</span></label>
-    <div class="m-hint cal-hint">Click a date to start, then click a second date to set the end. A single click and re-click makes it a one-day leave.</div>
-    <div class="range-cal-box">
-      <div class="range-cal-head">
-        <button type="button" class="range-cal-nav" aria-label="Previous month" (click)="onCalStep(-1)"><i class="bi bi-chevron-left"></i></button>
-        <span class="range-cal-title">{{ calLabel }}</span>
-        <button type="button" class="range-cal-nav" aria-label="Next month" (click)="onCalStep(1)"><i class="bi bi-chevron-right"></i></button>
-      </div>
-      <div class="range-cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
-      <div class="range-cal-grid">
-        <div *ngFor="let cell of calCells; trackBy: trackByIndex" [class]="cell.cls"
-             [attr.role]="cell.day ? 'button' : null" [attr.aria-label]="cell.key || null"
-             (click)="onCalPick(cell)">
-          <span class="range-day-num" *ngIf="cell.day">{{ cell.day }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="range-cal-summary" [class.over]="overBalance">
-      {{ calNote }}
-      <ng-container *ngIf="overBalance"> More than their remaining balance.</ng-container>
-    </div>
-    <button type="button" class="link-btn" *ngIf="applyFrom" (click)="onCalReset()">Change dates</button>
+    <app-date-range-picker [start]="applyFrom" [end]="applyTo" [min]="today" noun="leave" [summary]="calNote"
+                           hint="Click a date to start, then click a second date to set the end. A single click and re-click makes it a one-day leave."
+                           [invalid]="!!(applyFieldErrors['fromDate'] || applyFieldErrors['toDate'])"
+                           (rangeChange)="onApplyRange($event)">
+      <p class="over-note" *ngIf="overBalance">More than their remaining balance.</p>
+    </app-date-range-picker>
     <p class="m-error" *ngIf="applyFieldErrors['fromDate'] || applyFieldErrors['toDate']">{{ applyFieldErrors['fromDate'] || applyFieldErrors['toDate'] }}</p>
   </div>
   <div class="m-field">

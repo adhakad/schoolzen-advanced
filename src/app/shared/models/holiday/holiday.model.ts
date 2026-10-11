@@ -32,6 +32,13 @@ export interface SystemHolidayState {
   years: number[];
 }
 
+/** One official public holiday from the system dataset (Generate's preview list). */
+export interface SystemHolidayEntry {
+  name: string;
+  /** 'YYYY-MM-DD'. */
+  date: string;
+}
+
 export interface GenerateResponse {
   message: string;
   inserted: number;

@@ -49,6 +49,9 @@
 .chip.absent .s { color: var(--danger); }
 .chip.leave .s { color: var(--slate); }
 .chip.holiday .s { color: var(--ink-faint); }
+/* Roster weekly off — same quiet look as the Roster grid's WO chip. */
+.chip.weekoff { background: var(--paper); }
+.chip.weekoff .s { color: var(--ink-faint); font-weight: 600; }
 
 .pulse-cell { display: flex; align-items: center; justify-content: center; width: 38px; height: 30px; margin: 0 auto; }
 .pring { position: relative; width: 10px; height: 10px; }

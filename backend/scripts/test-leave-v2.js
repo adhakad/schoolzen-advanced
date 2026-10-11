@@ -3,19 +3,10 @@
 // Run: node scripts/test-leave-v2.js
 const assert = require('assert');
 const {
-    expandWorkingDays, eachDayKey, rangesOverlap, actionsForStatus, isApplicable, effectiveLimit, remainingOf, exceedsBalance, releasedUsedDays, classKey,
+    eachDayKey, rangesOverlap, actionsForStatus, isApplicable, effectiveLimit, remainingOf, exceedsBalance, releasedUsedDays, classKey,
 } = require('../modules/helpers/leave/leave-rules');
 
 const tests = {
-    'no weekday is hardcoded off — only the calendar decides (2026-08-09 is a Sunday)': () => {
-        assert.deepStrictEqual(expandWorkingDays('2026-08-08', '2026-08-10', new Set()), ['2026-08-08', '2026-08-09', '2026-08-10']);
-    },
-    'calendar off-days are skipped': () => {
-        assert.deepStrictEqual(expandWorkingDays('2026-08-08', '2026-08-11', new Set(['2026-08-09', '2026-08-11'])), ['2026-08-08', '2026-08-10']);
-    },
-    'a range fully off has no working days (LEAVE_RANGE_EMPTY)': () => {
-        assert.deepStrictEqual(expandWorkingDays('2026-08-09', '2026-08-09', new Set(['2026-08-09'])), []);
-    },
     'a reversed range is invalid (LEAVE_DATE_RANGE_INVALID)': () => {
         assert.deepStrictEqual(eachDayKey('2026-08-10', '2026-08-05'), []);
     },

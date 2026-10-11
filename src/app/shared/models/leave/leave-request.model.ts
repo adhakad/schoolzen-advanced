@@ -65,6 +65,8 @@ export interface LeavePersonOption {
 
 export interface LeaveBalanceResponse extends LeaveBalance {
   assigned: boolean;
+  /** With a range: the working days it would be charged (null without one). */
+  days?: number | null;
 }
 
 export interface ApplyLeavePayload {

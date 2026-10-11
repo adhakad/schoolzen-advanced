@@ -6,6 +6,7 @@ import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 import { HolidayAssignService } from 'src/app/shared/services/holiday/holiday-assign.service';
 import { HolidayTemplatesService } from 'src/app/shared/services/holiday/holiday-templates.service';
+import { HolidaysService } from 'src/app/shared/services/holiday/holidays.service';
 import { LeaveFilterOptionsService } from 'src/app/shared/services/leave/leave-filter-options.service';
 import { HolidayAssignGridResponse } from 'src/app/shared/models/holiday/holiday-assign.model';
 import { EMPTY_FILTER_OPTIONS } from 'src/app/shared/models/leave/person-filter.model';
@@ -17,7 +18,7 @@ const grid = (canAssign: boolean): HolidayAssignGridResponse => ({
     { _id: 'p2', name: 'Rahul Verma', code: 'STF-0087', department: 'Admin', sub: 'Clerk', templateId: null, templateName: null }
   ],
   total: 2, page: 1, limit: 25, truncated: false, canAssign,
-  defaultTemplate: { _id: 'd1', name: 'Default' }
+  summary: { staff: { assigned: 1, total: 2 }, student: { assigned: 0, total: 0 } }
 });
 
 describe('HolidayAssignComponent', () => {
@@ -33,7 +34,8 @@ describe('HolidayAssignComponent', () => {
       declarations: [HolidayAssignComponent],
       providers: [
         { provide: HolidayAssignService, useValue: api },
-        { provide: HolidayTemplatesService, useValue: { getOptions: () => of({ rows: [{ _id: 't1', name: 'School 2026', isDefault: false }] }) } },
+        { provide: HolidayTemplatesService, useValue: { getOptions: () => of({ rows: [{ _id: 't1', name: 'School 2026', holidayIds: ['h1'] }] }) } },
+        { provide: HolidaysService, useValue: { getOptions: () => of({ rows: [{ _id: 'h1', name: 'Diwali', startDate: '2026-11-08', endDate: '2026-11-09', days: 2, source: 'manual' }] }) } },
         { provide: LeaveFilterOptionsService, useValue: { load: () => of({ options: EMPTY_FILTER_OPTIONS, complete: true }) } },
         { provide: ShellContextService, useValue: { context: of({ activeSession: '2026-2027' }) } },
         { provide: MatSnackBar, useValue: { open: () => undefined } },
@@ -81,6 +83,17 @@ describe('HolidayAssignComponent', () => {
     component.toggleRow(component.rows[0]);
     expect(component.selection).toBe('edit');
     expect(component.editDisabled).toBeFalse();
+  });
+
+  it('editing a live assignment stays locked until the confirm box is ticked', async () => {
+    await setup(grid(true));
+    component.onRowAction(component.rows[0]);
+    expect(component.mode).toBe('edit');
+    expect(component.modalSubmitDisabled).toBeTrue();
+    component.onRemoveTemplate();
+    expect(api.unassign).not.toHaveBeenCalled();
+    component.onEditConfirmChange(true);
+    expect(component.modalSubmitDisabled).toBeFalse();
   });
 
   it('hides every assign control without the holiday-assign edit permission', async () => {

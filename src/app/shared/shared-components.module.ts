@@ -49,7 +49,7 @@ import { DpComponent } from './components/dp/dp.component';
 import { ColumnCaseMenuComponent } from './components/column-case-menu/column-case-menu.component';
 import { MonthNavComponent } from './components/month-nav/month-nav.component';
 import { PersonFilterComponent } from './components/person-filter/person-filter.component';
-import { HolidayCoverageBannerComponent } from './components/holiday-coverage-banner/holiday-coverage-banner.component';
+import { DateRangePickerComponent } from './components/date-range-picker/date-range-picker.component';
 import { TextCasePipe } from './pipes/text-case.pipe';
 
 const COMPONENTS = [
@@ -87,7 +87,7 @@ const COMPONENTS = [
   // Person Type → Dept/Designation | Class/Stream/Group/Section — Leave and Holiday Assign.
   PersonFilterComponent,
   // "People with no Holiday Template" warning — Leave Requests and Attendance Overview.
-  HolidayCoverageBannerComponent,
+  DateRangePickerComponent,
   TextCasePipe
 ];
 

@@ -17,8 +17,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { ConfirmConfig, DdOption } from 'src/app/shared/models/shared-components.model';
 import { HolidaysService } from 'src/app/shared/services/holiday/holidays.service';
-import { Holiday, HolidayPayload, SystemHolidayState } from 'src/app/shared/models/holiday/holiday.model';
+import { Holiday, HolidayPayload, SystemHolidayEntry, SystemHolidayState } from 'src/app/shared/models/holiday/holiday.model';
 import { validationErrorsOf } from 'src/app/shared/utils/api-error.util';
+import { DateRange, DateRangeMark, longDate } from 'src/app/shared/components/date-range-picker/date-range-picker.component';
 
 interface HolidayForm {
   id: string | null;
@@ -67,6 +68,10 @@ export class HolidaysComponent implements OnInit, OnDestroy {
   form: HolidayForm = { ...EMPTY_FORM };
   fieldErrors: Record<string, string> = {};
   formError = '';
+  /** Edit: the dates stay locked until "I confirm I want to change this holiday's dates". */
+  editDatesConfirmed = false;
+  /** "Delete existing & use these dates" in flight. */
+  overriding = false;
 
   generateOpen = false;
   generating = false;
@@ -76,6 +81,10 @@ export class HolidaysComponent implements OnInit, OnDestroy {
   yearOptions: DdOption[] = [];
   generateState = '';
   generateYear = '';
+  /** The state's official list for the year, and which rows are ticked ("name|date"). */
+  publicEntries: SystemHolidayEntry[] = [];
+  publicTicked = new Set<string>();
+  publicLoading = false;
 
   confirmOpen = false;
   confirmConfig: ConfirmConfig = { title: '', message: '', confirmLabel: 'Delete' };
@@ -216,25 +225,87 @@ export class HolidaysComponent implements OnInit, OnDestroy {
     this.fieldErrors = {};
     this.formError = '';
     this.saving = false;
+    this.editDatesConfirmed = false;
     this.formOpen = true;
+  }
+
+  get isEdit(): boolean {
+    return Boolean(this.form.id);
+  }
+
+  /** Edit only: the date picker is locked until the confirm box is ticked (holidays.html). */
+  get datesLocked(): boolean {
+    return this.isEdit && !this.editDatesConfirmed;
+  }
+
+  onEditDatesConfirm(checked: boolean): void {
+    this.editDatesConfirmed = checked;
+  }
+
+  /** Every other holiday, shown lightly on the range calendar. */
+  get otherHolidays(): Holiday[] {
+    return this.allHolidays.filter((row) => row._id !== this.form.id);
+  }
+
+  get existingMarks(): DateRangeMark[] {
+    return this.otherHolidays.map((row) => ({ name: row.name, start: row.startDate, end: row.endDate }));
+  }
+
+  /** An existing holiday the picked dates run into — the conflict box (holidays.html). */
+  get conflict(): Holiday | null {
+    const start = this.form.startDate;
+    const end = this.form.endDate || start;
+    if (!start) return null;
+    return this.otherHolidays.find((row) => start <= row.endDate && end >= row.startDate) || null;
+  }
+
+  get conflictText(): string {
+    const row = this.conflict;
+    if (!row) return '';
+    const span = longDate(row.startDate) + ' – ' + longDate(row.endDate);
+    return this.form.endDate
+      ? `${row.name} already covers part of this range (${span}). Delete it to use these dates, or change dates to avoid it.`
+      : `${row.name} already covers ${longDate(this.form.startDate)} (${span}). Delete it to use this date, or change dates to pick another.`;
+  }
+
+  /** Same name (case-insensitive) as another holiday — shown under the Name field. */
+  get duplicateName(): boolean {
+    const name = this.form.name.trim().toLowerCase();
+    return Boolean(name) && this.otherHolidays.some((row) => row.name.trim().toLowerCase() === name);
+  }
+
+  get rangeSummary(): string {
+    const days = this.plannedDays;
+    if (this.form.startDate === this.form.endDate) return longDate(this.form.startDate) + ' · 1 day off.';
+    return longDate(this.form.startDate) + ' – ' + longDate(this.form.endDate) + ' · ' + days + ' days off, first and last day included.';
+  }
+
+  onRangeChange(range: DateRange): void {
+    this.form = { ...this.form, startDate: range.start, endDate: range.end };
+    delete this.fieldErrors['startDate'];
+    delete this.fieldErrors['endDate'];
+  }
+
+  /** "Delete existing & use these dates": removes the conflicting holiday, keeps the form. */
+  onOverrideConflict(): void {
+    const row = this.conflict;
+    if (!row || this.overriding) return;
+    this.overriding = true;
+    this.api.deleteHoliday(this.adminId, row._id).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+      this.overriding = false;
+      this.allHolidays = this.allHolidays.filter((entry) => entry._id !== row._id);
+      this.snackBar.open(res.message, 'Close', { duration: 3000 });
+      this.fetch();
+      this.cdr.markForCheck();
+    }, () => {
+      this.overriding = false;
+      this.cdr.markForCheck();
+    });
   }
 
   onNameChange(value: string): void {
     this.form = { ...this.form, name: value };
     delete this.fieldErrors['name'];
-  }
-
-  onStartChange(value: string): void {
-    // A one-day holiday is the common case: the last day follows the first until set.
-    const endDate = !this.form.endDate || this.form.endDate < value ? value : this.form.endDate;
-    this.form = { ...this.form, startDate: value, endDate };
-    delete this.fieldErrors['startDate'];
-    delete this.fieldErrors['endDate'];
-  }
-
-  onEndChange(value: string): void {
-    this.form = { ...this.form, endDate: value };
-    delete this.fieldErrors['endDate'];
   }
 
   get plannedDays(): number {
@@ -249,7 +320,8 @@ export class HolidaysComponent implements OnInit, OnDestroy {
   }
 
   get submitDisabled(): boolean {
-    return this.saving || !this.form.name.trim() || !this.form.startDate || !this.form.endDate || Boolean(this.rangeError);
+    return this.saving || this.overriding || !this.form.name.trim() || !this.form.startDate || !this.form.endDate
+      || Boolean(this.rangeError) || Boolean(this.conflict) || this.duplicateName;
   }
 
   onFormCancel(): void {
@@ -316,6 +388,7 @@ export class HolidaysComponent implements OnInit, OnDestroy {
 
   onGenerateYearChange(year: string): void {
     this.generateYear = year;
+    this.loadPublicEntries();
   }
 
   private rebuildYears(): void {
@@ -324,10 +397,63 @@ export class HolidaysComponent implements OnInit, OnDestroy {
     if (!this.yearOptions.some((option) => option.value === this.generateYear)) {
       this.generateYear = this.yearOptions.length ? this.yearOptions[0].value : '';
     }
+    this.loadPublicEntries();
   }
 
+  /** The preview list: every official row ticked except the ones that already clash. */
+  private loadPublicEntries(): void {
+    this.publicEntries = [];
+    this.publicTicked = new Set();
+    if (!this.generateState || !this.generateYear) return;
+    this.publicLoading = true;
+    this.api.getSystemHolidays(this.adminId, this.generateState, Number(this.generateYear))
+      .pipe(takeUntil(this.destroyed$))
+      .subscribe((res) => {
+        this.publicLoading = false;
+        this.publicEntries = res.rows || [];
+        this.publicTicked = new Set(this.publicEntries.filter((row) => !this.publicConflict(row)).map((row) => this.publicKey(row)));
+        this.cdr.markForCheck();
+      }, () => {
+        this.publicLoading = false;
+        this.cdr.markForCheck();
+      });
+  }
+
+  publicKey(row: SystemHolidayEntry): string {
+    return row.name + '|' + row.date;
+  }
+
+  /** Why a public row would clash with what the school already has, or ''. */
+  publicConflict(row: SystemHolidayEntry): string {
+    const name = row.name.trim().toLowerCase();
+    if (this.allHolidays.some((entry) => entry.name.trim().toLowerCase() === name && entry.startDate === row.date)) {
+      return `A holiday named "${row.name}" already exists.`;
+    }
+    const covering = this.allHolidays.find((entry) => entry.startDate <= row.date && entry.endDate >= row.date);
+    return covering ? `${covering.name} already covers part of this range.` : '';
+  }
+
+  togglePublic(row: SystemHolidayEntry): void {
+    const key = this.publicKey(row);
+    if (this.publicTicked.has(key)) this.publicTicked.delete(key);
+    else this.publicTicked.add(key);
+    this.publicTicked = new Set(this.publicTicked);
+  }
+
+  /** The ticked rows, for the preview calendar. */
+  get publicMarks(): DateRangeMark[] {
+    return this.publicEntries.filter((row) => this.publicTicked.has(this.publicKey(row)))
+      .map((row) => ({ name: row.name, start: row.date, end: row.date }));
+  }
+
+  publicDateLabel(row: SystemHolidayEntry): string {
+    return this.formatDate(row.date);
+  }
+
+  trackByPublic = (_index: number, row: SystemHolidayEntry): string => this.publicKey(row);
+
   get generateDisabled(): boolean {
-    return this.generating || !this.generateState || !this.generateYear;
+    return this.generating || !this.generateState || !this.generateYear || !this.publicTicked.size;
   }
 
   onGenerateCancel(): void {
@@ -338,7 +464,7 @@ export class HolidaysComponent implements OnInit, OnDestroy {
     if (this.generateDisabled) return;
     this.generating = true;
     this.generateError = '';
-    this.api.generate(this.adminId, this.generateState, Number(this.generateYear))
+    this.api.generate(this.adminId, this.generateState, Number(this.generateYear), Array.from(this.publicTicked))
       .pipe(takeUntil(this.destroyed$))
       .subscribe((res) => {
         this.generating = false;
@@ -358,20 +484,20 @@ export class HolidaysComponent implements OnInit, OnDestroy {
 
   onDelete(row: Holiday): void {
     this.askDelete([row._id], 'Delete Holiday',
-      `Delete "${row.name}"? It will also be removed from every template that includes it.`);
+      `This removes "${row.name}" from every Template that includes it. This can't be undone.`);
   }
 
   onDeleteSelected(): void {
     const ids = Array.from(this.selected);
     if (!ids.length) return;
     this.askDelete(ids, 'Delete Holidays',
-      `Delete ${ids.length} selected holiday${ids.length === 1 ? '' : 's'}? They will also be removed from every template that includes them.`);
+      `This removes ${ids.length} selected holiday${ids.length === 1 ? '' : 's'} from every Template that includes ${ids.length === 1 ? 'it' : 'them'}. This can't be undone.`);
   }
 
   private askDelete(ids: string[], title: string, message: string): void {
     if (this.confirmOpen || this.deleting) return;
     this.deleteIds = ids;
-    this.confirmConfig = { title, message, confirmLabel: 'Delete', variant: 'warning' };
+    this.confirmConfig = { title, message, confirmLabel: 'Delete', variant: 'warning', typeToConfirm: 'DELETE' };
     this.confirmOpen = true;
   }
 

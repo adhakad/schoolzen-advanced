@@ -8,7 +8,7 @@ const { toUtcMidnight, toDateKey } = require('../../helpers/date-only');
 const { nowWallClock } = require('../../helpers/attendance-time');
 const { computeDayStatus } = require('../../helpers/attendance/status');
 const { WEEK_OFF, shiftIndex, getStaffShiftIdsForDate, loadClassShiftResolver } = require('./shift-lookup');
-const { getOffKeysForPeople } = require('../holiday/holiday-calendar');
+const { DAY_TYPE, personKey, resolveDays } = require('../calendar/working-day');
 const liveStats = require('./live-stats');
 const { publishReconciled } = require('./publisher');
 const logger = require('../../helpers/logger');
@@ -84,36 +84,51 @@ const reconcileDay = async (adminId, dateKey) => {
     ]);
     const studentShifts = new Map(studentEnrollments.map((row) => [String(row.studentId), resolve(row)]));
 
+    // Who is decided today: everyone who punched, plus — once the day is over — everyone
+    // expected on a shift, so a no-show becomes an Absent row.
+    const expected = dayComplete
+        ? (await expectedPeople(adminId, dateKey, sessionId)).filter((person) => !punched.has(personKey(person.personType, person.personId)))
+        : [];
+    const people = [...punched.values()].map((p) => ({ personType: p.personType, personId: p.personId }))
+        .concat(expected.map((p) => ({ personType: p.personType, personId: p.personId })))
+        .filter((p) => !skip.has(personKey(p.personType, p.personId)));
+    // The shared working-day resolver decides Holiday > Leave > WeeklyOff before any punch is
+    // measured — the same answer Overview and Leave get.
+    const dayTypes = await resolveDays(adminId, { sessionId, people, fromKey: dateKey, toKey: dateKey });
+    const dayTypeOf = (key) => (dayTypes.get(key) && dayTypes.get(key).get(dateKey)) || DAY_TYPE.WORKING;
+
     const entries = [];
     punched.forEach((person, key) => {
         if (skip.has(key)) return;
         const rostered = person.personType === 'staff' ? staffShifts.get(person.personId) : studentShifts.get(person.personId);
         const shiftId = rostered && rostered !== WEEK_OFF ? rostered : null;
         const result = computeDayStatus({ dateKey, personType: person.personType, shift: shiftId ? shifts.get(shiftId) : null, punchTimes: person.times });
+        const dayType = dayTypeOf(key);
+        if (dayType !== DAY_TYPE.WORKING) {
+            // Punches on a day off are kept on the row; the day itself stays off.
+            entries.push({ personType: person.personType, personId: person.personId, shiftId: null, ...result, status: dayType });
+            return;
+        }
         // Before the day is over, "no arrival in the window" is not yet an absence.
         if (!dayComplete && result.status === 'Absent') return;
         entries.push({ personType: person.personType, personId: person.personId, shiftId, ...result });
     });
 
-    if (dayComplete) {
-        const expected = await expectedPeople(adminId, dateKey, sessionId);
-        // Each person's own Holiday calendar (template weekly-offs + holidays) decides the day.
-        const offKeys = await getOffKeysForPeople(adminId, sessionId, expected, dateKey, dateKey);
-        expected.forEach((person) => {
-            const key = `${person.personType}|${person.personId}`;
-            if (skip.has(key) || punched.has(key)) return;
-            const off = person.shiftId === WEEK_OFF || Boolean(offKeys.get(key) && offKeys.get(key).has(dateKey));
-            entries.push({
-                personType: person.personType,
-                personId: person.personId,
-                shiftId: off ? null : person.shiftId,
-                status: off ? 'Holiday' : 'Absent',
-                inTime: null,
-                outTime: null,
-                punches: [],
-            });
+    expected.forEach((person) => {
+        const key = personKey(person.personType, person.personId);
+        if (skip.has(key)) return;
+        const dayType = dayTypeOf(key);
+        const working = dayType === DAY_TYPE.WORKING;
+        entries.push({
+            personType: person.personType,
+            personId: person.personId,
+            shiftId: working ? person.shiftId : null,
+            status: working ? 'Absent' : dayType,
+            inTime: null,
+            outTime: null,
+            punches: [],
         });
-    }
+    });
 
     const now = new Date();
     for (let i = 0; i < entries.length; i += WRITE_CHUNK) {

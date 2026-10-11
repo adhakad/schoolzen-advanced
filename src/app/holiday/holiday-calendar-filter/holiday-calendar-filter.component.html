@@ -8,9 +8,7 @@
 
   <div class="hcf-pop" *ngIf="open" (click)="$event.stopPropagation()">
     <div class="cal-legend" *ngIf="monthHolidays.length; else noneThisMonth">
-      <span class="cal-legend-chip" *ngFor="let row of monthHolidays; trackBy: trackByHoliday">
-        <i class="bi bi-sun"></i>{{ row.name }}
-      </span>
+      <span class="cal-legend-chip" *ngFor="let row of monthHolidays; trackBy: trackByHoliday">{{ chipLabel(row) }}</span>
     </div>
     <ng-template #noneThisMonth><div class="hcf-none">No holidays this month.</div></ng-template>
 
@@ -23,6 +21,7 @@
     <div class="range-cal-grid">
       <div class="range-day" *ngFor="let cell of cells; trackBy: trackByCell"
            [class.in-range]="cell.inRange" [class.band-l]="cell.bandLeft" [class.band-r]="cell.bandRight"
+           [class.chain-endpoint]="cell.endpoint"
            [attr.title]="cell.names || null">
         <span class="range-day-num" *ngIf="cell.day">{{ cell.day }}</span>
       </div>

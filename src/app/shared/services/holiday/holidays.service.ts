@@ -8,7 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import {
-  GenerateResponse, Holiday, HolidayListResponse, HolidayPayload, SystemHolidayState
+  GenerateResponse, Holiday, HolidayListResponse, HolidayPayload, SystemHolidayEntry, SystemHolidayState
 } from 'src/app/shared/models/holiday/holiday.model';
 
 @Injectable({ providedIn: 'root' })
@@ -48,7 +48,13 @@ export class HolidaysService {
     return this.http.get<{ rows: SystemHolidayState[] }>(`${this.base}/system-holidays/states`, { params: { adminId } });
   }
 
-  generate(adminId: string, state: string, year: number): Observable<GenerateResponse> {
-    return this.http.post<GenerateResponse>(`${this.url}/generate`, { adminId, state, year });
+  /** One state's official holidays for a year — Generate's preview list. */
+  getSystemHolidays(adminId: string, state: string, year: number): Observable<{ rows: SystemHolidayEntry[] }> {
+    return this.http.get<{ rows: SystemHolidayEntry[] }>(`${this.base}/system-holidays`, { params: { adminId, state, year: String(year) } });
+  }
+
+  /** `selected`: the ticked "name|date" keys of the preview list. */
+  generate(adminId: string, state: string, year: number, selected?: string[]): Observable<GenerateResponse> {
+    return this.http.post<GenerateResponse>(`${this.url}/generate`, { adminId, state, year, ...(selected ? { selected } : {}) });
   }
 }

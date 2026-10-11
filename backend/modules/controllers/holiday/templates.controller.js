@@ -11,7 +11,7 @@ const {
 const { countAssigned, enqueueReconcileToday } = require('../../services/holiday/holiday-calendar');
 const { logActivity } = require('../../services/activity-log.service');
 
-// Templates (holiday/templates.md) — named bundles of Holiday ids + weekly off-days.
+// Templates (holiday/templates.md) — named bundles of Holiday ids (dated holidays only).
 // Assignment is by reference, so an edit here IS an edit to every assigned person's
 // calendar: the per-template cache key is dropped in this same request and today's
 // attendance is reconciled again.
@@ -44,13 +44,13 @@ let GetTemplates = async (req, res) => {
     return res.status(200).json(result);
 };
 
-/** Name list for the Assign modal's dropdown. */
+/** Name list for the Assign modal's dropdown (holidayIds feed its calendar view). */
 let GetTemplateOptions = async (req, res) => {
-    const rows = (await loadTemplates(req.query.adminId)).map((row) => ({ _id: row._id, name: row.name, isDefault: row.isDefault }));
+    const rows = (await loadTemplates(req.query.adminId)).map((row) => ({ _id: row._id, name: row.name, holidayIds: row.holidayIds }));
     return res.status(200).json({ rows });
 };
 
-const fieldsOf = (body) => ({ name: body.name, holidayIds: body.holidayIds, weeklyOffDays: [...body.weeklyOffDays].sort() });
+const fieldsOf = (body) => ({ name: body.name, holidayIds: body.holidayIds });
 
 let CreateTemplate = async (req, res) => {
     const { adminId } = req.body;
@@ -69,7 +69,7 @@ let UpdateTemplate = async (req, res) => {
     const template = await HolidayTemplateV2Model.findOne({ _id: req.params.id, adminId });
     if (!template) throw notFound(req.params.id);
     await assertOwnHolidays(adminId, req.body.holidayIds);
-    const before = { name: template.name, holidayIds: template.holidayIds.map(String), weeklyOffDays: [...template.weeklyOffDays] };
+    const before = { name: template.name, holidayIds: template.holidayIds.map(String) };
     Object.assign(template, fieldsOf(req.body), { updatedBy: actorOf(req), updatedAt: new Date() });
     await template.save().catch(rethrowDuplicate);
     await invalidateTemplates(adminId);
@@ -78,15 +78,12 @@ let UpdateTemplate = async (req, res) => {
     return res.status(200).json({ message: success.updated(ENTITY), template: toTemplateRow(template) });
 };
 
-/** Blocked while anyone uses it (errors.md shape 6); the Default can never be deleted. */
+/** Blocked while anyone uses it (errors.md shape 6). */
 let DeleteTemplate = async (req, res) => {
     const { adminId } = req.query;
-    const template = await HolidayTemplateV2Model.findOne({ _id: req.params.id, adminId }, 'name isDefault').lean();
+    const template = await HolidayTemplateV2Model.findOne({ _id: req.params.id, adminId }, 'name').lean();
     if (!template) throw notFound(req.params.id);
     const id = String(template._id);
-    if (template.isDefault) {
-        throw new ConflictError(messages.defaultProtected(), { module: MODULE, code: 'TEMPLATE_DEFAULT_PROTECTED' });
-    }
     const inUse = (await countAssigned(adminId, [id])).get(id) || 0;
     if (inUse) {
         throw new ConflictError(messages.templateInUse(inUse), {

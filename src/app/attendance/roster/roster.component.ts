@@ -31,8 +31,9 @@ import {
 } from 'src/app/shared/models/attendance/roster.model';
 import { FilterClass } from 'src/app/shared/models/student/student.model';
 import { rowErrorsOf } from 'src/app/shared/utils/api-error.util';
+import { DateRange } from 'src/app/shared/components/date-range-picker/date-range-picker.component';
 import {
-  currentMonthKey, formatTime, monthCalendar, monthLabel, shiftMonth
+  currentMonthKey, formatTime, monthLabel
 } from 'src/app/shared/utils/attendance-time.util';
 
 type PersonType = 'staff' | 'student';
@@ -42,6 +43,10 @@ const WEEKDAYS: { value: number; label: string }[] = [
   { value: 4, label: 'Thu' }, { value: 5, label: 'Fri' }, { value: 6, label: 'Sat' }, { value: 0, label: 'Sun' }
 ];
 const DEFAULT_WEEKDAYS = [1, 2, 3, 4, 5, 6];
+
+/** Last 'YYYY-MM-DD' of a 'YYYY-MM' month. */
+const monthEnd = (month: string): string =>
+  month + '-' + String(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate()).padStart(2, '0');
 
 const localDateKey = (date = new Date()): string =>
   date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
@@ -95,9 +100,10 @@ export class RosterComponent implements OnInit, OnDestroy {
   assignOpen = false;
   assignTitle = 'Assign to Selected';
   assignShiftId = '';
-  assignMonth = currentMonthKey();
+  /** The days the assignment covers (today onward; may cross months). Unticked weekdays become WO. */
+  assignFrom = '';
+  assignTo = '';
   assignWeekdays = new Set<number>(DEFAULT_WEEKDAYS);
-  assignCalendarOpen = false;
   /** The rows this modal writes to — the selection, or the single row a pencil opened. */
   private assignTargets: string[] = [];
   saving = false;
@@ -463,8 +469,10 @@ export class RosterComponent implements OnInit, OnDestroy {
     this.assignTitle = title;
     this.assignShiftId = '';
     this.assignWeekdays = new Set(DEFAULT_WEEKDAYS);
-    this.assignMonth = this.month < this.today.slice(0, 7) ? this.today.slice(0, 7) : this.month;
-    this.assignCalendarOpen = false;
+    // Defaults to the rest of the month on screen — today onward, never a locked day.
+    const first = this.month + '-01';
+    this.assignFrom = first < this.today ? this.today : first;
+    this.assignTo = this.month < this.today.slice(0, 7) ? this.assignFrom : monthEnd(this.month);
     if (prefill) this.prefill(keys);
     this.saving = false;
     this.assignOpen = true;
@@ -501,37 +509,14 @@ export class RosterComponent implements OnInit, OnDestroy {
     this.assignWeekdays = next;
   }
 
-  get assignMonthLabel(): string { return monthLabel(this.assignMonth); }
-  get assignIsCurrentMonth(): boolean { return this.assignMonth === this.today.slice(0, 7); }
-  get assignMonthHint(): string {
-    return this.assignIsCurrentMonth
-      ? 'This is the current month — some days already have attendance recorded, so only today and later can be reassigned.'
-      : 'Future month — the whole month is open to assign.';
-  }
-
-  assignMonthStep(delta: number): void {
-    const next = shiftMonth(this.assignMonth, delta);
-    if (next < this.today.slice(0, 7)) return;
-    this.assignMonth = next;
-  }
-
-  get assignCalendar(): { day: number | null; cls: string }[] {
-    const cells = monthCalendar(this.assignMonth);
-    const last = cells[cells.length - 1];
-    return cells.map((day, index) => {
-      if (day === null) return { day, cls: 'range-day' };
-      const dow = index % 7;
-      const classes = ['range-day', 'in-range'];
-      if (dow === 0 || day === 1) classes.push('band-l');
-      if (dow === 6 || day === last) classes.push('band-r');
-      if (day === 1 || day === last) classes.push('chain-endpoint');
-      if (this.today === this.assignMonth + '-' + String(day).padStart(2, '0')) classes.push('today');
-      return { day, cls: classes.join(' ') };
-    });
+  onAssignRange(range: DateRange): void {
+    this.assignFrom = range.start;
+    this.assignTo = range.end;
   }
 
   get assignSubmitDisabled(): boolean {
-    return this.saving || !this.assignShiftId || (this.personType === 'staff' && this.assignWeekdays.size === 0);
+    return this.saving || !this.assignShiftId
+      || (this.personType === 'staff' && (this.assignWeekdays.size === 0 || !this.assignFrom || !this.assignTo));
   }
 
   onAssignCancel(): void {
@@ -546,7 +531,7 @@ export class RosterComponent implements OnInit, OnDestroy {
     const request = this.personType === 'staff'
       ? this.api.assignStaff({
         adminId: this.adminId, staffIds: this.assignTargets, shiftId: this.assignShiftId,
-        month: this.assignMonth, weekdays: [...this.assignWeekdays]
+        fromDate: this.assignFrom, toDate: this.assignTo, weekdays: [...this.assignWeekdays]
       })
       : this.api.assignClasses({
         adminId: this.adminId, session: this.session, targets: this.targetsOf(this.assignTargets), shiftId: this.assignShiftId

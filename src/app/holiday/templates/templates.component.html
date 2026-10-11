@@ -34,14 +34,13 @@
         <tbody>
           <tr *ngFor="let row of rows; trackBy: trackByRow">
             <td>
-              <div class="tpl-name">{{ row.name }} <span class="tag tag-brand default-tag" *ngIf="row.isDefault">Default</span></div>
-              <div class="tpl-sub">{{ offDaysText(row) }}</div>
+              <div class="tpl-name">{{ row.name }}</div>
             </td>
             <td><span class="count-pill">{{ row.holidayCount ?? row.holidayIds.length }}</span></td>
             <td>
               <ng-container *ngIf="row.assignedCount; else nobody">{{ row.assignedCount }}</ng-container>
               <ng-template #nobody>
-                <span class="not-set">{{ row.isDefault ? 'Everyone without a template' : 'Nobody yet' }}</span>
+                <span class="not-set">Nobody yet</span>
               </ng-template>
             </td>
             <td>{{ formatDate(row.createdAt) }}</td>
@@ -51,7 +50,7 @@
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
-                        [attr.title]="row.isDefault ? 'The Default template cannot be deleted' : (row.assignedCount ? 'Still assigned to ' + row.assignedCount : null)"
+                        [attr.title]="row.assignedCount ? 'Still assigned to ' + row.assignedCount : null"
                         [disabled]="deleting || confirmOpen" (click)="onDelete(row)">
                   <i class="bi bi-trash"></i>
                 </button>
@@ -85,9 +84,8 @@
     <div class="status-card">
       <div class="card-title-row">Good to know</div>
       <div class="tip-item"><i class="bi bi-info-circle"></i>An empty template is fine — name the year now and tick holidays as you add them.</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Weekly off days (like Sunday) are part of the template — Leave and Attendance skip them.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>"Generate from Public Holidays" pre-fills a template from your region's official calendar — review before saving.</div>
       <div class="tip-item"><i class="bi bi-info-circle"></i>Changing a template updates everyone already assigned to it, straight away.</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Anyone without a template follows the Default template.</div>
     </div>
   </div>
 </div>
@@ -101,16 +99,6 @@
     <input id="tpl-name" type="text" placeholder="School Holidays 2026" maxlength="60"
            [value]="form.name" (input)="onNameChange($any($event.target).value)" />
     <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
-  </div>
-
-  <div class="m-field">
-    <label>Weekly Off</label>
-    <div class="wd-chips" role="group" aria-label="Weekly off days">
-      <button type="button" class="wd-chip" *ngFor="let day of weekdays"
-              [class.on]="form.weeklyOffDays.has(day.value)" [attr.aria-pressed]="form.weeklyOffDays.has(day.value)"
-              (click)="toggleWeekday(day.value)">{{ day.label }}</button>
-    </div>
-    <p class="m-error" *ngIf="fieldErrors['weeklyOffDays']">{{ fieldErrors['weeklyOffDays'] }}</p>
   </div>
 
   <div class="group-title">

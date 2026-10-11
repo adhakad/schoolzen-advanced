@@ -32,6 +32,7 @@ router.post('/holidays', ...holidayEdit, body(v.holidaySchema), holidays.CreateH
 router.put('/holidays/:id', ...holidayEdit, body(v.holidaySchema), holidays.UpdateHoliday);
 router.delete('/holidays/:id', ...holidayEdit, holidays.DeleteHoliday);
 router.get('/system-holidays/states', ...holidayView, holidays.GetSystemStates);
+router.get('/system-holidays', ...holidayView, query(v.systemHolidaySchema), holidays.GetSystemHolidays);
 router.post('/holidays/generate', ...holidayEdit, body(v.generateSchema), holidays.GenerateFromPublic);
 
 // Templates
@@ -45,8 +46,5 @@ router.delete('/templates/:id', ...holidayEdit, templates.DeleteTemplate);
 router.get('/assign', ...assignView, query(v.assignGridSchema), assign.GetGrid);
 router.post('/assign', ...assignEdit, body(v.assignSchema), assign.AssignTemplate);
 router.post('/assign/remove', ...assignEdit, body(v.unassignSchema), assign.UnassignTemplate);
-
-// Counts only, for the Leave / Attendance "no template" banner — any signed-in school user.
-router.get('/coverage', ...scoped, query(v.coverageSchema), assign.GetCoverage);
 
 module.exports = router;

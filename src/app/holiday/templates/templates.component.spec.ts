@@ -9,7 +9,7 @@ import { HolidayTemplate } from 'src/app/shared/models/holiday/holiday-template.
 import { HolidayTemplatesComponent } from './templates.component';
 
 const template: HolidayTemplate = {
-  _id: 't1', name: 'School 2026', holidayIds: ['h1'], weeklyOffDays: [0], isDefault: false,
+  _id: 't1', name: 'School 2026', holidayIds: ['h1'],
   createdAt: '2026-03-15T00:00:00Z', holidayCount: 1, assignedCount: 3
 };
 
@@ -47,15 +47,14 @@ describe('HolidayTemplatesComponent', () => {
     fixture.detectChanges();
   });
 
-  it('editing sends holiday ids + weekly off by reference, then refetches the list', () => {
+  it('editing sends holiday ids by reference (no weekly off), then refetches the list', () => {
     component.onEdit(component.rows[0]);
     component.toggleHoliday('h2');
-    component.toggleWeekday(6);
     component.onFormSubmit();
     const [id, body] = api.updateTemplate.calls.mostRecent().args;
     expect(id).toBe('t1');
     expect(body.holidayIds.sort()).toEqual(['h1', 'h2']);
-    expect(body.weeklyOffDays).toEqual([0, 6]);
+    expect(Object.keys(body)).not.toContain('weeklyOffDays');
     expect(api.getTemplates).toHaveBeenCalledTimes(2);
   });
 

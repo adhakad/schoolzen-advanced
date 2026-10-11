@@ -15,6 +15,11 @@ export interface HolidayAssignRow {
   templateName: string | null;
 }
 
+export interface AssignedCount {
+  assigned: number;
+  total: number;
+}
+
 export interface HolidayAssignGridResponse {
   rows: HolidayAssignRow[];
   total: number;
@@ -22,7 +27,8 @@ export interface HolidayAssignGridResponse {
   limit: number;
   truncated: boolean;
   canAssign: boolean;
-  defaultTemplate: { _id: string; name: string } | null;
+  /** The side panel's Overview — whole school, not just this page. */
+  summary: { staff: AssignedCount; student: AssignedCount };
 }
 
 export interface HolidayAssignPayload {
@@ -32,11 +38,6 @@ export interface HolidayAssignPayload {
   personIds: string[];
   templateId: string;
   mode: HolidayAssignMode;
-}
-
-export interface HolidayCoverage {
-  unassignedStaff: number;
-  unassignedStudents: number;
 }
 
 /** Mirrors the backend's classifySelection — the UI warning and the server check agree. */

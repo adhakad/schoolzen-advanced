@@ -30,7 +30,8 @@ import {
   EMPTY_FILTER_OPTIONS, EMPTY_PERSON_FILTER, PersonFilterOptions, PersonFilterValue
 } from 'src/app/shared/models/leave/person-filter.model';
 import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
-import { currentMonthKey, MONTH_NAMES } from 'src/app/shared/utils/attendance-time.util';
+import { currentMonthKey } from 'src/app/shared/utils/attendance-time.util';
+import { DateRange, rangeLabel } from 'src/app/shared/components/date-range-picker/date-range-picker.component';
 import { toApiError, validationErrorsOf } from 'src/app/shared/utils/api-error.util';
 import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
 
@@ -39,35 +40,12 @@ const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'S
 export const localDateKey = (date = new Date()): string =>
   date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
 
-const dateOf = (key: string): Date => new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, Number(key.slice(8, 10)));
-
 /** "05 Aug" / "05 Aug 2026". */
 export const shortDate = (key: string, withYear = false): string => {
   if (!key) return '';
   const label = key.slice(8, 10) + ' ' + MONTHS_SHORT[Number(key.slice(5, 7)) - 1];
   return withYear ? label + ' ' + key.slice(0, 4) : label;
 };
-
-/**
- * The Apply form's day count preview: every non-Sunday day in the range. It ignores
- * school holidays the browser doesn't know, so it can only OVERestimate — the server's
- * count is the real one (leave/errors.md: the reference pattern for client previews).
- */
-export const plannedDaysBetween = (from: string, to: string): number => {
-  if (!from || !to || to < from) return 0;
-  let count = 0;
-  for (let day = dateOf(from); localDateKey(day) <= to; day.setDate(day.getDate() + 1)) {
-    if (day.getDay() !== 0) count += 1;
-  }
-  return count;
-};
-
-interface CalCell {
-  key: string;
-  day: number | null;
-  cls: string;
-  disabled: boolean;
-}
 
 type PendingAction = { kind: 'approve' | 'force' | 'reject' | 'delete'; row: LeaveRequestRow } | null;
 
@@ -95,8 +73,7 @@ export class LeaveRequestsComponent implements OnInit, OnDestroy {
     { value: '', label: 'Any status' },
     { value: 'Pending', label: 'Pending' },
     { value: 'Approved', label: 'Approved' },
-    { value: 'Rejected', label: 'Rejected' },
-    { value: 'Cancelled', label: 'Taken back' }
+    { value: 'Rejected', label: 'Rejected' }
   ];
 
   // --- table ---------------------------------------------------------------------------
@@ -136,7 +113,8 @@ export class LeaveRequestsComponent implements OnInit, OnDestroy {
   people: LeavePersonOption[] = [];
   applicableTypes: LeaveType[] = [];
   balance: LeaveBalanceResponse | null = null;
-  calMonth = currentMonthKey();
+  /** Working days the picked range would be charged — counted by the server's working-day resolver. */
+  serverDays: number | null = null;
   private applyKey = '';
   readonly applyPersonTypeOptions: readonly DdOption[] = [
     { value: 'staff', label: 'A staff member' },
@@ -459,7 +437,7 @@ export class LeaveRequestsComponent implements OnInit, OnDestroy {
     this.applyFrom = '';
     this.applyTo = '';
     this.applyReason = '';
-    this.calMonth = currentMonthKey();
+    this.serverDays = null;
     this.setApplyPersonType(this.filter.personType);
   }
 
@@ -517,11 +495,14 @@ export class LeaveRequestsComponent implements OnInit, OnDestroy {
 
   private loadBalance(): void {
     this.balance = null;
+    this.serverDays = null;
     if (!this.applyPersonId || !this.applyLeaveTypeId) return;
-    this.api.getBalance(this.adminId, this.session, this.applyPersonType, this.applyPersonId, this.applyLeaveTypeId)
+    const range = this.applyFrom && this.applyTo ? { fromDate: this.applyFrom, toDate: this.applyTo } : undefined;
+    this.api.getBalance(this.adminId, this.session, this.applyPersonType, this.applyPersonId, this.applyLeaveTypeId, range)
       .pipe(takeUntil(this.destroyed$))
       .subscribe((res) => {
         this.balance = res;
+        this.serverDays = range && res.days != null ? res.days : null;
         this.cdr.markForCheck();
       }, () => {
         this.balance = null;
@@ -533,86 +514,32 @@ export class LeaveRequestsComponent implements OnInit, OnDestroy {
     this.applyReason = value;
   }
 
-  get plannedDays(): number {
-    return plannedDaysBetween(this.applyFrom, this.applyTo);
-  }
-
-  /** The preview overestimates only, so "over balance" here is a hint, never a block. */
+  /** Over the remaining balance by the server's own count — a hint here, the API decides. */
   get overBalance(): boolean {
-    return Boolean(this.balance) && this.plannedDays > (this.balance as LeaveBalanceResponse).remaining;
+    return Boolean(this.balance) && this.serverDays != null && this.serverDays > (this.balance as LeaveBalanceResponse).remaining;
   }
 
   /** Submit stays disabled until the form is valid. */
   get applyDisabled(): boolean {
-    return this.applying || !this.applyPersonId || !this.applyLeaveTypeId || !this.applyFrom || !this.applyTo || this.plannedDays < 1;
+    return this.applying || !this.applyPersonId || !this.applyLeaveTypeId || !this.applyFrom || !this.applyTo || this.serverDays === 0;
   }
 
-  // Inline range calendar: first click sets the start, the second the end; a re-click of
-  // the start makes it a one-day leave.
-  get calLabel(): string {
-    return MONTH_NAMES[Number(this.calMonth.slice(5, 7)) - 1] + ' ' + this.calMonth.slice(0, 4);
-  }
-
-  get calCells(): CalCell[] {
-    const year = Number(this.calMonth.slice(0, 4));
-    const month = Number(this.calMonth.slice(5, 7)) - 1;
-    const first = new Date(year, month, 1).getDay();
-    const count = new Date(year, month + 1, 0).getDate();
-    const cells: CalCell[] = [];
-    for (let i = 0; i < first; i += 1) cells.push({ key: '', day: null, cls: 'range-day empty', disabled: true });
-    const end = this.applyTo || this.applyFrom;
-    for (let day = 1; day <= count; day += 1) {
-      const key = this.calMonth + '-' + String(day).padStart(2, '0');
-      const dow = (first + day - 1) % 7;
-      const disabled = key < this.today;
-      const inRange = Boolean(this.applyFrom) && key >= this.applyFrom && key <= end;
-      const classes = ['range-day'];
-      if (disabled) classes.push('disabled');
-      if (inRange) {
-        classes.push('in-range');
-        if (key === this.applyFrom || dow === 0 || day === 1) classes.push('band-l');
-        if (key === end || dow === 6 || day === count) classes.push('band-r');
-      }
-      if (key === this.applyFrom || key === this.applyTo) classes.push('chain-endpoint');
-      if (key === this.today) classes.push('today');
-      cells.push({ key, day, cls: classes.join(' '), disabled });
-    }
-    return cells;
-  }
-
-  onCalStep(delta: number): void {
-    const year = Number(this.calMonth.slice(0, 4));
-    const month = Number(this.calMonth.slice(5, 7)) - 1 + delta;
-    const date = new Date(year, month, 1);
-    this.calMonth = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
-  }
-
-  onCalPick(cell: CalCell): void {
-    if (cell.disabled || !cell.key) return;
+  onApplyRange(range: DateRange): void {
+    this.applyFrom = range.start;
+    this.applyTo = range.end;
     delete this.applyFieldErrors['fromDate'];
     delete this.applyFieldErrors['toDate'];
-    if (!this.applyFrom || this.applyTo) {
-      this.applyFrom = cell.key;
-      this.applyTo = '';
-    } else if (cell.key < this.applyFrom) {
-      this.applyTo = this.applyFrom;
-      this.applyFrom = cell.key;
-    } else {
-      this.applyTo = cell.key;
-    }
+    if (range.start && range.end) this.loadBalance();
+    else this.serverDays = null;
   }
 
-  onCalReset(): void {
-    this.applyFrom = '';
-    this.applyTo = '';
-  }
-
+  /** The range line under the calendar, with the server's working-day count. */
   get calNote(): string {
-    if (!this.applyFrom) return 'Pick a date to start.';
-    if (!this.applyTo) return shortDate(this.applyFrom, true) + ' — now pick the last day (or click it again for a one-day leave).';
-    const days = this.plannedDays;
-    const range = this.applyFrom === this.applyTo ? shortDate(this.applyFrom, true) : shortDate(this.applyFrom, true) + ' – ' + shortDate(this.applyTo, true);
-    return range + ' · ' + days + (days === 1 ? ' working day' : ' working days') + ' (Sundays excluded).';
+    const range = rangeLabel(this.applyFrom, this.applyTo);
+    if (!this.applyPersonId || !this.applyLeaveTypeId) return range + ' · pick the person and leave type to count working days.';
+    if (this.serverDays == null) return range + ' · counting working days\u2026';
+    return range + ' · ' + this.serverDays + (this.serverDays === 1 ? ' working day' : ' working days')
+      + ' (holidays and weekly offs excluded).';
   }
 
   trackByIndex = (index: number): number => index;

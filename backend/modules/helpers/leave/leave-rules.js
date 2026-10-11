@@ -2,14 +2,9 @@
 const { toUtcMidnight, toDateKey } = require('../date-only');
 
 // The Leave module's pure rules — no DB, so scripts/test-leave-v2.js can check them directly.
+// Which days of a range are chargeable is NOT decided here: services/calendar/working-day.js.
 
 const MAX_RANGE_DAYS = 366;
-
-/**
- * Whether a day is off for the person — `offKeys` is their Holiday calendar (weekly off-days
- * + holiday ranges) from services/holiday/holiday-calendar.js. No hardcoded weekday here.
- */
-const isNonWorkingDay = (dateKey, offKeys) => Boolean(offKeys && offKeys.has(dateKey));
 
 /** Every "YYYY-MM-DD" from..to inclusive, or [] for a missing/reversed/over-long range. */
 const eachDayKey = (fromKey, toKey) => {
@@ -22,10 +17,6 @@ const eachDayKey = (fromKey, toKey) => {
     }
     return keys;
 };
-
-/** The grantable days of a range — what a leave is charged and marks on attendance. */
-const expandWorkingDays = (fromKey, toKey, offKeys) =>
-    eachDayKey(fromKey, toKey).filter((key) => !isNonWorkingDay(key, offKeys));
 
 /** Inclusive calendar-range overlap on "YYYY-MM-DD" keys (string compare is date order). */
 const rangesOverlap = (aFrom, aTo, bFrom, bTo) => aFrom <= bTo && aTo >= bFrom;
@@ -70,9 +61,7 @@ const classKey = (row) => `${row.classId}|${row.streamId || ''}|${row.sectionId 
 
 module.exports = {
     MAX_RANGE_DAYS,
-    isNonWorkingDay,
     eachDayKey,
-    expandWorkingDays,
     rangesOverlap,
     actionsForStatus,
     isApplicable,

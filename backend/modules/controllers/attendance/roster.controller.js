@@ -5,6 +5,7 @@ const StaffV2Model = require('../../models/staff/staff');
 const { ValidationError } = require('../../errors');
 const messages = require('../../helpers/messages/attendance.messages');
 const { parseDateKey } = require('../../helpers/date-only');
+const { eachKey } = require('../../helpers/calendar/working-day-rules');
 const { loadClassIndex, titleCase } = require('../../helpers/student/student.utils');
 const {
     MODULE, todayKey, monthDays, monthColumns, resolveSessionId, assertAssignableShift, enqueueReconcile, escapeRegExp,
@@ -136,29 +137,52 @@ let GetStaffRoster = async (req, res) => {
     });
 };
 
-/** Bulk assign: one bulkWrite for every selected person × every editable day. */
+const MAX_ASSIGN_DAYS = 366;
+
+/** The editable days of a from..to range (may cross months): today onward only. */
+const editableRange = (fromDate, toDate) => {
+    if (fromDate > toDate) throw dateRangeInvalid();
+    const span = eachKey(fromDate, toDate);
+    if (span.length > MAX_ASSIGN_DAYS) throw dateRangeInvalid('Pick a range of at most one year.');
+    const today = todayKey();
+    const days = span.filter((key) => key >= today);
+    if (!days.length) throw dateRangeInvalid('Past days are locked — pick today or a later date.');
+    return days;
+};
+
+/**
+ * Bulk assign: one bulkWrite for every selected person × every month the days touch. Each
+ * day is the shift on a ticked weekday and WO on an unticked one — the Roster WO the shared
+ * working-day resolver reads for that person.
+ */
 let AssignStaffRoster = async (req, res) => {
     const { adminId, staffIds, shiftId, month, weekdays, fromDate, toDate } = req.body;
-    const days = editableDays(month, fromDate, toDate);
+    const days = fromDate ? editableRange(fromDate, toDate) : editableDays(month);
     await assertAssignableShift(adminId, shiftId);
     const { valid, failed } = await partitionStaff(adminId, staffIds);
 
-    const set = { updatedAt: new Date() };
+    const byMonth = new Map();
     days.forEach((key) => {
-        set[`days.${key}`] = weekdays.includes(new Date(`${key}T00:00:00Z`).getUTCDay()) ? shiftId : WEEK_OFF;
+        const { year, month: monthNo } = parseDateKey(key);
+        const monthKey = `${year}-${monthNo}`;
+        if (!byMonth.has(monthKey)) byMonth.set(monthKey, { year, month: monthNo, set: { updatedAt: new Date() } });
+        byMonth.get(monthKey).set[`days.${key}`] = weekdays.includes(new Date(`${key}T00:00:00Z`).getUTCDay()) ? shiftId : WEEK_OFF;
     });
-    const { year, month: monthNo } = parseDateKey(days[0]);
-    await RosterV2Model.bulkWrite(valid.map((staffId) => ({
+    const groups = [...byMonth.values()];
+    await RosterV2Model.bulkWrite(groups.flatMap((group) => valid.map((staffId) => ({
         updateOne: {
-            filter: { adminId, staffId, year, month: monthNo },
-            update: { $set: set, $setOnInsert: { createdAt: new Date() } },
+            filter: { adminId, staffId, year: group.year, month: group.month },
+            update: { $set: group.set, $setOnInsert: { createdAt: new Date() } },
             upsert: true,
         },
-    })), { ordered: false });
-    await refreshShiftIds(adminId, valid, year, monthNo);
+    }))), { ordered: false });
+    await Promise.all(groups.map((group) => refreshShiftIds(adminId, valid, group.year, group.month)));
 
     if (days[0] === todayKey()) await enqueueReconcile(adminId, days[0]);
-    await logActivity(req, { module: MODULE, action: 'attendance.roster.assign', meta: { shiftId, month, people: valid.length, days: days.length } });
+    await logActivity(req, {
+        module: MODULE, action: 'attendance.roster.assign',
+        meta: { shiftId, month, fromDate, toDate, weekdays, people: valid.length, days: days.length },
+    });
 
     return res.status(200).json({
         message: messages.rosterAssigned(valid.length, days.length),

@@ -6,8 +6,8 @@
  * Row 1: search + Assign to Selected + Edit Selected; then the shared Person Type filter.
  * Assign is for people with no template yet, Edit for people who already have one. A
  * selection that mixes both shows a warning and disables BOTH buttons — the API rejects
- * such a batch too (HOLIDAY_ASSIGN_MIXED_SELECTION). Anyone left "Not set" follows the
- * school's Default template.
+ * such a batch too (HOLIDAY_ASSIGN_MIXED_SELECTION). Anyone "Not assigned" has no dated
+ * holidays. Changing a live assignment is gated behind an explicit confirm checkbox.
  *
  * Everything here needs the 'holiday-assign' permission (enforced by the API); without the
  * edit grant (`canAssign`) the assign controls are hidden.
@@ -23,9 +23,12 @@ import { ShellContextService } from 'src/app/shared/services/shell-context.servi
 import { DdOption } from 'src/app/shared/models/shared-components.model';
 import { HolidayAssignService } from 'src/app/shared/services/holiday/holiday-assign.service';
 import { HolidayTemplatesService } from 'src/app/shared/services/holiday/holiday-templates.service';
+import { HolidaysService } from 'src/app/shared/services/holiday/holidays.service';
+import { HolidayTemplateOption } from 'src/app/shared/models/holiday/holiday-template.model';
+import { DateRangeMark } from 'src/app/shared/components/date-range-picker/date-range-picker.component';
 import { LeaveFilterOptionsService } from 'src/app/shared/services/leave/leave-filter-options.service';
 import {
-  classifySelection, HolidayAssignMode, HolidayAssignRow, SelectionKind
+  AssignedCount, classifySelection, HolidayAssignMode, HolidayAssignRow, SelectionKind
 } from 'src/app/shared/models/holiday/holiday-assign.model';
 import {
   EMPTY_FILTER_OPTIONS, EMPTY_PERSON_FILTER, PersonFilterOptions, PersonFilterValue
@@ -54,12 +57,21 @@ export class HolidayAssignComponent implements OnInit, OnDestroy {
   total = 0;
   page = 1;
   limit = 25;
-  defaultTemplateName = 'Default';
+  summary: { staff: AssignedCount; student: AssignedCount } = { staff: { assigned: 0, total: 0 }, student: { assigned: 0, total: 0 } };
 
   /** Selected person → their current templateId (kept across pages for the mixed check). */
   selected = new Map<string, string | null>();
 
   templateOptions: DdOption[] = [];
+  private templates: HolidayTemplateOption[] = [];
+
+  /** Edit: the dropdown and Save/Remove stay locked until this is ticked (assign.html). */
+  editConfirmed = false;
+
+  /** "View on calendar": one person's template holidays. */
+  calendarOpen = false;
+  calendarTitle = '';
+  calendarMarks: DateRangeMark[] = [];
 
   modalOpen = false;
   mode: HolidayAssignMode = 'assign';
@@ -75,6 +87,7 @@ export class HolidayAssignComponent implements OnInit, OnDestroy {
   constructor(
     private api: HolidayAssignService,
     private templatesApi: HolidayTemplatesService,
+    private holidaysApi: HolidaysService,
     private filterOptionsApi: LeaveFilterOptionsService,
     private shellContext: ShellContextService,
     private adminAuthService: AdminAuthService,
@@ -157,7 +170,7 @@ export class HolidayAssignComponent implements OnInit, OnDestroy {
         this.rows = res.rows || [];
         this.total = res.total || 0;
         this.canAssign = Boolean(res.canAssign);
-        this.defaultTemplateName = res.defaultTemplate?.name || 'Default';
+        if (res.summary) this.summary = res.summary;
         // Keep the remembered template of visible selected rows current.
         this.rows.forEach((row) => { if (this.selected.has(row._id)) this.selected.set(row._id, row.templateId); });
         this.loading = false;
@@ -233,23 +246,73 @@ export class HolidayAssignComponent implements OnInit, OnDestroy {
     this.modalTemplateId = templateId;
     this.modalError = '';
     this.saving = false;
+    this.editConfirmed = false;
     this.modalOpen = true;
+    this.loadTemplates((rows) => {
+      this.templateOptions = rows.map((row) => ({ value: row._id, label: row.name }));
+    }, () => { this.modalError = "Couldn't load templates."; });
+  }
+
+  private loadTemplates(done: (rows: HolidayTemplateOption[]) => void, failed: () => void): void {
     this.templatesApi.getOptions(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
-      this.templateOptions = (res.rows || []).map((row) => ({ value: row._id, label: row.isDefault ? `${row.name} (Default)` : row.name }));
+      this.templates = res.rows || [];
+      done(this.templates);
       this.cdr.markForCheck();
     }, () => {
-      this.modalError = "Couldn't load templates.";
+      failed();
       this.cdr.markForCheck();
     });
   }
 
+  private get singleModalRow(): HolidayAssignRow | null {
+    return this.modalIds.length === 1 ? this.rows.find((entry) => entry._id === this.modalIds[0]) || null : null;
+  }
+
   get modalTitle(): string {
-    const who = this.modalIds.length === 1 ? '1 person' : `${this.modalIds.length} people`;
-    return (this.mode === 'assign' ? 'Assign Template' : 'Edit Template') + ' — ' + who;
+    const row = this.singleModalRow;
+    const title = this.mode === 'assign' ? 'Assign Holiday Template' : 'Edit Holiday Template';
+    return row ? title + ' — ' + row.name : title;
+  }
+
+  /** "Applies to Priya Sharma only." / "Applies to 3 selected rows." */
+  get modalScope(): string {
+    const row = this.singleModalRow;
+    if (row) return `Applies to ${row.name} only.`;
+    return `Applies to ${this.modalIds.length} selected ${this.modalIds.length === 1 ? 'row' : 'rows'}.`;
+  }
+
+  get editLocked(): boolean {
+    return this.mode === 'edit' && !this.editConfirmed;
   }
 
   get modalSubmitDisabled(): boolean {
-    return this.saving || !this.modalTemplateId;
+    return this.saving || !this.modalTemplateId || this.editLocked;
+  }
+
+  onEditConfirmChange(checked: boolean): void {
+    this.editConfirmed = checked;
+  }
+
+  // --- calendar view -----------------------------------------------------------------------
+
+  onViewCalendar(row: HolidayAssignRow): void {
+    if (!row.templateId) return;
+    this.calendarTitle = row.name + ' — Holidays';
+    this.calendarMarks = [];
+    this.calendarOpen = true;
+    const templateId = row.templateId;
+    this.loadTemplates((rows) => {
+      const ids = new Set((rows.find((entry) => entry._id === templateId) || { holidayIds: [] as string[] }).holidayIds);
+      this.holidaysApi.getOptions(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+        this.calendarMarks = (res.rows || []).filter((holiday) => ids.has(holiday._id))
+          .map((holiday) => ({ name: holiday.name, start: holiday.startDate, end: holiday.endDate }));
+        this.cdr.markForCheck();
+      });
+    }, () => undefined);
+  }
+
+  onCalendarClose(): void {
+    this.calendarOpen = false;
   }
 
   onModalTemplateChange(value: string): void {
@@ -276,9 +339,9 @@ export class HolidayAssignComponent implements OnInit, OnDestroy {
     }).pipe(takeUntil(this.destroyed$)).subscribe((res) => this.done(res.message), (error: unknown) => this.failed(error));
   }
 
-  /** Edit mode only: back to "Not set" — the Default template applies again. */
+  /** Edit mode only: back to "Not assigned" — no dated holidays until a template is assigned. */
   onRemoveTemplate(): void {
-    if (this.saving || this.mode !== 'edit') return;
+    if (this.saving || this.mode !== 'edit' || this.editLocked) return;
     this.saving = true;
     this.modalError = '';
     this.api.unassign(this.adminId, this.session, this.filter.personType, this.modalIds)

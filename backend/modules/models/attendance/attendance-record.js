@@ -6,7 +6,8 @@ const mongoose = require('mongoose');
 // reconcile worker (slow path) and by a manual correction; the fast path writes PunchLog.
 //
 // Mongoose name 'v2-attendance-record' — the legacy 'daily-attendance' is never touched.
-const STATUSES = Object.freeze(['Present', 'Late', 'HalfDay', 'Absent', 'Leave', 'Holiday']);
+// Holiday / Leave / WeeklyOff are the non-working days of services/calendar/working-day.js.
+const STATUSES = Object.freeze(['Present', 'Late', 'HalfDay', 'Absent', 'Leave', 'Holiday', 'WeeklyOff']);
 const PERSON_TYPES = Object.freeze(['staff', 'student']);
 
 const AttendanceRecordSchema = new mongoose.Schema({

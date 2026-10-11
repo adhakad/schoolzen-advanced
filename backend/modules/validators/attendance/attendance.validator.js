@@ -75,10 +75,14 @@ const rosterAssignSchema = Joi.object({
     adminId,
     staffIds: Joi.array().items(objectId).min(1).max(1000).unique().required().messages({ 'array.min': 'Select at least one person.' }),
     shiftId: objectId.required().messages({ 'any.required': 'Select a shift.', 'string.empty': 'Select a shift.' }),
-    month: monthKey.required(),
+    // A whole month, or a from..to date range (may cross months). Unticked weekdays become WO.
+    month: monthKey.allow('', null).empty('').default(null),
     weekdays: weekdays.min(1).messages({ 'array.min': 'Pick at least one day.' }),
     fromDate: dateKey.allow('', null).empty('').default(null),
     toDate: dateKey.allow('', null).empty('').default(null),
+}).or('month', 'fromDate').and('fromDate', 'toDate').messages({
+    'object.missing': 'Pick the dates this roster applies to.',
+    'object.and': 'Pick both the first and the last day.',
 });
 
 const rosterClearSchema = Joi.object({

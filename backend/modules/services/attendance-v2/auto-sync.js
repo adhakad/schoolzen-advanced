@@ -1,5 +1,6 @@
 'use strict';
 const DeviceModel = require('../../models/devices/device');
+const StaffV2Model = require('../../models/staff/staff');
 const { toDateKey } = require('../../helpers/date-only');
 const { nowWallClock } = require('../../helpers/attendance-time');
 const logger = require('../../helpers/logger');
@@ -22,4 +23,24 @@ const scheduleV2AutoSync = async () => {
     }
 };
 
-module.exports = { scheduleV2AutoSync };
+/**
+ * Nightly: reconcile YESTERDAY once it is over, for every v2 school. A day is only
+ * finalised (no-shows → Absent, roster WO → WeeklyOff, holidays) by a reconcile that runs
+ * after it ends; every other trigger reconciles "today", so without this a past day kept
+ * whatever its last mid-day run left. Enqueue only — no WDMS pull.
+ */
+const scheduleV2ReconcileYesterday = async () => {
+    try {
+        const { addReconcileJob } = require('../../queues/attendance-v2-queue');
+        const today = nowWallClock();
+        const dateKey = toDateKey(new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 1)));
+        const schools = await StaffV2Model.distinct('adminId', { status: 'active' });
+        await Promise.all(schools.map((adminId) => addReconcileJob({ adminId, dateKey })
+            .catch((error) => logger.warn('attendance-v2.nightlyReconcile.enqueueFailed', { adminId, reason: error.message }))));
+        logger.info('attendance-v2.nightlyReconcile.enqueued', { schools: schools.length, dateKey });
+    } catch (error) {
+        logger.error('attendance-v2.nightlyReconcile.failed', error);
+    }
+};
+
+module.exports = { scheduleV2AutoSync, scheduleV2ReconcileYesterday };

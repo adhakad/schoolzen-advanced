@@ -12,13 +12,28 @@ th.chk input, td.chk input { width: 16px; height: 16px; accent-color: var(--bran
 }
 .tag-manual { color: var(--slate); border-color: #D9CDEE; }
 .tag-auto { color: var(--brand); border-color: var(--brand-soft); }
-.m-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .m-hint { font-size: 11px; color: var(--ink-faint); margin-top: 6px; line-height: 1.4; }
-.range-summary {
-  font-size: 12.5px; color: var(--brand-deep); font-weight: 500; background: var(--brand-soft);
-  border-radius: var(--radius); padding: 9px 12px; margin-top: 4px; text-align: center;
+.confirm-gate {
+  display: flex; align-items: center; gap: 9px; background: var(--warning-soft); border-radius: var(--radius);
+  padding: 10px 12px; margin-bottom: 12px; font-size: 12.5px; color: #8A6D1F; font-weight: 500; cursor: pointer;
+  text-transform: none; letter-spacing: 0;
 }
-
-@media (max-width: 767px) {
-  .m-row { grid-template-columns: 1fr; }
+.confirm-gate input { width: 16px; height: 16px; accent-color: var(--warning); cursor: pointer; flex-shrink: 0; }
+.hol-conflict-box { background: var(--danger-soft); border-radius: var(--radius); padding: 12px; margin-top: 10px; }
+.hol-conflict-text { font-size: 12px; color: #8A3A2E; line-height: 1.6; margin-bottom: 10px; }
+.btn-override {
+  width: 100%; height: 36px; border-radius: var(--radius); border: none; background: var(--danger); color: #fff;
+  font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
 }
+.btn-override:hover:not(:disabled) { background: #9E4E3C; }
+.btn-override:disabled { opacity: .6; cursor: not-allowed; }
+.hol-check-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; max-height: 240px; overflow-y: auto; }
+.hol-check {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius);
+  cursor: pointer; font-size: 13px; color: var(--ink-soft);
+}
+.hol-check.checked { border-color: var(--brand); background: var(--brand-soft); }
+.hol-check input { width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer; flex-shrink: 0; }
+.hc-name { flex: 1; font-weight: 600; color: var(--ink); }
+.hc-days { font-size: 11.5px; color: var(--ink-faint); }
+.pub-hol-error { padding: 0 4px 4px; margin: 0; }

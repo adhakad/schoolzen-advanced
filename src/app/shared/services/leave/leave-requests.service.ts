@@ -34,9 +34,15 @@ export class LeaveRequestsService {
     return this.http.get<{ rows: LeavePersonOption[] }>(`${this.url}/people`, { params });
   }
 
-  getBalance(adminId: string, session: string, personType: LeavePersonType, personId: string, leaveTypeId: string): Observable<LeaveBalanceResponse> {
+  /** With `range`, the answer also carries the working days that range would be charged. */
+  getBalance(adminId: string, session: string, personType: LeavePersonType, personId: string, leaveTypeId: string,
+             range?: { fromDate: string; toDate: string }): Observable<LeaveBalanceResponse> {
     const params: Record<string, string> = { adminId, personType, personId, leaveTypeId };
     if (session) params['session'] = session;
+    if (range) {
+      params['fromDate'] = range.fromDate;
+      params['toDate'] = range.toDate;
+    }
     return this.http.get<LeaveBalanceResponse>(`${this.url}/balance`, { params });
   }
 

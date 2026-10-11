@@ -53,7 +53,7 @@
             <td><span class="hol-days">{{ row.days }}</span></td>
             <td>
               <span class="tag" [class.tag-manual]="row.source === 'manual'" [class.tag-auto]="row.source === 'auto'">
-                {{ row.source === 'auto' ? 'Auto' : 'Manual' }}
+                {{ row.source === 'auto' ? 'Auto-generated' : 'Manual' }}
               </span>
             </td>
             <td class="act">
@@ -109,28 +109,31 @@
     <label for="hol-name">Name <span class="req-star">*</span></label>
     <input id="hol-name" type="text" placeholder="Diwali" maxlength="80"
            [value]="form.name" (input)="onNameChange($any($event.target).value)" />
-    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+    <p class="m-error" *ngIf="fieldErrors['name'] || duplicateName">{{ fieldErrors['name'] || 'A holiday with this name already exists.' }}</p>
+    <div class="m-hint">For example Diwali, Independence Day, Summer Break.</div>
   </div>
-  <div class="m-row">
-    <div class="m-field">
-      <label>First Day <span class="req-star">*</span></label>
-      <app-dp [value]="form.startDate" ariaLabel="First day" [invalid]="!!fieldErrors['startDate']"
-              (valueChange)="onStartChange($event)"></app-dp>
-      <p class="m-error" *ngIf="fieldErrors['startDate']">{{ fieldErrors['startDate'] }}</p>
-    </div>
-    <div class="m-field">
-      <label>Last Day <span class="req-star">*</span></label>
-      <app-dp [value]="form.endDate" [min]="form.startDate" ariaLabel="Last day"
-              [invalid]="!!(fieldErrors['endDate'] || rangeError)" (valueChange)="onEndChange($event)"></app-dp>
-      <p class="m-error" *ngIf="fieldErrors['endDate'] || rangeError">{{ fieldErrors['endDate'] || rangeError }}</p>
-    </div>
-  </div>
-  <div class="range-summary" *ngIf="plannedDays && !rangeError">
-    {{ plannedDays }} day{{ plannedDays === 1 ? '' : 's' }} off
+  <div class="m-field">
+    <label>Dates <span class="req-star">*</span></label>
+    <label class="confirm-gate" *ngIf="isEdit">
+      <input type="checkbox" [checked]="editDatesConfirmed" (change)="onEditDatesConfirm($any($event.target).checked)" />
+      I confirm I want to change this holiday's dates
+    </label>
+    <app-date-range-picker [start]="form.startDate" [end]="form.endDate" [marked]="existingMarks" [showMarkedChips]="true"
+                           [disabled]="datesLocked" [invalid]="!!(fieldErrors['startDate'] || fieldErrors['endDate'] || rangeError)"
+                           noun="holiday" [summary]="rangeSummary"
+                           (rangeChange)="onRangeChange($event)">
+      <div class="hol-conflict-box" *ngIf="conflict" role="alert">
+        <div class="hol-conflict-text">{{ conflictText }}</div>
+        <button type="button" class="btn-override" [disabled]="overriding" (click)="onOverrideConflict()">
+          <i class="bi bi-trash"></i> Delete existing &amp; use these dates
+        </button>
+      </div>
+    </app-date-range-picker>
+    <p class="m-error" *ngIf="fieldErrors['startDate'] || fieldErrors['endDate'] || rangeError">{{ fieldErrors['startDate'] || fieldErrors['endDate'] || rangeError }}</p>
   </div>
 </app-form-modal>
 
-<app-form-modal [open]="generateOpen" title="Generate from Public Holidays" submitLabel="Generate" [width]="460"
+<app-form-modal [open]="generateOpen" title="Generate from Public Holidays" submitLabel="Add Selected Holidays" [width]="480"
                 [submitDisabled]="generateDisabled"
                 (submitted)="onGenerateSubmit()" (cancelled)="onGenerateCancel()">
   <p class="m-error form-level" *ngIf="generateError">{{ generateError }}</p>
@@ -144,7 +147,21 @@
     <app-dd [options]="yearOptions" [value]="generateYear" [disabled]="!generateState" disabledHint="Choose a state first"
             placeholder="Choose a year" ariaLabel="Year" (valueChange)="onGenerateYearChange($event)"></app-dd>
   </div>
-  <div class="m-hint">Copies that state's official holidays into your list, tagged Auto. Holidays you already have on the same date are skipped, and every copied row can be edited or deleted freely.</div>
+  <div class="m-hint">The suggested list below changes to that state's official calendar. These are added as <b>Auto-generated</b> holidays.</div>
+  <ng-container *ngIf="publicEntries.length">
+    <app-date-range-picker [marked]="publicMarks" [disabled]="true" [showSummary]="false" hint=""></app-date-range-picker>
+    <div class="hol-check-list">
+      <ng-container *ngFor="let row of publicEntries; trackBy: trackByPublic">
+        <label class="hol-check" [class.checked]="publicTicked.has(publicKey(row))">
+          <input type="checkbox" [checked]="publicTicked.has(publicKey(row))" (change)="togglePublic(row)" />
+          <span class="hc-name">{{ row.name }}</span>
+          <span class="hc-days">{{ publicDateLabel(row) }}</span>
+        </label>
+        <div class="m-error pub-hol-error" *ngIf="publicTicked.has(publicKey(row)) && publicConflict(row)">{{ publicConflict(row) }}</div>
+      </ng-container>
+    </div>
+  </ng-container>
+  <div class="m-hint" *ngIf="publicLoading">Loading the official list&hellip;</div>
 </app-form-modal>
 
 <app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"

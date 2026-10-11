@@ -6,7 +6,7 @@
 <div class="page-head">
   <div>
     <h1>Assign</h1>
-    <div class="subtitle">Assign a Holiday Template to staff or to students.</div>
+    <div class="subtitle">Assign a Holiday Template to staff or to a whole class of students.</div>
   </div>
 </div>
 
@@ -61,8 +61,14 @@
             <td><div class="g-name">{{ row.name }}</div><div class="g-sub" *ngIf="row.code">{{ row.code }}</div></td>
             <td>{{ isStaff ? (row.department || '—') : row.sub }}</td>
             <td>
-              <span class="assigned-tpl" *ngIf="row.templateId; else notSet">{{ row.templateName || 'Unknown template' }}</span>
-              <ng-template #notSet><span class="not-set">Not assigned · {{ defaultTemplateName }} applies</span></ng-template>
+              <ng-container *ngIf="row.templateId; else notSet">
+                <span class="assigned-tpl">{{ row.templateName || 'Unknown template' }}</span>
+                <button type="button" class="icon-btn cal-view-btn" title="View on calendar"
+                        [attr.aria-label]="'View holidays of ' + row.name + ' on a calendar'" (click)="onViewCalendar(row)">
+                  <i class="bi bi-calendar3"></i>
+                </button>
+              </ng-container>
+              <ng-template #notSet><span class="not-set">Not assigned</span></ng-template>
             </td>
             <td class="act" *ngIf="canAssign">
               <button type="button" class="row-action-btn" [disabled]="modalOpen" (click)="onRowAction(row)">
@@ -89,10 +95,16 @@
   </div>
 
   <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Staff Assigned</span><span class="stat-value">{{ summary.staff.assigned }} / {{ summary.staff.total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Students Assigned</span><span class="stat-value">{{ summary.student.assigned }} / {{ summary.student.total }}</span></div>
+    </div>
     <div class="status-card">
       <div class="card-title-row">Good to know</div>
       <div class="tip-item"><i class="bi bi-info-circle"></i>Assign is for people with no template yet; Edit changes the template of people who already have one.</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Anyone not assigned follows the {{ defaultTemplateName }} template.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Editing a live assignment needs an explicit confirmation before the dropdown unlocks &mdash; this isn't a casual change.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A change takes effect immediately &mdash; the attendance register picks it up on its next run.</div>
       <div class="tip-item"><i class="bi bi-info-circle"></i>Students are assigned per academic session — switch the session at the top to assign next year's.</div>
     </div>
   </div>
@@ -102,12 +114,25 @@
                 [submitDisabled]="modalSubmitDisabled"
                 (submitted)="onModalSubmit()" (cancelled)="onModalCancel()">
   <p class="m-error form-level" *ngIf="modalError">{{ modalError }}</p>
+  <p class="m-hint modal-scope">{{ modalScope }}</p>
+  <label class="confirm-gate" *ngIf="mode === 'edit'">
+    <input type="checkbox" [checked]="editConfirmed" (change)="onEditConfirmChange($any($event.target).checked)" />
+    I confirm I want to change this assignment
+  </label>
   <div class="m-field">
     <label>Holiday Template <span class="req-star">*</span></label>
-    <app-dd [options]="templateOptions" [value]="modalTemplateId" placeholder="Choose a template"
-            ariaLabel="Holiday template" (valueChange)="onModalTemplateChange($event)"></app-dd>
+    <app-dd [options]="templateOptions" [value]="modalTemplateId" placeholder="— Select —" [disabled]="editLocked"
+            disabledHint="Tick the confirmation first" ariaLabel="Holiday template" (valueChange)="onModalTemplateChange($event)"></app-dd>
   </div>
-  <button type="button" class="link-btn remove-link" *ngIf="mode === 'edit'" [disabled]="saving" (click)="onRemoveTemplate()">
-    <i class="bi bi-x-circle"></i> Remove template ({{ defaultTemplateName }} applies)
+  <p class="m-hint" *ngIf="mode === 'edit'">The change takes effect straight away &mdash; the attendance register picks it up on its next run.</p>
+  <button type="button" class="link-btn remove-link" *ngIf="mode === 'edit'" [disabled]="saving || editLocked" (click)="onRemoveTemplate()">
+    <i class="bi bi-x-circle"></i> Remove template
   </button>
+</app-form-modal>
+
+<!-- View on calendar: the dates a person's assigned template covers. -->
+<app-form-modal [open]="calendarOpen" [title]="calendarTitle" [width]="340" [showSubmit]="false"
+                cancelLabel="Close" (cancelled)="onCalendarClose()">
+  <app-date-range-picker [marked]="calendarMarks" [showMarkedChips]="true" [disabled]="true"
+                         [showSummary]="false" hint=""></app-date-range-picker>
 </app-form-modal>

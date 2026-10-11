@@ -18,10 +18,12 @@ interface CalendarCell {
   inRange: boolean;
   bandLeft: boolean;
   bandRight: boolean;
+  endpoint: boolean;
   names: string;
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const shortDay = (key: string): string => `${Number(key.slice(8, 10))} ${MONTHS[Number(key.slice(5, 7)) - 1].slice(0, 3)}`;
 const pad = (n: number): string => String(n).padStart(2, '0');
 
 /** "YYYY-MM" shifted by `delta` months. */
@@ -95,6 +97,11 @@ export class HolidayCalendarFilterComponent implements OnChanges {
     this.open = false;
   }
 
+  /** "Diwali · 28 Oct – 1 Nov" — the chip per holiday in the visible month (holidays.html). */
+  chipLabel(row: Holiday): string {
+    return row.name + ' · ' + shortDay(row.startDate) + (row.startDate !== row.endDate ? ' – ' + shortDay(row.endDate) : '');
+  }
+
   trackByCell = (index: number): number => index;
   trackByHoliday = (_index: number, row: Holiday): string => row._id;
 
@@ -108,19 +115,24 @@ export class HolidayCalendarFilterComponent implements OnChanges {
 
     const lead = new Date(Date.UTC(year, mon - 1, 1)).getUTCDay();
     const cells: CalendarCell[] = [];
-    for (let i = 0; i < lead; i += 1) cells.push({ day: null, key: '', inRange: false, bandLeft: false, bandRight: false, names: '' });
+    for (let i = 0; i < lead; i += 1) cells.push({ day: null, key: '', inRange: false, bandLeft: false, bandRight: false, endpoint: false, names: '' });
     for (let day = 1; day <= lastDay; day += 1) {
       const key = `${this.viewMonth}-${pad(day)}`;
       const hits = this.monthHolidays.filter((row) => row.startDate <= key && row.endDate >= key);
-      cells.push({ day, key, inRange: hits.length > 0, bandLeft: false, bandRight: false, names: hits.map((row) => row.name).join(', ') });
+      // Each day's OWN holiday decides its band, so two holidays on back-to-back days never
+      // merge into one continuous band.
+      const own = hits[0];
+      const column = (lead + day - 1) % 7;
+      cells.push({
+        day,
+        key,
+        inRange: Boolean(own),
+        bandLeft: Boolean(own) && (own.startDate === key || column === 0),
+        bandRight: Boolean(own) && (own.endDate === key || column === 6),
+        endpoint: Boolean(own) && (own.startDate === key || own.endDate === key),
+        names: hits.map((row) => row.name).join(', ')
+      });
     }
-    // Round the band's ends: a holiday day whose neighbour (same week row) isn't one.
-    cells.forEach((cell, index) => {
-      if (!cell.inRange) return;
-      const column = index % 7;
-      cell.bandLeft = column === 0 || !cells[index - 1].inRange;
-      cell.bandRight = column === 6 || !cells[index + 1] || !cells[index + 1].inRange;
-    });
     this.cells = cells;
   }
 

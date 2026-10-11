@@ -9,7 +9,7 @@ import { LeaveTypesService } from 'src/app/shared/services/leave/leave-types.ser
 import { LeaveFilterOptionsService } from 'src/app/shared/services/leave/leave-filter-options.service';
 import { LeaveRequestRow } from 'src/app/shared/models/leave/leave-request.model';
 import { EMPTY_FILTER_OPTIONS } from 'src/app/shared/models/leave/person-filter.model';
-import { LeaveRequestsComponent, plannedDaysBetween } from './leave-requests.component';
+import { LeaveRequestsComponent } from './leave-requests.component';
 
 const row = (overrides: Partial<LeaveRequestRow>): LeaveRequestRow => ({
   _id: 'r1', personType: 'staff', personId: 'p1', name: 'Priya Sharma', code: 'STF-0142', sub: 'Teacher',
@@ -24,7 +24,7 @@ describe('LeaveRequestsComponent', () => {
   let api: jasmine.SpyObj<LeaveRequestsService>;
 
   beforeEach(async () => {
-    api = jasmine.createSpyObj<LeaveRequestsService>('LeaveRequestsService', ['getRequests', 'getPeople', 'approve', 'reject', 'delete', 'cancel']);
+    api = jasmine.createSpyObj<LeaveRequestsService>('LeaveRequestsService', ['getRequests', 'getPeople', 'getBalance', 'approve', 'reject', 'delete', 'cancel']);
     api.getRequests.and.returnValue(of({
       rows: [
         row({ _id: 'pending' }),
@@ -89,7 +89,14 @@ describe('LeaveRequestsComponent', () => {
     expect(component.applyDisabled).toBeFalse();
   });
 
-  it('client day preview skips Sundays (it may only overestimate)', () => {
-    expect(plannedDaysBetween('2026-08-08', '2026-08-10')).toBe(2);
+  it('the day count comes from the server (holidays and weekly offs excluded), never a client guess', () => {
+    api.getBalance.and.returnValue(of({ allocated: 12, used: 2, remaining: 10, assigned: true, days: 3 }));
+    component.onApplyOpen();
+    component.applyPersonId = 'p1';
+    component.applyLeaveTypeId = 't1';
+    component.onApplyRange({ start: '2099-08-10', end: '2099-08-16' });
+    expect(api.getBalance).toHaveBeenCalledWith('a1', jasmine.any(String), jasmine.any(String), 'p1', 't1', { fromDate: '2099-08-10', toDate: '2099-08-16' });
+    expect(component.serverDays).toBe(3);
+    expect(component.calNote).toContain('3 working days');
   });
 });

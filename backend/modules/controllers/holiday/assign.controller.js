@@ -8,7 +8,7 @@ const messages = require('../../helpers/messages/holiday.messages');
 const { findPeople } = require('../../helpers/leave/context');
 const { MODULE, findSession, loadTemplates } = require('../../helpers/holiday/context');
 const { classifySelection } = require('../../helpers/holiday/holiday-rules');
-const { assignedTemplates, getCoverage, enqueueReconcileToday } = require('../../services/holiday/holiday-calendar');
+const { assignedTemplates, enqueueReconcileToday } = require('../../services/holiday/holiday-calendar');
 const { logActivity } = require('../../services/activity-log.service');
 const { allows } = require('../../middleware/require-permission');
 
@@ -30,9 +30,17 @@ const sessionRequired = async (adminId, label) => {
 let GetGrid = async (req, res) => {
     const { adminId, session, personType, page, limit } = req.query;
     const sessionId = personType === 'student' ? await sessionRequired(adminId, session) : await findSession(adminId, session);
-    const [people, templates] = await Promise.all([findPeople(adminId, sessionId, req.query), loadTemplates(adminId)]);
+    const sessionMatch = sessionId ? { adminId, sessionId: new ObjectId(sessionId) } : null;
+    const [people, templates, staffTotal, staffAssigned, studentTotal, studentAssigned] = await Promise.all([
+        findPeople(adminId, sessionId, req.query),
+        loadTemplates(adminId),
+        // The side panel's "Staff Assigned x / y" and "Students Assigned x / y".
+        StaffV2Model.countDocuments({ adminId, status: 'active' }),
+        StaffV2Model.countDocuments({ adminId, status: 'active', holidayTemplateId: { $ne: null } }),
+        sessionMatch ? StudentEnrollmentModel.countDocuments(sessionMatch) : 0,
+        sessionMatch ? StudentEnrollmentModel.countDocuments({ ...sessionMatch, holidayTemplateId: { $ne: null } }) : 0,
+    ]);
     const names = new Map(templates.map((row) => [row._id, row.name]));
-    const defaultTemplate = templates.find((row) => row.isDefault) || null;
 
     const pageRows = people.rows.slice((page - 1) * limit, page * limit);
     const assigned = await assignedTemplates(adminId, sessionId, pageRows.map((row) => ({ personType, personId: row._id })));
@@ -46,7 +54,7 @@ let GetGrid = async (req, res) => {
     return res.status(200).json({
         rows, total: people.rows.length, page, limit, truncated: people.truncated,
         canAssign: Boolean(req.permissions && allows(req.permissions, 'holiday-assign', 'edit')),
-        defaultTemplate: defaultTemplate ? { _id: defaultTemplate._id, name: defaultTemplate.name } : null,
+        summary: { staff: { assigned: staffAssigned, total: staffTotal }, student: { assigned: studentAssigned, total: studentTotal } },
     });
 };
 
@@ -110,7 +118,7 @@ let AssignTemplate = async (req, res) => {
     return res.status(200).json({ message, count: personIds.length });
 };
 
-/** Back to "Not set" — the Default template applies again. */
+/** Back to "Not set" — no dated holidays apply until a template is assigned again. */
 let UnassignTemplate = async (req, res) => {
     const { adminId, session, personType, personIds } = req.body;
     const sessionId = personType === 'student' ? await sessionRequired(adminId, session) : null;
@@ -127,16 +135,8 @@ let UnassignTemplate = async (req, res) => {
     return res.status(200).json({ message: messages.unassigned(result.modifiedCount), count: result.modifiedCount });
 };
 
-/** Who still has no template — the Leave / Attendance banner. Counts only. */
-let GetCoverage = async (req, res) => {
-    const { adminId, session } = req.query;
-    const sessionId = await findSession(adminId, session);
-    return res.status(200).json(await getCoverage(adminId, sessionId));
-};
-
 module.exports = {
     GetGrid,
     AssignTemplate,
     UnassignTemplate,
-    GetCoverage,
 };

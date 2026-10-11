@@ -22,6 +22,9 @@ const LeaveRequestSchema = new mongoose.Schema({
     status: { type: String, enum: STATUSES, default: 'Pending' },
     // usedDays added on approval — exactly what Take Back gives back.
     chargedDays: { type: Number, default: 0 },
+    // The working days that charge covered (services/calendar/working-day.js) — what the
+    // resolver reads as "on Leave" for this person.
+    dateKeys: { type: [String], default: [] },
     // The attendance days THIS leave wrote, so Take Back removes exactly those.
     attendanceDateKeys: { type: [String], default: [] },
     forceApproved: { type: Boolean, default: false },

@@ -24,9 +24,7 @@ const generated = (inserted, skipped) => (skipped
 const templateNameRequired = () => 'Template name is required.';
 const templateDuplicate = () => 'A template with this name already exists.';
 const templateInUse = (count) => `${plural(count, 'person is', 'people are')} still using this template. Change their template first!`;
-const defaultProtected = () => 'The Default template cannot be deleted — it applies to everyone without a template.';
 const holidayNotFound = () => 'That holiday was not found.';
-const weeklyOffInvalid = () => 'Pick valid weekly off days.';
 
 // Assign
 const templateNotFound = () => 'The selected template no longer exists — refresh and try again.';
@@ -53,9 +51,7 @@ module.exports = {
     templateNameRequired,
     templateDuplicate,
     templateInUse,
-    defaultProtected,
     holidayNotFound,
-    weeklyOffInvalid,
     templateNotFound,
     selectionEmpty,
     mixedSelection,

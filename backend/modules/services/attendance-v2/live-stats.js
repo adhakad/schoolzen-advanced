@@ -11,7 +11,7 @@ const { toUtcMidnight } = require('../../helpers/date-only');
 // a manual edit); read() serves GET /live-status from the stored doc behind a short TTL.
 
 const LIVE_TTL_SECONDS = 45;
-const EMPTY = () => ({ Present: 0, Late: 0, HalfDay: 0, Absent: 0, Leave: 0, Holiday: 0, live: 0 });
+const EMPTY = () => ({ Present: 0, Late: 0, HalfDay: 0, Absent: 0, Leave: 0, Holiday: 0, WeeklyOff: 0, live: 0 });
 
 const recompute = async (adminId, dateKey) => {
     const date = toUtcMidnight(dateKey);

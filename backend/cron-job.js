@@ -41,6 +41,10 @@ cron.schedule('*/5 * * * *', () => {
 });
 
 // --- v2 Attendance --------------------------------------------------------------------
+// Finalise yesterday for every v2 school (Absent / WeeklyOff / Holiday) — reconcile only.
+cron.schedule(process.env.ATTENDANCE_V2_RECONCILE_CRON || '30 0 * * *', () => {
+  require('./modules/services/attendance-v2/auto-sync').scheduleV2ReconcileYesterday();
+}, { timezone: process.env.SCHOOL_TIMEZONE || 'Asia/Kolkata' });
 // Opt-in (ATTENDANCE_V2_AUTO_SYNC=true) so a school isn't pulled by both pipelines at once.
 // Each school's job is staggered inside SYNC_WINDOW_MINUTES by the queue itself.
 if (process.env.ATTENDANCE_V2_AUTO_SYNC === 'true') {

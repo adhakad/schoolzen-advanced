@@ -653,6 +653,9 @@
 .sz .tag-muted { color: var(--ink-faint); border-color: var(--line); font-style: italic; }
 .sz .tag-brand { color: var(--brand); border-color: #D9CDEE; }
 .sz .tag-success { color: var(--success); border-color: #BFE0CC; }
+/* Status tags (Active / Inactive) — outline only, never italic (the references' tag-active/tag-inactive). */
+.sz .tag-active { color: var(--success); border-color: #BFE0CC; }
+.sz .tag-inactive { color: var(--ink-faint); border-color: var(--line); }
 .sz .tag-warning { color: var(--warning); border-color: #E7D3A8; }
 .sz .na { color: var(--ink-faint); font-size: 13px; font-style: italic; }
 .sz .students-count { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-weight: 500; }

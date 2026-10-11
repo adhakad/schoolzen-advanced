@@ -23,7 +23,8 @@ export class RosterService {
     return this.http.get<StaffRosterResponse>(`${this.url}/staff`, { params });
   }
 
-  assignStaff(body: { adminId: string; staffIds: string[]; shiftId: string; month: string; weekdays: number[] }): Observable<BulkWriteResponse> {
+  /** A whole `month`, or a `fromDate`..`toDate` range (may cross months). Unticked weekdays are written as WO. */
+  assignStaff(body: { adminId: string; staffIds: string[]; shiftId: string; month?: string; fromDate?: string; toDate?: string; weekdays: number[] }): Observable<BulkWriteResponse> {
     return this.http.post<BulkWriteResponse>(`${this.url}/staff/assign`, body);
   }
 

@@ -39,6 +39,7 @@
 .range-day.band-l::before { left: 4px; border-radius: 13px 0 0 13px; }
 .range-day.band-r::before { right: 4px; border-radius: 0 13px 13px 0; }
 .range-day.band-l.band-r::before { left: 4px; right: 4px; border-radius: 13px; }
+.range-day.chain-endpoint .range-day-num { background: var(--brand); color: #fff; }
 
 .change-dates-link {
   display: block; width: 100%; text-align: center; background: none; border: none; color: var(--brand);

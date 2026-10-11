@@ -1,11 +1,11 @@
-/** Holiday Assign's HTTP service — /api/v2/holiday/assign and the coverage count. */
+/** Holiday Assign's HTTP service — /api/v2/holiday/assign. */
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { PersonFilterValue } from 'src/app/shared/models/leave/person-filter.model';
 import {
-  HolidayAssignGridResponse, HolidayAssignPayload, HolidayCoverage, HolidayPersonType
+  HolidayAssignGridResponse, HolidayAssignPayload, HolidayPersonType
 } from 'src/app/shared/models/holiday/holiday-assign.model';
 
 @Injectable({ providedIn: 'root' })
@@ -30,12 +30,5 @@ export class HolidayAssignService {
 
   unassign(adminId: string, session: string, personType: HolidayPersonType, personIds: string[]): Observable<{ message: string; count: number }> {
     return this.http.post<{ message: string; count: number }>(`${this.base}/assign/remove`, { adminId, session, personType, personIds });
-  }
-
-  /** People with no template yet — the Leave / Attendance banner. */
-  getCoverage(adminId: string, session: string): Observable<HolidayCoverage> {
-    const params: Record<string, string> = { adminId };
-    if (session) params['session'] = session;
-    return this.http.get<HolidayCoverage>(`${this.base}/coverage`, { params });
   }
 }

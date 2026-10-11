@@ -37,6 +37,15 @@ const generateSchema = Joi.object({
     adminId,
     state: Joi.string().trim().max(60).required().messages({ 'any.required': 'Choose a state and year.', 'string.empty': 'Choose a state and year.' }),
     year: Joi.number().integer().min(2000).max(2100).required().messages({ 'any.required': 'Choose a state and year.', 'number.base': 'Choose a state and year.' }),
+    // The ticked rows of the preview list ("name|YYYY-MM-DD"); omitted = the whole list.
+    selected: Joi.array().items(Joi.string().trim().max(200)).max(400).min(1)
+        .messages({ 'array.min': 'Tick at least one holiday to add.' }),
+});
+
+const systemHolidaySchema = Joi.object({
+    adminId,
+    state: Joi.string().trim().max(60).required(),
+    year: Joi.number().integer().min(2000).max(2100).required(),
 });
 
 // ---- Templates ----------------------------------------------------------------------------
@@ -49,8 +58,6 @@ const templateSchema = Joi.object({
         'string.max': 'Template name cannot be longer than 60 characters.',
     }),
     holidayIds: Joi.array().items(objectId).unique().max(500).default([]),
-    weeklyOffDays: Joi.array().items(Joi.number().integer().min(0).max(6)).unique().max(6).default([0])
-        .messages({ 'array.max': 'At least one day must be a working day.', 'number.base': 'Pick valid weekly off days.' }),
 });
 
 const templateListSchema = Joi.object({ adminId, search, page, limit });
@@ -91,17 +98,15 @@ const unassignSchema = Joi.object({
         .messages({ 'array.min': 'Select at least one person.', 'any.required': 'Select at least one person.' }),
 });
 
-const coverageSchema = Joi.object({ adminId, session });
-
 module.exports = {
     holidaySchema,
     holidayListSchema,
     holidayOptionsSchema,
     generateSchema,
+    systemHolidaySchema,
     templateSchema,
     templateListSchema,
     assignGridSchema,
     assignSchema,
     unassignSchema,
-    coverageSchema,
 };

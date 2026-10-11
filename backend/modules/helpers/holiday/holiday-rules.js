@@ -15,26 +15,16 @@ const holidayDays = (startKey, endKey) => {
     return Math.round((end - start) / DAY_MS) + 1;
 };
 
-/**
- * Every non-working "YYYY-MM-DD" of a calendar inside from..to:
- * weekly off-days ∪ the days of every holiday range.
- * @param {{ weeklyOffDays: Number[], ranges: Array<{ startDateKey, endDateKey }> }} calendar
- */
-const offKeysFor = (calendar, fromKey, toKey) => {
+/** Every "YYYY-MM-DD" inside from..to covered by one of the holiday `ranges` ({ startDateKey, endDateKey }). */
+const holidayKeysFor = (ranges, fromKey, toKey) => {
     const keys = new Set();
-    const from = toUtcMidnight(fromKey);
-    const to = toUtcMidnight(toKey);
-    if (!calendar || !from || !to || from > to) return keys;
-    const weekly = new Set((calendar.weeklyOffDays || []).map(Number));
-    let count = 0;
-    for (let day = from; day <= to && count < MAX_SPAN_DAYS; day = new Date(day.getTime() + DAY_MS), count += 1) {
-        if (weekly.has(day.getUTCDay())) keys.add(toDateKey(day));
-    }
-    (calendar.ranges || []).forEach((range) => {
+    if (!fromKey || !toKey || fromKey > toKey) return keys;
+    (ranges || []).forEach((range) => {
         const start = range.startDateKey > fromKey ? range.startDateKey : fromKey;
         const end = range.endDateKey < toKey ? range.endDateKey : toKey;
         if (start > end) return;
-        for (let day = toUtcMidnight(start); day <= toUtcMidnight(end); day = new Date(day.getTime() + DAY_MS)) {
+        let count = 0;
+        for (let day = toUtcMidnight(start); day <= toUtcMidnight(end) && count < MAX_SPAN_DAYS; day = new Date(day.getTime() + DAY_MS), count += 1) {
             keys.add(toDateKey(day));
         }
     });
@@ -75,4 +65,4 @@ const dedupePublic = (existing, incoming) => {
 /** True when a holiday range touches `dateKey`. */
 const coversDay = (range, dateKey) => Boolean(range) && range.startDateKey <= dateKey && range.endDateKey >= dateKey;
 
-module.exports = { MAX_HOLIDAY_DAYS, holidayDays, offKeysFor, classifySelection, dedupePublic, coversDay };
+module.exports = { MAX_HOLIDAY_DAYS, holidayDays, holidayKeysFor, classifySelection, dedupePublic, coversDay };

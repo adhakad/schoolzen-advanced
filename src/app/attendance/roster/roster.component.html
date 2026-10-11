@@ -186,7 +186,7 @@
                 (submitted)="onAssignSubmit()" (cancelled)="onAssignCancel()">
   <p class="modal-note">
     {{ personType === 'staff'
-      ? 'This shift will apply to everyone currently selected, across the month and weekdays chosen below.'
+      ? 'This shift will apply to everyone currently selected, across the dates and weekdays chosen below. Unticked days become their weekly off (WO).'
       : 'Students in the selected classes follow this shift for the whole session.' }}
   </p>
   <div class="m-field">
@@ -197,29 +197,10 @@
 
   <ng-container *ngIf="personType === 'staff'">
     <div class="m-field">
-      <label>Applies to Month</label>
-      <button type="button" class="range-input-trigger" [attr.aria-expanded]="assignCalendarOpen"
-              (click)="assignCalendarOpen = !assignCalendarOpen">
-        <i class="bi bi-calendar3"></i>
-        <span>{{ assignMonthLabel }}</span>
-        <i class="bi bi-chevron-right trigger-chevron" [class.open]="assignCalendarOpen"></i>
-      </button>
-      <div class="assign-cal" *ngIf="assignCalendarOpen">
-        <div class="range-cal-head">
-          <button type="button" class="range-cal-nav" aria-label="Previous month" [disabled]="assignIsCurrentMonth" (click)="assignMonthStep(-1)"><i class="bi bi-chevron-left"></i></button>
-          <span class="range-cal-title">{{ assignMonthLabel }}</span>
-          <button type="button" class="range-cal-nav" aria-label="Next month" (click)="assignMonthStep(1)"><i class="bi bi-chevron-right"></i></button>
-        </div>
-        <div class="range-cal">
-          <div class="range-cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
-          <div class="range-cal-grid">
-            <div *ngFor="let cell of assignCalendar; trackBy: trackByIndex" [class]="cell.cls">
-              <span class="range-day-num" *ngIf="cell.day">{{ cell.day }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="m-hint">{{ assignMonthHint }}</div>
+      <label>Applies to Dates <span class="req-star">*</span></label>
+      <app-date-range-picker [start]="assignFrom" [end]="assignTo" [min]="today" noun="day"
+                             hint="Roster can only be set from today onward &mdash; earlier days are locked."
+                             (rangeChange)="onAssignRange($event)"></app-date-range-picker>
     </div>
 
     <div class="m-field">
