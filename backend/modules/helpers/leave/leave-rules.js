@@ -1,16 +1,15 @@
 'use strict';
 const { toUtcMidnight, toDateKey } = require('../date-only');
-const { isWeeklyOff } = require('../attendance/status');
 
 // The Leave module's pure rules — no DB, so scripts/test-leave-v2.js can check them directly.
 
 const MAX_RANGE_DAYS = 366;
 
 /**
- * Sunday only until the Holiday module (#6) exists — this is the ONE place its calendar
- * joins in (leave-requests.md: "excluding Sundays + Holiday rows").
+ * Whether a day is off for the person — `offKeys` is their Holiday calendar (weekly off-days
+ * + holiday ranges) from services/holiday/holiday-calendar.js. No hardcoded weekday here.
  */
-const isNonWorkingDay = (dateKey, holidayKeys) => isWeeklyOff(dateKey) || Boolean(holidayKeys && holidayKeys.has(dateKey));
+const isNonWorkingDay = (dateKey, offKeys) => Boolean(offKeys && offKeys.has(dateKey));
 
 /** Every "YYYY-MM-DD" from..to inclusive, or [] for a missing/reversed/over-long range. */
 const eachDayKey = (fromKey, toKey) => {
@@ -25,8 +24,8 @@ const eachDayKey = (fromKey, toKey) => {
 };
 
 /** The grantable days of a range — what a leave is charged and marks on attendance. */
-const expandWorkingDays = (fromKey, toKey, holidayKeys) =>
-    eachDayKey(fromKey, toKey).filter((key) => !isNonWorkingDay(key, holidayKeys));
+const expandWorkingDays = (fromKey, toKey, offKeys) =>
+    eachDayKey(fromKey, toKey).filter((key) => !isNonWorkingDay(key, offKeys));
 
 /** Inclusive calendar-range overlap on "YYYY-MM-DD" keys (string compare is date order). */
 const rangesOverlap = (aFrom, aTo, bFrom, bTo) => aFrom <= bTo && aTo >= bFrom;

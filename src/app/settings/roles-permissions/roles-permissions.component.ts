@@ -28,10 +28,12 @@ import { BulkOutcomeLine } from 'src/app/shared/models/academic-setup/bulk-delet
 
 const MODULE_LABELS: Readonly<Record<string, string>> = {
   student: 'Student', attendance: 'Attendance', marksheet: 'Marksheet', leave: 'Leave', 'leave-limit': 'Leave Limits',
+  holiday: 'Holidays', 'holiday-assign': 'Holiday Assign',
   fees: 'Fees', payroll: 'Payroll', settings: 'Settings'
 };
 const MODULE_ICONS: Readonly<Record<string, string>> = {
   student: 'mortarboard', attendance: 'calendar-check', marksheet: 'journal-text', leave: 'calendar-plus', 'leave-limit': 'sliders',
+  holiday: 'sun', 'holiday-assign': 'calendar2-check',
   fees: 'wallet2', payroll: 'cash-stack', settings: 'gear'
 };
 const SCOPE_FIELDS: readonly string[] = ['classId', 'streamId', 'sectionId', 'staffId'];

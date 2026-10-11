@@ -36,6 +36,9 @@ const StaffSchema = new mongoose.Schema({
     archivedEmpCode: { type: String, default: null },
     cardNumber: { type: String, trim: true, default: null },
     verifyMode: { type: Number, enum: Object.values(VERIFY_MODES), default: VERIFY_MODES.CARD_ONLY },
+    // Holiday Assign (holiday/assign.md): the person's holiday calendar, by reference. null =
+    // not assigned yet → the school's Default template applies.
+    holidayTemplateId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-holiday-template', default: null },
     // The school's signup admin (roles-permissions.md): exactly one per school, set at
     // creation (owner-bootstrap.js), never editable through any endpoint. Their Super Admin
     // assignment can't be removed and they can't be deactivated or terminated.
@@ -57,6 +60,8 @@ StaffSchema.index({ adminId: 1, status: 1, _id: 1 });
 StaffSchema.index({ adminId: 1, name: 1 });
 // Manage Staff's Department → Designation → Status filter chain (manage-staff.md).
 StaffSchema.index({ adminId: 1, departmentId: 1, designationId: 1, status: 1 });
+// Holiday Assign grid + Template delete's in-use count.
+StaffSchema.index({ adminId: 1, holidayTemplateId: 1 });
 // Real uniqueness guards (errors.md shape 9), only where a value is present. Terminating a
 // staff member moves their code to `archivedEmpCode` (and a card must already be removed),
 // so a terminated row never holds a code or card a new hire needs.

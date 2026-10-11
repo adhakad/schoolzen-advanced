@@ -32,6 +32,10 @@ const EnrollmentSchema = new mongoose.Schema({
     // Cleared on promotion — assigned fresh in the new class via Manage Students.
     rollNumber: { type: Number, default: null },
 
+    // Holiday Assign (holiday/assign.md) — session-scoped like the class itself. null = not
+    // assigned yet → the school's Default template applies.
+    holidayTemplateId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-holiday-template', default: null },
+
     // How this placement came to exist. The Admission page lists `admission` rows only.
     entryType: {
         type: String,
@@ -61,6 +65,9 @@ EnrollmentSchema.index({ adminId: 1, studentId: 1, sessionId: 1 }, { unique: tru
 // order (equality fields, then _id as the keyset-pagination sort) — the list query is an
 // index range scan at any depth, never .skip(N) (performance-principles.md).
 EnrollmentSchema.index({ adminId: 1, sessionId: 1, classId: 1, streamId: 1, groupId: 1, sectionId: 1, _id: 1 });
+
+// Holiday Assign grid + Template delete's in-use count.
+EnrollmentSchema.index({ adminId: 1, sessionId: 1, holidayTemplateId: 1 });
 
 // The Admission page's own list: this session's admission-type rows, newest paging by _id.
 EnrollmentSchema.index({ adminId: 1, sessionId: 1, entryType: 1, _id: 1 });

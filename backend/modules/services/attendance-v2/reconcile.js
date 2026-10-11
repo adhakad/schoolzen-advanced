@@ -6,8 +6,9 @@ const StudentEnrollmentModel = require('../../models/student/student-enrollment'
 const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
 const { toUtcMidnight, toDateKey } = require('../../helpers/date-only');
 const { nowWallClock } = require('../../helpers/attendance-time');
-const { computeDayStatus, isWeeklyOff } = require('../../helpers/attendance/status');
+const { computeDayStatus } = require('../../helpers/attendance/status');
 const { WEEK_OFF, shiftIndex, getStaffShiftIdsForDate, loadClassShiftResolver } = require('./shift-lookup');
+const { getOffKeysForPeople } = require('../holiday/holiday-calendar');
 const liveStats = require('./live-stats');
 const { publishReconciled } = require('./publisher');
 const logger = require('../../helpers/logger');
@@ -96,10 +97,12 @@ const reconcileDay = async (adminId, dateKey) => {
 
     if (dayComplete) {
         const expected = await expectedPeople(adminId, dateKey, sessionId);
+        // Each person's own Holiday calendar (template weekly-offs + holidays) decides the day.
+        const offKeys = await getOffKeysForPeople(adminId, sessionId, expected, dateKey, dateKey);
         expected.forEach((person) => {
             const key = `${person.personType}|${person.personId}`;
             if (skip.has(key) || punched.has(key)) return;
-            const off = person.shiftId === WEEK_OFF || isWeeklyOff(dateKey);
+            const off = person.shiftId === WEEK_OFF || Boolean(offKeys.get(key) && offKeys.get(key).has(dateKey));
             entries.push({
                 personType: person.personType,
                 personId: person.personId,

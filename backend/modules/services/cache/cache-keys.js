@@ -59,6 +59,19 @@ const keys = {
         typesApplicable: (adminId, personType) => `${adminId}:leave:types:applicable:${personType}`,
         typesPattern: (adminId) => `${adminId}:leave:types*`,
     },
+    // Holiday (holiday/optimization.md). Near-static lists plus one calendar per template —
+    // the per-template key is invalidated in the same request as any edit to it.
+    holiday: {
+        list: (adminId) => `${adminId}:holiday:list`,
+        listPattern: (adminId) => `${adminId}:holiday:list*`,
+        templates: (adminId) => `${adminId}:holiday:templates`,
+        template: (adminId, templateId) => `${adminId}:holiday:templates:${templateId}`,
+        defaultTemplate: (adminId) => `${adminId}:holiday:templates:default`,
+        templatesPattern: (adminId) => `${adminId}:holiday:templates*`,
+        // The one non-tenant key: SystemHoliday is shared, Compass-maintained data.
+        system: (state, year) => `system:holiday:${state}:${year}`,
+        systemStates: () => 'system:holiday:states',
+    },
 };
 
 // Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write

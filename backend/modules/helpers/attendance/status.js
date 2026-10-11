@@ -11,12 +11,6 @@ const { toUtcMidnight } = require('../date-only');
 const buildPunchHash = (adminId, personId, punchTime) =>
     crypto.createHash('sha1').update(`${adminId}|${personId}|${new Date(punchTime).toISOString()}`).digest('hex');
 
-/** Sunday is the weekly off until the Holiday module supplies a school's own calendar. */
-const isWeeklyOff = (dateKey) => {
-    const date = toUtcMidnight(dateKey);
-    return Boolean(date) && date.getUTCDay() === 0;
-};
-
 /**
  * The day's status from its punches against the expected shift.
  *
@@ -98,4 +92,4 @@ const isTimeRangeValid = (startTime, endTime) => {
     return start !== null && end !== null && start < end;
 };
 
-module.exports = { buildPunchHash, isWeeklyOff, computeDayStatus, chipTime, shiftCode, isTimeRangeValid };
+module.exports = { buildPunchHash, computeDayStatus, chipTime, shiftCode, isTimeRangeValid };

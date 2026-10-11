@@ -1,0 +1,113 @@
+<!-- Holiday Assign.
+     Reference: docs/schoolzen-planning/v1/holiday/assign.html
+     Row 1: search + Assign to Selected + Edit Selected; mixed-selection warning; the shared
+     Person Type filter rows. -->
+
+<div class="page-head">
+  <div>
+    <h1>Assign</h1>
+    <div class="subtitle">Assign a Holiday Template to staff or to students.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name" aria-label="Search by name"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group" *ngIf="canAssign">
+          <button type="button" class="btn-assign" [disabled]="assignDisabled" (click)="onAssignSelected()">
+            <i class="bi bi-calendar-check"></i> Assign to Selected
+          </button>
+          <button type="button" class="btn-edit-sel" [disabled]="editDisabled" (click)="onEditSelected()">
+            <i class="bi bi-pencil"></i> Edit Selected
+          </button>
+        </div>
+      </div>
+      <div class="sel-warning" *ngIf="mixed" role="alert">
+        <i class="bi bi-exclamation-triangle"></i>
+        Your selection mixes people who already have a template with ones who don't. Select only one type at a time to Assign or Edit.
+      </div>
+      <app-person-filter [options]="filterOptions" [value]="filter" (valueChange)="onFilterChange($event)"></app-person-filter>
+      <div class="fetch-error" *ngIf="lookupError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
+        <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
+      </div>
+    </div>
+
+    <div class="sel-bar" *ngIf="selectedCount">
+      <span><b>{{ selectedCount }}</b> selected</span>
+      <button type="button" class="link-btn" (click)="selected.clear()">Clear</button>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="chk" *ngIf="canAssign"><input type="checkbox" aria-label="Select all on this page" [checked]="allSelected" (change)="toggleAll()" /></th>
+            <th>Name</th>
+            <th>{{ isStaff ? 'Department' : 'Class' }}</th>
+            <th>Assigned Template</th>
+            <th class="act" *ngIf="canAssign">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td class="chk" *ngIf="canAssign"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="selected.has(row._id)" (change)="toggleRow(row)" /></td>
+            <td><div class="g-name">{{ row.name }}</div><div class="g-sub" *ngIf="row.code">{{ row.code }}</div></td>
+            <td>{{ isStaff ? (row.department || '—') : row.sub }}</td>
+            <td>
+              <span class="assigned-tpl" *ngIf="row.templateId; else notSet">{{ row.templateName || 'Unknown template' }}</span>
+              <ng-template #notSet><span class="not-set">Not assigned · {{ defaultTemplateName }} applies</span></ng-template>
+            </td>
+            <td class="act" *ngIf="canAssign">
+              <button type="button" class="row-action-btn" [disabled]="modalOpen" (click)="onRowAction(row)">
+                <i class="bi" [class.bi-pencil]="row.templateId" [class.bi-plus-lg]="!row.templateId"></i>
+                {{ row.templateId ? 'Edit' : 'Assign' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search ? 'Nobody matches that search.' : 'Nobody matches these filters.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Assign is for people with no template yet; Edit changes the template of people who already have one.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Anyone not assigned follows the {{ defaultTemplateName }} template.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Students are assigned per academic session — switch the session at the top to assign next year's.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="modalOpen" [title]="modalTitle" [submitLabel]="mode === 'assign' ? 'Assign' : 'Save'" [width]="440"
+                [submitDisabled]="modalSubmitDisabled"
+                (submitted)="onModalSubmit()" (cancelled)="onModalCancel()">
+  <p class="m-error form-level" *ngIf="modalError">{{ modalError }}</p>
+  <div class="m-field">
+    <label>Holiday Template <span class="req-star">*</span></label>
+    <app-dd [options]="templateOptions" [value]="modalTemplateId" placeholder="Choose a template"
+            ariaLabel="Holiday template" (valueChange)="onModalTemplateChange($event)"></app-dd>
+  </div>
+  <button type="button" class="link-btn remove-link" *ngIf="mode === 'edit'" [disabled]="saving" (click)="onRemoveTemplate()">
+    <i class="bi bi-x-circle"></i> Remove template ({{ defaultTemplateName }} applies)
+  </button>
+</app-form-modal>

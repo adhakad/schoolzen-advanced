@@ -10,10 +10,9 @@ import { LeaveRoutingModule } from './leave-routing.module';
 import { LeaveRequestsComponent } from './leave-requests/leave-requests.component';
 import { LeaveCreateComponent } from './leave-create/leave-create.component';
 import { LeaveAssignComponent } from './leave-assign/leave-assign.component';
-import { PersonFilterComponent } from './person-filter/person-filter.component';
 
 @NgModule({
-  declarations: [LeaveRequestsComponent, LeaveCreateComponent, LeaveAssignComponent, PersonFilterComponent],
+  declarations: [LeaveRequestsComponent, LeaveCreateComponent, LeaveAssignComponent],
   imports: [SharedComponentsModule, LeaveRoutingModule]
 })
 export class LeaveModule {}

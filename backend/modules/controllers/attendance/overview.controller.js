@@ -9,7 +9,7 @@ const { ValidationError, ConflictError, NotFoundError, ExternalServiceError } = 
 const messages = require('../../helpers/messages/attendance.messages');
 const { toUtcMidnight, toDateKey } = require('../../helpers/date-only');
 const { atWallClock } = require('../../helpers/attendance-time');
-const { chipTime, isWeeklyOff } = require('../../helpers/attendance/status');
+const { chipTime } = require('../../helpers/attendance/status');
 const { loadClassIndex, describePlacement } = require('../../helpers/student/student.utils');
 const {
     MODULE, todayKey, monthDays, monthColumns, resolveSessionId, queue, escapeRegExp,
@@ -18,6 +18,7 @@ const { getSchoolTerminalSns } = require('../../services/attendance-v2/ingest');
 const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
 const { shiftIndex, getStaffShiftIdsForDate, getStudentShiftIds } = require('../../services/attendance-v2/shift-lookup');
 const liveStats = require('../../services/attendance-v2/live-stats');
+const { getOffKeysForPeople } = require('../../services/holiday/holiday-calendar');
 const { logActivity } = require('../../services/activity-log.service');
 const { STATUSES } = AttendanceRecordV2Model;
 
@@ -110,10 +111,11 @@ let GetGrid = async (req, res) => {
     });
 
     const columns = monthColumns(month);
-    const weeklyOff = columns.filter((col) => isWeeklyOff(col.dateKey)).map((col) => col.dateKey);
+    // Off-days come from each person's Holiday calendar, not a fixed weekday.
+    const offKeys = await getOffKeysForPeople(adminId, sessionId, ids.map((personId) => ({ personType, personId })), keys[0], keys[keys.length - 1]);
     const result = rows.map((row) => {
         const cells = cellsByPerson.get(row._id);
-        weeklyOff.forEach((key) => { if (!cells[key]) cells[key] = { s: 'H', t: null }; });
+        (offKeys.get(`${personType}|${row._id}`) || new Set()).forEach((key) => { if (!cells[key]) cells[key] = { s: 'H', t: null }; });
         const presentCount = Object.values(cells).filter((cell) => ['P', 'L', 'HD'].includes(cell.s)).length;
         return { ...row, type: personType, cells, live: includesToday && live.has(row._id), presentCount };
     });

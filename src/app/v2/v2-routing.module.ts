@@ -48,6 +48,12 @@ const routes: Routes = [
         loadChildren: () => import('src/app/leave/leave.module')
           .then((m) => m.LeaveModule)
       },
+      // Module 6 — Holiday.
+      {
+        path: 'holiday',
+        loadChildren: () => import('src/app/holiday/holiday.module')
+          .then((m) => m.HolidayModule)
+      },
       // Module 12 — Settings.
       {
         path: 'settings',

@@ -10,7 +10,9 @@ const mongoose = require('mongoose');
 // reference .html's four mini-switches).
 // 'leave-limit' is separate from 'leave' on purpose: viewing/actioning requests and setting
 // people's yearly allowances are different jobs (Leave Assign is gated on its edit).
-const PERMISSION_MODULES = Object.freeze(['student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'fees', 'payroll', 'settings']);
+// 'holiday-assign' is separate from 'holiday' for the same reason: maintaining the calendar
+// and deciding whose calendar it is are different grants.
+const PERMISSION_MODULES = Object.freeze(['student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'holiday', 'holiday-assign', 'fees', 'payroll', 'settings']);
 
 const RoleSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },

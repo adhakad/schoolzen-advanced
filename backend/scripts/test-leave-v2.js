@@ -7,14 +7,14 @@ const {
 } = require('../modules/helpers/leave/leave-rules');
 
 const tests = {
-    'working days skip Sundays (2026-08-09 is a Sunday)': () => {
-        assert.deepStrictEqual(expandWorkingDays('2026-08-08', '2026-08-10'), ['2026-08-08', '2026-08-10']);
+    'no weekday is hardcoded off — only the calendar decides (2026-08-09 is a Sunday)': () => {
+        assert.deepStrictEqual(expandWorkingDays('2026-08-08', '2026-08-10', new Set()), ['2026-08-08', '2026-08-09', '2026-08-10']);
     },
-    'a Sunday-only range has no working days (LEAVE_RANGE_EMPTY)': () => {
-        assert.deepStrictEqual(expandWorkingDays('2026-08-09', '2026-08-09'), []);
+    'calendar off-days are skipped': () => {
+        assert.deepStrictEqual(expandWorkingDays('2026-08-08', '2026-08-11', new Set(['2026-08-09', '2026-08-11'])), ['2026-08-08', '2026-08-10']);
     },
-    'holiday keys are excluded once the Holiday module supplies them': () => {
-        assert.deepStrictEqual(expandWorkingDays('2026-08-10', '2026-08-11', new Set(['2026-08-11'])), ['2026-08-10']);
+    'a range fully off has no working days (LEAVE_RANGE_EMPTY)': () => {
+        assert.deepStrictEqual(expandWorkingDays('2026-08-09', '2026-08-09', new Set(['2026-08-09'])), []);
     },
     'a reversed range is invalid (LEAVE_DATE_RANGE_INVALID)': () => {
         assert.deepStrictEqual(eachDayKey('2026-08-10', '2026-08-05'), []);

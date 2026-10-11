@@ -1,0 +1,151 @@
+<!-- Holidays.
+     Reference: docs/schoolzen-planning/v1/holiday/holidays.html
+     Row 1: search + Delete Selected + Generate + Add Holiday. Row 2: the month calendar. -->
+
+<div class="page-head">
+  <div>
+    <h1>Holidays</h1>
+    <div class="subtitle">The master list of holiday dates — bundled into Templates and assigned to staff or classes.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search holidays" aria-label="Search holidays"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-danger-outline" [disabled]="!selected.size || deleting" (click)="onDeleteSelected()">
+            <i class="bi bi-trash"></i> Delete Selected
+          </button>
+          <button type="button" class="btn-secondary" [disabled]="generateOpen" (click)="onGenerateOpen()">
+            <i class="bi bi-stars"></i> Generate from Public Holidays
+          </button>
+          <button type="button" class="btn-primary" (click)="onAdd()">
+            <i class="bi bi-plus-lg"></i> Add Holiday
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2">
+        <app-holiday-calendar-filter [month]="month" [holidays]="allHolidays" [today]="todayMonth"
+                                     (monthChange)="onMonthChange($event)"></app-holiday-calendar-filter>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="chk"><input type="checkbox" aria-label="Select all on this page" [checked]="allSelected" (change)="toggleAll()" /></th>
+            <th>Name</th><th>Start Date</th><th>End Date</th><th>Days</th><th>Source</th><th class="act">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td class="chk"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="selected.has(row._id)" (change)="toggleRow(row._id)" /></td>
+            <td><div class="hol-name">{{ row.name }}</div></td>
+            <td>{{ formatDate(row.startDate) }}</td>
+            <td>{{ formatDate(row.endDate) }}</td>
+            <td><span class="hol-days">{{ row.days }}</span></td>
+            <td>
+              <span class="tag" [class.tag-manual]="row.source === 'manual'" [class.tag-auto]="row.source === 'auto'">
+                {{ row.source === 'auto' ? 'Auto' : 'Manual' }}
+              </span>
+            </td>
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name" (click)="onEdit(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        [disabled]="deleting || confirmOpen" (click)="onDelete(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search || month ? 'No holidays match this filter.' : 'No holidays added yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Holidays Listed</span><span class="stat-value">{{ allHolidays.length }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Total Days Off</span><span class="stat-value">{{ totalDaysOff }}</span></div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>For a one-day holiday, pick the same date for first and last day.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A holiday here doesn't apply anywhere until it's bundled into a Template and assigned.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a holiday removes it from every Template that includes it.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit" [width]="460"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <div class="m-field">
+    <label for="hol-name">Name <span class="req-star">*</span></label>
+    <input id="hol-name" type="text" placeholder="Diwali" maxlength="80"
+           [value]="form.name" (input)="onNameChange($any($event.target).value)" />
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+  <div class="m-row">
+    <div class="m-field">
+      <label>First Day <span class="req-star">*</span></label>
+      <app-dp [value]="form.startDate" ariaLabel="First day" [invalid]="!!fieldErrors['startDate']"
+              (valueChange)="onStartChange($event)"></app-dp>
+      <p class="m-error" *ngIf="fieldErrors['startDate']">{{ fieldErrors['startDate'] }}</p>
+    </div>
+    <div class="m-field">
+      <label>Last Day <span class="req-star">*</span></label>
+      <app-dp [value]="form.endDate" [min]="form.startDate" ariaLabel="Last day"
+              [invalid]="!!(fieldErrors['endDate'] || rangeError)" (valueChange)="onEndChange($event)"></app-dp>
+      <p class="m-error" *ngIf="fieldErrors['endDate'] || rangeError">{{ fieldErrors['endDate'] || rangeError }}</p>
+    </div>
+  </div>
+  <div class="range-summary" *ngIf="plannedDays && !rangeError">
+    {{ plannedDays }} day{{ plannedDays === 1 ? '' : 's' }} off
+  </div>
+</app-form-modal>
+
+<app-form-modal [open]="generateOpen" title="Generate from Public Holidays" submitLabel="Generate" [width]="460"
+                [submitDisabled]="generateDisabled"
+                (submitted)="onGenerateSubmit()" (cancelled)="onGenerateCancel()">
+  <p class="m-error form-level" *ngIf="generateError">{{ generateError }}</p>
+  <div class="m-field">
+    <label>State <span class="req-star">*</span></label>
+    <app-dd [options]="stateOptions" [value]="generateState" placeholder="Choose a state"
+            ariaLabel="State" (valueChange)="onGenerateStateChange($event)"></app-dd>
+  </div>
+  <div class="m-field">
+    <label>Year <span class="req-star">*</span></label>
+    <app-dd [options]="yearOptions" [value]="generateYear" [disabled]="!generateState" disabledHint="Choose a state first"
+            placeholder="Choose a year" ariaLabel="Year" (valueChange)="onGenerateYearChange($event)"></app-dd>
+  </div>
+  <div class="m-hint">Copies that state's official holidays into your list, tagged Auto. Holidays you already have on the same date are skipped, and every copied row can be edited or deleted freely.</div>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

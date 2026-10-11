@@ -16,6 +16,7 @@ const {
     MAX_RANGE_DAYS, eachDayKey, expandWorkingDays, actionsForStatus, isApplicable, effectiveLimit, remainingOf, exceedsBalance,
 } = require('../../helpers/leave/leave-rules');
 const liveStats = require('../../services/attendance-v2/live-stats');
+const { getOffKeysForPerson } = require('../../services/holiday/holiday-calendar');
 const { logActivity } = require('../../services/activity-log.service');
 const logger = require('../../helpers/logger');
 
@@ -160,12 +161,20 @@ let GetBalance = async (req, res) => {
 
 // ---- apply ----------------------------------------------------------------------------------
 
-/** Field + business checks shared by Apply; returns the working days to charge. */
+/** The person's working days in a range — their Holiday calendar decides what is off. */
+const workingDaysFor = async (adminId, sessionId, personType, personId, fromDate, toDate) =>
+    expandWorkingDays(fromDate, toDate, await getOffKeysForPerson(adminId, sessionId, personType, personId, fromDate, toDate));
+
+/** Field checks on the range itself, before anything is read. */
 const validateRange = (fromDate, toDate, allowPastDates) => {
     const span = eachDayKey(fromDate, toDate);
     if (!span.length || span.length > MAX_RANGE_DAYS) throw fail(ValidationError, messages.dateRangeInvalid(), 'LEAVE_DATE_RANGE_INVALID', 'toDate');
     if (!allowPastDates && fromDate < todayKey()) throw fail(ValidationError, messages.pastDateBlocked(), 'LEAVE_PAST_DATE_BLOCKED', 'fromDate');
-    const dateKeys = expandWorkingDays(fromDate, toDate);
+};
+
+/** The working days to charge; LEAVE_RANGE_EMPTY when the calendar leaves none. */
+const chargeableDays = async (adminId, sessionId, personType, personId, fromDate, toDate) => {
+    const dateKeys = await workingDaysFor(adminId, sessionId, personType, personId, fromDate, toDate);
     if (!dateKeys.length) throw fail(ValidationError, messages.rangeEmpty(), 'LEAVE_RANGE_EMPTY', 'toDate');
     return dateKeys;
 };
@@ -181,7 +190,7 @@ const assertTypeUsable = (type, personType) => {
 let CreateRequest = async (req, res) => {
     const { adminId, session, personType, personId, leaveTypeId, fromDate, toDate, reason, allowPastDates } = req.body;
     const sessionId = await resolveSessionId(adminId, session);
-    const dateKeys = validateRange(fromDate, toDate, allowPastDates);
+    validateRange(fromDate, toDate, allowPastDates);
 
     const [people, type] = await Promise.all([
         describePeople(adminId, sessionId, [{ personType, personId }]),
@@ -192,6 +201,7 @@ let CreateRequest = async (req, res) => {
         throw fail(NotFoundError, messages.personNotFound(), 'PERSON_NOT_FOUND', 'personId');
     }
     assertTypeUsable(type, personType);
+    const dateKeys = await chargeableDays(adminId, sessionId, personType, personId, fromDate, toDate);
 
     // Overlap with anything still live — Rejected/Cancelled rows don't block (errors.md).
     const overlapping = await LeaveRequestV2Model.exists({
@@ -289,7 +299,7 @@ let ApproveRequest = async (req, res) => {
         const type = await LeaveTypeV2Model.findOne({ _id: request.leaveTypeId, adminId }).session(dbSession).lean();
         if (!type) throw typeNotFound();
         // The calendar can change between filing and approval — recount (errors.md shape 3).
-        const dateKeys = expandWorkingDays(request.fromDateKey, request.toDateKey);
+        const dateKeys = await workingDaysFor(adminId, request.sessionId, request.personType, request.personId, request.fromDateKey, request.toDateKey);
         if (!dateKeys.length) throw fail(ValidationError, messages.rangeEmpty(), 'LEAVE_RANGE_EMPTY');
 
         const people = await describePeople(adminId, request.sessionId, [request]);

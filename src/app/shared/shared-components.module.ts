@@ -48,6 +48,8 @@ import { StudentFormComponent } from './components/student-form/student-form.com
 import { DpComponent } from './components/dp/dp.component';
 import { ColumnCaseMenuComponent } from './components/column-case-menu/column-case-menu.component';
 import { MonthNavComponent } from './components/month-nav/month-nav.component';
+import { PersonFilterComponent } from './components/person-filter/person-filter.component';
+import { HolidayCoverageBannerComponent } from './components/holiday-coverage-banner/holiday-coverage-banner.component';
 import { TextCasePipe } from './pipes/text-case.pipe';
 
 const COMPONENTS = [
@@ -82,6 +84,10 @@ const COMPONENTS = [
   ColumnCaseMenuComponent,
   // The toolbar month navigator — Attendance Overview, Roster and Leave Requests.
   MonthNavComponent,
+  // Person Type → Dept/Designation | Class/Stream/Group/Section — Leave and Holiday Assign.
+  PersonFilterComponent,
+  // "People with no Holiday Template" warning — Leave Requests and Attendance Overview.
+  HolidayCoverageBannerComponent,
   TextCasePipe
 ];
 

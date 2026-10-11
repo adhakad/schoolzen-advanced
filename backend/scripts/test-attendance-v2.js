@@ -2,7 +2,7 @@
 // Essential checks for the v2 Attendance rules — pure functions only, no DB or Redis.
 // Run: node scripts/test-attendance-v2.js
 const assert = require('assert');
-const { computeDayStatus, buildPunchHash, isTimeRangeValid, shiftCode, isWeeklyOff } = require('../modules/helpers/attendance/status');
+const { computeDayStatus, buildPunchHash, isTimeRangeValid, shiftCode } = require('../modules/helpers/attendance/status');
 const { toPunchRows } = require('../modules/services/attendance-v2/ingest');
 const { toWdmsEmpCode } = require('../modules/services/wdms-employee');
 
@@ -45,10 +45,6 @@ const tests = {
         assert.strictEqual(shiftCode('Morning Shift'), 'M');
         assert.strictEqual(shiftCode('Evening'), 'E');
         assert.strictEqual(shiftCode('Old Summer Shift'), 'OS');
-    },
-    'Sunday is the weekly off': () => {
-        assert.strictEqual(isWeeklyOff('2026-08-09'), true);
-        assert.strictEqual(isWeeklyOff('2026-08-10'), false);
     },
 };
 

@@ -1,0 +1,139 @@
+<!-- Holiday Templates.
+     Reference: docs/schoolzen-planning/v1/holiday/templates.html
+     ONE plain toolbar row: search + Add Template. -->
+
+<div class="page-head">
+  <div>
+    <h1>Templates</h1>
+    <div class="subtitle">Bundle holidays into a named template, then assign it to staff or classes.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search templates" aria-label="Search templates"
+                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-primary" (click)="onAdd()">
+            <i class="bi bi-plus-lg"></i> Add Template
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr><th>Template Name</th><th>Holidays</th><th>Assigned To</th><th>Created On</th><th class="act">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByRow">
+            <td>
+              <div class="tpl-name">{{ row.name }} <span class="tag tag-brand default-tag" *ngIf="row.isDefault">Default</span></div>
+              <div class="tpl-sub">{{ offDaysText(row) }}</div>
+            </td>
+            <td><span class="count-pill">{{ row.holidayCount ?? row.holidayIds.length }}</span></td>
+            <td>
+              <ng-container *ngIf="row.assignedCount; else nobody">{{ row.assignedCount }}</ng-container>
+              <ng-template #nobody>
+                <span class="not-set">{{ row.isDefault ? 'Everyone without a template' : 'Nobody yet' }}</span>
+              </ng-template>
+            </td>
+            <td>{{ formatDate(row.createdAt) }}</td>
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [attr.aria-label]="'Edit ' + row.name" (click)="onEdit(row)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="icon-btn danger" [attr.aria-label]="'Delete ' + row.name"
+                        [attr.title]="row.isDefault ? 'The Default template cannot be deleted' : (row.assignedCount ? 'Still assigned to ' + row.assignedCount : null)"
+                        [disabled]="deleting || confirmOpen" (click)="onDelete(row)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+      {{ search ? 'No templates match that search.' : 'No templates created yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Templates Created</span><span class="stat-value">{{ total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">People Assigned</span><span class="stat-value">{{ peopleAssigned }}</span></div>
+    </div>
+
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>An empty template is fine — name the year now and tick holidays as you add them.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Weekly off days (like Sunday) are part of the template — Leave and Attendance skip them.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Changing a template updates everyone already assigned to it, straight away.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Anyone without a template follows the Default template.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit" [width]="500"
+                [submitDisabled]="submitDisabled"
+                (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
+  <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
+  <div class="m-field">
+    <label for="tpl-name">Template Name <span class="req-star">*</span></label>
+    <input id="tpl-name" type="text" placeholder="School Holidays 2026" maxlength="60"
+           [value]="form.name" (input)="onNameChange($any($event.target).value)" />
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+
+  <div class="m-field">
+    <label>Weekly Off</label>
+    <div class="wd-chips" role="group" aria-label="Weekly off days">
+      <button type="button" class="wd-chip" *ngFor="let day of weekdays"
+              [class.on]="form.weeklyOffDays.has(day.value)" [attr.aria-pressed]="form.weeklyOffDays.has(day.value)"
+              (click)="toggleWeekday(day.value)">{{ day.label }}</button>
+    </div>
+    <p class="m-error" *ngIf="fieldErrors['weeklyOffDays']">{{ fieldErrors['weeklyOffDays'] }}</p>
+  </div>
+
+  <div class="group-title">
+    <span>Holidays in this Template</span>
+    <label class="select-all">
+      <input type="checkbox" [checked]="allVisibleChecked" [disabled]="!visibleHolidays.length" (change)="toggleAllHolidays()" /> Select All
+    </label>
+  </div>
+  <div class="source-filter">
+    <app-dd [options]="sourceOptions" [value]="sourceFilter" ariaLabel="Filter holidays by source"
+            (valueChange)="onSourceFilterChange($event)"></app-dd>
+  </div>
+  <p class="m-error" *ngIf="holidaysError">{{ holidaysError }}</p>
+  <div class="hol-check-list">
+    <label class="hol-check" *ngFor="let row of visibleHolidays; trackBy: trackByHoliday" [class.checked]="form.holidayIds.has(row._id)">
+      <input type="checkbox" [checked]="form.holidayIds.has(row._id)" (change)="toggleHoliday(row._id)" />
+      <span class="hc-name">{{ row.name }}</span>
+      <span class="hc-days">{{ holidayRange(row) }}</span>
+    </label>
+    <div class="hol-empty" *ngIf="!visibleHolidays.length && !holidaysError">No holidays in the list yet — add them on the Holidays page.</div>
+  </div>
+  <p class="m-hint">An empty template is fine. Name the year now and tick the holidays as you add them.</p>
+</app-form-modal>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
