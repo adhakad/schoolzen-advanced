@@ -6,7 +6,7 @@
 <app-dd [options]="streamOptions" [value]="streamDisabled ? '' : value.streamId"
         placeholder="All streams" ariaLabel="Stream" [disabled]="streamDisabled"
         (valueChange)="onStreamChange($event)"></app-dd>
-<app-dd [options]="groupOptions" [value]="groupDisabled ? '' : value.groupId"
+<app-dd *ngIf="showGroup" [options]="groupOptions" [value]="groupDisabled ? '' : value.groupId"
         placeholder="All groups" ariaLabel="Subject group" [disabled]="groupDisabled"
         (valueChange)="onGroupChange($event)"></app-dd>
 <app-dd *ngIf="showSection" [options]="sectionOptions" [value]="sectionDisabled ? '' : value.sectionId"

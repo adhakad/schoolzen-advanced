@@ -1,0 +1,188 @@
+<!-- Generate TC.
+     Reference: docs/schoolzen-planning/v1/certificates/generate-tc.html
+     Toolbar: row1 search, row2 Class → Stream → Section, row3 Status. -->
+
+<div class="page-head">
+  <div>
+    <h1>Generate Transfer Certificate</h1>
+    <div class="subtitle">Issue a TC for a leaving student, then print the certificate.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or admission no." aria-label="Search by name or admission no."
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-row2 tc-cascade">
+        <app-class-cascade-filter [options]="options" [value]="filter" [showGroup]="false"
+                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+      <div class="toolbar-row3">
+        <app-dd class="status-pill" [options]="statusOptions" [value]="status" placeholder="Any status" ariaLabel="Status"
+                (valueChange)="onStatusChange($event)"></app-dd>
+      </div>
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr><th>Roll No.</th><th>Student</th><th>Class</th><th>Date of Leaving</th><th>Status</th><th class="act">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; let i = index; trackBy: trackByStudent">
+            <td>{{ row.rollNumber != null ? (row.rollNumber < 10 ? '0' + row.rollNumber : row.rollNumber) : '—' }}</td>
+            <td>
+              <div class="name-inner">
+                <div class="g-avatar" [ngStyle]="avatarStyle(i)">{{ row.initials }}</div>
+                <div><div class="g-name">{{ row.name }}</div><div class="g-sub">Adm. {{ row.admissionNo ?? '—' }}</div></div>
+              </div>
+            </td>
+            <td><span class="tag tag-slate">{{ row.className || '—' }}</span></td>
+            <td>{{ row.dateOfLeaving || '—' }}</td>
+            <td>
+              <span class="tag" [class.tag-issued]="row.status === 'issued'" [class.tag-notissued]="row.status !== 'issued'">
+                {{ row.status === 'issued' ? 'Issued' : 'Not Issued' }}
+              </span>
+            </td>
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" *ngIf="row.status === 'issued'" title="Print TC"
+                        [attr.aria-label]="'Print TC for ' + row.name" (click)="openPreview(row)"><i class="bi bi-printer"></i></button>
+                <button type="button" class="btn-issue" *ngIf="row.status !== 'issued' && canIssue"
+                        [disabled]="isClick" (click)="openIssue(row)"><i class="bi bi-file-earmark-arrow-up"></i> Issue TC</button>
+                <span class="na" *ngIf="row.status !== 'issued' && !canIssue">—</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tbl-empty" *ngIf="loading">Loading students&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !rows.length">
+      {{ search || filter.classId || status ? 'No students match these filters.' : 'No students enrolled in this session yet.' }}
+    </div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Total Students</span><span class="stat-value">{{ summary.totalStudents }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">TCs Issued This Session</span><span class="stat-value">{{ summary.issuedThisSession }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Class filter just narrows the list — it doesn't gate anything, same as Manage Students.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Once a TC is issued, the serial number is locked in — reprinting always shows the same number.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Issuing a TC doesn't remove the student from other school records.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Issue TC -->
+<div class="sz-modal-overlay open" *ngIf="issueRow as r" (click)="$event.target === $event.currentTarget && closeIssue()">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <span class="modal-title">Issue TC — {{ r.name }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeIssue()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="m-hint" style="margin:0 0 14px;">Name, parents, DOB, IDs, class, subjects and stream are pulled automatically from the student's record. Only what's specific to leaving needs to be entered here.</p>
+      <p class="m-error" *ngIf="draftError" role="alert">{{ draftError }}</p>
+      <div class="m-row">
+        <div class="m-field"><label>TC Serial No.</label><input type="text" [value]="draft?.serialNumber || ''" disabled /></div>
+        <div class="m-field">
+          <label>Date of Issue / Leaving <span class="req-star">*</span></label>
+          <app-dp [value]="dateOfLeaving" [max]="maxDate" placeholder="dd/mm/yyyy" ariaLabel="Date of issue / leaving"
+                  [invalid]="!!issueErrors['dateOfLeaving']" (valueChange)="onDateChange($event)"></app-dp>
+          <p class="m-error" *ngIf="issueErrors['dateOfLeaving']" role="alert">{{ issueErrors['dateOfLeaving'] }}</p>
+        </div>
+      </div>
+      <div class="m-field">
+        <label>Reason for Leaving <span class="req-star">*</span></label>
+        <app-dd [options]="reasonOptions" [value]="reason" ariaLabel="Reason for leaving" [invalid]="!!issueErrors['reasonForLeaving']"
+                (valueChange)="reason = $any($event)"></app-dd>
+        <p class="m-error" *ngIf="issueErrors['reasonForLeaving']" role="alert">{{ issueErrors['reasonForLeaving'] }}</p>
+      </div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Qualified for Promotion <span class="req-star">*</span></label>
+          <app-dd [options]="promotionOptions" [value]="promotion" ariaLabel="Qualified for promotion"
+                  (valueChange)="promotion = $event"></app-dd>
+        </div>
+        <div class="m-field">
+          <label>General Conduct</label>
+          <app-dd [options]="conductOptions" [value]="conduct" ariaLabel="General conduct"
+                  (valueChange)="conduct = $any($event)"></app-dd>
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Total Working Days</label>
+          <input type="text" [value]="draft ? draft.workingDays : ''" disabled />
+          <div class="m-hint">Pulled automatically from Attendance for this session.</div>
+        </div>
+        <div class="m-field">
+          <label>Total Days Present</label>
+          <input type="text" [value]="draft ? draft.presentDays : ''" disabled />
+          <div class="m-hint">Pulled automatically from Attendance.</div>
+        </div>
+      </div>
+      <div class="m-field">
+        <label>Any Other Remarks (optional)</label>
+        <input type="text" maxlength="120" placeholder="e.g. School Cricket Team captain" [value]="remarks"
+               [class.invalid]="issueErrors['remarks']" (input)="remarks = $any($event.target).value" />
+        <p class="m-error" *ngIf="issueErrors['remarks']" role="alert">{{ issueErrors['remarks'] }}</p>
+      </div>
+
+      <ng-container *ngIf="feesPending as f">
+        <p class="m-error" role="alert">{{ f.message }}</p>
+        <label class="m-check" *ngIf="f.canOverride">
+          <input type="checkbox" [checked]="acknowledgeFees" (change)="acknowledgeFees = $any($event.target).checked" />
+          Issue the TC with these fees still pending
+        </label>
+      </ng-container>
+      <p class="m-error" *ngIf="issueError" role="alert">{{ issueError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" [disabled]="isClick" (click)="closeIssue()">Cancel</button>
+      <button type="button" class="btn-brand" [disabled]="isClick || !draft || (feesPending && (!feesPending.canOverride || !acknowledgeFees))"
+              (click)="issue()"><i class="bi bi-file-earmark-check"></i> Issue &amp; Generate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Certificate (preview / print) -->
+<div class="sz-modal-overlay open" *ngIf="previewOpen" (click)="$event.target === $event.currentTarget && closePreview()">
+  <div class="modal-box wide">
+    <div class="modal-head">
+      <span class="modal-title">Transfer Certificate</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closePreview()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="tbl-empty" *ngIf="previewLoading">Loading certificate&hellip;</div>
+      <p class="m-error" *ngIf="previewError" role="alert">{{ previewError }}</p>
+      <app-tc-certificate [certificate]="certificate"></app-tc-certificate>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closePreview()">Close</button>
+      <button type="button" class="btn-brand" [disabled]="!certificate" (click)="print()"><i class="bi bi-printer"></i> Print</button>
+    </div>
+  </div>
+</div>

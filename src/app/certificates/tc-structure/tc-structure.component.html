@@ -1,0 +1,59 @@
+<!-- TC Structure.
+     Reference: docs/schoolzen-planning/v1/certificates/tc-structure.html -->
+
+<div class="page-head">
+  <div>
+    <h1>Transfer Certificate Structure</h1>
+    <div class="subtitle">One school-wide structure — a TC's content doesn't vary by class.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="tbl-empty" *ngIf="loading">Loading TC structure&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+
+    <ng-container *ngIf="structure && !loading">
+      <div class="group-title">Certificate Fields — Board-mandated Format</div>
+      <p class="m-hint" style="margin:-6px 0 12px;">These {{ structure.fields.length }} fields are the standard transfer certificate format and appear on every TC exactly as numbered below — this isn't a per-school choice.</p>
+      <div class="field-check-grid" style="grid-template-columns:1fr 1fr;">
+        <label class="field-check locked" *ngFor="let field of structure.fields; trackBy: trackByNo">
+          <input type="checkbox" checked disabled />{{ field.no }}. {{ field.label }}<i class="bi bi-lock-fill"></i>
+        </label>
+      </div>
+
+      <div class="group-title">Certificate Numbering</div>
+      <div class="m-field">
+        <label for="tcSerial">Next TC Serial Number</label>
+        <input id="tcSerial" type="text" maxlength="30" [value]="serial" [disabled]="!structure.canEdit"
+               [class.invalid]="serialError" [attr.aria-describedby]="serialError ? 'tcSerialError' : null"
+               (input)="serial = $any($event.target).value; serialError = ''" />
+        <div class="m-hint">Auto-increments with every certificate generated — editable here only to correct a gap.</div>
+        <p class="m-error" id="tcSerialError" *ngIf="serialError" role="alert">{{ serialError }}</p>
+      </div>
+
+      <button type="button" class="btn-primary" *ngIf="structure.canEdit" [disabled]="isClick" (click)="save()">
+        <i class="bi bi-check-lg"></i> Save Structure
+      </button>
+    </ng-container>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Fields on Certificate</span><span class="stat-value">{{ structure?.fields?.length ?? 19 }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Next Serial No.</span><span class="stat-value" style="font-size:13px;">{{ structure?.nextSerialNumber || '—' }}</span></div>
+      <div class="stat-row"><span class="stat-label">TCs Issued This Session</span><span class="stat-value">{{ structure?.issuedThisSession ?? 0 }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Unlike Marksheet or Admit Card, this is one structure for the whole school — it doesn't vary by class.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>All 19 fields are required by the board-recognized TC format and can't be turned off.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Stream and Section print alongside Class where the student had one.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Changing the serial number only affects certificates generated after this point.</div>
+    </div>
+  </div>
+</div>

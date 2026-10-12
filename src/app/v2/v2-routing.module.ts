@@ -66,6 +66,12 @@ const routes: Routes = [
         loadChildren: () => import('src/app/fees/fees.module')
           .then((m) => m.FeesModule)
       },
+      // Module 10 — Certificates.
+      {
+        path: 'certificates',
+        loadChildren: () => import('src/app/certificates/certificates.module')
+          .then((m) => m.CertificatesModule)
+      },
       // Module 12 — Settings.
       {
         path: 'settings',

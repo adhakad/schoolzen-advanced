@@ -62,6 +62,8 @@ export class ClassCascadeFilterComponent implements OnChanges {
   @Input() requireClass = false;
   /** Fees filters by Class → Stream → Group only; its references have no Section pill. */
   @Input() showSection = true;
+  /** Generate TC filters by Class → Stream → Section only; its reference has no Group pill. */
+  @Input() showGroup = true;
 
   @Output() valueChange = new EventEmitter<CascadeFilterValue>();
 

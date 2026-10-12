@@ -19,9 +19,12 @@ const mongoose = require('mongoose');
 // Fees the same: 'fees' views every Fees page and keeps the Fee Reminder filters, while
 // defining Fee Structures ('fees-structure'), collecting money ('fees-collect') and granting
 // concessions/waivers ('fees-waiver') are separate, explicit grants.
+// Certificates the same: 'certificates' views both pages and reprints, while editing the TC
+// serial ('tc-structure') and issuing/cancelling a TC ('tc-generate') are explicit grants.
 const PERMISSION_MODULES = Object.freeze([
     'student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
     'fees', 'fees-structure', 'fees-collect', 'fees-waiver',
+    'certificates', 'tc-structure', 'tc-generate',
     'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout', 'settings',
 ]);
 

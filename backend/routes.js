@@ -77,6 +77,8 @@ module.exports = app => {
     app.use('/api/v2/payroll', require('./modules/routes/payroll/payroll.routes'));
     // Module 8 — Fees. Fee Structure, Fees, Fee Statement and Fee Reminder in one route file.
     app.use('/api/v2/fees', require('./modules/routes/fees/fees.routes'));
+    // Module 10 — Certificates. TC Structure and Generate TC.
+    app.use('/api/v2/certificates', require('./modules/routes/certificates/certificates.routes'));
     // Module 12 — Settings. Four disjoint pages under one base path, each its own route file.
     app.use('/api/v2/settings', require('./modules/routes/settings/academic-sessions.routes'));
     app.use('/api/v2/settings', require('./modules/routes/settings/admission-form-fields.routes'));

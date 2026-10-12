@@ -1,0 +1,39 @@
+<!-- Reference: docs/schoolzen-planning/v1/certificates/generate-tc.html #previewModal .cert-frame -->
+<div class="cert-frame print-target" *ngIf="certificate as c">
+  <div class="cert-header">
+    <div class="cert-logo">
+      <img *ngIf="c.header.logoUrl" [src]="c.header.logoUrl" alt="" />
+      <i *ngIf="!c.header.logoUrl" class="bi bi-mortarboard-fill"></i>
+    </div>
+    <div>
+      <div class="cert-school-name">{{ c.header.schoolName }}</div>
+      <div class="cert-meta" *ngFor="let line of c.header.metaLines">{{ line }}</div>
+    </div>
+  </div>
+  <div class="cert-title-band">
+    <div class="t1">{{ c.title }}</div>
+  </div>
+  <table class="cert-codes-table">
+    <tr>
+      <td>School Code : <b>{{ c.header.schoolCode || '—' }}</b></td>
+      <td class="right">Affiliation No. : <b>{{ c.header.affiliationNumber || '—' }}</b></td>
+    </tr>
+    <tr>
+      <td>S.No. : <b>{{ c.serialNumber }}</b></td>
+      <td class="right">Admission No. : <b>{{ c.admissionNo || '—' }}</b></td>
+    </tr>
+  </table>
+
+  <table class="cert-field-table">
+    <tr *ngFor="let field of c.fields; trackBy: trackByNo">
+      <td class="cf-label">{{ field.no }}. {{ field.label }}</td>
+      <td class="cf-value">: <b>{{ field.value | uppercase }}</b></td>
+    </tr>
+  </table>
+
+  <div class="cert-sign-row">
+    <div class="cert-sign-block"><div class="cert-sign-line"></div><span>Class Teacher<br />(Signature)</span></div>
+    <div class="cert-sign-block"><div class="cert-sign-line"></div><span>Checked By<br />(Name &amp; Designation)</span></div>
+    <div class="cert-sign-block"><div class="cert-sign-line"></div><span>Principal<br />(Sign. with Official Seal)</span></div>
+  </div>
+</div>

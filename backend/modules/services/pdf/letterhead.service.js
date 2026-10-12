@@ -28,7 +28,7 @@ const SchoolModel = require('../../models/school');
 const buildLetterheadDocument = async ({ adminId, title, subtitle, sectionLabel, fields, note }) => {
     const school = await SchoolModel.findOne(
         { adminId },
-        'schoolName schoolLogo affiliationNumber board street city district state pinCode phoneOne email'
+        'schoolName schoolLogo affiliationNumber schoolCode board street city district state pinCode phoneOne email'
     ).lean();
 
     const addressLine = school
@@ -48,6 +48,9 @@ const buildLetterheadDocument = async ({ adminId, title, subtitle, sectionLabel,
             logoUrl: (school && school.schoolLogo) || null,
             // Two meta lines under the name, exactly like the reference letter.
             metaLines: [affiliation, [addressLine, contactLine].filter(Boolean).join(' · ')].filter(Boolean),
+            // The certificate codes row (Transfer Certificate prints both above its fields).
+            schoolCode: (school && school.schoolCode) || null,
+            affiliationNumber: (school && school.affiliationNumber) || null,
         },
         title,
         subtitle: subtitle || null,
