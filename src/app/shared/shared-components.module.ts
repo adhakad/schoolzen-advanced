@@ -50,6 +50,7 @@ import { ColumnCaseMenuComponent } from './components/column-case-menu/column-ca
 import { MonthNavComponent } from './components/month-nav/month-nav.component';
 import { PersonFilterComponent } from './components/person-filter/person-filter.component';
 import { DateRangePickerComponent } from './components/date-range-picker/date-range-picker.component';
+import { PrintModeChoiceComponent } from './components/print-mode-choice/print-mode-choice.component';
 import { TextCasePipe } from './pipes/text-case.pipe';
 
 const COMPONENTS = [
@@ -88,6 +89,8 @@ const COMPONENTS = [
   PersonFilterComponent,
   // "People with no Holiday Template" warning — Leave Requests and Attendance Overview.
   DateRangePickerComponent,
+  // "One / Two Students in One Page" — Generate Admit Card, Generate Marksheet (and Generate TC).
+  PrintModeChoiceComponent,
   TextCasePipe
 ];
 

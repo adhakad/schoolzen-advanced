@@ -1,0 +1,12 @@
+/* docs/schoolzen-planning/v1/examination/generate-admit-card.html — .print-mode-option */
+.print-mode-box { width: 420px; }
+.print-mode-hint { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 14px; }
+.print-mode-option {
+  width: 100%; text-align: left; font-family: inherit; background: var(--surface);
+  display: flex; align-items: center; gap: 14px; border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px; cursor: pointer; margin-bottom: 10px;
+}
+.print-mode-option:hover, .print-mode-option:focus-visible { border-color: var(--brand); background: var(--brand-soft); outline: none; }
+.print-mode-option .bi { font-size: 22px; color: var(--brand); flex-shrink: 0; }
+.print-mode-option b { display: block; font-size: 13.5px; color: var(--ink); margin-bottom: 2px; }
+.print-mode-option span { font-size: 11.5px; color: var(--ink-faint); }

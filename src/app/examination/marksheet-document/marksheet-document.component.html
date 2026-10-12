@@ -1,0 +1,43 @@
+<!-- Reference: docs/schoolzen-planning/v1/examination/generate-marksheet.html cardHTML() -->
+<div class="letter-frame" *ngIf="sheet as s">
+  <div class="letter-header">
+    <div class="letter-logo">
+      <img *ngIf="header?.logoUrl; else defaultLogo" [src]="header?.logoUrl" alt="" />
+      <ng-template #defaultLogo><i class="bi bi-mortarboard-fill"></i></ng-template>
+    </div>
+    <div>
+      <div class="letter-school-name">{{ header?.schoolName }}</div>
+      <div class="letter-meta">
+        <ng-container *ngFor="let line of header?.metaLines; let last = last">{{ line }}<br *ngIf="!last" /></ng-container>
+      </div>
+    </div>
+  </div>
+  <div class="letter-title-band">{{ title }}</div>
+  <table class="letter-info-table">
+    <tr><td>Student Name</td><td>{{ s.name }}</td><td>Class</td><td>{{ s.className }}</td></tr>
+    <tr><td>Father's Name</td><td>{{ s.fatherName }}</td><td>Roll Number</td><td>{{ s.rollNumber ?? '—' }}</td></tr>
+  </table>
+  <table class="subj-preview">
+    <tr><th>Subject</th><th>Theory</th><th>Practical</th><th>Total</th><th>Grade</th></tr>
+    <tr *ngFor="let sub of s.subjects">
+      <td>{{ sub.name }}</td>
+      <td>{{ sub.theoryMax != null ? sub.theory + '/' + sub.theoryMax : '—' }}</td>
+      <td>{{ sub.practicalMax != null ? sub.practical + '/' + sub.practicalMax : '—' }}</td>
+      <td>{{ sub.total }}</td>
+      <td>{{ sub.grade || '—' }}</td>
+    </tr>
+  </table>
+  <table class="letter-info-table totals">
+    <tr><td>Total Marks</td><td>{{ s.totals.obtained }} / {{ s.totals.max }}</td><td>Percentage</td><td>{{ s.totals.percentage }}%</td></tr>
+    <tr>
+      <td>Result</td><td [class.pass]="s.totals.result === 'Pass'" [class.fail]="s.totals.result !== 'Pass'">{{ s.totals.result === 'Pass' ? 'PASS' : 'FAIL' }}</td>
+      <ng-container *ngIf="s.coScholastic[0] as first; else noCo"><td>{{ first.area }}</td><td>{{ first.grade }}</td></ng-container>
+      <ng-template #noCo><td></td><td></td></ng-template>
+    </tr>
+    <tr *ngFor="let pair of extraCoScholastic">
+      <td>{{ pair[0].area }}</td><td>{{ pair[0].grade }}</td>
+      <td>{{ pair.length > 1 ? pair[1].area : '' }}</td><td>{{ pair.length > 1 ? pair[1].grade : '' }}</td>
+    </tr>
+  </table>
+  <div class="letter-sign-row"><span>Class Teacher Signature</span><span>Principal Signature</span></div>
+</div>

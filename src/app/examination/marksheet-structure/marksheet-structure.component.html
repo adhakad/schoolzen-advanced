@@ -1,0 +1,172 @@
+<!-- Marksheet Structure.
+     Reference: docs/schoolzen-planning/v1/examination/marksheet-structure.html
+     Toolbar: ONE row (Class, Stream) — every class(+stream) is always listed; filters narrow. -->
+
+<div class="page-head">
+  <div>
+    <h1>Marksheet Structure</h1>
+    <div class="subtitle">Every class(+stream) with its assigned template and subjects — every class shown, set up the ones still empty.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar single-row">
+      <app-class-cascade-filter [options]="options" [value]="filter" [showGroup]="false" [showSection]="false"
+                                (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
+      </div>
+    </div>
+
+    <table *ngIf="!loading && !loadError && visibleRows.length">
+      <thead><tr><th>Class</th><th>Stream</th><th>Template</th><th>Subjects Set</th><th class="act">Action</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let row of visibleRows; trackBy: trackByRow">
+          <td><div class="lm-name">{{ row.className }}</div></td>
+          <td><ng-container *ngIf="row.streamName; else na">{{ row.streamName }}</ng-container><ng-template #na><span class="not-set">N/A</span></ng-template></td>
+          <td>
+            <span class="cls-tag" *ngIf="row.templateCode">{{ row.templateCode }}</span>
+            <span class="not-set" *ngIf="!row.templateCode">Not set</span>
+          </td>
+          <td>
+            <ng-container *ngIf="row.setUp">{{ row.subjectsSet }} of {{ row.subjectsTotal }} subjects</ng-container>
+            <ng-container *ngIf="!row.setUp && row.templateCode">0</ng-container>
+            <span class="not-set" *ngIf="!row.setUp && !row.templateCode">—</span>
+          </td>
+          <td class="act">
+            <div class="actions" *ngIf="canEdit">
+              <ng-container *ngIf="row.setUp">
+                <button type="button" class="icon-btn" title="Edit" [attr.aria-label]="'Edit ' + labelOf(row)" (click)="openSetup(row)"><i class="bi bi-pencil"></i></button>
+                <button type="button" class="icon-btn danger" title="Remove" [attr.aria-label]="'Remove ' + labelOf(row)" (click)="openRemove(row)"><i class="bi bi-trash"></i></button>
+              </ng-container>
+              <button type="button" class="icon-btn" *ngIf="!row.setUp" title="Set up" [attr.aria-label]="'Set up ' + labelOf(row)" (click)="openSetup(row)"><i class="bi bi-plus-lg"></i></button>
+            </div>
+            <div class="actions" *ngIf="!canEdit">
+              <button type="button" class="icon-btn" title="View" [attr.aria-label]="'View ' + labelOf(row)" (click)="openSetup(row)"><i class="bi bi-eye"></i></button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tbl-empty" *ngIf="loading">Loading classes&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="empty-hint" *ngIf="!loading && !loadError && !visibleRows.length">
+      {{ rows.length ? 'No class matches this filter.' : 'No classes yet — add them in Academic Setup first.' }}
+    </div>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Classes Total</span><span class="stat-value">{{ summary.classesTotal }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Set Up</span><span class="stat-value">{{ summary.setUp }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>The template itself (grading, marks caps) is picked once in Settings — here you just choose which subjects apply per class.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>As soon as this is submitted, marksheets for every matching student are generated automatically, ready for marks entry.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Set Up Marksheet -->
+<div class="sz-modal-overlay open" *ngIf="setupRow as r" (click)="$event.target === $event.currentTarget && closeSetup()">
+  <div class="modal-box struct-box">
+    <div class="modal-head">
+      <span class="modal-title">Set Up Marksheet — {{ labelOf(r) }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeSetup()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="tbl-empty" *ngIf="setupLoading">Loading&hellip;</div>
+      <p class="m-error form-level" *ngIf="setupError" role="alert">{{ setupError }}</p>
+
+      <ng-container *ngIf="setup as s">
+        <div class="tpl-preview-strip" *ngIf="s.template as t">
+          <i class="bi bi-info-circle"></i> Using template <b>{{ t.code }}</b> · {{ t.terms.join(' / ') }} · {{ t.gradeScale }} grading
+          <a routerLink="/v2/settings/marksheet-templates">Change template in Settings</a>
+        </div>
+        <div class="tpl-preview-strip" *ngIf="s.notConfigured">
+          <i class="bi bi-info-circle"></i> No template assigned to this class yet.
+          <a routerLink="/v2/settings/marksheet-templates">Change template in Settings</a>
+        </div>
+        <p class="m-error form-level" *ngIf="s.subjectsMissing" role="alert">{{ s.subjectsMissing.message }}</p>
+
+        <ng-container *ngIf="s.candidates.length; else noSubjects">
+          <div class="group-title">Theory Subjects</div>
+          <div class="subj-check-grid">
+            <label class="subj-check" *ngFor="let c of s.candidates; trackBy: trackBySubject">
+              <input type="checkbox" [checked]="theoryChecked.has(c.subjectId)" [disabled]="!canEdit || !!s.notConfigured"
+                     (change)="toggle('theory', c.subjectId, $any($event.target).checked)" /> {{ c.name }}
+            </label>
+          </div>
+          <div class="group-title">Practical Subjects <span class="optional">(optional)</span></div>
+          <div class="subj-check-grid">
+            <label class="subj-check" *ngFor="let c of s.candidates; trackBy: trackBySubject">
+              <input type="checkbox" [checked]="practicalChecked.has(c.subjectId)" [disabled]="!canEdit || !!s.notConfigured"
+                     (change)="toggle('practical', c.subjectId, $any($event.target).checked)" /> {{ c.name }}
+            </label>
+          </div>
+          <div class="group-title">Max Marks per Subject</div>
+          <table class="marks-table">
+            <thead><tr><th>Subject</th><th>Theory Max</th><th>Practical Max</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let m of markRows; trackBy: trackBySubject">
+                <td class="subj-name">{{ m.name }}</td>
+                <td>
+                  <input *ngIf="theoryChecked.has(m.subjectId)" type="number" min="1" [max]="1000" [disabled]="!canEdit"
+                         [class.invalid]="fieldErrors[m.subjectId + '.theory']" [attr.aria-label]="m.name + ' theory max'"
+                         [value]="maxes[m.subjectId].theory" (input)="setMax(m.subjectId, 'theory', $any($event.target).value)" />
+                  <input *ngIf="!theoryChecked.has(m.subjectId)" type="text" value="—" disabled class="na-input" />
+                  <p class="m-error" *ngIf="fieldErrors[m.subjectId + '.theory']">{{ fieldErrors[m.subjectId + '.theory'] }}</p>
+                </td>
+                <td>
+                  <input *ngIf="practicalChecked.has(m.subjectId)" type="number" min="1" [max]="1000" [disabled]="!canEdit"
+                         [class.invalid]="fieldErrors[m.subjectId + '.practical']" [attr.aria-label]="m.name + ' practical max'"
+                         [value]="maxes[m.subjectId].practical" (input)="setMax(m.subjectId, 'practical', $any($event.target).value)" />
+                  <input *ngIf="!practicalChecked.has(m.subjectId)" type="text" value="—" disabled class="na-input" />
+                  <p class="m-error" *ngIf="fieldErrors[m.subjectId + '.practical']">{{ fieldErrors[m.subjectId + '.practical'] }}</p>
+                </td>
+              </tr>
+              <tr *ngIf="!markRows.length"><td colspan="3" class="select-hint">Select at least one subject above.</td></tr>
+            </tbody>
+          </table>
+        </ng-container>
+        <ng-template #noSubjects>
+          <div class="empty-hint">This class has no subjects yet — add them to its Subject Group in Academic Setup.</div>
+        </ng-template>
+        <div class="auto-note">As soon as this is submitted, marksheets for every student in this class(+stream) will be generated automatically.</div>
+      </ng-container>
+      <p class="m-error form-level" *ngIf="saveError" role="alert">{{ saveError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" [disabled]="isClick" (click)="closeSetup()">Cancel</button>
+      <button type="button" class="btn-brand" *ngIf="canEdit" [disabled]="!canSubmit" (click)="submit()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Marksheet Setup (type DELETE) -->
+<div class="sz-modal-overlay open" *ngIf="removeRow as r" (click)="$event.target === $event.currentTarget && closeRemove()">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <span class="modal-title">Remove Marksheet Setup</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeRemove()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="warn-box">Removing this setup deletes marksheets already generated for <b>{{ labelOf(r) }}</b>'s students. <b>This can't be undone.</b></div>
+      <input type="text" class="confirm-input" [class.match]="removeConfirmed" placeholder="Type DELETE to confirm" aria-label="Type DELETE to confirm"
+             [value]="confirmText" (input)="confirmText = $any($event.target).value" />
+      <div class="confirm-hint">Type <b>DELETE</b> in the box above to enable the button.</div>
+      <p class="m-error" *ngIf="removeError" role="alert">{{ removeError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" [disabled]="isClick" (click)="closeRemove()">Cancel</button>
+      <button type="button" class="btn-danger" [disabled]="!removeConfirmed || isClick" (click)="remove()">Delete</button>
+    </div>
+  </div>
+</div>

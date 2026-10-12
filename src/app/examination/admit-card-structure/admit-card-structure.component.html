@@ -1,0 +1,231 @@
+<!-- Admit Card Structure.
+     Reference: docs/schoolzen-planning/v1/examination/admit-card-structure.html
+     Toolbar: row1 search + Create, row2 Class → Stream → Group → Section. A list of CREATED
+     structures — filters search what exists. -->
+
+<div class="page-head">
+  <div>
+    <h1>Admit Card Structure</h1>
+    <div class="subtitle">Every configured exam, across all classes — an exam and each subject's date &amp; time.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by exam name" aria-label="Search by exam name"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <button type="button" class="btn-primary" *ngIf="canEdit" (click)="openCreate()"><i class="bi bi-plus-lg"></i> Create</button>
+      </div>
+      <div class="toolbar-row2">
+        <app-class-cascade-filter [options]="options" [value]="filter" (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
+      </div>
+    </div>
+
+    <table *ngIf="!loading && !loadError && rows.length">
+      <thead><tr><th>Exam Name</th><th>Class</th><th>Stream</th><th>Section</th><th class="act">Action</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let row of rows; trackBy: trackByRow">
+          <td>
+            <div class="lm-name">{{ row.examName }}</div>
+            <div class="exam-count">
+              {{ row.subjectCount }} subjects scheduled<ng-container *ngIf="row.groupName"> · {{ row.groupName }}</ng-container>
+              <span class="gen-state" *ngIf="row.generation.state === 'generating'"> · <i class="bi bi-arrow-repeat spinning"></i> Generating admit cards…</span>
+              <span class="gen-state warn" *ngIf="row.generation.state === 'partial'"> · {{ row.generation.message }}</span>
+              <span class="gen-state warn" *ngIf="row.generation.state === 'failed'"> · Generation failed — save again to retry</span>
+            </div>
+          </td>
+          <td><span class="cls-tag">{{ row.className }}</span></td>
+          <td><ng-container *ngIf="row.streamName; else na">{{ row.streamName }}</ng-container><ng-template #na><span class="not-set">N/A</span></ng-template></td>
+          <td><ng-container *ngIf="row.sectionName; else allSec">Section {{ row.sectionName }}</ng-container><ng-template #allSec><span class="not-set">All sections</span></ng-template></td>
+          <td class="act"><div class="actions">
+            <button type="button" class="icon-btn" title="View" [attr.aria-label]="'View ' + row.examName" (click)="openView(row)"><i class="bi bi-eye"></i></button>
+            <ng-container *ngIf="canEdit">
+              <button type="button" class="icon-btn" title="Edit" [attr.aria-label]="'Edit ' + row.examName"
+                      [disabled]="row.generation.state === 'generating'" (click)="openEdit(row)"><i class="bi bi-pencil"></i></button>
+              <button type="button" class="icon-btn danger" title="Delete" [attr.aria-label]="'Delete ' + row.examName"
+                      [disabled]="row.generation.state === 'generating'" (click)="openDelete(row)"><i class="bi bi-trash"></i></button>
+            </ng-container>
+          </div></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tbl-empty" *ngIf="loading">Loading structures&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="empty-hint" *ngIf="!loading && !loadError && !rows.length">
+      {{ search || filter.classId ? 'No admit card structure matches this filter.' : 'No exams configured yet — create the first one.' }}
+    </div>
+    <app-pagination-bar *ngIf="total > pageSize" [page]="page" [limit]="pageSize" [total]="total"
+                        (pageChange)="onPageChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Classes Total</span><span class="stat-value">{{ summary.classesTotal }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Exams Configured</span><span class="stat-value">{{ summary.examsConfigured }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>As soon as a structure is created, admit cards for every matching student are generated automatically.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Updating it regenerates those cards; deleting it removes them — remove the existing one first to set up a new exam.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Edit Admit Card Structure -->
+<div class="sz-modal-overlay open" *ngIf="modalOpen" (click)="$event.target === $event.currentTarget && closeModal()">
+  <div class="modal-box struct-box">
+    <div class="modal-head">
+      <span class="modal-title">{{ editing ? 'Edit' : 'Create' }} Admit Card Structure</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body" (scroll)="closeSched()">
+      <div class="m-row">
+        <div class="m-field">
+          <label>Class <span class="req-star">*</span></label>
+          <app-dd [options]="classOptions" [value]="form.classId" placeholder="-- Select --" ariaLabel="Class"
+                  (valueChange)="onFormClass($event)"></app-dd>
+        </div>
+        <div class="m-field">
+          <label>Stream</label>
+          <app-dd [options]="streamOptions" [value]="streamDisabled ? '' : form.streamId" placeholder="N/A" ariaLabel="Stream"
+                  [disabled]="streamDisabled" (valueChange)="onFormStream($event)"></app-dd>
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Stream Group</label>
+          <app-dd [options]="groupOptions" [value]="form.groupId" placeholder="All groups" ariaLabel="Stream group"
+                  [disabled]="groupDisabled" (valueChange)="onFormGroup($event)"></app-dd>
+        </div>
+        <div class="m-field">
+          <label>Section</label>
+          <app-dd [options]="sectionOptions" [value]="form.sectionId" placeholder="All sections" ariaLabel="Section"
+                  [disabled]="sectionDisabled" (valueChange)="form.sectionId = $event"></app-dd>
+        </div>
+      </div>
+      <div class="m-field">
+        <label>Exam Name <span class="req-star">*</span></label>
+        <app-dd [options]="examOptions" [value]="form.examName" placeholder="-- Select --" ariaLabel="Exam name"
+                [invalid]="!!formFieldErrors['examName']" (valueChange)="form.examName = $event; formFieldErrors = {}"></app-dd>
+        <p class="m-error" *ngIf="formFieldErrors['examName']" role="alert">{{ formFieldErrors['examName'] }}</p>
+      </div>
+
+      <div class="group-title">Subject-wise Exam Schedule</div>
+      <p class="m-error form-level" *ngIf="editing?.staleSubjects as stale" role="alert">{{ stale.message }}</p>
+      <div class="tbl-empty" *ngIf="formOptionsLoading">Loading subjects&hellip;</div>
+      <table class="subj-table" *ngIf="!formOptionsLoading && slots.length">
+        <thead><tr><th>Subject</th><th class="sched-col">Exam Date &amp; Timing</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let slot of slots; trackBy: trackBySlot">
+            <td class="subj-name">
+              {{ slot.name }}
+              <span class="stale-tag" *ngIf="slot.stale">no longer in group · <button type="button" class="link-btn" (click)="removeStale(slot)">remove</button></span>
+            </td>
+            <td>
+              <button type="button" class="schedule-trigger" [class.picked]="!!slot.examDate" [class.invalid]="!!slotErrors[slot.subjectId]"
+                      [disabled]="!canEdit" (click)="openSched($event, slot)">
+                <i class="bi bi-calendar-event"></i> <span>{{ slotLabel(slot) }}</span>
+              </button>
+              <p class="m-error" *ngIf="slotErrors[slot.subjectId]">{{ slotErrors[slot.subjectId] }}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="subj-placeholder" *ngIf="!formOptionsLoading && !form.classId">Choose a Class above to load its subjects.</p>
+      <p class="subj-placeholder" *ngIf="!formOptionsLoading && form.classId && formOptions && !slots.length">This class has no subjects yet — add them to its Subject Group in Academic Setup.</p>
+      <div class="auto-note" *ngIf="slots.length">As soon as this is submitted, admit cards for every matching student will be generated automatically.</div>
+      <p class="m-error form-level" *ngIf="formError" role="alert">{{ formError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" [disabled]="isClick" (click)="closeModal()">Cancel</button>
+      <button type="button" class="btn-brand" [disabled]="!canSubmit" (click)="submit()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule popup: calendar + Start/End time (reference .sched-popup) -->
+<div class="sched-popup open" *ngIf="schedSlot" [style.top.px]="schedPos.top" [style.left.px]="schedPos.left" (click)="$event.stopPropagation()">
+  <div class="sched-cal-head">
+    <button type="button" class="sched-cal-nav" aria-label="Previous month" (click)="shiftMonth(-1)"><i class="bi bi-chevron-left"></i></button>
+    <span class="sched-cal-title">{{ calTitle }}</span>
+    <button type="button" class="sched-cal-nav" aria-label="Next month" (click)="shiftMonth(1)"><i class="bi bi-chevron-right"></i></button>
+  </div>
+  <div class="sched-cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+  <div class="sched-cal-grid">
+    <ng-container *ngFor="let cell of calCells; trackBy: trackByIndex">
+      <div *ngIf="!cell"></div>
+      <div *ngIf="cell" class="sched-day" [class.picked]="cell.key === schedDate" role="button" tabindex="0"
+           (click)="schedDate = cell.key" (keydown.enter)="schedDate = cell.key">{{ cell.day }}</div>
+    </ng-container>
+  </div>
+  <div class="sched-time-row">
+    <div class="sched-time-field"><label>Start Time</label>
+      <app-dd [options]="timeOptions" [value]="schedStart" ariaLabel="Start time" (valueChange)="schedStart = $event"></app-dd></div>
+    <div class="sched-time-field"><label>End Time</label>
+      <app-dd [options]="timeOptions" [value]="schedEnd" ariaLabel="End time" [invalid]="schedOrderInvalid" (valueChange)="schedEnd = $event"></app-dd></div>
+  </div>
+  <p class="sched-error" *ngIf="schedOrderInvalid">Start time must be before end time.</p>
+  <div class="sched-popup-foot">
+    <button type="button" class="sched-btn-plain" (click)="closeSched()">Cancel</button>
+    <button type="button" class="sched-btn-brand" [disabled]="!schedDate || schedOrderInvalid" (click)="applySched()">Apply</button>
+  </div>
+</div>
+
+<!-- View -->
+<div class="sz-modal-overlay open" *ngIf="viewOpen" (click)="$event.target === $event.currentTarget && closeView()">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <span class="modal-title">{{ viewDetail ? viewDetail.examName + ' — Class ' + viewDetail.className : 'Admit Card Structure' }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeView()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="tbl-empty" *ngIf="viewLoading">Loading&hellip;</div>
+      <p class="m-error form-level" *ngIf="viewError" role="alert">{{ viewError }}</p>
+      <ng-container *ngIf="viewDetail as d">
+        <p class="m-error form-level" *ngIf="d.staleSubjects">{{ d.staleSubjects.message }}</p>
+        <table class="view-table">
+          <thead><tr><th>Subject</th><th>Date</th><th>Timing</th></tr></thead>
+          <tbody><tr *ngFor="let s of d.subjects"><td>{{ s.name }}</td><td>{{ s.dateText }}</td><td>{{ s.timing }}</td></tr></tbody>
+        </table>
+      </ng-container>
+    </div>
+    <div class="modal-foot"><button type="button" class="btn-plain" (click)="closeView()">Close</button></div>
+  </div>
+</div>
+
+<!-- Delete Structure (type DELETE) -->
+<div class="sz-modal-overlay open" *ngIf="deleteRow as r" (click)="$event.target === $event.currentTarget && closeDelete()">
+  <div class="modal-box narrow">
+    <div class="modal-head">
+      <span class="modal-title">Delete Structure</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeDelete()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="warn-box">Deleting <b>{{ r.examName }}</b> removes this structure — admit cards already generated for these students will be removed too. <b>This can't be undone.</b></div>
+      <input type="text" class="confirm-input" [class.match]="deleteConfirmed" placeholder="Type DELETE to confirm" aria-label="Type DELETE to confirm"
+             [value]="confirmText" (input)="confirmText = $any($event.target).value" />
+      <div class="confirm-hint">Type <b>DELETE</b> in the box above to enable the button.</div>
+      <p class="m-error" *ngIf="deleteError" role="alert">{{ deleteError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" [disabled]="isClick" (click)="closeDelete()">Cancel</button>
+      <button type="button" class="btn-danger" [disabled]="!deleteConfirmed || isClick" (click)="remove()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

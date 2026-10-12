@@ -1,0 +1,21 @@
+<!-- The reference's #printModeModal, class-for-class:
+     docs/schoolzen-planning/v1/examination/generate-admit-card.html -->
+<div class="sz-modal-overlay open" *ngIf="open" (click)="onBackdrop($event)">
+  <div class="modal-box print-mode-box">
+    <div class="modal-head">
+      <span class="modal-title">{{ title }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="cancelled.emit()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="m-hint print-mode-hint">How should the <b>{{ count }}</b> selected {{ noun }} be laid out?</p>
+      <button type="button" class="print-mode-option" (click)="choose(1)">
+        <i class="bi bi-file-earmark"></i>
+        <div><b>One Student in One Page</b><span>Each {{ singular }} prints on its own page.</span></div>
+      </button>
+      <button type="button" class="print-mode-option" (click)="choose(2)">
+        <i class="bi bi-files"></i>
+        <div><b>Two Students in One Page</b><span>Two {{ noun }} share a single page.</span></div>
+      </button>
+    </div>
+  </div>
+</div>

@@ -27,7 +27,9 @@ import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 import { BulkOutcomeLine } from 'src/app/shared/models/academic-setup/bulk-delete.model';
 
 const MODULE_LABELS: Readonly<Record<string, string>> = {
-  student: 'Student', attendance: 'Attendance', marksheet: 'Marksheet', leave: 'Leave', 'leave-limit': 'Leave Limits',
+  student: 'Student', attendance: 'Attendance', marksheet: 'Generate Marksheet / Enter Marks',
+  'marksheet-structure': 'Marksheet Structure', 'admit-card': 'Generate Admit Card',
+  'admit-card-structure': 'Admit Card Structure', leave: 'Leave', 'leave-limit': 'Leave Limits',
   holiday: 'Holidays', 'holiday-assign': 'Holiday Assign',
   fees: 'Fees', 'fees-structure': 'Fee Structure', 'fees-collect': 'Collect Fees', 'fees-waiver': 'Fee Concession / Waiver',
   certificates: 'Certificates', 'tc-structure': 'TC Structure', 'tc-generate': 'Issue / Cancel TC',
@@ -35,7 +37,8 @@ const MODULE_LABELS: Readonly<Record<string, string>> = {
   'payroll-payout': 'Salary Payouts', settings: 'Settings'
 };
 const MODULE_ICONS: Readonly<Record<string, string>> = {
-  student: 'mortarboard', attendance: 'calendar-check', marksheet: 'journal-text', leave: 'calendar-plus', 'leave-limit': 'sliders',
+  student: 'mortarboard', attendance: 'calendar-check', marksheet: 'journal-text',
+  'marksheet-structure': 'table', 'admit-card': 'card-heading', 'admit-card-structure': 'calendar-week', leave: 'calendar-plus', 'leave-limit': 'sliders',
   holiday: 'sun', 'holiday-assign': 'calendar2-check',
   fees: 'wallet2', 'fees-structure': 'list-ul', 'fees-collect': 'cash', 'fees-waiver': 'percent', payroll: 'cash-stack', 'payroll-assign': 'person-check', 'payroll-generate': 'play-circle',
   'payroll-payout': 'cash-coin', certificates: 'award', 'tc-structure': 'list-ol', 'tc-generate': 'file-earmark-arrow-up',

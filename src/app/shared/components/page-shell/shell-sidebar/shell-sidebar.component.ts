@@ -13,7 +13,7 @@
  */
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { SHELL_NAV, ShellNavGroup, ShellNavItem } from 'src/app/shared/config/shell-nav.config';
-import { ShellContext } from 'src/app/shared/models/shell-context.model';
+import { ShellContext, v2CanView } from 'src/app/shared/models/shell-context.model';
 
 interface RenderedItem {
   label: string;
@@ -76,6 +76,7 @@ export class ShellSidebarComponent implements OnChanges {
   private buildGroups(): RenderedGroup[] {
     const isAdmin = this.context?.role !== 'teacher';
     const permissions = this.context?.permissions;
+    const v2Permissions = this.context?.v2Permissions;
 
     return SHELL_NAV
       .filter((group: ShellNavGroup) => isAdmin || !group.adminOnly)
@@ -89,8 +90,11 @@ export class ShellSidebarComponent implements OnChanges {
           .map((item: ShellNavItem) => ({
             label: item.label,
             route: item.route,
-            // Admin sees everything; a teacher's permission-gated item locks when false.
-            locked: !isAdmin && !!item.permission && !permissions?.[item.permission]
+            // A teacher's permission-gated item locks when false; an admin-session user's
+            // v2-gated item locks without View on that Roles & Permissions module.
+            locked: isAdmin
+              ? !!item.v2Permission && !v2CanView(v2Permissions, item.v2Permission)
+              : !!item.permission && !permissions?.[item.permission]
           }))
       }))
       // A group whose every item was admin-only has nothing left to show a teacher.

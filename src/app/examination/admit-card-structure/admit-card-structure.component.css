@@ -1,0 +1,67 @@
+/* Admit Card Structure reference styles the global design system doesn't carry
+   (docs/schoolzen-planning/v1/examination/admit-card-structure.html). */
+.search { flex: 0 0 260px; width: 260px; }
+thead th.act, td.act { text-align: right; }
+.lm-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+.exam-count { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+.gen-state { color: var(--brand); }
+.gen-state.warn { color: var(--warning); }
+.empty-hint { background: var(--warning-soft); border-radius: var(--radius); padding: 24px 16px; font-size: 13px; color: #8A6D1F; text-align: center; margin: 8px 0; }
+.icon-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.modal-box.struct-box { width: 560px; }
+.modal-box.narrow { width: 420px; }
+.group-title { font-family: 'Fraunces', serif; font-size: 13.5px; font-weight: 500; color: var(--ink); margin: 4px 0 10px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.subj-table { width: 100%; border-collapse: collapse; }
+.subj-table th { text-align: left; font-size: 10px; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; padding: 0 8px 8px 0; border: none; letter-spacing: normal; }
+.subj-table th.sched-col { width: 60%; }
+.subj-table td { padding: 5px 8px 5px 0; vertical-align: top; }
+.subj-table td.subj-name { font-size: 12.5px; font-weight: 600; color: var(--ink); padding-top: 13px; }
+.stale-tag { display: block; font-size: 10.5px; color: var(--warning); font-weight: 500; }
+.schedule-trigger {
+  width: 100%; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 12px; color: var(--ink-faint);
+  font-family: inherit; background: var(--surface); cursor: pointer; display: flex; align-items: center; gap: 8px; box-sizing: border-box;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;
+}
+.schedule-trigger.picked { color: var(--brand); font-weight: 600; border-color: var(--brand); }
+.schedule-trigger.invalid { border-color: var(--danger); }
+.schedule-trigger .bi { color: var(--brand); flex-shrink: 0; }
+.schedule-trigger:disabled { cursor: default; }
+.subj-placeholder { font-size: 12px; color: var(--ink-faint); font-style: italic; padding: 10px 0; margin: 0; }
+.auto-note { background: var(--brand-soft); border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--brand-deep); line-height: 1.6; margin-top: 14px; }
+
+.sched-popup { position: fixed; z-index: 100; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 14px 34px rgba(30, 23, 48, 0.2); padding: 16px; width: 270px; font-family: 'Inter', sans-serif; }
+.sched-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sched-cal-nav { width: 26px; height: 26px; border-radius: 6px; border: none; background: var(--ink); color: #ae86ff; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 10px; }
+.sched-cal-title { font-family: 'Fraunces', serif; font-size: 12.5px; font-weight: 500; color: var(--ink); }
+.sched-cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 4px; }
+.sched-cal-dow span { font-size: 9px; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; }
+.sched-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; }
+.sched-day { height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; font-size: 11px; color: var(--ink-soft); }
+.sched-day:hover { background: var(--brand-soft); }
+.sched-day.picked { background: var(--brand); color: #fff; font-weight: 600; }
+.sched-time-row { display: flex; gap: 8px; margin-top: 12px; }
+.sched-time-field { flex: 1; min-width: 0; }
+.sched-time-field label { display: block; font-size: 9.5px; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; margin-bottom: 4px; }
+.sched-error { font-size: 11px; color: var(--danger); margin: 6px 0 0; }
+.sched-popup-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.sched-btn-plain { height: 30px; padding: 0 12px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.sched-btn-brand { height: 30px; padding: 0 14px; border-radius: var(--radius); border: none; background: var(--ink); color: #fff; font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.sched-btn-brand:disabled { background: var(--line-soft); color: var(--ink-faint); cursor: not-allowed; }
+
+.view-table { width: 100%; border-collapse: collapse; }
+.view-table th { text-align: left; font-size: 10.5px; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; padding: 0 10px 8px 0; border: none; letter-spacing: normal; }
+.view-table td { padding: 8px 10px 8px 0; font-size: 13px; color: var(--ink); border-top: 1px solid var(--line-soft); }
+
+.warn-box { background: var(--danger-soft); border-radius: var(--radius); padding: 12px 14px; font-size: 12px; color: #8A3A2E; line-height: 1.6; margin-bottom: 14px; }
+.warn-box b { color: var(--danger); }
+.confirm-input { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 13.5px; outline: none; box-sizing: border-box; font-family: monospace; margin-bottom: 6px; }
+.confirm-input:focus { border-color: var(--danger); }
+.confirm-input.match { border-color: var(--success); }
+.confirm-hint { font-size: 11px; color: var(--ink-faint); }
+.btn-danger { height: 38px; padding: 0 16px; border-radius: var(--radius); border: none; background: var(--danger); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-danger:disabled { background: var(--line-soft); color: var(--ink-faint); cursor: not-allowed; }
+
+@media (max-width: 767px) {
+  .search { flex: 1 1 auto; width: 100%; }
+}

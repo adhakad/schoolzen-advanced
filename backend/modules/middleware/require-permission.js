@@ -94,3 +94,4 @@ const requirePermission = (module, action = 'view') => async (req, res, next) =>
 module.exports = requirePermission;
 module.exports.loadPermissions = loadPermissions;
 module.exports.allows = allows;
+module.exports.resolveStaffId = resolveStaffId;

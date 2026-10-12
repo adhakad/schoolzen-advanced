@@ -16,6 +16,7 @@ import { TeacherAuthService } from 'src/app/services/auth/teacher-auth.service';
 import { SchoolService } from 'src/app/services/school.service';
 import { TeacherService } from 'src/app/services/teacher.service';
 import { AcademicSessionService } from 'src/app/services/academic-session.service';
+import { RolesPermissionsService } from 'src/app/shared/services/settings/roles-permissions.service';
 // "2026-2027" — the fallback when the server has no academic-session document at all.
 import { currentSessionLabel } from 'src/app/shared/utils/academic-session.util';
 import {
@@ -76,7 +77,8 @@ export class ShellContextService {
     private teacherAuthService: TeacherAuthService,
     private schoolService: SchoolService,
     private teacherService: TeacherService,
-    private academicSessionService: AcademicSessionService
+    private academicSessionService: AcademicSessionService,
+    private rolesPermissionsService: RolesPermissionsService
   ) {}
 
   /** The shell subscribes to this; it emits again as school/session/permissions land. */
@@ -126,6 +128,12 @@ export class ShellContextService {
     this.loadSchool(user?.adminId || user?.id);
     this.loadSessions();
     if (role === 'teacher') this.loadTeacherPermissions(user);
+    else this.loadV2Permissions(user?.id);
+  }
+
+  /** Re-read the v2 grants (e.g. after Roles & Permissions changed the caller's own role). */
+  refreshV2Permissions(): void {
+    if (this.snapshot.role !== 'teacher') this.loadV2Permissions(this.adminAuthService.getLoggedInAdminInfo()?.id);
   }
 
   setActiveSession(session: string): void {
@@ -184,6 +192,18 @@ export class ShellContextService {
         activeSession: active || sessions[0]
       });
     }, () => { /* the fallback session above stays, rather than blanking the selector */ });
+  }
+
+  /**
+   * The admin session's v2 Roles & Permissions grants, so the sidebar locks exactly what
+   * the API refuses. A failed load leaves them null: nothing locks, and the API still
+   * enforces every grant.
+   */
+  private loadV2Permissions(adminId: string | undefined): void {
+    if (!adminId) return;
+    this.rolesPermissionsService.getMyPermissions(adminId).subscribe((res) => {
+      if (res) this.patch({ v2Permissions: res });
+    }, () => { /* leave null — see above */ });
   }
 
   private loadTeacherPermissions(user: any): void {

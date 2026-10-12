@@ -86,6 +86,16 @@ const keys = {
         reminderFilters: (adminId) => `${adminId}:fees:reminder-filters`,
         reminderFiltersPattern: (adminId) => `${adminId}:fees:reminder-filters*`,
     },
+    // Examination (examination/optimization.md). Only the two structure pages' near-static
+    // reads — never a mark, an ExamResult or an AdmitCard (they change on every save).
+    examination: {
+        marksheetStructure: (adminId, sessionId) => `${adminId}:examination:marksheet-structure:${sessionId}`,
+        marksheetStructureFor: (adminId, sessionId, classId, streamId) =>
+            `${adminId}:examination:marksheet-structure:${sessionId}:${classId}:${streamId || 'none'}`,
+        marksheetStructurePattern: (adminId) => `${adminId}:examination:marksheet-structure*`,
+        admitCardStructureList: (adminId, sessionId) => `${adminId}:examination:admit-card-structure:list:${sessionId}`,
+        admitCardStructurePattern: (adminId) => `${adminId}:examination:admit-card-structure*`,
+    },
 };
 
 // Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write

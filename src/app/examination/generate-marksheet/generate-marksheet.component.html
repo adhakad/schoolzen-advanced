@@ -1,0 +1,239 @@
+<!-- Generate Marksheet.
+     Reference: docs/schoolzen-planning/v1/examination/generate-marksheet.html
+     Toolbar: row1 search + Bulk Enter Marks + Print Selected, row2 Class → Stream + Term. -->
+
+<div class="page-head">
+  <div>
+    <h1>Generate Marksheet</h1>
+    <div class="subtitle">Every student with a marksheet set up — enter marks, then preview and print.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or roll number" aria-label="Search by name or roll number"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-secondary" [disabled]="bulkDisabled" (click)="openBulk()"
+                  [title]="selectionSpansClasses ? 'Select students from one class only' : 'Enter Marks for Selected'">
+            <i class="bi bi-table"></i> Bulk Enter Marks ({{ selectedCount }})
+          </button>
+          <button type="button" class="btn-assign" [disabled]="!selectedCount" (click)="openPrintMode()" title="Print Selected">
+            <i class="bi bi-printer"></i> Print Selected ({{ selectedCount }})
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2">
+        <app-class-cascade-filter [options]="options" [value]="filter" [showGroup]="false" [showSection]="false"
+                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+        <app-dd class="term-pill" [options]="termOptions" [value]="term" placeholder="No terms" ariaLabel="Term / Exam"
+                [disabled]="!terms.length" (valueChange)="onTermChange($event)"></app-dd>
+      </div>
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
+      </div>
+    </div>
+
+    <div class="grid-scroll" *ngIf="!loading && !loadError && rows.length"><div class="table-inner compact-760">
+      <table>
+        <thead>
+          <tr>
+            <th class="chk"><input type="checkbox" aria-label="Select all" [checked]="allSelected" [disabled]="!selectableRows.length"
+                                   (change)="toggleAll($any($event.target).checked)" /></th>
+            <th>Student</th><th>Roll No.</th><th>Class</th><th>Marks Status</th><th class="act">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByStudent">
+            <td class="chk">
+              <input type="checkbox" [checked]="selected.has(row.studentId)" [disabled]="row.status === 'nostructure'"
+                     [title]="row.status === 'nostructure' ? 'No marksheet structure set' : ''" [attr.aria-label]="'Select ' + row.name"
+                     (change)="toggleRow(row, $any($event.target).checked)" />
+            </td>
+            <td><span class="st-avatar" [style.background]="avatar(row)">{{ row.initials }}</span><span class="st-name">{{ row.name }}</span></td>
+            <td>{{ roll(row.rollNumber) }}</td>
+            <td><span class="cls-tag">{{ row.className }}<ng-container *ngIf="row.streamName"> {{ row.streamName }}</ng-container></span></td>
+            <td>
+              <span class="tag tag-done" *ngIf="row.status === 'entered'">Entered</span>
+              <span class="tag tag-pending" *ngIf="row.status === 'pending'">Pending</span>
+              <span class="not-set" *ngIf="row.status === 'nostructure'">No structure set</span>
+            </td>
+            <td class="act">
+              <div class="actions">
+                <button type="button" class="icon-btn" [disabled]="row.status === 'nostructure'"
+                        [title]="row.status === 'entered' ? (canEdit ? 'Edit Marks' : 'View Marks') : 'Enter Marks'"
+                        [attr.aria-label]="'Marks for ' + row.name" (click)="openMarks(row)"><i class="bi bi-pencil-square"></i></button>
+                <button type="button" class="icon-btn" [disabled]="row.status !== 'entered'"
+                        [title]="row.status === 'entered' ? 'Preview' : 'Enter marks first'"
+                        [attr.aria-label]="'Preview marksheet for ' + row.name" (click)="openPreview(row)"><i class="bi bi-eye"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div></div>
+    <div class="tbl-empty" *ngIf="loading">Loading students&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="empty-hint" *ngIf="!loading && !loadError && !rows.length">
+      {{ search || filter.classId ? 'No students match this filter.' : 'No students enrolled in this session yet.' }}
+    </div>
+    <div class="sw-footer" *ngIf="!loading && !loadError && rows.length">
+      <span>Showing {{ rows.length }} of {{ total }} students</span><span>{{ session }} session</span>
+    </div>
+    <app-pagination-bar *ngIf="total > limit" [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row accent"><span class="stat-label">Marks Entered</span><span class="stat-value">{{ summary.entered }}</span></div>
+      <div class="stat-row"><span class="stat-label">Pending</span><span class="stat-value">{{ summary.pending }}</span></div>
+      <div class="stat-row"><span class="stat-label">Structure Missing</span><span class="stat-value">{{ summary.missing }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Preview and print are disabled until marks are entered for that student.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A class with "No structure set" needs a template assigned in Marksheet Structure first.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Enter / Edit Marks -->
+<div class="sz-modal-overlay open" *ngIf="marksRow as r" (click)="$event.target === $event.currentTarget && closeMarks()">
+  <div class="modal-box marks-box">
+    <div class="modal-head">
+      <span class="modal-title">{{ form?.result ? 'Edit' : 'Enter' }} Marks — {{ r.name }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeMarks()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="term-tabs" *ngIf="form?.terms?.length">
+        <div class="term-tab" *ngFor="let t of form?.terms" [class.active]="t === formTerm" role="tab" tabindex="0"
+             (click)="switchTerm(t)" (keydown.enter)="switchTerm(t)">{{ t }}</div>
+      </div>
+      <div class="tbl-empty" *ngIf="formLoading">Loading&hellip;</div>
+      <p class="m-error form-level" *ngIf="formError" role="alert">{{ formError }}</p>
+      <ng-container *ngIf="form as f">
+        <div class="group-title">Theory / Practical Marks</div>
+        <table class="marks-entry-table">
+          <thead><tr><th>Subject</th><th>{{ theoryHead }}</th><th>{{ practicalHead }}</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let s of f.subjects; trackBy: trackBySubject">
+              <td class="subj-name">{{ s.name }}</td>
+              <td>
+                <ng-container *ngIf="s.theoryMax != null; else naT">
+                  <input type="number" placeholder="0" min="0" [max]="s.theoryMax" [disabled]="!canEdit" [value]="theory[s.subjectId]"
+                         [class.invalid]="markErrors[s.subjectId + '.theory']" [attr.aria-label]="s.name + ' theory (max ' + s.theoryMax + ')'"
+                         (input)="setScore(s.subjectId, 'theory', $any($event.target).value)" />
+                  <p class="m-error" *ngIf="markErrors[s.subjectId + '.theory']">{{ markErrors[s.subjectId + '.theory'] }}</p>
+                </ng-container>
+                <ng-template #naT><span class="max-note">N/A</span></ng-template>
+              </td>
+              <td>
+                <ng-container *ngIf="s.practicalMax != null; else naP">
+                  <input type="number" placeholder="0" min="0" [max]="s.practicalMax" [disabled]="!canEdit" [value]="practical[s.subjectId]"
+                         [class.invalid]="markErrors[s.subjectId + '.practical']" [attr.aria-label]="s.name + ' practical (max ' + s.practicalMax + ')'"
+                         (input)="setScore(s.subjectId, 'practical', $any($event.target).value)" />
+                  <p class="m-error" *ngIf="markErrors[s.subjectId + '.practical']">{{ markErrors[s.subjectId + '.practical'] }}</p>
+                </ng-container>
+                <ng-template #naP><span class="max-note">N/A</span></ng-template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-container *ngIf="f.coScholasticAreas.length">
+          <div class="group-title">Co-Scholastic Grading</div>
+          <div class="co-scholastic-entry" *ngFor="let area of f.coScholasticAreas; trackBy: trackByIndex">
+            <label>{{ area }}</label>
+            <app-dd class="co-grade" [options]="coGradeOptions" [value]="coGrades[area]" [disabled]="!canEdit" [ariaLabel]="area + ' grade'"
+                    (valueChange)="coGrades[area] = $event"></app-dd>
+          </div>
+        </ng-container>
+        <div class="result-summary" *ngIf="liveResult as lr">
+          <div><div class="num">{{ lr.total }} / {{ lr.max }}</div><div class="lbl">Total Marks</div></div>
+          <div><div class="num">{{ lr.pct }}%</div><div class="lbl">Percentage</div></div>
+          <div><div class="num" [class.pass]="lr.pass" [class.fail]="!lr.pass">{{ lr.pass ? 'Pass' : 'Fail' }}</div><div class="lbl">Result</div></div>
+        </div>
+      </ng-container>
+      <p class="m-error form-level" *ngIf="saveError" role="alert">{{ saveError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" [disabled]="isClick" (click)="closeMarks()">Cancel</button>
+      <button type="button" class="btn-brand" *ngIf="canEdit" [disabled]="isClick || !form" (click)="saveMarks()">Save Marks</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Enter Marks (theory only) -->
+<div class="sz-modal-overlay open" *ngIf="bulkOpen" (click)="$event.target === $event.currentTarget && closeBulk()">
+  <div class="modal-box bulk-box">
+    <div class="modal-head">
+      <span class="modal-title">Bulk Enter Marks<ng-container *ngIf="bulk"> — {{ bulk.className }} ({{ bulk.rows.length }} students)</ng-container></span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeBulk()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="bulk-hint">Theory marks only — for Practical or Co-Scholastic grading, use the row's own Enter Marks icon.</p>
+      <div class="tbl-empty" *ngIf="bulkLoading">Loading&hellip;</div>
+      <div class="grid-scroll" *ngIf="bulk as b"><div class="bulk-inner">
+        <table class="marks-entry-table">
+          <thead><tr><th>Student</th><th *ngFor="let s of b.subjects; trackBy: trackBySubject">{{ s.name }} ({{ s.theoryMax }})</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of b.rows; trackBy: trackByStudent">
+              <td class="subj-name nowrap">{{ r.name }}</td>
+              <td *ngFor="let s of b.subjects; trackBy: trackBySubject">
+                <input type="number" placeholder="0" min="0" [max]="s.theoryMax" [value]="bulkCells[r.studentId + '|' + s.subjectId]"
+                       [class.invalid]="bulkCellErrors[r.studentId + '|' + s.subjectId]" [title]="bulkCellErrors[r.studentId + '|' + s.subjectId] || ''"
+                       [attr.aria-label]="r.name + ' ' + s.name"
+                       (input)="setCell(r.studentId, s.subjectId, $any($event.target).value)" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div></div>
+      <p class="m-error form-level" *ngIf="bulkError" role="alert">{{ bulkError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" [disabled]="isClick" (click)="closeBulk()">Cancel</button>
+      <button type="button" class="btn-brand" [disabled]="isClick || !bulk" (click)="saveBulk()">Save All</button>
+    </div>
+  </div>
+</div>
+
+<app-confirm-modal [open]="overwriteOpen" [config]="overwriteConfirm"
+                   (confirmed)="confirmOverwrite()" (cancelled)="cancelOverwrite()"></app-confirm-modal>
+
+<app-print-mode-choice [open]="printModeOpen" title="Print Marksheets" [count]="selectedCount" noun="marksheets" singular="marksheet"
+                       (chosen)="onPrintMode($event)" (cancelled)="printModeOpen = false"></app-print-mode-choice>
+
+<!-- Marksheet preview / print -->
+<div class="sz-modal-overlay open" *ngIf="previewOpen" (click)="$event.target === $event.currentTarget && closePreview()">
+  <div class="modal-box preview-box">
+    <div class="modal-head">
+      <span class="modal-title">{{ previewTitle }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closePreview()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="tbl-empty" *ngIf="previewLoading">Loading&hellip;</div>
+      <p class="m-error form-level" *ngIf="previewError" role="alert">{{ previewError }}</p>
+      <p class="m-hint skipped" *ngIf="skipped">{{ skipped.message }}</p>
+      <p class="m-hint" *ngIf="!previewLoading && !previewError && !documents.length">None of the selected students have marks entered yet.</p>
+      <div class="print-target print-batch" [class.two-up]="printMode === 2">
+        <app-marksheet-document *ngFor="let d of documents; trackBy: trackByStudent"
+                                [header]="printHeader" [title]="printTitle" [sheet]="d"></app-marksheet-document>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closePreview()">Close</button>
+      <button type="button" class="btn-brand" [disabled]="!documents.length" (click)="print()"><i class="bi bi-printer"></i> Print</button>
+    </div>
+  </div>
+</div>

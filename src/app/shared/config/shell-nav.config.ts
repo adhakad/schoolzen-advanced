@@ -24,6 +24,11 @@ export interface ShellNavItem {
   adminOnly?: boolean;
   /** Shown locked for a teacher when this permission is false. */
   permission?: ShellPermissionKey;
+  /**
+   * v2 Roles & Permissions module key: shown locked for an admin-session user whose role
+   * lacks View on it — the same grant the page's API enforces.
+   */
+  v2Permission?: string;
 }
 
 export interface ShellNavGroup {
@@ -119,10 +124,11 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   {
     key: 'examination', label: 'Examination', icon: 'journal-text',
     items: [
-      { label: 'Marksheet Structure', route: '/v2/examination/marksheet-structure', adminOnly: true },
-      { label: 'Generate Marksheet', route: '/v2/examination/generate-marksheet', permission: 'marksheet' },
-      { label: 'Admit Card Structure', route: '/v2/examination/admit-card-structure', adminOnly: true },
-      { label: 'Generate Admit Card', route: '/v2/examination/generate-admit-card', permission: 'admitCard' }
+      // Order per every examination/*.html reference's sidebar.
+      { label: 'Admit Card Structure', route: '/v2/examination/admit-card-structure', adminOnly: true, v2Permission: 'admit-card-structure' },
+      { label: 'Generate Admit Card', route: '/v2/examination/generate-admit-card', permission: 'admitCard', v2Permission: 'admit-card' },
+      { label: 'Marksheet Structure', route: '/v2/examination/marksheet-structure', adminOnly: true, v2Permission: 'marksheet-structure' },
+      { label: 'Generate Marksheet', route: '/v2/examination/generate-marksheet', permission: 'marksheet', v2Permission: 'marksheet' }
     ]
   },
 

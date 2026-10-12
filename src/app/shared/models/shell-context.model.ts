@@ -29,6 +29,24 @@ export const SHELL_PERMISSION_KEYS: readonly ShellPermissionKey[] = [
 
 export type ShellRole = 'admin' | 'teacher';
 
+/**
+ * The caller's v2 Roles & Permissions grants (GET /api/v2/settings/my-permissions) — the
+ * same union the backend's requirePermission() checks. Module keys are the backend's
+ * PERMISSION_MODULES ('marksheet-structure', 'admit-card', ...).
+ */
+export interface V2Permissions {
+  isSuperAdmin: boolean;
+  modules: Readonly<Record<string, { canView: boolean; canEdit: boolean }>>;
+}
+
+/** View access to a v2 permission module (edit implies view). */
+export const v2CanView = (permissions: V2Permissions | null | undefined, module: string): boolean => {
+  if (!permissions) return true;
+  if (permissions.isSuperAdmin) return true;
+  const grant = permissions.modules[module];
+  return Boolean(grant && (grant.canView || grant.canEdit));
+};
+
 export interface ShellSchool {
   name: string;
   /** e.g. "CBSE · Indore, Madhya Pradesh" */
@@ -52,4 +70,9 @@ export interface ShellContext {
   sessions: readonly string[];
   activeSession: string;
   permissions: Readonly<Record<ShellPermissionKey, boolean>>;
+  /**
+   * The admin session's v2 grants. Absent/null until loaded (or if the load fails) — the
+   * sidebar then locks nothing and the API, which enforces every grant anyway, answers.
+   */
+  v2Permissions?: V2Permissions | null;
 }

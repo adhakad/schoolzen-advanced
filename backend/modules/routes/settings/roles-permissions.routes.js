@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 
 const validateRequest = require('../../middleware/validate-request');
+const { isAdminAuth } = require('../../middleware/admin-auth');
+const assertAdminScope = require('../../middleware/assert-admin-scope');
 const { canView, canEdit } = require('../../helpers/settings/route-guards');
 const {
     createRoleSchema, updateRoleSchema, matrixQuerySchema,
@@ -10,10 +12,14 @@ const {
 } = require('../../validators/settings/roles-permissions.validator');
 const {
     GetRoles, CreateRole, UpdateRole, DeleteRole,
-    GetMatrix, GetClassOptions, CreateAssignment, UpdateAssignment, DeleteAssignment, BulkDeleteAssignments,
+    GetMatrix, GetClassOptions, GetMyPermissions, CreateAssignment, UpdateAssignment, DeleteAssignment, BulkDeleteAssignments,
 } = require('../../controllers/settings/roles-permissions.controller');
 
 // Mounted at /api/v2/settings — wiring only, no logic.
+
+// The CALLER's own effective permissions — what the sidebar locks/unlocks. Needs no
+// 'settings' grant: everyone may know what they themselves can do.
+router.get('/my-permissions', isAdminAuth, assertAdminScope('settings'), GetMyPermissions);
 
 // Step 1 — roles
 router.get('/roles', ...canView, GetRoles);

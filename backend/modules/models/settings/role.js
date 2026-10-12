@@ -21,8 +21,12 @@ const mongoose = require('mongoose');
 // concessions/waivers ('fees-waiver') are separate, explicit grants.
 // Certificates the same: 'certificates' views both pages and reprints, while editing the TC
 // serial ('tc-structure') and issuing/cancelling a TC ('tc-generate') are explicit grants.
+// Examination: one key per page. 'marksheet' (Generate Marksheet: view/preview/print, edit =
+// enter marks) keeps its original meaning; 'marksheet-structure' and 'admit-card-structure'
+// gate setting up / editing / removing structures (which regenerates documents), and
+// 'admit-card' gates Generate Admit Card.
 const PERMISSION_MODULES = Object.freeze([
-    'student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
+    'student', 'attendance', 'marksheet', 'marksheet-structure', 'admit-card', 'admit-card-structure', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
     'fees', 'fees-structure', 'fees-collect', 'fees-waiver',
     'certificates', 'tc-structure', 'tc-generate',
     'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout', 'settings',

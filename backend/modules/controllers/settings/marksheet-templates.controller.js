@@ -1,6 +1,5 @@
 'use strict';
 const mongoose = require('mongoose');
-const MarksheetTemplateV2Model = require('../../models/settings/marksheet-template');
 const MarksheetStructureV2Model = require('../../models/examination/marksheet-structure');
 const SubjectGroupModel = require('../../models/academic-setup/subject-group');
 const { NotFoundError } = require('../../errors');
@@ -10,7 +9,7 @@ const cacheKeys = require('../../services/cache/cache-keys');
 const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
 const { loadClassTree, indexTree, scopeLabel, resolveScope } = require('../../helpers/settings/class-options');
 const { classTemplateAlreadyAssigned, isDuplicateKey } = require('../../helpers/settings/duplicate-key');
-const { seedMarksheetTemplates } = require('../../../scripts/seed-marksheet-templates');
+const { loadCatalog } = require('../../helpers/settings/marksheet-catalog-loader');
 
 const MODULE = 'settings';
 
@@ -24,20 +23,6 @@ const MODULE = 'settings';
 const toObjectId = (id) => new mongoose.Types.ObjectId(String(id));
 
 const templateNotFound = () => new NotFoundError(messages.templateNotFound(), { module: MODULE, code: 'TEMPLATE_NOT_FOUND' });
-
-/** The global catalog, cached; seeded on first use if a deploy hasn't run the seed yet. */
-const loadCatalog = () => cacheService.wrap(cacheKeys.settings.marksheetCatalog(), cacheService.TTL.NEAR_STATIC_45, async () => {
-    let templates = await MarksheetTemplateV2Model.find({}).sort({ order: 1 }).lean();
-    if (!templates.length) {
-        await seedMarksheetTemplates();
-        templates = await MarksheetTemplateV2Model.find({}).sort({ order: 1 }).lean();
-    }
-    return templates.map((t) => ({
-        _id: String(t._id), code: t.code, name: t.name, terms: t.terms || [], gradeScale: t.gradeScale,
-        theoryMax: t.theoryMax, theoryPass: t.theoryPass, practicalMax: t.practicalMax == null ? null : t.practicalMax,
-        coScholasticAreas: t.coScholasticAreas || [], supplyLimit: t.supplyLimit, gradeRows: t.gradeRows || [],
-    }));
-});
 
 /** A template by catalog code ("T3") or _id. */
 const findTemplate = async (ref) => {
@@ -146,7 +131,13 @@ let AssignTemplate = async (req, res) => {
             // Conditional on the template we previewed: a concurrent change means re-confirm.
             const result = await MarksheetStructureV2Model.updateOne(
                 { ...filter, templateId: existing.templateId },
-                { $set: { templateId: toObjectId(template._id), subjectIds: subjectIds.map(toObjectId), updatedBy: actor, updatedAt: now } }
+                // A new template means a new candidate list: Examination's setup (subjects +
+                // maxes) starts over, and its optimistic version moves so an open setup
+                // form can't save against the old template (STRUCTURE_CHANGED).
+                {
+                    $set: { templateId: toObjectId(template._id), subjectIds: subjectIds.map(toObjectId), subjects: [], setupAt: null, updatedBy: actor, updatedAt: now },
+                    $inc: { version: 1 },
+                }
             );
             if (result.matchedCount !== 1) throw classTemplateAlreadyAssigned();
         } else {
@@ -159,6 +150,9 @@ let AssignTemplate = async (req, res) => {
         if (isDuplicateKey(error)) throw classTemplateAlreadyAssigned();
         throw error;
     }
+
+    // Cross-module invalidation (examination/optimization.md): the structure's template changed.
+    await cacheService.delPattern(cacheKeys.examination.marksheetStructurePattern(adminId));
 
     return res.status(existing ? 200 : 201).json({
         message: `${template.code} assigned.`,

@@ -13,6 +13,7 @@ const startStudentWorker = require('./modules/workers/student-worker');
 const startAttendanceV2Worker = require('./modules/workers/attendance-v2-worker');
 const startPayrollWorker = require('./modules/workers/payroll-worker');
 const startFeesWorker = require('./modules/workers/fees-worker');
+const startExaminationWorker = require('./modules/workers/examination-worker');
 const { stopHeartbeats } = require('./modules/workers/heartbeat');
 const logger = require('./modules/helpers/logger');
 
@@ -36,6 +37,8 @@ const workers = [
     startPayrollWorker(),
     // v2 Fees: Fee Reminder WhatsApp sends.
     startFeesWorker(),
+    // v2 Examination: admit card generation per Admit Card Structure save.
+    startExaminationWorker(),
 ];
 
 logger.info('worker.started', { pid: process.pid, workers: workers.length });

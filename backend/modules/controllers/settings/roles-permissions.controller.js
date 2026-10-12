@@ -373,7 +373,21 @@ let BulkDeleteAssignments = async (req, res) => {
     });
 };
 
+/**
+ * GET /my-permissions — the caller's own effective permissions (the same cached union
+ * requirePermission checks), so the sidebar locks exactly what the backend would refuse.
+ */
+let GetMyPermissions = async (req, res) => {
+    // Lazy: require-permission pulls in owner-bootstrap, which this controller's module
+    // graph already loads — keeping the require local avoids a load-order cycle.
+    const { resolveStaffId, loadPermissions } = require('../../middleware/require-permission');
+    const staffId = await resolveStaffId(req);
+    const permissions = await loadPermissions(req.adminId, staffId);
+    return res.status(200).json({ isSuperAdmin: permissions.isSuperAdmin, modules: permissions.modules });
+};
+
 module.exports = {
+    GetMyPermissions,
     GetRoles, CreateRole, UpdateRole, DeleteRole,
     GetMatrix, GetClassOptions, CreateAssignment, UpdateAssignment, DeleteAssignment, BulkDeleteAssignments,
 };

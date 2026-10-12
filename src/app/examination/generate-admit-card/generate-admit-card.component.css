@@ -1,0 +1,3 @@
+/* Generate Admit Card — the shared table/preview/print rules are in ../examination-page.css
+   (docs/schoolzen-planning/v1/examination/generate-admit-card.html). */
+.preview-btn { margin-left: auto; }

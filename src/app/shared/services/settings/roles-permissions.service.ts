@@ -11,12 +11,18 @@ import {
   AssignmentScope, BulkAssignmentDeleteResponse, ClassScopeNode, MatrixQuery, MatrixResponse,
   ModulePermission, RoleAssignment, Role, RolesResponse
 } from 'src/app/shared/models/settings/roles.model';
+import { V2Permissions } from 'src/app/shared/models/shell-context.model';
 
 @Injectable({ providedIn: 'root' })
 export class RolesPermissionsService {
   private url = `${environment.API_URL}/api/v2/settings`;
 
   constructor(private http: HttpClient) {}
+
+  /** The caller's own effective grants — what the sidebar locks. */
+  getMyPermissions(adminId: string): Observable<V2Permissions> {
+    return this.http.get<V2Permissions>(`${this.url}/my-permissions`, { params: { adminId } });
+  }
 
   // Step 1 — roles
   getRoles(adminId: string): Observable<RolesResponse> {
