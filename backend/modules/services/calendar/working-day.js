@@ -26,20 +26,31 @@ const loadRosterCells = async (adminId, staffIds, fromKey, toKey) => {
     return cells;
 };
 
-/** Map<"type|id", Set<dateKey>> — the days each person's approved leaves were charged for. */
-const loadLeaveKeys = async (adminId, people, fromKey, toKey) => {
-    const keys = new Map();
-    if (!people.length) return keys;
+/**
+ * Map<"type|id", Map<dateKey, leaveTypeId>> — the days each person's approved leaves were
+ * charged for, and under which leave type (Payroll reads the type's isPaid).
+ */
+const loadLeaveDays = async (adminId, people, fromKey, toKey) => {
+    const days = new Map();
+    if (!people.length) return days;
     const rows = await LeaveRequestV2Model.find(
         { adminId, status: 'Approved', personId: { $in: people.map((p) => String(p.personId)) }, fromDateKey: { $lte: toKey }, toDateKey: { $gte: fromKey } },
-        { personType: 1, personId: 1, dateKeys: 1, attendanceDateKeys: 1 }
+        { personType: 1, personId: 1, leaveTypeId: 1, dateKeys: 1, attendanceDateKeys: 1 }
     ).lean();
     rows.forEach((row) => {
         const key = personKey(row.personType, row.personId);
-        if (!keys.has(key)) keys.set(key, new Set());
+        if (!days.has(key)) days.set(key, new Map());
         // Requests approved before `dateKeys` existed only recorded the marks they wrote.
-        ((row.dateKeys && row.dateKeys.length) ? row.dateKeys : row.attendanceDateKeys || []).forEach((day) => keys.get(key).add(day));
+        ((row.dateKeys && row.dateKeys.length) ? row.dateKeys : row.attendanceDateKeys || [])
+            .forEach((day) => days.get(key).set(day, row.leaveTypeId));
     });
+    return days;
+};
+
+/** Map<"type|id", Set<dateKey>> — loadLeaveDays without the leave type. */
+const loadLeaveKeys = async (adminId, people, fromKey, toKey) => {
+    const keys = new Map();
+    (await loadLeaveDays(adminId, people, fromKey, toKey)).forEach((byDay, key) => keys.set(key, new Set(byDay.keys())));
     return keys;
 };
 
@@ -78,4 +89,4 @@ const workingDayKeys = async (adminId, { sessionId, personType, personId, fromKe
     return days ? [...days].filter(([, type]) => type === DAY_TYPE.WORKING).map(([dateKey]) => dateKey) : [];
 };
 
-module.exports = { DAY_TYPE, personKey, resolveDays, workingDayKeys };
+module.exports = { DAY_TYPE, personKey, resolveDays, workingDayKeys, loadLeaveDays };

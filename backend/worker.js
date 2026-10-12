@@ -11,6 +11,7 @@ const startAttendanceSyncWorker = require('./modules/workers/attendance-sync-wor
 const startAttendanceReconcileWorker = require('./modules/workers/attendance-reconcile-worker');
 const startStudentWorker = require('./modules/workers/student-worker');
 const startAttendanceV2Worker = require('./modules/workers/attendance-v2-worker');
+const startPayrollWorker = require('./modules/workers/payroll-worker');
 const { stopHeartbeats } = require('./modules/workers/heartbeat');
 const logger = require('./modules/helpers/logger');
 
@@ -30,6 +31,8 @@ const workers = [
     startStudentWorker(),
     // v2 Attendance: WDMS sync (fast path) + reconcile (slow path).
     startAttendanceV2Worker(),
+    // v2 Payroll: large "Generate for Selected" runs.
+    startPayrollWorker(),
 ];
 
 logger.info('worker.started', { pid: process.pid, workers: workers.length });

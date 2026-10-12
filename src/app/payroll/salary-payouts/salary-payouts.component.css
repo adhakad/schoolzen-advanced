@@ -1,0 +1,35 @@
+/* Salary Payouts reference styles the global design system doesn't carry
+   (docs/schoolzen-planning/v1/payroll/salary-payouts.html). */
+.pr-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: center; }
+.month-dd ::ng-deep .dd-trigger .bi-calendar-event { color: var(--brand); font-size: 13px; }
+.table-inner { min-width: 1020px; }
+th, td { white-space: nowrap; }
+td { padding: 14px; vertical-align: middle; font-size: 13px; color: var(--ink-soft); }
+.ph-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+.ph-code { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+.ph-net { font-weight: 600; color: var(--ink); font-size: 13px; }
+.ph-paid { color: var(--ink-soft); font-size: 13px; }
+.ph-due { font-size: 10.5px; color: var(--warning); margin-top: 2px; }
+.ph-pending-note { font-size: 10.5px; color: var(--ink-faint); margin-top: 2px; }
+.tag { display: inline-flex; align-items: center; justify-content: center; width: 96px; font-size: 11px; font-weight: 600; padding: 5px 0; border-radius: 999px; border: none; }
+.tag-full { background: var(--success-soft); color: var(--success); }
+.tag-partial { background: var(--warning-soft); color: var(--warning); }
+.tag-unpaid { background: var(--danger-soft); color: var(--danger); }
+.confirm-tag { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 82px; font-size: 11px; font-weight: 600; padding: 5px 0; border-radius: 999px; border: none; font-family: inherit; }
+.confirm-tag.confirmed { background: var(--success-soft); color: var(--success); }
+.confirm-tag.pending { background: var(--brand-soft); color: var(--slate); }
+.confirm-tag.disputed { background: var(--danger-soft); color: var(--danger); cursor: pointer; width: 92px; }
+.confirm-tag.expired { background: var(--line-soft); color: var(--ink-faint); }
+.dispute-reason { white-space: normal; max-width: 220px; font-size: 11px; color: var(--danger); margin-top: 4px; line-height: 1.4; }
+.dash { color: var(--ink-faint); }
+.act .icon-btn { margin-left: auto; }
+.load-more { display: flex; justify-content: center; padding-top: 12px; }
+
+/* Modals */
+.due-note { background: var(--brand-soft); border-radius: var(--radius); padding: 10px 14px; font-size: 12.5px; color: var(--brand-deep); font-weight: 500; margin-bottom: 16px; }
+.confirm-note { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; margin: 0; }
+.slip-body { line-height: 2; }
+.btn-brand:disabled { opacity: .55; cursor: not-allowed; }
+
+@media (max-width: 991px) { .pr-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 767px) { .pr-grid { grid-template-columns: 1fr; } }

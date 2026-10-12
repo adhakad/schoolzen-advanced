@@ -1,0 +1,44 @@
+/* Generate Payroll reference styles the global design system doesn't carry
+   (docs/schoolzen-planning/v1/payroll/generate-payroll.html). */
+.pr-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: center; }
+.btn-gen { flex-shrink: 0; height: 38px; background: var(--surface); color: var(--brand); border: 1px solid var(--brand); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; }
+.btn-gen:hover:not(:disabled) { background: var(--brand-soft); }
+.btn-gen:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
+.month-dd ::ng-deep .dd-trigger .bi-calendar-event { color: var(--brand); font-size: 13px; }
+
+.table-inner { min-width: 920px; }
+th, td { white-space: nowrap; }
+td { padding: 14px; vertical-align: middle; font-size: 13px; color: var(--ink-soft); }
+th.chk, td.chk { width: 34px; text-align: center; }
+th.chk input, td.chk input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+.r-avatar { width: 34px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; margin-right: 10px; vertical-align: middle; }
+.r-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+.r-role { font-size: 11px; color: var(--ink-faint); margin-left: 44px; }
+.att-dots { display: flex; gap: 8px; font-size: 12px; color: var(--ink-soft); font-weight: 600; }
+.att-dots .d { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 3px; }
+.d-present { background: #22c55e; }
+.d-late { background: #f59e0b; }
+.d-absent { background: #ef4444; }
+.net-pending { color: var(--ink-faint); font-size: 12px; font-weight: 400; }
+.tag { display: inline-flex; align-items: center; justify-content: center; width: 80px; font-size: 11px; font-weight: 600; padding: 5px 0; border-radius: 999px; border: none; }
+.tag-draft { background: var(--warning-soft); color: var(--warning); }
+.tag-locked { background: var(--success-soft); color: var(--success); }
+.tag-pending { background: var(--brand-soft); color: var(--slate); }
+.icon-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.pr-warning { display: flex; gap: 10px; align-items: flex-start; background: var(--warning-soft); color: var(--warning); border-radius: var(--radius); padding: 10px 14px; font-size: 12.5px; line-height: 1.5; margin-bottom: 14px; }
+.load-more { display: flex; justify-content: center; padding-top: 12px; }
+
+/* Modals */
+.confirm-heading { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 8px; line-height: 1.4; }
+.confirm-note { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; margin: 0; }
+.slip-body { line-height: 2; }
+.btn-danger { height: 38px; padding: 0 16px; border-radius: var(--radius); border: none; background: var(--danger); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-danger:disabled, .btn-brand:disabled { opacity: .55; cursor: not-allowed; }
+.skip-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line-soft); font-size: 12.5px; }
+.skip-name { color: var(--ink); font-weight: 600; }
+.skip-code { color: var(--ink-faint); font-weight: 400; }
+.skip-reason { color: var(--ink-soft); text-align: right; }
+
+@media (max-width: 991px) { .pr-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 767px) { .pr-grid { grid-template-columns: 1fr; } }

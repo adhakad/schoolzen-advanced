@@ -54,6 +54,12 @@ const routes: Routes = [
         loadChildren: () => import('src/app/holiday/holiday.module')
           .then((m) => m.HolidayModule)
       },
+      // Module 7 — Payroll.
+      {
+        path: 'payroll',
+        loadChildren: () => import('src/app/payroll/payroll.module')
+          .then((m) => m.PayrollModule)
+      },
       // Module 12 — Settings.
       {
         path: 'settings',

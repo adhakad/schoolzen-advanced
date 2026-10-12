@@ -73,6 +73,8 @@ module.exports = app => {
     app.use('/api/v2/leave', require('./modules/routes/leave/leave.routes'));
     // Module 6 — Holiday. Holidays, Templates and Assign in one route file.
     app.use('/api/v2/holiday', require('./modules/routes/holiday/holiday.routes'));
+    // Module 7 — Payroll.
+    app.use('/api/v2/payroll', require('./modules/routes/payroll/payroll.routes'));
     // Module 12 — Settings. Four disjoint pages under one base path, each its own route file.
     app.use('/api/v2/settings', require('./modules/routes/settings/academic-sessions.routes'));
     app.use('/api/v2/settings', require('./modules/routes/settings/admission-form-fields.routes'));

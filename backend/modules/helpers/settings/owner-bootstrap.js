@@ -24,7 +24,10 @@ const SEEDED_ROLES = Object.freeze([
     { name: 'Super Admin', isSuperAdmin: true, isScoped: false, order: 0, permissions: [] },
     {
         name: 'Accountant', isScoped: false, order: 1,
-        permissions: perms({ student: all(true, true), fees: all(true, true), payroll: all(true, true) }),
+        permissions: perms({
+            student: all(true, true), fees: all(true, true), payroll: all(true, true),
+            'payroll-assign': all(true, true), 'payroll-generate': all(true, true), 'payroll-payout': all(true, true),
+        }),
     },
     {
         name: 'Class Teacher', isScoped: true, order: 2,

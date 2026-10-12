@@ -1,0 +1,130 @@
+<!-- Assign Salary.
+     Reference: docs/schoolzen-planning/v1/payroll/assign-salary.html
+     Toolbar: search + Assign to Selected; row 2 Department → Designation. -->
+
+<div class="page-head">
+  <div>
+    <h1>Assign Salary</h1>
+    <div class="subtitle">Put staff on a pay scale — no scale means no payroll for them.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or ID" aria-label="Search by name or ID"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group" *ngIf="canEdit">
+          <button type="button" class="btn-assign" [disabled]="!selected.size" (click)="openBulk()">
+            <i class="bi bi-person-check"></i> Assign to Selected
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2 pr-grid">
+        <app-staff-cascade-filter [adminId]="adminId" [value]="filter" (valueChange)="onFilterChange($event)"></app-staff-cascade-filter>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="chk" *ngIf="canEdit"><input type="checkbox" aria-label="Select all on this page" [checked]="allSelected" (change)="toggleAll()" /></th>
+            <th>Name</th><th>Assigned Group</th><th>Effective From</th><th class="act" *ngIf="canEdit">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackById">
+            <td class="chk" *ngIf="canEdit"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="selected.has(row._id)" (change)="toggleRow(row._id)" /></td>
+            <td><div class="as-name">{{ row.name }}</div><div class="as-sub" *ngIf="subLine(row)">{{ subLine(row) }}</div></td>
+            <td>
+              <ng-container *ngIf="row.assignment as a; else unassigned">
+                <ng-container *ngIf="!a.groupMissing; else missing">
+                  <span class="as-group">{{ a.groupName }}</span><span class="as-mode-tag">{{ modeLabel(a.mode) }}</span>
+                  <div class="as-override" *ngIf="a.hasOverride"><i class="bi bi-exclamation-triangle"></i> Has a personal override</div>
+                </ng-container>
+                <ng-template #missing>
+                  <span class="not-set">Group deleted — reassign</span>
+                </ng-template>
+              </ng-container>
+              <ng-template #unassigned><span class="not-set">Not assigned</span></ng-template>
+            </td>
+            <td>
+              <ng-container *ngIf="row.assignment; else noDate">{{ date(row.assignment.effectiveFrom) }}</ng-container>
+              <ng-template #noDate><span class="not-set">—</span></ng-template>
+            </td>
+            <td class="act" *ngIf="canEdit">
+              <button type="button" class="row-action-btn" (click)="openSingle(row)">
+                <ng-container *ngIf="row.assignment; else assignLabel"><i class="bi bi-pencil"></i> Change</ng-container>
+                <ng-template #assignLabel><i class="bi bi-plus-lg"></i> Assign</ng-template>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tbl-empty" *ngIf="loading">Loading staff&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !rows.length">No staff match these filters.</div>
+    <app-pagination-bar *ngIf="total > limit" [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Assigned</span><span class="stat-value">{{ summary.assigned }} / {{ summary.staff }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">With Override</span><span class="stat-value">{{ summary.withOverride }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Someone with no scale can't have payroll generated for them.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Filter by Department and Designation to find people who share a pay band, then assign them together.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>An override only changes this one person — the group itself stays the same for everyone else.</div>
+    </div>
+  </div>
+</div>
+
+<app-form-modal [open]="modalOpen" [title]="modalTitle" submitLabel="Assign" [submitDisabled]="saving"
+                (submitted)="submit()" (cancelled)="closeModal()">
+  <div class="m-field">
+    <label>Salary Group</label>
+    <app-dd [options]="groupOptions" [value]="form.salaryGroupId" placeholder="Choose a salary group" ariaLabel="Salary Group"
+            [invalid]="!!fieldErrors['salaryGroupId']" (valueChange)="form.salaryGroupId = $event"></app-dd>
+    <p class="m-error" *ngIf="fieldErrors['salaryGroupId']">{{ fieldErrors['salaryGroupId'] }}</p>
+    <p class="m-error" *ngIf="groupsError">{{ groupsError }} <button type="button" class="link-btn" (click)="loadGroups()">Retry</button></p>
+  </div>
+  <div class="m-field">
+    <label>Effective From</label>
+    <app-dp [value]="form.effectiveFrom" placeholder="dd/mm/yyyy" ariaLabel="Effective From"
+            [invalid]="!!fieldErrors['effectiveFrom']" (valueChange)="form.effectiveFrom = $event"></app-dp>
+    <p class="m-error" *ngIf="fieldErrors['effectiveFrom']">{{ fieldErrors['effectiveFrom'] }}</p>
+  </div>
+  <ng-container *ngIf="!bulk">
+    <label class="check-row"><input type="checkbox" [(ngModel)]="form.override" /> Override for this person</label>
+    <div class="override-block" *ngIf="form.override">
+      <p class="override-note">Leave a field blank to keep the group's value. Enter <b>0</b> to give this person none of it.</p>
+      <div class="m-field">
+        <label for="ov-basic">Basic (override)</label>
+        <input id="ov-basic" type="number" min="0" placeholder="Leave blank to use group value" [(ngModel)]="form.basic"
+               [class.is-invalid]="fieldErrors['overrides.basic']" />
+        <p class="m-error" *ngIf="fieldErrors['overrides.basic']">{{ fieldErrors['overrides.basic'] }}</p>
+      </div>
+      <div class="m-field" style="margin-bottom:0;">
+        <label for="ov-hra">HRA (override)</label>
+        <input id="ov-hra" type="number" min="0" placeholder="Leave blank to use group value" [(ngModel)]="form.hra"
+               [class.is-invalid]="fieldErrors['overrides.hra']" />
+        <p class="m-error" *ngIf="fieldErrors['overrides.hra']">{{ fieldErrors['overrides.hra'] }}</p>
+      </div>
+    </div>
+  </ng-container>
+  <div class="m-hint" *ngIf="bulk">Everyone selected moves to this group. Personal overrides already set stay as they are.</div>
+  <p class="m-error form-level" *ngIf="formError" role="alert">{{ formError }}</p>
+</app-form-modal>

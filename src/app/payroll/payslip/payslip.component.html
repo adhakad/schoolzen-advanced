@@ -1,0 +1,67 @@
+<div class="payslip print-target" *ngIf="slip as s">
+  <div class="ps-band ps-head">
+    <div class="ps-school">
+      <img class="ps-logo" *ngIf="s.school.logoUrl" [src]="s.school.logoUrl" alt="" />
+      <div>
+        <div class="ps-school-name">{{ s.school.schoolName }}</div>
+        <div class="ps-school-meta" *ngFor="let line of s.school.metaLines">{{ line }}</div>
+      </div>
+    </div>
+    <div class="ps-title">
+      <div class="ps-title-main">PAYSLIP</div>
+      <div class="ps-title-sub">{{ period }}</div>
+    </div>
+  </div>
+
+  <div class="ps-meta">
+    <span>Slip No. <b>{{ s.slipNumber }}</b></span>
+    <span>Generated {{ generated() }}</span>
+  </div>
+
+  <div class="ps-grid">
+    <div><span class="ps-label">Employee</span><span>{{ s.employee.name || '—' }}</span></div>
+    <div><span class="ps-label">Employee ID</span><span>{{ s.employee.code || '—' }}</span></div>
+    <div><span class="ps-label">Designation</span><span>{{ s.employee.designation || '—' }}</span></div>
+    <div><span class="ps-label">Department</span><span>{{ s.employee.department || '—' }}</span></div>
+    <div><span class="ps-label">Pay Period</span><span>{{ period }}</span></div>
+    <div><span class="ps-label">Pay Mode</span><span>{{ modeLabel() }}</span></div>
+  </div>
+
+  <div class="ps-attendance">
+    <div><b>{{ s.attendance.present }}</b><span>Present</span></div>
+    <div><b>{{ s.attendance.leave }}</b><span>Leave</span></div>
+    <div><b>{{ s.attendance.absent }}</b><span>Absent</span></div>
+    <div><b>{{ s.attendance.holiday }}</b><span>Holiday</span></div>
+    <div><b>{{ s.attendance.workingDays }}</b><span>Working Days</span></div>
+  </div>
+
+  <table class="ps-table">
+    <thead><tr><th>Earnings</th><th class="num">Amount</th><th>Deductions</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let row of rows">
+        <td>{{ row.earning?.name }}</td><td class="num">{{ row.earning ? money(row.earning.amount) : '' }}</td>
+        <td>{{ row.deduction?.name }}</td><td class="num">{{ row.deduction ? money(row.deduction.amount) : '' }}</td>
+      </tr>
+      <tr class="ps-total">
+        <td>Gross Earnings</td><td class="num">{{ money(s.gross) }}</td>
+        <td>Total Deductions</td><td class="num">{{ money(s.deductionTotal) }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="ps-net">
+    <span>Net Pay</span><b>{{ money(s.net) }}</b>
+  </div>
+  <div class="ps-words">Rupees {{ s.net | numberToWords }} Only</div>
+
+  <div class="ps-payment" *ngIf="s.payment">
+    <span>Paid on <b>{{ date(s.payment.date) }}</b></span>
+    <span>Mode <b>{{ paymentMode() }}</b></span>
+    <span *ngIf="s.payment.reference">Reference <b>{{ s.payment.reference }}</b></span>
+  </div>
+
+  <div class="ps-band ps-foot">
+    <div class="ps-sign">Authorized Signatory</div>
+    <div class="ps-note">This is a system-generated payslip and does not require a signature.</div>
+  </div>
+</div>

@@ -71,6 +71,12 @@ const keys = {
         system: (state, year) => `system:holiday:${state}:${year}`,
         systemStates: () => 'system:holiday:states',
     },
+    // Payroll (payroll/optimization.md). Only the Salary Group list — never a PayrollRun,
+    // payment, or the assign grid (lock state and paid/due are never cached).
+    payroll: {
+        salaryGroups: (adminId) => `${adminId}:payroll:salary-groups`,
+        salaryGroupsPattern: (adminId) => `${adminId}:payroll:salary-groups*`,
+    },
 };
 
 // Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write

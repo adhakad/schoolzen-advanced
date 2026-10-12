@@ -1,0 +1,150 @@
+<!-- Salary Groups.
+     Reference: docs/schoolzen-planning/v1/payroll/salary-groups.html
+     Toolbar: single row — search + Add Salary Group (no filter row). -->
+
+<div class="page-head">
+  <div>
+    <h1>Salary Groups</h1>
+    <div class="subtitle">Set up each pay scale once, then put staff on it from Assign Salary.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar sg-toolbar">
+      <div class="search">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Search salary groups" aria-label="Search salary groups"
+               (input)="onSearchChange($any($event.target).value)" />
+      </div>
+      <button type="button" class="btn-primary" *ngIf="canEdit" (click)="openAdd()">
+        <i class="bi bi-plus-lg"></i> Add Salary Group
+      </button>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Mode</th><th>Basic</th><th>HRA</th><th>Status</th><th class="act" *ngIf="canEdit">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackById">
+            <td>
+              <div class="sg-name">{{ row.name }}</div>
+              <div class="sg-sub" *ngIf="componentsLine(row)">{{ componentsLine(row) }}</div>
+            </td>
+            <td>{{ modeLabel(row.mode) }}</td>
+            <td>{{ money(row.basic) }}</td>
+            <td>{{ money(row.hra) }}</td>
+            <td>
+              <span class="tag tag-status" [class.tag-active]="row.status === 'active'" [class.tag-inactive]="row.status !== 'active'">
+                {{ row.status === 'active' ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="act" *ngIf="canEdit">
+              <div class="actions">
+                <button type="button" class="icon-btn" title="Edit" [attr.aria-label]="'Edit ' + row.name" (click)="openEdit(row)"><i class="bi bi-pencil"></i></button>
+                <button type="button" class="icon-btn danger" title="Delete" [attr.aria-label]="'Delete ' + row.name" (click)="openDelete(row)"><i class="bi bi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tbl-empty" *ngIf="loading">Loading salary groups&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !rows.length">
+      {{ search ? 'No salary groups match your search.' : 'No salary groups yet — add the first pay scale.' }}
+    </div>
+    <app-pagination-bar *ngIf="total > limit" [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Groups</span><span class="stat-value">{{ summary.total }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Active</span><span class="stat-value">{{ summary.active }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Editing a scale changes what the next payroll produces — payroll already generated keeps its own copy of the numbers.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>An inactive scale keeps its history but is not offered when assigning.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit -->
+<app-form-modal [open]="modalOpen" [title]="editingId ? 'Edit Salary Group' : 'Add Salary Group'" submitLabel="Save"
+                [submitDisabled]="saving" (submitted)="submit()" (cancelled)="closeModal()">
+  <div class="m-field">
+    <label for="sg-name">Name <span class="req-star">*</span></label>
+    <input id="sg-name" type="text" placeholder="Primary Teacher Grade A" maxlength="80" [(ngModel)]="form.name"
+           [class.is-invalid]="fieldErrors['name']" />
+    <p class="m-error" *ngIf="fieldErrors['name']">{{ fieldErrors['name'] }}</p>
+  </div>
+  <div class="m-field">
+    <label>How is this paid?</label>
+    <app-dd [options]="modeOptions" [value]="form.mode" ariaLabel="How is this paid?" (valueChange)="form.mode = $any($event)"></app-dd>
+    <div class="m-hint">{{ modeHint }}</div>
+  </div>
+  <div class="m-row">
+    <div class="m-field">
+      <label for="sg-basic">Basic</label>
+      <input id="sg-basic" type="number" min="0" placeholder="18000" [(ngModel)]="form.basic" [class.is-invalid]="fieldErrors['basic']" />
+      <p class="m-error" *ngIf="fieldErrors['basic']">{{ fieldErrors['basic'] }}</p>
+    </div>
+    <div class="m-field">
+      <label for="sg-hra">HRA</label>
+      <input id="sg-hra" type="number" min="0" placeholder="4000" [(ngModel)]="form.hra" [class.is-invalid]="fieldErrors['hra']" />
+      <p class="m-error" *ngIf="fieldErrors['hra']">{{ fieldErrors['hra'] }}</p>
+    </div>
+  </div>
+
+  <div class="comp-block" *ngFor="let block of componentBlocks; trackBy: trackByKey">
+    <div class="group-title">
+      {{ block.title }}
+      <button type="button" class="comp-add" [attr.aria-label]="'Add ' + block.title" (click)="addComponent($any(block.key))">+</button>
+    </div>
+    <div class="comp-row" *ngFor="let item of $any(form)[block.key]; let i = index; trackBy: trackByIndex">
+      <input placeholder="Name" maxlength="60" [attr.aria-label]="block.title + ' name'" [(ngModel)]="item.name"
+             [class.is-invalid]="fieldErrors[block.key + '.' + i + '.name']" />
+      <input class="amt" placeholder="Amount" type="number" min="0" [attr.aria-label]="block.title + ' amount'" [(ngModel)]="item.amount"
+             [class.is-invalid]="fieldErrors[block.key + '.' + i + '.amount']" />
+      <button type="button" class="comp-remove" aria-label="Remove" (click)="removeComponent($any(block.key), i)">&times;</button>
+    </div>
+    <p class="comp-empty" *ngIf="!$any(form)[block.key].length">{{ block.empty }}</p>
+  </div>
+
+  <div class="m-field">
+    <label>Status</label>
+    <app-dd [options]="statusOptions" [value]="form.status" ariaLabel="Status" (valueChange)="form.status = $any($event)"></app-dd>
+    <div class="m-hint">An inactive scale keeps its history but is not offered when assigning.</div>
+  </div>
+  <p class="m-error form-level" *ngIf="formError" role="alert">{{ formError }}</p>
+</app-form-modal>
+
+<!-- Delete — typed DELETE, blocked while in use -->
+<div class="sz-modal-overlay open" *ngIf="deleteOpen" (click)="$event.target === $event.currentTarget && closeDelete()">
+  <div class="modal-box" style="width:400px;">
+    <div class="modal-head">
+      <span class="modal-title">Delete Salary Group</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeDelete()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="warn-box" *ngIf="!deleteBlockedReason">Deleting <b>{{ deleteTarget?.name }}</b> affects everyone currently on it. <b>This can't be undone.</b></div>
+      <div class="warn-box" *ngIf="deleteBlockedReason" role="alert">{{ deleteBlockedReason }}</div>
+      <input type="text" class="confirm-input" placeholder="Type DELETE to confirm" aria-label="Type DELETE to confirm"
+             [class.match]="deleteInput === 'DELETE'" [disabled]="!!deleteBlockedReason" [(ngModel)]="deleteInput" />
+      <div class="confirm-hint">Type <b>DELETE</b> in the box above to enable the button.</div>
+      <p class="m-error" *ngIf="deleteError" role="alert">{{ deleteError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeDelete()">Cancel</button>
+      <button type="button" class="btn-danger" [disabled]="!deleteEnabled" (click)="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>

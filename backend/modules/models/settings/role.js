@@ -12,7 +12,14 @@ const mongoose = require('mongoose');
 // people's yearly allowances are different jobs (Leave Assign is gated on its edit).
 // 'holiday-assign' is separate from 'holiday' for the same reason: maintaining the calendar
 // and deciding whose calendar it is are different grants.
-const PERMISSION_MODULES = Object.freeze(['student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'holiday', 'holiday-assign', 'fees', 'payroll', 'settings']);
+// Payroll splits the same way: 'payroll' views every Payroll page and maintains Salary
+// Groups, while putting staff on a scale ('payroll-assign'), generating/locking/unlocking
+// runs ('payroll-generate') and recording payments/issuing slips ('payroll-payout') each
+// need their own explicit grant.
+const PERMISSION_MODULES = Object.freeze([
+    'student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'holiday', 'holiday-assign', 'fees',
+    'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout', 'settings',
+]);
 
 const RoleSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },

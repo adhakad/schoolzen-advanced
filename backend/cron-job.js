@@ -9,6 +9,9 @@ const {
 const {
   expireStaleSalaryConfirmations,
 } = require('./modules/services/cron-salary-confirmation-service');
+const {
+  expireStalePayrollConfirmations,
+} = require('./modules/services/payroll/cron-payroll-confirmation');
 
 cron.schedule('1 0 * * *', () => {
   checkAndUpdateAcademicSession();
@@ -22,6 +25,10 @@ cron.schedule('0 0 * * *', () => {
 // indexed updateMany across every school — see the service header.
 cron.schedule('0 * * * *', () => {
   expireStaleSalaryConfirmations();
+});
+// v2 Payroll's own payments (models/payroll/payroll-payment.js) — same hourly cadence.
+cron.schedule('5 * * * *', () => {
+  expireStalePayrollConfirmations();
 });
 
 // --- Attendance pipeline (Phase 6) ----------------------------------------------------

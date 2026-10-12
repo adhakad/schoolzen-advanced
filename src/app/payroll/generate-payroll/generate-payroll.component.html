@@ -1,0 +1,196 @@
+<!-- Generate Payroll.
+     Reference: docs/schoolzen-planning/v1/payroll/generate-payroll.html
+     Row 1: search + Generate for Selected. Row 2: Department → Designation, Status, month.
+     The action set per row comes from its status (API `actions`) — never all at once. -->
+
+<div class="page-head">
+  <div>
+    <h1>Generate Payroll</h1>
+    <div class="subtitle">Run payroll for the month, then lock it once it's correct.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or ID" aria-label="Search by name or ID"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group" *ngIf="canEdit">
+          <button type="button" class="btn-gen" [disabled]="!selected.size || bulkBusy" (click)="generateSelected()">
+            <i class="bi" [class.bi-play-fill]="!bulkBusy" [class.bi-arrow-repeat]="bulkBusy" [class.spinning]="bulkBusy"></i>
+            {{ bulkBusy ? 'Generating…' : 'Generate for Selected' }}
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2 pr-grid">
+        <app-staff-cascade-filter [adminId]="adminId" [value]="filter" (valueChange)="onFilterChange($event)"></app-staff-cascade-filter>
+        <app-dd [options]="statusOptions" [value]="status" ariaLabel="Filter by status" (valueChange)="onStatusChange($event)"></app-dd>
+        <app-dd class="month-dd" [options]="monthMenu" [value]="month" triggerIcon="calendar-event" menuAlign="left"
+                ariaLabel="Choose month" (valueChange)="onMonthChange($event)"></app-dd>
+      </div>
+    </div>
+
+    <div class="pr-warning" *ngIf="warning" role="status">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>{{ warning }} It's saved as Draft — regenerate once the month ends.</span>
+    </div>
+
+    <div class="grid-scroll"><div class="table-inner">
+      <table>
+        <thead>
+          <tr>
+            <th class="chk" *ngIf="canEdit"><input type="checkbox" aria-label="Select all" [checked]="allSelected" (change)="toggleAll()" /></th>
+            <th>Employee</th><th>Attendance</th><th>Gross</th><th>Deductions</th><th>Net Salary</th><th>Status</th><th class="act">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackByStaff" [attr.data-status]="row.status">
+            <td class="chk" *ngIf="canEdit"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="selected.has(row.staffId)" (change)="toggleRow(row.staffId)" /></td>
+            <td>
+              <span class="r-avatar" [style.background]="gradient(row)">{{ initials(row.name) }}</span><span class="r-name">{{ row.name }}</span>
+              <div class="r-role" *ngIf="row.designation">{{ row.designation }}</div>
+            </td>
+            <td>
+              <span class="att-dots" *ngIf="row.attendance as att; else noAtt" [attr.title]="'Present ' + att.present + ' · Late ' + att.late + ' · Absent ' + att.absent">
+                <span><span class="d d-present"></span>{{ att.present }}</span>
+                <span><span class="d d-late"></span>{{ att.late }}</span>
+                <span><span class="d d-absent"></span>{{ att.absent }}</span>
+              </span>
+              <ng-template #noAtt><span class="net-pending">—</span></ng-template>
+            </td>
+            <ng-container *ngIf="row.status !== 'pending'; else notGenerated">
+              <td>{{ money(row.gross) }}</td>
+              <td>{{ minus(row.deductions) }}</td>
+              <td><b>{{ money(row.net) }}</b></td>
+            </ng-container>
+            <ng-template #notGenerated>
+              <td>—</td><td>—</td><td><span class="net-pending">Not generated</span></td>
+            </ng-template>
+            <td><span class="tag" [ngClass]="'tag-' + row.status">{{ statusLabel(row.status) }}</span></td>
+            <td class="act">
+              <div class="actions">
+                <!-- pending -->
+                <button type="button" class="icon-btn primary" *ngIf="canEdit && has(row, 'generate')" title="Generate"
+                        [attr.aria-label]="'Generate ' + row.name" [disabled]="busy.has(row.staffId)" (click)="generate(row)">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <!-- draft -->
+                <button type="button" class="icon-btn" *ngIf="canEdit && has(row, 'regenerate')" title="Regenerate"
+                        [attr.aria-label]="'Regenerate ' + row.name" [disabled]="busy.has(row.staffId)" (click)="openConfirm('regenerate', row)">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+                <button type="button" class="icon-btn" *ngIf="canEdit && has(row, 'lock')" title="Lock"
+                        [attr.aria-label]="'Lock ' + row.name" [disabled]="busy.has(row.staffId)" (click)="openConfirm('lock', row)">
+                  <i class="bi bi-lock"></i>
+                </button>
+                <!-- locked -->
+                <button type="button" class="icon-btn" *ngIf="has(row, 'slip')" title="View slip"
+                        [attr.aria-label]="'View slip for ' + row.name" (click)="openSlip(row)">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </button>
+                <button type="button" class="icon-btn danger" *ngIf="canEdit && has(row, 'unlock')" title="Unlock"
+                        [attr.aria-label]="'Unlock ' + row.name" [disabled]="busy.has(row.staffId)" (click)="openConfirm('unlock', row)">
+                  <i class="bi bi-unlock"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div></div>
+    <div class="tbl-empty" *ngIf="loading">Loading payroll&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !rows.length">No staff match these filters for {{ monthLabel }}.</div>
+    <div class="load-more" *ngIf="nextCursor && !loading">
+      <button type="button" class="btn-plain" [disabled]="loadingMore" (click)="loadMore()">{{ loadingMore ? 'Loading…' : 'Load more' }}</button>
+    </div>
+    <div class="sw-footer">
+      <span>Showing {{ rows.length }} of {{ total }} staff</span>
+      <span>{{ monthLabel }}<ng-container *ngIf="session"> · {{ session }} session</ng-container></span>
+    </div>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">This Month</span></div>
+      <div class="stat-row accent"><span class="stat-label">Total Payroll</span><span class="stat-value">{{ compact(summary.totalPayroll) }}</span></div>
+      <div class="stat-row"><span class="stat-label">Locked</span><span class="stat-value">{{ summary.locked }}</span></div>
+      <div class="stat-row"><span class="stat-label">Draft</span><span class="stat-value">{{ summary.draft }}</span></div>
+      <div class="stat-row"><span class="stat-label">Total Staff</span><span class="stat-value">{{ summary.totalStaff }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Locking makes a payslip final — unlocking it needs an extra confirmation since it may already be paid out.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Regenerating a draft recalculates it fresh from this month's attendance.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Someone with no salary group assigned can't be generated — set one up on Assign Salary first.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Lock / Unlock / Regenerate -->
+<div class="sz-modal-overlay open" *ngIf="confirmCopy as copy" (click)="$event.target === $event.currentTarget && closeConfirm()">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-head">
+      <span class="modal-title">{{ copy.title }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeConfirm()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-heading">{{ confirmHeading }}</div>
+      <p class="confirm-note">{{ copy.note }}</p>
+      <p class="m-error" *ngIf="confirmError" role="alert">{{ confirmError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeConfirm()">Cancel</button>
+      <button type="button" [class.btn-brand]="!copy.danger" [class.btn-danger]="copy.danger"
+              [disabled]="!!confirmRow && busy.has(confirmRow.staffId)" (click)="applyConfirm()">{{ copy.label }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- View slip (locked) -->
+<div class="sz-modal-overlay open" *ngIf="slipRow as slip" (click)="$event.target === $event.currentTarget && closeSlip()">
+  <div class="modal-box print-target" style="width:400px;">
+    <div class="modal-head">
+      <span class="modal-title">Payslip — {{ slip.name }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeSlip()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-note slip-body">
+        <ng-container *ngIf="slip.designation">{{ slip.designation }}<br></ng-container>
+        Gross: <b>{{ money(slip.gross) }}</b><br>
+        Deductions: <b>{{ minus(slip.deductions) }}</b><br>
+        Net Salary: <b>{{ money(slip.net) }}</b><br>
+        {{ monthLabel }}
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeSlip()">Close</button>
+      <button type="button" class="btn-brand" (click)="print()"><i class="bi bi-printer"></i> Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk result: every skipped person by name, with their own reason -->
+<div class="sz-modal-overlay open" *ngIf="resultOpen" (click)="$event.target === $event.currentTarget && closeResult()">
+  <div class="modal-box" style="width:460px;">
+    <div class="modal-head">
+      <span class="modal-title">Generate for Selected</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeResult()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-heading">{{ resultSummary }}</div>
+      <div class="skip-row" *ngFor="let skip of resultSkipped">
+        <span class="skip-name">{{ skip.name || 'Unknown person' }}<span class="skip-code" *ngIf="skip.code"> · {{ skip.code }}</span></span>
+        <span class="skip-reason">{{ skip.reason }}</span>
+      </div>
+    </div>
+    <div class="modal-foot"><button type="button" class="btn-brand" (click)="closeResult()">Done</button></div>
+  </div>
+</div>

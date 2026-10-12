@@ -1,0 +1,164 @@
+<!-- Salary Payouts.
+     Reference: docs/schoolzen-planning/v1/payroll/salary-payouts.html
+     Row 1: search. Row 2: Department → Designation, Mode, Status, month.
+     Only LOCKED payroll is listed (the API filters it) — a draft never appears here. -->
+
+<div class="page-head">
+  <div>
+    <h1>Salary Payouts</h1>
+    <div class="subtitle">Only locked payroll appears here — record and track payments against it.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or ID" aria-label="Search by name or ID"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-row2 pr-grid">
+        <app-staff-cascade-filter [adminId]="adminId" [value]="filter" (valueChange)="onFilterChange($event)"></app-staff-cascade-filter>
+        <app-dd [options]="modeOptions" [value]="mode" ariaLabel="Filter by mode" (valueChange)="onModeChange($event)"></app-dd>
+        <app-dd [options]="statusOptions" [value]="status" ariaLabel="Filter by status" (valueChange)="onStatusChange($event)"></app-dd>
+        <app-dd class="month-dd" [options]="monthMenu" [value]="month" triggerIcon="calendar-event" menuAlign="left"
+                ariaLabel="Choose month" (valueChange)="onMonthChange($event)"></app-dd>
+      </div>
+    </div>
+
+    <div class="grid-scroll"><div class="table-inner">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Net Salary</th><th>Amount Paid</th><th>Status</th><th>Confirmation</th><th>Mode</th><th>Date</th><th>Paid By</th><th class="act">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackById">
+            <td><div class="ph-name">{{ row.name }}</div><div class="ph-code" *ngIf="row.code">{{ row.code }}</div></td>
+            <td><span class="ph-net">{{ money(row.net) }}</span></td>
+            <td>
+              <span class="ph-paid">{{ money(row.paid) }}</span>
+              <div class="ph-pending-note" *ngIf="row.pending > 0">{{ money(row.pending) }} awaiting confirmation</div>
+              <div class="ph-due" *ngIf="row.status === 'partial' && row.pending === 0">{{ money(row.stillDue) }} still due</div>
+            </td>
+            <td><span class="tag" [ngClass]="'tag-' + row.status">{{ statusLabel(row.status) }}</span></td>
+            <td>
+              <ng-container *ngIf="row.latestPayment as p; else dash">
+                <button type="button" class="confirm-tag disputed" *ngIf="p.confirmationStatus === 'disputed'; else plainTag"
+                        [attr.title]="p.disputeReason" [attr.aria-expanded]="disputeOpenFor === row._id" (click)="toggleDispute(row)">
+                  Disputed <i class="bi bi-info-circle"></i>
+                </button>
+                <ng-template #plainTag><span class="confirm-tag" [ngClass]="p.confirmationStatus">{{ confirmationLabel(p.confirmationStatus) }}</span></ng-template>
+                <div class="dispute-reason" *ngIf="p.confirmationStatus === 'disputed' && disputeOpenFor === row._id" role="note">
+                  {{ p.disputeReason }} — re-record the payment correctly.
+                </div>
+              </ng-container>
+            </td>
+            <td>
+              <ng-container *ngIf="row.latestPayment as p; else emDash">
+                {{ modeLabel(p.mode) }}<ng-container *ngIf="p.reference && p.mode !== 'cash'"><br><span class="ph-code">{{ p.reference }}</span></ng-container>
+              </ng-container>
+            </td>
+            <td><ng-container *ngIf="row.latestPayment as p; else emDash">{{ date(p.date) }}</ng-container></td>
+            <td><ng-container *ngIf="row.latestPayment as p; else emDash">{{ p.paidBy || '—' }}</ng-container></td>
+            <td class="act">
+              <button type="button" class="icon-btn" *ngIf="row.actions.includes('slip')" title="View slip"
+                      [attr.aria-label]="'View slip for ' + row.name" (click)="openSlip(row)"><i class="bi bi-receipt"></i></button>
+              <button type="button" class="icon-btn primary" *ngIf="canEdit && row.actions.includes('record')" title="Record Payment"
+                      [attr.aria-label]="'Record payment for ' + row.name" (click)="openPay(row)"><i class="bi bi-cash"></i></button>
+              <span class="dash" *ngIf="!row.actions.includes('slip') && !(canEdit && row.actions.includes('record'))">–</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #dash><span class="dash">–</span></ng-template>
+      <ng-template #emDash>—</ng-template>
+    </div></div>
+    <div class="tbl-empty" *ngIf="loading">Loading payouts&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !rows.length">No locked payroll for {{ monthLabel }} matches these filters. Lock payslips on Generate Payroll first.</div>
+    <div class="load-more" *ngIf="nextCursor && !loading">
+      <button type="button" class="btn-plain" [disabled]="loadingMore" (click)="loadMore()">{{ loadingMore ? 'Loading…' : 'Load more' }}</button>
+    </div>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">This Month</span></div>
+      <div class="stat-row accent"><span class="stat-label">Disbursed</span><span class="stat-value">{{ compact(summary.disbursed) }}</span></div>
+      <div class="stat-row"><span class="stat-label">Fully Paid</span><span class="stat-value">{{ summary.full }}</span></div>
+      <div class="stat-row"><span class="stat-label">Partially Paid</span><span class="stat-value">{{ summary.partial }}</span></div>
+      <div class="stat-row"><span class="stat-label">Unpaid</span><span class="stat-value">{{ summary.unpaid }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Only locked payroll shows up here — the amount has to be final before a payment can be recorded against it.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A recorded payment stays Pending until the employee confirms receipt, within 24 hours — until then no salary slip can be issued.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Record Payment -->
+<app-form-modal [open]="!!payRow" [title]="'Record Payment — ' + (payRow?.name || '')" submitLabel="Record Payment"
+                [submitDisabled]="paying" (submitted)="submitPay()" (cancelled)="closePay()">
+  <div class="due-note">{{ dueNote }}</div>
+  <div class="m-row">
+    <div class="m-field">
+      <label for="pay-amount">Amount</label>
+      <input id="pay-amount" type="number" min="0" step="0.01" [placeholder]="payRow?.due" [(ngModel)]="payForm.amount"
+             [class.is-invalid]="payErrors['amountPaid']" />
+      <p class="m-error" *ngIf="payErrors['amountPaid']">{{ payErrors['amountPaid'] }}</p>
+    </div>
+    <div class="m-field">
+      <label>Date</label>
+      <app-dp [value]="payForm.date" placeholder="dd/mm/yyyy" ariaLabel="Payment date" [invalid]="!!payErrors['date']"
+              (valueChange)="payForm.date = $event"></app-dp>
+      <p class="m-error" *ngIf="payErrors['date']">{{ payErrors['date'] }}</p>
+    </div>
+  </div>
+  <div class="m-field">
+    <label>Mode</label>
+    <app-dd [options]="paymentModeOptions" [value]="payForm.mode" placeholder="Bank Transfer / Cash / UPI" ariaLabel="Payment mode"
+            [invalid]="!!payErrors['mode']" (valueChange)="payForm.mode = $any($event)"></app-dd>
+    <p class="m-error" *ngIf="payErrors['mode']">{{ payErrors['mode'] }}</p>
+  </div>
+  <div class="m-field" style="margin-bottom:0;">
+    <label for="pay-ref">Reference <ng-container *ngIf="referenceRequired; else optional"><span class="req-star">*</span></ng-container><ng-template #optional>(optional)</ng-template></label>
+    <input id="pay-ref" type="text" maxlength="60" placeholder="UTR / transaction ID" [(ngModel)]="payForm.reference"
+           [class.is-invalid]="payErrors['reference']" />
+    <p class="m-error" *ngIf="payErrors['reference']">{{ payErrors['reference'] }}</p>
+    <div class="m-hint">The employee has 24 hours to confirm receipt — until then this stays Pending.</div>
+  </div>
+  <p class="m-error form-level" *ngIf="payError" role="alert">{{ payError }}</p>
+</app-form-modal>
+
+<!-- View Slip -->
+<div class="sz-modal-overlay open" *ngIf="slipRow as row" (click)="$event.target === $event.currentTarget && closeSlip()">
+  <div class="modal-box" style="width:400px;">
+    <div class="modal-head">
+      <span class="modal-title">Payslip — {{ row.name }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeSlip()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-note slip-body">
+        <ng-container *ngIf="row.code">{{ row.code }}<br></ng-container>
+        Net Salary: <b>{{ money(row.net) }}</b><br>
+        Amount Paid: <b>{{ money(row.paid) }}</b><br>
+        {{ monthLabel }}
+        <ng-container *ngIf="slip"><br>Slip No. <b>{{ slip.slipNumber }}</b></ng-container>
+      </div>
+      <p class="confirm-note" *ngIf="slipLoading">Preparing the slip&hellip;</p>
+      <p class="m-error" *ngIf="slipError" role="alert">{{ slipError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeSlip()">Close</button>
+      <button type="button" class="btn-brand" [disabled]="!slip" (click)="print()"><i class="bi bi-printer"></i> Print</button>
+    </div>
+  </div>
+  <app-payslip [slip]="slip"></app-payslip>
+</div>
