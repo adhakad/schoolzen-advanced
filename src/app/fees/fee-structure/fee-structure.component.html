@@ -1,0 +1,187 @@
+<!-- Fee Structure.
+     Reference: docs/schoolzen-planning/v1/fees/fee-structure.html
+     Toolbar: row1 search + Create, row2 Class → Stream → Group. -->
+
+<div class="page-head">
+  <div>
+    <h1>Fee Structure</h1>
+    <div class="subtitle">Define the annual fee for a class — admission fee plus a checklist of particulars.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by class" aria-label="Search by class"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-primary" *ngIf="canEdit" (click)="openCreate()"><i class="bi bi-plus-lg"></i> Create</button>
+        </div>
+      </div>
+      <div class="toolbar-row2">
+        <app-class-cascade-filter [options]="options" [value]="filter" [showSection]="false"
+                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr><th>Session</th><th>Class</th><th>Stream</th><th>Group</th><th>Particular Total</th><th>Admission Fee</th><th>Breakdown</th><th class="act" *ngIf="canEdit">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackById">
+            <td>{{ row.sessionShort }}</td>
+            <td><span class="tag tag-slate">{{ row.className }}</span></td>
+            <td><span *ngIf="row.streamName; else na">{{ row.streamName }}</span></td>
+            <td><span *ngIf="row.groupName; else na">{{ row.groupName }}</span></td>
+            <td>{{ money(row.particularTotal) }}</td>
+            <td>{{ money(row.admissionFee) }}</td>
+            <td><button type="button" class="icon-btn" title="Breakdown" [attr.aria-label]="'Breakdown for ' + row.className" (click)="openBreakdown(row)"><i class="bi bi-list-ul"></i></button></td>
+            <td class="act" *ngIf="canEdit">
+              <div class="actions">
+                <button type="button" class="icon-btn" title="Edit" [attr.aria-label]="'Edit ' + row.className" (click)="openEdit(row)"><i class="bi bi-pencil"></i></button>
+                <button type="button" class="icon-btn danger" title="Delete" [attr.aria-label]="'Delete ' + row.className" (click)="openDelete(row)"><i class="bi bi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #na><span class="na">N/A</span></ng-template>
+    </div>
+    <div class="tbl-empty" *ngIf="loading">Loading fee structures&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !rows.length">
+      {{ search || filter.classId ? 'No fee structures match these filters.' : 'No fee structures for this session yet — create the first one.' }}
+    </div>
+    <app-pagination-bar *ngIf="total > limit" [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)" (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Structures Defined</span><span class="stat-value">{{ summary.structures }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Classes Covered</span><span class="stat-value">{{ summary.classesCovered }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Admission Fee applies only to newly admitted students — existing students already paid it once.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Stream is only selectable for classes that have streams, like 11th and 12th.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A stream can have more than one Subject Group — each group gets its own structure, since subjects (and their fees) differ.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a structure removes every student's fee records generated from it — once any of them has a payment, it can only be edited, not deleted.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Edit -->
+<app-form-modal [open]="modalOpen" [title]="editingId ? 'Edit Fee Structure' : 'Create Fee Structure'" submitLabel="Submit"
+                [width]="440" [submitDisabled]="isClick" (submitted)="submit()" (cancelled)="closeModal()">
+  <div class="m-row">
+    <div class="m-field"><label for="fs-session">Session</label><input id="fs-session" type="text" [value]="sessionShort" disabled /></div>
+    <div class="m-field">
+      <label>Class <span class="req-star">*</span></label>
+      <app-dd [options]="classOptions" [value]="form.classId" ariaLabel="Class" [disabled]="!!editingId"
+              [invalid]="!!fieldErrors['classId']" (valueChange)="onFormClass($event)"></app-dd>
+      <p class="m-error" *ngIf="fieldErrors['classId']">{{ fieldErrors['classId'] }}</p>
+    </div>
+  </div>
+  <div class="m-field">
+    <label>Stream</label>
+    <app-dd [options]="streamOptions" [value]="streamDisabled && !editingId ? '' : form.streamId" [placeholder]="streamPlaceholder"
+            ariaLabel="Stream" [disabled]="streamDisabled" [invalid]="!!fieldErrors['streamId']"
+            (valueChange)="onFormStream($event)"></app-dd>
+    <p class="m-error" *ngIf="fieldErrors['streamId']">{{ fieldErrors['streamId'] }}</p>
+    <div class="m-hint">Only classes with streams, like 11th and 12th, need this.</div>
+  </div>
+  <div class="m-field">
+    <label>Subject Group</label>
+    <app-dd [options]="groupOptions" [value]="form.groupId" [placeholder]="groupPlaceholder" ariaLabel="Subject Group"
+            [disabled]="groupDisabled" [invalid]="!!fieldErrors['groupId']" (valueChange)="form.groupId = $event"></app-dd>
+    <p class="m-error" *ngIf="fieldErrors['groupId']">{{ fieldErrors['groupId'] }}</p>
+    <div class="m-hint">A stream can have more than one Subject Group — pick which one this structure is for.</div>
+  </div>
+  <div class="m-field">
+    <label for="fs-admission">Admission Fee (₹)</label>
+    <input id="fs-admission" type="number" min="0" placeholder="5000" [(ngModel)]="form.admissionFee"
+           [class.is-invalid]="fieldErrors['admissionFee']" />
+    <p class="m-error" *ngIf="fieldErrors['admissionFee']">{{ fieldErrors['admissionFee'] }}</p>
+    <div class="m-hint">Applies only to newly admitted students — existing students already paid this once.</div>
+  </div>
+
+  <div class="group-title">Particulars</div>
+  <div class="particular-block">
+    <div class="sec-row" *ngFor="let item of form.particulars; let i = index; trackBy: trackByIndex">
+      <input class="p-name" type="text" placeholder="Particular (e.g. Tuition Fee)" maxlength="60" aria-label="Particular name"
+             [(ngModel)]="item.name" [class.error]="isParticularInvalid(i) && !item.name.trim()" />
+      <input class="p-amt p-amt-input" type="number" min="0" placeholder="Amount" aria-label="Particular amount"
+             [(ngModel)]="item.amount" [class.error]="isParticularInvalid(i) && item.name.trim() !== '' " />
+      <button type="button" class="sec-remove" aria-label="Remove particular" (click)="removeParticular(i)">&times;</button>
+    </div>
+    <div class="particular-error" *ngIf="particularError" role="alert">{{ particularError }}</div>
+    <button type="button" class="sec-add-wide" (click)="addParticular()"><i class="bi bi-plus-lg"></i> Add Particular</button>
+    <div class="total-row"><span>Particular Total</span><span>{{ money(particularTotal) }}</span></div>
+  </div>
+  <p class="m-error form-level" *ngIf="formError" role="alert">{{ formError }}</p>
+</app-form-modal>
+
+<!-- Breakdown -->
+<div class="sz-modal-overlay open" *ngIf="breakdown as b" (click)="$event.target === $event.currentTarget && closeBreakdown()">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-head">
+      <span class="modal-title">Fee Structure — {{ b.className }}{{ b.streamName ? ' · ' + b.streamName : '' }}{{ b.groupName ? ' · ' + b.groupName : '' }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeBreakdown()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="breakdown-section">
+        <div class="breakdown-title">New Students</div>
+        <div class="breakdown-row"><span>Admission Fee</span><b>Applies</b></div>
+        <div class="breakdown-total"><span>Total Annual Fee</span><span>{{ money(b.particularTotal + b.admissionFee) }}</span></div>
+      </div>
+      <div class="breakdown-section">
+        <div class="breakdown-title">Existing Students</div>
+        <div class="breakdown-row"><span>Admission Fee</span><b>Not Applicable</b></div>
+        <div class="breakdown-total"><span>Total Annual Fee</span><span>{{ money(b.particularTotal) }}</span></div>
+      </div>
+      <div class="breakdown-section">
+        <div class="breakdown-title">Particulars</div>
+        <div class="breakdown-row" *ngFor="let item of b.particulars"><span>{{ item.name }}</span><b>{{ money(item.amount) }}</b></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeBreakdown()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete — typed DELETE; refused by the server once money has touched it -->
+<div class="sz-modal-overlay open" *ngIf="deleteTarget" (click)="$event.target === $event.currentTarget && closeDelete()">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-head">
+      <span class="modal-title">Delete Fee Structure</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeDelete()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="warn-box">Deleting this structure also deletes every <b>{{ deleteTarget.className }}</b>-class student's fee records generated from it. If any of them already has a payment, the delete is refused — edit the structure instead. <b>This cannot be undone.</b></div>
+      <label class="confirm-label" for="fs-confirm">Type <b>DELETE</b> to confirm</label>
+      <input id="fs-confirm" type="text" class="confirm-input" placeholder="DELETE" [class.match]="deleteInput === 'DELETE'" [(ngModel)]="deleteInput" />
+      <div class="confirm-hint">Type <b>DELETE</b> in the box above to enable the button.</div>
+      <p class="m-error" *ngIf="deleteError" role="alert">{{ deleteError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeDelete()">Cancel</button>
+      <button type="button" class="btn-danger" [disabled]="!deleteEnabled" (click)="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>

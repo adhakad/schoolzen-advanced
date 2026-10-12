@@ -60,6 +60,8 @@ export class ClassCascadeFilterComponent implements OnChanges {
   @Input() value: CascadeFilterValue = EMPTY_CASCADE;
   /** Class Promotion works on one class at a time: no "All classes" row. */
   @Input() requireClass = false;
+  /** Fees filters by Class → Stream → Group only; its references have no Section pill. */
+  @Input() showSection = true;
 
   @Output() valueChange = new EventEmitter<CascadeFilterValue>();
 

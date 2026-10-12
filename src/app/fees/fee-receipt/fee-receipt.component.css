@@ -1,0 +1,18 @@
+/* Receipt — formal, colon-separated, no grid borders (fees.html, matches TC print convention). */
+.receipt-frame { border: 2px solid var(--brand-soft); border-radius: var(--radius); padding: 22px; background: #FFFEFC; }
+.receipt-header { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 2px solid var(--ink); margin-bottom: 14px; }
+.receipt-logo { width: 44px; height: 44px; border-radius: 8px; background: linear-gradient(145deg, var(--brand), var(--brand-deep)); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; flex-shrink: 0; overflow: hidden; }
+.receipt-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.receipt-school-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 15px; color: var(--ink); }
+.receipt-meta { font-size: 10.5px; color: var(--ink-faint); margin-top: 2px; }
+.receipt-band { text-align: center; background: var(--brand-soft); color: var(--brand-deep); font-weight: 700; font-size: 12px; padding: 6px; border-radius: 6px; margin-bottom: 14px; }
+.receipt-line { display: flex; justify-content: space-between; font-size: 12.5px; padding: 5px 0; color: var(--ink-soft); }
+.receipt-line b { color: var(--ink); font-weight: 600; }
+.receipt-line.arrear, .receipt-line.arrear b { color: var(--warning); }
+.receipt-divider { border-top: 1px dashed var(--line); margin: 10px 0; }
+.receipt-total-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: var(--ink); padding: 4px 0; }
+.receipt-words { font-size: 11px; color: var(--ink-soft); text-align: center; margin-top: 10px; font-style: italic; }
+.receipt-sign-row { display: flex; justify-content: flex-end; margin-top: 26px; }
+.receipt-sign-block { text-align: center; width: 45%; }
+.receipt-sign-line { border-top: 1px solid var(--ink-faint); margin-bottom: 6px; }
+.receipt-sign-block span { font-size: 11px; color: var(--ink-soft); }

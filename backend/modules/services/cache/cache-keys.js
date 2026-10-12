@@ -77,6 +77,15 @@ const keys = {
         salaryGroups: (adminId) => `${adminId}:payroll:salary-groups`,
         salaryGroupsPattern: (adminId) => `${adminId}:payroll:salary-groups*`,
     },
+    // Fees (fees/optimization.md). Only Fee Structures and saved reminder filters — never a
+    // balance: the Fees table, Fee Statement and reminder previews always read live.
+    fees: {
+        structures: (adminId, sessionId) => `${adminId}:fees:structure:list:${sessionId}`,
+        structure: (adminId, structureId) => `${adminId}:fees:structure:${structureId}`,
+        structurePattern: (adminId) => `${adminId}:fees:structure*`,
+        reminderFilters: (adminId) => `${adminId}:fees:reminder-filters`,
+        reminderFiltersPattern: (adminId) => `${adminId}:fees:reminder-filters*`,
+    },
 };
 
 // Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write

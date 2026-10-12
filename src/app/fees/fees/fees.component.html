@@ -1,0 +1,270 @@
+<!-- Fees.
+     Reference: docs/schoolzen-planning/v1/fees/fees.html
+     Toolbar: row1 search + Generate Report, row2 Class → Stream → Group. -->
+
+<div class="page-head">
+  <div>
+    <h1>Fees</h1>
+    <div class="subtitle">Collect fees per student across the session.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or admission no." aria-label="Search by name or admission no."
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group">
+          <button type="button" class="sw-report-btn" [disabled]="!selected.size" (click)="openReport()">
+            <i class="bi bi-file-earmark-bar-graph"></i> Generate Report
+          </button>
+        </div>
+      </div>
+      <div class="toolbar-row2">
+        <app-class-cascade-filter [options]="options" [value]="filter" [showSection]="false"
+                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
+      <div class="fetch-error" *ngIf="optionsError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
+        <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <div class="table-inner">
+        <table>
+          <thead>
+            <tr>
+              <th class="check-col"><input type="checkbox" aria-label="Select all" [checked]="allSelected" (change)="toggleAll($any($event.target).checked)" /></th>
+              <th>Student</th><th>Admission No.</th><th>Class</th><th>Stream</th><th>Group</th><th>Concession</th><th>Paid Fee</th>
+              <th>Due Fee</th><th>Total Fee</th><th>Status</th><th>Collected By</th><th>Collect</th><th>Statement</th><th>Report</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of rows; trackBy: trackByStudent">
+              <td class="check-col"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="isSelected(row)" (change)="toggleRow(row, $any($event.target).checked)" /></td>
+              <td><span class="st-name">{{ row.name }}</span></td>
+              <td><span class="adm-no">{{ row.admissionNo ?? '—' }}</span></td>
+              <td><span class="tag tag-slate">{{ row.className || '—' }}</span></td>
+              <td><span *ngIf="row.streamName; else na">{{ row.streamName }}</span></td>
+              <td><span *ngIf="row.groupName; else na">{{ row.groupName }}</span></td>
+              <ng-container *ngIf="row.hasRecord; else noRecord">
+                <td>
+                  <span class="concession-cell">
+                    {{ money(row.concession) }}
+                    <button type="button" class="mini-edit" *ngIf="canWaive" title="Edit concession" [attr.aria-label]="'Edit concession for ' + row.name" (click)="openConcession(row)"><i class="bi bi-pencil"></i></button>
+                  </span>
+                </td>
+                <td>{{ money(row.paid) }}</td>
+                <td>
+                  <span class="amt-due">{{ money(row.due) }}</span>
+                  <div class="arrear-note" *ngIf="row.arrears?.length">{{ note(row) }}</div>
+                </td>
+                <td>{{ money(row.total) }}</td>
+                <td><span class="tag tag-status" [ngClass]="tagClass(row)">{{ row.statusLabel }}</span></td>
+                <td>{{ row.collectedBy || '—' }}</td>
+                <td>
+                  <button type="button" class="collect-btn" *ngIf="canCollectRow(row); else noCollect"
+                          [disabled]="isClick && collectingStudentId === row.studentId" (click)="openCollect(row)">
+                    <i class="bi bi-arrow-repeat spinning" *ngIf="isClick && collectingStudentId === row.studentId"></i>
+                    Collect
+                  </button>
+                </td>
+              </ng-container>
+              <ng-template #noRecord>
+                <td colspan="7"><span class="na">No fee structure for this class yet — create one on Fee Structure.</span></td>
+              </ng-template>
+              <td><button type="button" class="icon-btn" title="Statement" [attr.aria-label]="'Fee statement for ' + row.name" (click)="openStatement(row)"><i class="bi bi-box-arrow-up-right"></i></button></td>
+              <td><button type="button" class="icon-btn" title="Report" [attr.aria-label]="'Fee report for ' + row.name" [disabled]="!row.hasRecord" (click)="openStudentReport(row)"><i class="bi bi-file-earmark-text"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #na><span class="na">N/A</span></ng-template>
+        <ng-template #noCollect><span class="na" style="font-style:normal;">—</span></ng-template>
+      </div>
+    </div>
+    <div class="tbl-empty" *ngIf="loading">Loading fees&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !rows.length">
+      {{ search || filter.classId ? 'No students match these filters.' : 'No students enrolled in this session yet.' }}
+    </div>
+    <div class="load-more" *ngIf="nextCursor && !loading">
+      <button type="button" class="btn-plain" [disabled]="loadingMore" (click)="loadMore()">{{ loadingMore ? 'Loading…' : 'Load more' }}</button>
+    </div>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row accent"><span class="stat-label">Collected This Month</span><span class="stat-value">{{ compact(summary.collectedThisMonth) }}</span></div>
+      <div class="stat-row"><span class="stat-label">Fully Paid</span><span class="stat-value">{{ summary.fullyPaid }}</span></div>
+      <div class="stat-row"><span class="stat-label">Has Arrears</span><span class="stat-value">{{ summary.hasArrears }}</span></div>
+      <div class="stat-row"><span class="stat-label">Unpaid</span><span class="stat-value">{{ summary.unpaid }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A fully-paid student shows a status chip instead of a Collect button — never both.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Collecting a payment clears the oldest dues first, including any prior-year arrears.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Click the Statement icon for a student's full payment history and receipts.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A stream can have more than one Subject Group — each may carry a different fee structure, so filter by Group to see them separately.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Generate Report exports the currently filtered list for any period, day-wise up to the full session — or download just one student's report from their row.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Generate Fee Report -->
+<div class="sz-modal-overlay open" *ngIf="reportOpen" (click)="$event.target === $event.currentTarget && closeReport()">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-head">
+      <span class="modal-title">Generate Fee Report</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeReport()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="m-field scope-note">{{ reportScopeNote }}</div>
+      <div class="m-field">
+        <label>Period</label>
+        <app-dd [options]="periodOptions" [value]="reportPeriod" ariaLabel="Period" (valueChange)="reportPeriod = $any($event)"></app-dd>
+        <div class="m-hint">Uses the Class / Stream / Group filters currently applied above the table.</div>
+      </div>
+      <div class="m-field">
+        <label>Format</label>
+        <div class="format-toggle">
+          <button type="button" class="format-btn" [class.active]="reportFormat === 'excel'" (click)="reportFormat = 'excel'"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          <button type="button" class="format-btn" [class.active]="reportFormat === 'csv'" (click)="reportFormat = 'csv'"><i class="bi bi-filetype-csv"></i> CSV</button>
+          <button type="button" class="format-btn" [class.active]="reportFormat === 'pdf'" (click)="reportFormat = 'pdf'"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+        </div>
+      </div>
+      <p class="m-error" *ngIf="reportError" role="alert">{{ reportError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeReport()">Cancel</button>
+      <button type="button" class="btn-brand" [disabled]="isReportClick" (click)="downloadReport()"><i class="bi bi-download"></i> Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- One student's report -->
+<div class="sz-modal-overlay open" *ngIf="studentReportRow as r" (click)="$event.target === $event.currentTarget && closeStudentReport()">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-head">
+      <span class="modal-title">Fee Report — {{ r.name }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeStudentReport()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="student-info-strip">Admission No. <b>{{ r.admissionNo ?? '—' }}</b> &middot; Class <b>{{ r.className }}</b><br />Student <b>{{ r.name }}</b></div>
+      <div class="due-breakdown">
+        <div class="due-row"><span>Paid Fee</span><b>{{ money(r.paid) }}</b></div>
+        <div class="due-row"><span>Due Fee</span><b>{{ money(r.due) }}</b></div>
+        <div class="due-total-row"><span>Total Fee</span><span>{{ money(r.total) }}</span></div>
+      </div>
+      <div class="m-field">
+        <label>Format</label>
+        <div class="format-toggle">
+          <button type="button" class="format-btn" [class.active]="studentReportFormat === 'excel'" (click)="studentReportFormat = 'excel'"><i class="bi bi-file-earmark-excel"></i> Excel</button>
+          <button type="button" class="format-btn" [class.active]="studentReportFormat === 'csv'" (click)="studentReportFormat = 'csv'"><i class="bi bi-filetype-csv"></i> CSV</button>
+          <button type="button" class="format-btn" [class.active]="studentReportFormat === 'pdf'" (click)="studentReportFormat = 'pdf'"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+        </div>
+      </div>
+      <p class="m-hint" style="margin-top:2px;">Downloads this student's full fee detail — dues, particulars and payment history.</p>
+      <p class="m-error" *ngIf="studentReportError" role="alert">{{ studentReportError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeStudentReport()">Close</button>
+      <button type="button" class="btn-brand" [disabled]="isStudentReportClick" (click)="downloadStudentReport()"><i class="bi bi-download"></i> Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fee Payment (Collect) -->
+<div class="sz-modal-overlay open" *ngIf="payRow as p" (click)="$event.target === $event.currentTarget && closeCollect()">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-head">
+      <span class="modal-title">Fee Payment</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeCollect()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="student-info-strip">
+        Admission No. <b>{{ p.admissionNo ?? '—' }}</b> &middot; Class <b>{{ p.className }}</b><br />
+        Student <b>{{ p.name }}</b> &middot; Father <b>{{ p.fatherName || '—' }}</b>
+      </div>
+      <div class="due-breakdown">
+        <div class="due-row"><span>{{ p.className }} (current year)</span><b>{{ money(p.currentDue) }}</b></div>
+        <div class="due-row arrear" *ngFor="let a of p.arrears"><span>{{ a.className || a.sessionShort }} (previous year, unpaid)</span><b>{{ money(a.due) }}</b></div>
+        <div class="due-total-row"><span>Total Due</span><span>{{ money(p.due) }}</span></div>
+      </div>
+      <div class="m-field">
+        <label for="pay-amount">Enter Fee Amount (₹) <span class="req-star">*</span></label>
+        <input id="pay-amount" type="number" min="1" [max]="payMax" [placeholder]="payMax" [(ngModel)]="payAmount"
+               [class.is-invalid]="payInvalid || payError" />
+        <p class="m-error" *ngIf="payInvalid || payError" role="alert">{{ payInvalid || payError }}</p>
+      </div>
+      <div class="m-field">
+        <label>Payment Mode</label>
+        <app-dd [options]="modeOptions" [value]="payMode" ariaLabel="Payment Mode" (valueChange)="payMode = $any($event)"></app-dd>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeCollect()">Cancel</button>
+      <button type="button" class="btn-brand" [disabled]="!canSubmitPay" (click)="collect()">
+        <i class="bi bi-arrow-repeat spinning" *ngIf="isClick"></i> Collect Now
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Fee Receipt -->
+<div class="sz-modal-overlay open" *ngIf="receipt" (click)="$event.target === $event.currentTarget && closeReceipt()">
+  <div class="modal-box" style="width:560px;">
+    <div class="modal-head">
+      <span class="modal-title">Fee Receipt</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeReceipt()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <app-fee-receipt [receipt]="receipt"></app-fee-receipt>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeReceipt()">Close</button>
+      <button type="button" class="btn-brand" [disabled]="!receipt" (click)="printReceipt()"><i class="bi bi-printer"></i> Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Concession (waiver) — 'fees-waiver' -->
+<div class="sz-modal-overlay open" *ngIf="concessionRow as c" (click)="$event.target === $event.currentTarget && closeConcession()">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-head">
+      <span class="modal-title">Concession — {{ c.name }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeConcession()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="due-breakdown">
+        <div class="due-row"><span>Total Fee</span><b>{{ money(c.gross) }}</b></div>
+        <div class="due-row"><span>Paid Fee</span><b>{{ money(c.paid) }}</b></div>
+      </div>
+      <div class="m-field">
+        <label for="concession-amount">Concession Amount (₹) <span class="req-star">*</span></label>
+        <input id="concession-amount" type="number" min="0" [(ngModel)]="concessionAmount" [class.is-invalid]="concessionErrors['amount']" />
+        <p class="m-error" *ngIf="concessionErrors['amount']">{{ concessionErrors['amount'] }}</p>
+      </div>
+      <div class="m-field">
+        <label for="concession-reason">Reason <span class="req-star">*</span></label>
+        <input id="concession-reason" type="text" maxlength="300" placeholder="Sibling discount, scholarship…" [(ngModel)]="concessionReason"
+               [class.is-invalid]="concessionErrors['reason']" />
+        <p class="m-error" *ngIf="concessionErrors['reason']">{{ concessionErrors['reason'] }}</p>
+        <div class="m-hint">Recorded in the activity log with the old and new amount.</div>
+      </div>
+      <p class="m-error form-level" *ngIf="concessionError" role="alert">{{ concessionError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeConcession()">Cancel</button>
+      <button type="button" class="btn-brand" [disabled]="isConcessionClick" (click)="saveConcession()">Save</button>
+    </div>
+  </div>
+</div>

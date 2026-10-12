@@ -3,10 +3,9 @@ const mongoose = require('mongoose');
 
 // A Class(+Stream+Group)'s annual fee for one session — schema per fees/fee-structure.md.
 //
-// Created here, AHEAD of the Fees module (08), because Admission needs to read it: the
-// admission form's total fee comes from this document, never a typed amount
-// (student-fix4.md E). The Fees module's Fee Structure page owns create/edit; until it
-// exists, a school has none, and Admission falls back to its FEE_STRUCTURE_MISSING warning.
+// Admission reads it too: the admission form's total fee comes from this document, never a
+// typed amount (student-fix4.md E). The Fees module's Fee Structure page owns create/edit/
+// delete; a school without one gets Admission's FEE_STRUCTURE_MISSING warning.
 //
 // Mongoose name differs from the legacy 'fees-structure' (label/class-number keyed).
 const FeeStructureSchema = new mongoose.Schema({
@@ -22,6 +21,12 @@ const FeeStructureSchema = new mongoose.Schema({
         name: { type: String, required: true, trim: true },
         amount: { type: Number, required: true, min: 0 },
     }],
+    // Soft delete (database-design-principles.md: fees are financial records). A deleted
+    // structure keeps its unique key; creating the same Session+Class+Stream+Group again
+    // revives this document instead of inserting a second one.
+    deletedAt: { type: Date, default: null },
+    createdBy: { type: String, default: 'system' },
+    updatedBy: { type: String, default: 'system' },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
 });

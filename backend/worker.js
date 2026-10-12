@@ -12,6 +12,7 @@ const startAttendanceReconcileWorker = require('./modules/workers/attendance-rec
 const startStudentWorker = require('./modules/workers/student-worker');
 const startAttendanceV2Worker = require('./modules/workers/attendance-v2-worker');
 const startPayrollWorker = require('./modules/workers/payroll-worker');
+const startFeesWorker = require('./modules/workers/fees-worker');
 const { stopHeartbeats } = require('./modules/workers/heartbeat');
 const logger = require('./modules/helpers/logger');
 
@@ -33,6 +34,8 @@ const workers = [
     startAttendanceV2Worker(),
     // v2 Payroll: large "Generate for Selected" runs.
     startPayrollWorker(),
+    // v2 Fees: Fee Reminder WhatsApp sends.
+    startFeesWorker(),
 ];
 
 logger.info('worker.started', { pid: process.pid, workers: workers.length });

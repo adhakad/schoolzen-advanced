@@ -1,0 +1,43 @@
+/* Fees reference styles the global design system doesn't carry
+   (docs/schoolzen-planning/v1/fees/fees.html). */
+.grid-scroll .table-inner { min-width: 1460px; }
+.check-col input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+.amt-due { color: var(--ink-soft); font-weight: 600; }
+.arrear-note { font-size: 10px; color: var(--warning); font-weight: 600; margin-top: 2px; }
+
+.tag-status { width: 88px; justify-content: center; }
+.tag-paid { color: var(--success); border-color: #BFE0CC; }
+.tag-arrears { color: var(--warning); border-color: #E9D6A0; }
+.tag-unpaid { color: var(--danger); border-color: #E0BDB4; }
+
+.sw-report-btn { flex-shrink: 0; height: 38px; background: var(--surface); color: var(--brand); border: 1px solid var(--brand); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; }
+.sw-report-btn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; background: var(--surface); }
+.sw-report-btn:not(:disabled):hover { background: var(--brand-soft); }
+.collect-btn { background: var(--ink); color: #fff; border: none; border-radius: var(--radius); padding: 7px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.collect-btn:hover { background: #2A3242; }
+.collect-btn:disabled { opacity: .7; cursor: progress; }
+.icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* The waiver pencil — appears only with the 'fees-waiver' grant. */
+.concession-cell { display: inline-flex; align-items: center; gap: 6px; }
+.mini-edit { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-faint); font-size: 10.5px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.mini-edit:hover { border-color: var(--slate); color: var(--slate); }
+
+.load-more { display: flex; justify-content: center; padding-top: 16px; }
+
+/* Modals */
+.scope-note { background: var(--paper); border-radius: var(--radius); padding: 10px 12px; font-size: 12.5px; color: var(--ink-soft); }
+.format-toggle { display: flex; gap: 8px; }
+.format-btn { flex: 1; height: 40px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.format-btn:hover { border-color: var(--slate); }
+.format-btn.active { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+.student-info-strip { background: var(--paper); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 16px; font-size: 12.5px; color: var(--ink-soft); line-height: 1.8; }
+.student-info-strip b { color: var(--ink); }
+.due-breakdown { background: var(--paper); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 16px; }
+.due-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-soft); padding: 4px 0; }
+.due-row.arrear { color: var(--warning); }
+.due-total-row { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700; color: var(--ink); padding-top: 8px; margin-top: 4px; border-top: 1px solid var(--line); }
+.m-field input[type='number'], .m-field input[type='text'] { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 13.5px; color: var(--ink); font-family: inherit; outline: none; box-sizing: border-box; }
+.m-field input:focus { border-color: var(--brand); }
+.btn-brand { display: flex; align-items: center; gap: 7px; }
+.btn-brand:disabled { opacity: .5; cursor: not-allowed; }

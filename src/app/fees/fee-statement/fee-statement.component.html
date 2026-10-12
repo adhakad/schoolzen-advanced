@@ -1,0 +1,166 @@
+<!-- Fee Statement — a read-composed single-student view: no toolbar, no pagination.
+     Reference: docs/schoolzen-planning/v1/fees/fee-statement.html -->
+
+<div class="page-head">
+  <div>
+    <h1>Fee Statement</h1>
+    <div class="subtitle">Full per-student fee picture — dues, particulars, and payment history.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="tbl-empty" *ngIf="!studentId">
+      Open a student's statement from the Statement icon on <a routerLink="/v2/fees/fees" class="link-btn">Fees</a>.
+    </div>
+    <div class="tbl-empty" *ngIf="studentId && loading">Loading fee statement&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+
+    <ng-container *ngIf="statement && !loading">
+      <div class="view-header">
+        <div class="view-photo">
+          <img *ngIf="statement.student.photoUrl" [src]="statement.student.photoUrl" alt="" />
+          <span *ngIf="!statement.student.photoUrl">{{ initials }}</span>
+        </div>
+        <div>
+          <div class="view-header-name">{{ statement.student.name }}</div>
+          <div class="view-header-meta">{{ headerMeta }}</div>
+        </div>
+      </div>
+
+      <div class="summary-strip" *ngIf="statement.summary as s; else noRecord">
+        <div class="summary-item"><label>Fee Concession</label><div class="val">{{ money(s.concession) }}</div></div>
+        <div class="summary-item"><label>Paid Fee</label><div class="val">{{ money(s.paid) }}</div></div>
+        <div class="summary-item">
+          <label>Due Fee</label><div class="val">{{ money(s.due) }}</div>
+          <div class="arrear-note" *ngIf="s.arrears.length">{{ arrearText }}</div>
+        </div>
+        <div class="summary-item"><label>Total Fee</label><div class="val">{{ money(s.total) }}</div></div>
+        <div class="summary-item"><label>Status</label><div class="val"><span class="tag" [ngClass]="tagClass(s.status)">{{ s.statusLabel }}</span></div></div>
+      </div>
+      <ng-template #noRecord>
+        <div class="summary-strip"><span class="na">No fee record for {{ sessionShort }} — there is no Fee Structure for this student's class yet.</span></div>
+      </ng-template>
+
+      <div class="breakdown-title">Previous Year Dues</div>
+      <table>
+        <thead><tr><th>Session</th><th>Class</th><th>Total Fee</th><th>Paid</th><th>Remaining Due</th><th>Status</th><th>Payments</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let item of statement.previous; trackBy: trackBySession">
+            <td>{{ item.sessionShort }}</td>
+            <td>{{ item.className || '—' }}</td>
+            <td>{{ money(item.total) }}</td>
+            <td>{{ money(item.paid) }}</td>
+            <td [class.due-open]="item.due > 0">{{ money(item.due) }}</td>
+            <td>
+              <span class="tag" *ngIf="item.hasRecord; else noFee" [ngClass]="tagClass(item.status)">{{ item.statusLabel }}</span>
+              <ng-template #noFee><span class="na">No fee record</span></ng-template>
+            </td>
+            <td><button type="button" class="icon-btn" title="Payments" [attr.aria-label]="'Payments for ' + item.sessionShort" [disabled]="!item.hasRecord" (click)="openYearPayments(item)"><i class="bi bi-receipt"></i></button></td>
+          </tr>
+          <tr *ngIf="!statement.previous.length"><td colspan="7" class="na">No earlier sessions — this is the student's first year here.</td></tr>
+        </tbody>
+      </table>
+      <p class="ledger-hint">Every past session this student was enrolled in stays visible as a record — not just the years still owing something. Click a session's receipt icon to see exactly when and in how many installments it was paid.</p>
+
+      <div class="breakdown-title">Particulars — Current Year ({{ statement.student.className || '—' }})</div>
+      <table>
+        <thead><tr><th>Particular</th><th>Amount</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let item of statement.particulars"><td><span class="particular-tag">{{ item.name }}</span></td><td>{{ money(item.amount) }}</td></tr>
+          <tr *ngIf="!statement.particulars.length"><td colspan="2" class="na">No fee structure for this class yet.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="breakdown-title">Payment History — Current Year ({{ statement.student.className || '—' }})</div>
+      <table>
+        <thead><tr><th>Receipt No.</th><th>Amount</th><th>Payment Date</th><th>Collected By</th><th>Receipt</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let payment of statement.payments; trackBy: trackById">
+            <td><span class="receipt-no">{{ payment.receiptNo }}</span></td>
+            <td>{{ money(payment.amount) }}</td>
+            <td>{{ date(payment.date) }}</td>
+            <td>{{ payment.collectedBy || '—' }}</td>
+            <td>
+              <button type="button" class="icon-btn" title="Regenerate / reprint this receipt" [attr.aria-label]="'Reprint receipt ' + payment.receiptNo"
+                      [disabled]="!payment.printable || receiptLoadingId === payment._id" (click)="reprint(payment)">
+                <i class="bi" [ngClass]="receiptLoadingId === payment._id ? 'bi-arrow-repeat spinning' : 'bi-printer'"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!statement.payments.length"><td colspan="5" class="na">No payments yet this session.</td></tr>
+        </tbody>
+      </table>
+      <p class="m-error" *ngIf="receiptError" role="alert">{{ receiptError }}</p>
+    </ng-container>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Lifetime</span></div>
+      <div class="stat-row"><span class="stat-label">Sessions Enrolled</span><span class="stat-value">{{ statement?.lifetime?.sessionsEnrolled ?? 0 }}</span></div>
+      <div class="stat-row"><span class="stat-label">Total Paid (all years)</span><span class="stat-value">{{ compact(statement?.lifetime?.totalPaid ?? 0) }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Total Outstanding</span><span class="stat-value">{{ compact(statement?.lifetime?.totalOutstanding ?? 0) }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>A fully-cleared past year still stays on the record, not just years still owing something.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Any prior-year arrears are collected first, before this year's fee.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>The printer icon regenerates the exact original receipt — the serial number never changes.</div>
+    </div>
+  </div>
+</div>
+
+<!-- One past session's receipts -->
+<div class="sz-modal-overlay open" *ngIf="yearPayments as y" (click)="$event.target === $event.currentTarget && closeYearPayments()">
+  <div class="modal-box" style="width:480px;">
+    <div class="modal-head">
+      <span class="modal-title">Payments — {{ y.sessionShort }} ({{ y.className || '—' }})</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeYearPayments()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <table>
+        <thead><tr><th>Receipt No.</th><th>Amount</th><th>Payment Date</th><th>Collected By</th><th>Receipt</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let payment of y.payments; trackBy: trackById">
+            <td><span class="receipt-no">{{ payment.receiptNo }}</span></td>
+            <td>{{ money(payment.amount) }}</td>
+            <td>{{ date(payment.date) }}</td>
+            <td>{{ payment.collectedBy || '—' }}</td>
+            <td>
+              <button type="button" class="icon-btn" title="Regenerate / reprint this receipt" [attr.aria-label]="'Reprint receipt ' + payment.receiptNo"
+                      [disabled]="!payment.printable || receiptLoadingId === payment._id" (click)="reprint(payment)">
+                <i class="bi" [ngClass]="receiptLoadingId === payment._id ? 'bi-arrow-repeat spinning' : 'bi-printer'"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="!y.payments.length"><td colspan="5" class="na">No payments recorded for this session.</td></tr>
+        </tbody>
+      </table>
+      <p class="ledger-hint" style="margin-top:12px;">{{ yearHint(y) }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeYearPayments()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reprinted receipt -->
+<div class="sz-modal-overlay open receipt-overlay" *ngIf="receipt" (click)="$event.target === $event.currentTarget && closeReceipt()">
+  <div class="modal-box" style="width:560px;">
+    <div class="modal-head">
+      <span class="modal-title">Fee Receipt</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeReceipt()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <app-fee-receipt [receipt]="receipt"></app-fee-receipt>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeReceipt()">Close</button>
+      <button type="button" class="btn-brand" [disabled]="!receipt" (click)="print()"><i class="bi bi-printer"></i> Print</button>
+    </div>
+  </div>
+</div>

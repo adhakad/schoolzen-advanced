@@ -27,6 +27,7 @@ const SEEDED_ROLES = Object.freeze([
         permissions: perms({
             student: all(true, true), fees: all(true, true), payroll: all(true, true),
             'payroll-assign': all(true, true), 'payroll-generate': all(true, true), 'payroll-payout': all(true, true),
+            'fees-structure': all(true, true), 'fees-collect': all(true, true), 'fees-waiver': all(true, true),
         }),
     },
     {

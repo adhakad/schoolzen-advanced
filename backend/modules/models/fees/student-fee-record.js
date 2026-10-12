@@ -21,14 +21,35 @@ const StudentFeeRecordSchema = new mongoose.Schema({
     // Required when the concession is above the school's threshold share of totalFee — the
     // audit answer to "why was this student charged so little?".
     concessionReason: { type: String, trim: true, default: null },
-    // Populated by Class Promotion's carry-forward (Fees module).
-    arrears: [{ _id: false, sessionId: { type: mongoose.Schema.Types.ObjectId }, amount: { type: Number, min: 0 } }],
+    // Populated by Class Promotion's carry-forward (helpers/fees/fee-promotion.js): one entry
+    // per earlier session still owing money at promotion time. `amount` is that moment's
+    // SNAPSHOT — what is owed now is always derived live from FeePayment allocations
+    // (helpers/fees/fee-ledger.js), so a later payment can never leave it stale.
+    arrears: [{
+        _id: false,
+        sessionId: { type: mongoose.Schema.Types.ObjectId },
+        recordId: { type: mongoose.Schema.Types.ObjectId, default: null },
+        amount: { type: Number, min: 0 },
+    }],
+    // Fee Reminder's "Gap Since Last Reminder" — written in one batched bulkWrite after a
+    // send job completes, never one write per message.
+    lastReminderSentAt: { type: Date, default: null },
+    // The concurrency lock, nothing else: every payment / concession write $incs it on all of
+    // the student's records inside its transaction, so two writers for the same student
+    // conflict and one retries against the other's committed ledger (fees/errors.md shape 9).
+    ledgerVersion: { type: Number, default: 0 },
+    // Soft delete only — fee records are never hard-deleted. A deleted record keeps its
+    // unique key and is revived (not re-inserted) if the student needs one again.
+    deletedAt: { type: Date, default: null },
     createdBy: { type: String, trim: true, default: null },
     createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
 });
 
 StudentFeeRecordSchema.index({ adminId: 1, studentId: 1, sessionId: 1 }, { unique: true });
 StudentFeeRecordSchema.index({ adminId: 1, sessionId: 1 });
+// Fee Structure's sync and its delete-in-use check.
+StudentFeeRecordSchema.index({ adminId: 1, feeStructureId: 1 });
 
 const StudentFeeRecordModel = mongoose.model('v2-student-fee-record', StudentFeeRecordSchema);
 

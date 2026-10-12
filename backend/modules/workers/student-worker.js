@@ -11,6 +11,8 @@ const { getStudentFieldConfig, validateStudentRecord } = require('../validators/
 const {
     loadClassIndex, toObjectId, withTransaction, runPromotionSteps, DUPLICATE_RULES,
 } = require('../helpers/student/student.utils');
+// Registers the Fees module's promotion step (arrears carry-forward) in this process.
+require('../helpers/fees/fee-promotion');
 const studentMessages = require('../helpers/messages/student.messages');
 const { invalidateClassStats } = require('../helpers/student/student-write');
 const { keepStoredForMasks } = require('../helpers/student/student-mask');

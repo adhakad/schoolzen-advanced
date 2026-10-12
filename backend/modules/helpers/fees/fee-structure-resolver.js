@@ -13,7 +13,7 @@ const resolveFeeStructure = async (adminId, sessionId, { classId, streamId = nul
     if (!sessionId || !classId) return null;
     const base = { adminId, sessionId: toObjectId(sessionId), classId: toObjectId(classId), streamId: toObjectId(streamId) };
     const candidates = await FeeStructureModel
-        .find({ ...base, groupId: { $in: groupId ? [toObjectId(groupId), null] : [null] } })
+        .find({ ...base, groupId: { $in: groupId ? [toObjectId(groupId), null] : [null] }, deletedAt: null })
         .lean();
     const structure = (groupId && candidates.find((item) => String(item.groupId) === String(groupId)))
         || candidates.find((item) => item.groupId == null);
@@ -24,7 +24,7 @@ const resolveFeeStructure = async (adminId, sessionId, { classId, streamId = nul
 /** Class Promotion's "no fee structure for the target class next session" warning check. */
 const hasFeeStructure = async (adminId, classId, sessionId) => {
     if (!sessionId) return false;
-    return Boolean(await FeeStructureModel.exists({ adminId, classId: toObjectId(classId), sessionId: toObjectId(sessionId) }));
+    return Boolean(await FeeStructureModel.exists({ adminId, classId: toObjectId(classId), sessionId: toObjectId(sessionId), deletedAt: null }));
 };
 
 module.exports = { resolveFeeStructure, hasFeeStructure };

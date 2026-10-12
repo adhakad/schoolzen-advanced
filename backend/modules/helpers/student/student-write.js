@@ -100,6 +100,9 @@ const planAdmissionFee = async ({ adminId, sessionId, sessionLabel, placement, p
         failFields([{ field: 'amountPaid', code: 'AMOUNT_PAID_EXCEEDS_PAYABLE', message: messages.amountPaidExceedsPayable(payable) }]);
     }
     // The Student keeps a write-once snapshot; the fee record is the ledger from here on.
+    // An 'old' student already paid their admission fee before the ERP — it is never billed
+    // again (fees/errors.md: admission-fee eligibility is derived per student).
+    if (profile.admissionType === 'old') fee.admissionFee = 0;
     profile.admissionFee = fee.admissionFee;
     profile.feesConcession = concession;
     return {

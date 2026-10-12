@@ -9,6 +9,6 @@
 <app-dd [options]="groupOptions" [value]="groupDisabled ? '' : value.groupId"
         placeholder="All groups" ariaLabel="Subject group" [disabled]="groupDisabled"
         (valueChange)="onGroupChange($event)"></app-dd>
-<app-dd [options]="sectionOptions" [value]="sectionDisabled ? '' : value.sectionId"
+<app-dd *ngIf="showSection" [options]="sectionOptions" [value]="sectionDisabled ? '' : value.sectionId"
         placeholder="All sections" ariaLabel="Section" [disabled]="sectionDisabled"
         (valueChange)="onSectionChange($event)"></app-dd>

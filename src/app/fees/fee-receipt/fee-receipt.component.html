@@ -1,0 +1,33 @@
+<!-- Reference: docs/schoolzen-planning/v1/fees/fees.html #receiptModal .receipt-frame -->
+<div class="receipt-frame print-target" *ngIf="receipt as r">
+  <div class="receipt-header">
+    <div class="receipt-logo">
+      <img *ngIf="r.school.logoUrl" [src]="r.school.logoUrl" alt="" />
+      <i *ngIf="!r.school.logoUrl" class="bi bi-mortarboard-fill"></i>
+    </div>
+    <div>
+      <div class="receipt-school-name">{{ r.school.schoolName }}</div>
+      <div class="receipt-meta" *ngFor="let line of r.school.metaLines">{{ line }}</div>
+    </div>
+  </div>
+  <div class="receipt-band">FEE RECEIPT · No. {{ r.receiptNo }}</div>
+  <div class="receipt-line"><span>Student Name</span><b>{{ r.student.name }}</b></div>
+  <div class="receipt-line"><span>Admission No.</span><b>{{ r.student.admissionNo ?? '—' }}</b></div>
+  <div class="receipt-line"><span>Class</span><b>{{ r.student.className || '—' }}</b></div>
+  <div class="receipt-line"><span>Payment Date</span><b>{{ r.dateText }}</b></div>
+  <div class="receipt-line"><span>Payment Mode</span><b>{{ modeLabel(r.mode) }}</b></div>
+  <div class="receipt-divider"></div>
+  <div class="receipt-line" *ngFor="let line of r.lines" [class.arrear]="line.kind === 'arrear'">
+    <span>{{ line.label }}</span><b>{{ money(line.amount) }}</b>
+  </div>
+  <div class="receipt-line"><span>Concession Amount</span><b>− {{ money(r.concession) }}</b></div>
+  <div class="receipt-divider"></div>
+  <div class="receipt-total-row"><span>Amount Received</span><span>{{ money(r.amountReceived) }}</span></div>
+  <div class="receipt-total-row"><span>Total Fee</span><span>{{ money(r.totals.totalFee) }}</span></div>
+  <div class="receipt-total-row"><span>Paid Fee</span><span>{{ money(r.totals.paid) }}</span></div>
+  <div class="receipt-total-row"><span>Due Fee</span><span>{{ money(r.totals.due) }}</span></div>
+  <p class="receipt-words">{{ r.note }}</p>
+  <div class="receipt-sign-row">
+    <div class="receipt-sign-block"><div class="receipt-sign-line"></div><span>Authorized Signatory</span></div>
+  </div>
+</div>

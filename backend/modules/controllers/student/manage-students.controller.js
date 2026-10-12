@@ -13,8 +13,7 @@ const { createStudentRecord, updateStudentRecord, invalidateClassStats } = requi
 const { findSessionId, ensureSessionId, labelOfSessionId } = require('../../helpers/academic-session/session-resolver');
 const { maskStudent, maskValue, SENSITIVE_FIELDS } = require('../../helpers/student/student-mask');
 const { logActivity } = require('../../services/activity-log.service');
-const StudentFeeRecordModel = require('../../models/fees/student-fee-record');
-const FeePaymentModel = require('../../models/fees/fee-payment');
+const { loadLedgerData, ledgerFor } = require('../../helpers/fees/fee-context');
 const { byClassOrder } = require('../../helpers/academic-setup/class-order');
 const {
     MODULE, toObjectId, loadClassIndex, loadSubjectGroups, describePlacement, buildEnrollmentMatch,
@@ -113,22 +112,20 @@ let GetStudent = async (req, res) => {
 
     // The fee ledger for this placement's session (else the latest): once it exists, the
     // form shows admission fee/concession read-only — they're Fees-module truth.
-    const feeDoc = await StudentFeeRecordModel
-        .findOne({ adminId, studentId: student._id, ...(enrollment ? { sessionId: enrollment.sessionId } : {}) },
-            'totalFee concession admissionFee concessionReason')
-        .sort({ createdAt: -1 })
-        .lean();
-    // Paid / Due are DERIVED from the payments (fees/fees.md), never stored.
-    const paid = feeDoc
-        ? (await FeePaymentModel.find({ adminId, studentFeeRecordId: feeDoc._id }, 'amount').lean()).reduce((sum, payment) => sum + payment.amount, 0)
-        : 0;
+    // Paid / Due come from the Fees module's ONE ledger (helpers/fees/fee-ledger.js) — never
+    // re-summed here.
+    const ledgerData = (await loadLedgerData(adminId, [student._id])).get(String(student._id));
+    const feeDoc = enrollment
+        ? ledgerData.records.find((record) => String(record.sessionId) === String(enrollment.sessionId))
+        : [...ledgerData.records].sort((a, b) => String(b.sessionLabel || '').localeCompare(String(a.sessionLabel || '')))[0];
+    const totals = feeDoc ? ledgerFor(ledgerData, feeDoc.sessionId).ledger.totals : null;
     const feeRecord = feeDoc ? {
         totalFee: feeDoc.totalFee,
         concession: feeDoc.concession,
         admissionFee: feeDoc.admissionFee,
-        payable: feeDoc.totalFee - feeDoc.concession,
-        paid,
-        due: Math.max(0, feeDoc.totalFee - feeDoc.concession - paid),
+        payable: totals.gross - totals.concession,
+        paid: totals.paid,
+        due: totals.currentDue,
         concessionReason: feeDoc.concessionReason || null,
     } : null;
     return res.status(200).json({ student: body, placement, feeRecord });

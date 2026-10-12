@@ -16,8 +16,12 @@ const mongoose = require('mongoose');
 // Groups, while putting staff on a scale ('payroll-assign'), generating/locking/unlocking
 // runs ('payroll-generate') and recording payments/issuing slips ('payroll-payout') each
 // need their own explicit grant.
+// Fees the same: 'fees' views every Fees page and keeps the Fee Reminder filters, while
+// defining Fee Structures ('fees-structure'), collecting money ('fees-collect') and granting
+// concessions/waivers ('fees-waiver') are separate, explicit grants.
 const PERMISSION_MODULES = Object.freeze([
-    'student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'holiday', 'holiday-assign', 'fees',
+    'student', 'attendance', 'marksheet', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
+    'fees', 'fees-structure', 'fees-collect', 'fees-waiver',
     'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout', 'settings',
 ]);
 

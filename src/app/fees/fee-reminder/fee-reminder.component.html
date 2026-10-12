@@ -1,0 +1,167 @@
+<!-- Fee Reminder.
+     Reference: docs/schoolzen-planning/v1/fees/fee-reminder.html
+     Toolbar: one row — search + Create. -->
+
+<div class="page-head">
+  <div>
+    <h1>Fee Reminder</h1>
+    <div class="subtitle">Saved filters that resolve to a live student list on demand — review before every send.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar fr-toolbar">
+      <div class="search">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Search filters" aria-label="Search filters" [(ngModel)]="search" />
+      </div>
+      <button type="button" class="btn-primary" *ngIf="canEdit" (click)="openCreate()"><i class="bi bi-plus-lg"></i> Create</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Class</th><th>Payment Below</th><th>No Payment Since</th><th>Gap Since Last Reminder</th><th>Send</th><th class="act" *ngIf="canEdit">Remove</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of visibleRows; trackBy: trackById">
+          <td><span class="tag tag-slate">{{ row.className }}</span></td>
+          <td><span *ngIf="row.paidBelowPercent !== null; else noFilter">Less than {{ row.paidBelowPercent }}% paid</span></td>
+          <td><span *ngIf="row.noPaymentSinceDays !== null; else noFilter">Last {{ row.noPaymentSinceDays }}+ days</span></td>
+          <td><span *ngIf="row.gapSinceLastReminderDays !== null; else noFilter">{{ row.gapSinceLastReminderDays }} days</span></td>
+          <td><button type="button" class="send-btn" [disabled]="reviewLoading || !session" (click)="openSaved(row)"><i class="bi bi-whatsapp"></i> To Send</button></td>
+          <td class="act" *ngIf="canEdit"><button type="button" class="icon-btn danger" title="Remove" [attr.aria-label]="'Remove filter for ' + row.className" (click)="openDelete(row)"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noFilter><span class="na">No filter</span></ng-template>
+    <div class="tbl-empty" *ngIf="loading">Loading reminder filters&hellip;</div>
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!loading && !loadError && !visibleRows.length">
+      {{ search ? 'No filters match your search.' : 'No saved filters yet — create one to remind parents.' }}
+    </div>
+    <div class="sending-note" *ngIf="sending"><i class="bi bi-arrow-repeat spinning"></i> Sending reminders in the background…</div>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row"><span class="stat-label">Saved Filters</span><span class="stat-value">{{ summary.savedFilters }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Reminders Sent This Month</span><span class="stat-value">{{ summary.sentThisMonth }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>"To Send" runs the filter fresh and shows exactly who matches right now, before anything goes out.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>The gap setting avoids re-sending to someone reminded very recently.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Deleting a saved filter only removes the filter — no reminders or student data are affected.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Reminder Filter -->
+<div class="sz-modal-overlay open" *ngIf="createOpen" (click)="$event.target === $event.currentTarget && closeCreate()">
+  <div class="modal-box" style="width:440px;">
+    <div class="modal-head">
+      <span class="modal-title">Create Reminder Filter</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeCreate()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="m-field">
+        <label>Class <span class="req-star">*</span></label>
+        <app-dd [options]="classOptions" [value]="form.classId" ariaLabel="Class" [invalid]="!!fieldErrors['classId']"
+                (valueChange)="form.classId = $event"></app-dd>
+        <p class="m-error" *ngIf="fieldErrors['classId']">{{ fieldErrors['classId'] }}</p>
+        <p class="m-error" *ngIf="optionsError">{{ optionsError }} <button type="button" class="link-btn" (click)="loadOptions()">Retry</button></p>
+      </div>
+      <div class="m-field">
+        <label for="fr-percent">Paid Below (%)</label>
+        <input id="fr-percent" type="number" min="0" max="100" placeholder="50" [(ngModel)]="form.paidBelowPercent" [class.is-invalid]="fieldErrors['paidBelowPercent']" />
+        <p class="m-error" *ngIf="fieldErrors['paidBelowPercent']">{{ fieldErrors['paidBelowPercent'] }}</p>
+        <div class="m-hint">Leave blank for no threshold — matches everyone in the class.</div>
+      </div>
+      <div class="m-field">
+        <label for="fr-since">No Payment Since (days)</label>
+        <input id="fr-since" type="number" min="0" placeholder="30" [(ngModel)]="form.noPaymentSinceDays" [class.is-invalid]="fieldErrors['noPaymentSinceDays']" />
+        <p class="m-error" *ngIf="fieldErrors['noPaymentSinceDays']">{{ fieldErrors['noPaymentSinceDays'] }}</p>
+      </div>
+      <div class="m-field">
+        <label for="fr-gap">Gap Since Last Reminder (days)</label>
+        <input id="fr-gap" type="number" min="0" placeholder="7" [(ngModel)]="form.gapSinceLastReminderDays" [class.is-invalid]="fieldErrors['gapSinceLastReminderDays']" />
+        <p class="m-error" *ngIf="fieldErrors['gapSinceLastReminderDays']">{{ fieldErrors['gapSinceLastReminderDays'] }}</p>
+        <div class="m-hint">Avoids re-sending to someone reminded very recently.</div>
+      </div>
+      <p class="m-error form-level" *ngIf="createError" role="alert">{{ createError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeCreate()">Cancel</button>
+      <button type="button" class="btn-brand" [disabled]="isFilterClick" (click)="chooseFilters()"><i class="bi bi-funnel"></i> Choose Filters</button>
+    </div>
+  </div>
+</div>
+
+<!-- Review & Send — the live list, re-run on every open -->
+<div class="sz-modal-overlay open" *ngIf="reviewOpen" (click)="$event.target === $event.currentTarget && closeReview()">
+  <div class="modal-box" style="width:760px;">
+    <div class="modal-head">
+      <span class="modal-title">{{ reviewTitle }}</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeReview()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="filter-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="chk"><input type="checkbox" aria-label="Select all" [checked]="allChecked" (change)="toggleAll($any($event.target).checked)" /></th>
+              <th>Student</th><th>Mobile</th><th>Paid %</th><th>Due Fee</th><th>Total Fee</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of recipients; trackBy: trackByStudent">
+              <td class="chk"><input type="checkbox" [attr.aria-label]="'Send to ' + item.name" [disabled]="!item.mobile"
+                                     [checked]="isChecked(item)" (change)="toggleRecipient(item, $any($event.target).checked)" /></td>
+              <td>{{ item.name }}</td>
+              <td><span *ngIf="item.mobile; else noMobile">+91 {{ item.mobile.slice(0, 5) }} {{ item.mobile.slice(5) }}</span></td>
+              <td>{{ item.paidPercent }}%</td>
+              <td class="amt-due">{{ money(item.due) }}</td>
+              <td>{{ money(item.total) }}</td>
+            </tr>
+            <tr *ngIf="!recipients.length"><td colspan="6" class="na">Nobody matches this filter right now.</td></tr>
+          </tbody>
+        </table>
+        <ng-template #noMobile><span class="na">No mobile number</span></ng-template>
+      </div>
+      <p class="m-error" *ngIf="reviewError" role="alert">{{ reviewError }}</p>
+    </div>
+    <div class="modal-foot review-foot">
+      <label class="save-check" *ngIf="!reviewSource?.savedId"><input type="checkbox" [(ngModel)]="saveFilter" /> Save these filters for next time</label>
+      <span *ngIf="reviewSource?.savedId"></span>
+      <div class="review-actions">
+        <span class="sel-summary"><b>{{ checked.size }}</b> selected</span>
+        <button type="button" class="send-btn send-now" [disabled]="!checked.size || isSendNowClick || !canEdit" (click)="sendNow()">
+          <i class="bi bi-whatsapp"></i> Send Now
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete — the lightweight delete -->
+<div class="sz-modal-overlay open" *ngIf="deleteTarget" (click)="$event.target === $event.currentTarget && closeDelete()">
+  <div class="modal-box" style="width:400px;">
+    <div class="modal-head">
+      <span class="modal-title">Delete Reminder Filter</span>
+      <button type="button" class="modal-close" aria-label="Close" (click)="closeDelete()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="delete-copy">This only removes the saved filter — no reminders are affected and no student data is touched.</p>
+      <p class="m-error" *ngIf="deleteError" role="alert">{{ deleteError }}</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn-plain" (click)="closeDelete()">Cancel</button>
+      <button type="button" class="btn-danger" [disabled]="isDeleteClick" (click)="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>

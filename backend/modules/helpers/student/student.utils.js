@@ -474,12 +474,22 @@ registerStudentDeleteStep('enrollments', async ({ dbSession, adminId, studentIds
     await StudentEnrollmentModel.deleteMany({ adminId, studentId: { $in: studentIds } }, { session: dbSession });
 });
 registerStudentDeleteStep('fee-records', async ({ dbSession, adminId, studentIds }) => {
-    // Payments first (an 'old' admission's opening balance), then the records they hang off.
+    // Fees are financial history: SOFT-deleted, never removed (database-design-principles.md;
+    // fees/errors.md data-modeling gaps). Payments first, then the records they hang off.
+    const now = new Date();
     const records = await StudentFeeRecordModel.find({ adminId, studentId: { $in: studentIds } }, '_id').session(dbSession).lean();
     if (records.length) {
-        await FeePaymentModel.deleteMany({ adminId, studentFeeRecordId: { $in: records.map((record) => record._id) } }, { session: dbSession });
+        await FeePaymentModel.updateMany(
+            { adminId, studentFeeRecordId: { $in: records.map((record) => record._id) }, deletedAt: null },
+            { $set: { deletedAt: now } },
+            { session: dbSession }
+        );
     }
-    await StudentFeeRecordModel.deleteMany({ adminId, studentId: { $in: studentIds } }, { session: dbSession });
+    await StudentFeeRecordModel.updateMany(
+        { adminId, studentId: { $in: studentIds }, deletedAt: null },
+        { $set: { deletedAt: now, updatedAt: now } },
+        { session: dbSession }
+    );
 });
 registerStudentDeleteStep('students', async ({ dbSession, adminId, studentIds }) => {
     await StudentProfileModel.deleteMany({ adminId, _id: { $in: studentIds } }, { session: dbSession });

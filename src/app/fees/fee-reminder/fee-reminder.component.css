@@ -1,0 +1,33 @@
+/* Fee Reminder reference styles (docs/schoolzen-planning/v1/fees/fee-reminder.html). */
+.fr-toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
+.fr-toolbar .search { flex: 0 0 300px; width: 300px; }
+td { padding: 16px; vertical-align: middle; }
+td.chk input, th.chk input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+
+.send-btn { background: #1EB355; color: #fff; border: none; border-radius: var(--radius); padding: 7px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.send-btn:hover { background: #189646; }
+.send-btn:disabled { background: var(--line-soft); color: var(--ink-faint); cursor: not-allowed; }
+.send-btn.send-now { padding: 9px 16px; }
+.sending-note { font-size: 12px; color: var(--ink-soft); padding-top: 14px; display: flex; align-items: center; gap: 6px; }
+
+.filter-table-wrap { max-height: 340px; overflow-y: auto; }
+.amt-due { color: var(--ink-soft); font-weight: 600; }
+.review-foot { justify-content: space-between; align-items: center; }
+.review-actions { display: flex; gap: 12px; align-items: center; }
+.sel-summary { font-size: 12.5px; color: var(--ink-soft); }
+.sel-summary b { color: var(--brand); }
+.save-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+.save-check input { width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer; }
+
+.m-field input[type='number'] { width: 100%; height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 13.5px; color: var(--ink); font-family: inherit; outline: none; box-sizing: border-box; }
+.m-field input[type='number']:focus { border-color: var(--brand); }
+.btn-brand { display: flex; align-items: center; gap: 7px; }
+.delete-copy { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
+.btn-danger { height: 38px; padding: 0 16px; border-radius: var(--radius); border: none; background: var(--danger); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-danger:disabled { opacity: .5; cursor: not-allowed; }
+
+@media (max-width: 767px) {
+  .fr-toolbar { flex-direction: column; align-items: stretch; }
+  .fr-toolbar .search { flex: 1 1 auto; width: 100%; }
+  .sw-card-main > table { display: block; overflow-x: auto; white-space: nowrap; }
+}
