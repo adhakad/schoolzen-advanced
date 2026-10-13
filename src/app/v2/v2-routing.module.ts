@@ -90,6 +90,12 @@ const routes: Routes = [
         loadChildren: () => import('src/app/settings/settings.module')
           .then((m) => m.SettingsModule)
       },
+      // Module 13 — Dashboard.
+      {
+        path: 'dashboard',
+        loadChildren: () => import('src/app/dashboard/dashboard.module')
+          .then((m) => m.DashboardModule)
+      },
       // Sidebar entries whose pages don't exist yet land here rather than 404-ing.
       { path: '**', component: NotBuiltComponent }
     ]

@@ -16,6 +16,7 @@ const { syncRecordsForStructure } = require('../../helpers/fees/fee-record-sync'
 const { logActivity } = require('../../services/activity-log.service');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
+const { onDashboardChanged } = require('../../helpers/dashboard/cache-invalidation');
 
 // Fee Structure (fees/fee-structure.md) — a Class(+Stream+Group)'s annual fee for one
 // session: admission fee + named particulars. The list and the Breakdown read are the
@@ -38,7 +39,11 @@ const placementError = (field, message, code = 'VALIDATION_FAILED') => new Valid
     module: MODULE, code, fields: [{ field, message, code }],
 });
 
-const invalidate = (adminId) => cacheService.delPattern(cacheKeys.fees.structurePattern(adminId));
+// A structure write re-prices fee records, so the Dashboard's fee donut goes with it.
+const invalidate = (adminId) => Promise.all([
+    cacheService.delPattern(cacheKeys.fees.structurePattern(adminId)),
+    onDashboardChanged(adminId, ['fees']),
+]);
 
 const particularTotal = (structure) => FeeStructureModel.totalOf(structure);
 

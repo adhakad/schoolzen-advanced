@@ -16,6 +16,7 @@ const {
     MAX_RANGE_DAYS, eachDayKey, actionsForStatus, isApplicable, effectiveLimit, remainingOf, exceedsBalance,
 } = require('../../helpers/leave/leave-rules');
 const liveStats = require('../../services/attendance-v2/live-stats');
+const { hintWidget } = require('../../services/dashboard/hint-publisher');
 const { workingDayKeys } = require('../../services/calendar/working-day');
 const { enqueueReconcile } = require('../../helpers/attendance/context');
 const { logActivity } = require('../../services/activity-log.service');
@@ -234,6 +235,8 @@ let CreateRequest = async (req, res) => {
         createdBy: actorOf(req),
     });
     await logActivity(req, { module: MODULE, action: 'leave.request.create', targetId: String(created._id), meta: { personType, personId, leaveTypeId, fromDate, toDate, days: dateKeys.length } });
+    // The pending queue grew — the Dashboard's Pending approvals card (throttled hint).
+    await hintWidget(adminId, 'approvals');
     const [row] = await decorate(adminId, sessionId, [created.toObject()]);
     return res.status(200).json({ message: messages.applied(), request: row });
 };
@@ -343,6 +346,7 @@ const approveLeaveRequest = async (req, { adminId, id, forceApprove }) => {
     });
 
     await refreshLiveStats(adminId, result.dateKeys);
+    await hintWidget(adminId, 'approvals');
     await logActivity(req, {
         module: MODULE, action: 'leave.request.approve', targetId: id,
         meta: { days: result.dateKeys.length, forceApprove: Boolean(forceApprove) },
@@ -367,6 +371,7 @@ const rejectLeaveRequest = async (req, { adminId, id }) => {
         { new: true }
     ).lean();
     if (!request) await explainNoMatch(adminId, id, 'Rejected');
+    await hintWidget(adminId, 'approvals');
     await logActivity(req, { module: MODULE, action: 'leave.request.reject', targetId: id, changes: { before: { status: 'Pending' }, after: { status: 'Rejected' } } });
     const [row] = await decorate(adminId, request.sessionId, [request]);
     return { message: messages.rejected(), request: row };

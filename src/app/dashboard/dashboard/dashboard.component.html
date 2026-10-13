@@ -1,0 +1,163 @@
+<!-- Dashboard.
+     Reference: docs/schoolzen-planning/v1/dashboard/dashboard.html — the .content block,
+     class for class (the sidebar and topbar are the shared shell's). Inline SVG icons are
+     Bootstrap Icons here (dashboard.md "Known inconsistency"). A card the viewer has no
+     grant for is not rendered; a quick-action tile they can't use renders locked. -->
+
+<!-- A failed card's own message + Retry (errors.md: never a bare 0 that looks like data). -->
+<ng-template #failed let-key="key">
+  <div class="widget-error">
+    <span>{{ state(key)?.message }}</span>
+    <button type="button" class="view-all-link retry-link" (click)="reload(key)">Retry</button>
+  </div>
+</ng-template>
+<ng-template #loading><div class="widget-loading">Loading…</div></ng-template>
+
+<div class="hero">
+  <div class="hero-row">
+    <div class="hero-greet">
+      <div class="hero-date-badge"><div class="hd-day">{{ badgeDay }}</div><div class="hd-mon">{{ badgeMonth }}</div></div>
+      <div>
+        <h1>Welcome back, {{ displayName }}</h1>
+        <p>{{ heroLine }}</p>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat" *ngIf="has('students')" [title]="heroTitle('students')">
+        <div class="hs-num">{{ heroValue('students') }}</div><div class="hs-lbl">Students</div>
+      </div>
+      <div class="hero-stat" *ngIf="has('staff')" [title]="heroTitle('staff')">
+        <div class="hs-num">{{ heroValue('staff') }}</div><div class="hs-lbl">Staff</div>
+      </div>
+      <div class="hero-stat" *ngIf="has('attendance')" [title]="heroTitle('attendance')">
+        <div class="hs-num">{{ heroValue('attendance') }}</div><div class="hs-lbl">Attendance</div>
+      </div>
+      <div class="hero-stat" *ngIf="has('fees')" [title]="heroTitle('fees')">
+        <div class="hs-num">{{ heroValue('fees') }}</div><div class="hs-lbl">Collected</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sw-title">Dashboard</div>
+
+<div class="layout-row">
+  <div class="col-main">
+    <div class="sw-card-main" *ngIf="has('attendance')" data-widget="attendance">
+      <div class="card-title-row">Attendance this week <span class="sub">Whole school<ng-container *ngIf="asOf('attendance')"> · {{ asOf('attendance') }}</ng-container></span></div>
+      <ng-container [ngSwitch]="state('attendance')?.status">
+        <ng-container *ngSwitchCase="'error'"><ng-container *ngTemplateOutlet="failed; context: { key: 'attendance' }"></ng-container></ng-container>
+        <ng-container *ngSwitchCase="'loading'"><ng-container *ngTemplateOutlet="loading"></ng-container></ng-container>
+        <div class="bar-chart" *ngSwitchDefault>
+          <div class="bar-col" *ngFor="let bar of attendance?.bars; trackBy: trackByIndex" [title]="barTitle(bar)">
+            <div class="bar" [class.muted]="bar.pct === null" [style.height]="barHeight(bar)"></div>
+            <div class="bar-lbl">{{ bar.label }}</div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="sw-card-main" *ngIf="has('fees')" data-widget="fees">
+      <div class="card-title-row">Fee collection <span class="sub">{{ feeSubtitle }}</span></div>
+      <ng-container [ngSwitch]="state('fees')?.status">
+        <ng-container *ngSwitchCase="'error'"><ng-container *ngTemplateOutlet="failed; context: { key: 'fees' }"></ng-container></ng-container>
+        <ng-container *ngSwitchCase="'loading'"><ng-container *ngTemplateOutlet="loading"></ng-container></ng-container>
+        <div class="donut-row" *ngSwitchDefault>
+          <div class="donut" [style.background]="donutBackground">
+            <div class="donut-inner"><b>{{ fees?.collectedPct == null ? '—' : fees?.collectedPct + '%' }}</b><span>Collected</span></div>
+          </div>
+          <div style="flex:1;">
+            <div class="donut-legend-row"><span><span class="legend-dot" style="background:var(--brand);border-radius:2px;"></span>Collected</span><b>{{ rupees(fees?.collected || 0) }}</b></div>
+            <div class="donut-legend-row"><span><span class="legend-dot" style="background:var(--line-soft);border-radius:2px;"></span>Due</span><b>{{ rupees(fees?.due || 0) }}</b></div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="sw-card-main" *ngIf="has('quickActions')" data-widget="quickActions">
+      <div class="card-title-row">Quick actions</div>
+      <div class="quick-links">
+        <ng-container *ngFor="let tile of quickActions; trackBy: trackByKey">
+          <a class="ql-item" *ngIf="tileAllowed(tile.key)" [routerLink]="tile.route" [attr.data-tile]="tile.key">
+            <i class="bi bi-{{ tile.icon }}"></i><span>{{ tile.label }}</span>
+          </a>
+          <!-- No grant: visible but locked — no link, no click (the sidebar's lock pattern). -->
+          <div class="ql-item" *ngIf="!tileAllowed(tile.key)" [class.locked]="tileLocked(tile.key)"
+               [attr.aria-disabled]="true" [attr.data-tile]="tile.key"
+               [title]="tileLocked(tile.key) ? tile.label + ' — no access' : ''">
+            <i class="bi bi-{{ tile.icon }}"></i><span>{{ tile.label }}</span>
+            <i class="bi bi-lock-fill lock" *ngIf="tileLocked(tile.key)"></i>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-side">
+    <div class="sw-card-main" *ngIf="has('calendar')" data-widget="calendar">
+      <div class="card-title-row">{{ calendarTitle }}</div>
+      <div class="cal-head">
+        <button type="button" class="cal-nav" aria-label="Previous month" (click)="shiftMonth(-1)"><i class="bi bi-chevron-left"></i></button>
+        <span class="cal-month">{{ todayLabel }}</span>
+        <button type="button" class="cal-nav" aria-label="Next month" (click)="shiftMonth(1)"><i class="bi bi-chevron-right"></i></button>
+      </div>
+      <ng-container *ngIf="state('calendar')?.status === 'error'; else calendarGrid">
+        <ng-container *ngTemplateOutlet="failed; context: { key: 'calendar' }"></ng-container>
+      </ng-container>
+      <ng-template #calendarGrid>
+        <div class="cal-grid">
+          <div class="cal-dow" *ngFor="let dow of dows; trackBy: trackByIndex">{{ dow }}</div>
+          <div class="cal-day" *ngFor="let cell of calendarCells; trackBy: trackByIndex"
+               [class.muted]="cell.muted" [class.today]="cell.today" [class.holiday]="cell.holiday">{{ cell.day }}</div>
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="sw-card-main" *ngIf="has('approvals')" data-widget="approvals">
+      <div class="card-title-row">Pending approvals
+        <span class="sub" *ngIf="ok('approvals')">{{ approvals?.total }} total<ng-container *ngIf="asOf('approvals')"> · {{ asOf('approvals') }}</ng-container></span>
+      </div>
+      <ng-container [ngSwitch]="state('approvals')?.status">
+        <ng-container *ngSwitchCase="'error'"><ng-container *ngTemplateOutlet="failed; context: { key: 'approvals' }"></ng-container></ng-container>
+        <ng-container *ngSwitchCase="'loading'"><ng-container *ngTemplateOutlet="loading"></ng-container></ng-container>
+        <ng-container *ngSwitchDefault>
+          <div class="arrival-row" *ngFor="let row of approvals?.rows; let i = index; trackBy: trackById">
+            <div class="arrival-avatar" [ngClass]="i % 2 ? 'av-slate' : 'av-brand'">{{ initials(row.name) }}</div>
+            <div><div class="arrival-name">{{ row.name }}</div><div class="arrival-sub">{{ approvalSub(row) }}</div></div>
+            <div class="arrival-right">
+              <span class="status-chip">Pending</span>
+              <!-- Shown only when this viewer holds approvals-action AND the source's grant;
+                   the Approvals endpoint enforces and logs it again. -->
+              <span class="row-actions" *ngIf="row.canAct">
+                <app-icon-action icon="check-lg" variant="primary" ariaLabel="Approve"
+                                 [disabled]="!!busy[row._id]" [confirm]="confirmFor(row, 'approve')"
+                                 (action)="decide(row, 'approve')"></app-icon-action>
+                <app-icon-action icon="x-lg" variant="warning" ariaLabel="Reject"
+                                 [disabled]="!!busy[row._id]" [confirm]="confirmFor(row, 'reject')"
+                                 (action)="decide(row, 'reject')"></app-icon-action>
+              </span>
+            </div>
+          </div>
+          <div class="arrival-sub empty-line" *ngIf="!approvals?.rows?.length">Nothing waiting for sign-off.</div>
+        </ng-container>
+      </ng-container>
+      <a class="view-all-link" routerLink="/v2/approvals">View all approvals</a>
+    </div>
+
+    <div class="sw-card-main" *ngIf="has('holidays')" data-widget="holidays">
+      <div class="card-title-row">Upcoming holidays</div>
+      <ng-container [ngSwitch]="state('holidays')?.status">
+        <ng-container *ngSwitchCase="'error'"><ng-container *ngTemplateOutlet="failed; context: { key: 'holidays' }"></ng-container></ng-container>
+        <ng-container *ngSwitchCase="'loading'"><ng-container *ngTemplateOutlet="loading"></ng-container></ng-container>
+        <ng-container *ngSwitchDefault>
+          <div class="arrival-row" *ngFor="let row of holidays?.rows; trackBy: trackById">
+            <div class="arrival-avatar" style="background:transparent;color:var(--danger);"><i class="bi bi-calendar-event"></i></div>
+            <div><div class="arrival-name">{{ row.name }}</div><div class="arrival-sub">{{ holidayDate(row) }}</div></div>
+          </div>
+          <div class="arrival-sub empty-line" *ngIf="!holidays?.rows?.length">No upcoming holidays.</div>
+        </ng-container>
+      </ng-container>
+      <a class="view-all-link" routerLink="/v2/holiday/holidays">View Holiday Calendar</a>
+    </div>
+  </div>
+</div>

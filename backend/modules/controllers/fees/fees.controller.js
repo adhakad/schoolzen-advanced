@@ -20,6 +20,7 @@ const { ensureRecords } = require('../../helpers/fees/fee-record-sync');
 const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
 const { feesConfirmationMessage } = require('../../services/send-whatsapp-message');
 const { logActivity } = require('../../services/activity-log.service');
+const { onDashboardChanged } = require('../../helpers/dashboard/cache-invalidation');
 const logger = require('../../helpers/logger');
 
 // Fees (fees/fees.md) — the day-to-day collection screen. Paid / Due / Status are read
@@ -258,6 +259,8 @@ let CollectFee = async (req, res) => {
             allocations: payment.allocations.map((item) => ({ sessionId: String(item.sessionId), amount: item.amount })),
         },
     });
+    // A fee payment is one of the Dashboard's named invalidation triggers (optimization.md).
+    await onDashboardChanged(adminId, ['fees']);
     const [row, receipt] = await Promise.all([freshRow(adminId, sessionId, studentId), buildReceipt(adminId, payment)]);
     // Fire-and-forget: a WhatsApp failure never turns a recorded payment into an error
     // (fees/errors.md shape 8).
@@ -308,6 +311,7 @@ let UpdateConcession = async (req, res) => {
         module: MODULE, action: 'fees.concession.update', targetId: String(studentId),
         meta: { session }, changes: { before, after },
     });
+    await onDashboardChanged(adminId, ['fees']);
     return res.status(200).json({ message: messages.concessionUpdated(), row: await freshRow(adminId, sessionId, studentId) });
 };
 

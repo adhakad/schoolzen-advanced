@@ -96,6 +96,17 @@ const keys = {
         admitCardStructureList: (adminId, sessionId) => `${adminId}:examination:admit-card-structure:list:${sessionId}`,
         admitCardStructurePattern: (adminId) => `${adminId}:examination:admit-card-structure*`,
     },
+    // Dashboard (dashboard/optimization.md). One key per WIDGET, so a write elsewhere busts
+    // only the card it changes. `qualifier` is the day or month the slice was computed for,
+    // so a day rollover can never serve yesterday's numbers as today's.
+    dashboard: {
+        widget: (adminId, widget, sessionId, qualifier) =>
+            `${adminId}:dashboard:${widget}:${sessionId || 'none'}${qualifier ? `:${qualifier}` : ''}`,
+        widgetPattern: (adminId, widget) => `${adminId}:dashboard:${widget}:*`,
+        pattern: (adminId) => `${adminId}:dashboard:*`,
+        // The live-hint throttle gate — not cached data.
+        hintGate: (adminId, widget) => `${adminId}:dashboard-hint:${widget}`,
+    },
 };
 
 // Student's FieldConfig read IS Settings' FieldConfig — the same key, so Settings' write

@@ -28,8 +28,9 @@ const mongoose = require('mongoose');
 // Approvals: 'approvals' views the cross-module inbox; 'approvals-action' approves/rejects
 // from it — and acting on a row ALSO needs that source's own grant ('leave' edit), so the
 // inbox is never a way around a module's permission.
+// Staff: 'staff' views staff headcounts (today: the Dashboard's Staff stat).
 const PERMISSION_MODULES = Object.freeze([
-    'student', 'attendance', 'marksheet', 'marksheet-structure', 'admit-card', 'admit-card-structure', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
+    'student', 'staff', 'attendance', 'marksheet', 'marksheet-structure', 'admit-card', 'admit-card-structure', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
     'fees', 'fees-structure', 'fees-collect', 'fees-waiver',
     'certificates', 'tc-structure', 'tc-generate',
     'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout',

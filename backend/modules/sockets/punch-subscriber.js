@@ -9,6 +9,9 @@ const V2_EVENTS = {
     [V2.PUNCH_CHANNEL]: 'attendance-v2:punch',
     [V2.RECONCILE_CHANNEL]: 'attendance-v2:reconciled',
 };
+// Dashboard live hints (services/dashboard/hint-publisher.js): only `{ widget }` reaches the
+// browser — the client refetches that widget through its permission-checked API.
+const DASHBOARD = require('../services/dashboard/hint-publisher');
 const logger = require('../helpers/logger');
 
 // The API-side half of the seam services/punch-publisher.js describes.
@@ -75,20 +78,25 @@ const startPunchSubscriber = (io) => {
 
         subscriber.on('error', (error) => logger.error('punch-subscriber.error', error));
 
-        subscriber.subscribe(CHANNEL, RECONCILE_CHANNEL, ...Object.keys(V2_EVENTS), (error) => {
+        subscriber.subscribe(CHANNEL, RECONCILE_CHANNEL, ...Object.keys(V2_EVENTS), DASHBOARD.CHANNEL, (error) => {
             if (error) return logger.error('punch-subscriber.subscribeFailed', error);
             logger.info('punch-subscriber.subscribed', {
-                channels: [CHANNEL, RECONCILE_CHANNEL, ...Object.keys(V2_EVENTS)],
+                channels: [CHANNEL, RECONCILE_CHANNEL, ...Object.keys(V2_EVENTS), DASHBOARD.CHANNEL],
             });
         });
 
         subscriber.on('message', (channel, raw) => {
-            if (channel !== CHANNEL && channel !== RECONCILE_CHANNEL && !V2_EVENTS[channel]) return;
+            if (channel !== CHANNEL && channel !== RECONCILE_CHANNEL && !V2_EVENTS[channel] && channel !== DASHBOARD.CHANNEL) return;
             try {
                 const payload = JSON.parse(raw);
                 // No adminId means no room to deliver to. Dropping it is correct: broadcasting
                 // to every school is the one thing this layer must never do.
                 if (!payload || !payload.adminId) return;
+
+                if (channel === DASHBOARD.CHANNEL) {
+                    io.to(`${ROOM_PREFIX}${payload.adminId}`).emit(DASHBOARD.CHANNEL, { widget: payload.widget });
+                    return;
+                }
 
                 if (V2_EVENTS[channel]) {
                     io.to(`${ROOM_PREFIX}${payload.adminId}`).emit(V2_EVENTS[channel], payload);

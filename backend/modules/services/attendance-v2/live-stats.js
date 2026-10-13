@@ -5,6 +5,7 @@ const AttendanceLiveStatsModel = require('../../models/attendance/live-stats');
 const cacheService = require('../cache/cache.service');
 const cacheKeys = require('../cache/cache-keys');
 const { toUtcMidnight } = require('../../helpers/date-only');
+const { hintWidget } = require('../dashboard/hint-publisher');
 
 // Today's Live Status counts — the precomputed aggregate (attendance/optimization.md §6).
 // recompute() runs on the events that change the numbers (a punch batch, a reconcile batch,
@@ -40,6 +41,9 @@ const recompute = async (adminId, dateKey) => {
         { upsert: true }
     );
     await cacheService.del(cacheKeys.attendance.liveStatus(adminId, dateKey));
+    // Every attendance change funnels through here (punch batch, reconcile, manual edit,
+    // leave approval) — the one place the Dashboard's throttled live hint needs to fire.
+    await hintWidget(adminId, 'attendance');
     return { dateKey, ...stats };
 };
 

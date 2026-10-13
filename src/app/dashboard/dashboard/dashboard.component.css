@@ -1,0 +1,102 @@
+/* Dashboard — the reference's own page styles (docs/schoolzen-planning/v1/dashboard/
+   dashboard.html), copied as-is. The design system's shared rules (.sw-card-main,
+   .layout-row, .card-title-row) apply underneath; where the reference differs from them
+   (.col-side 300px, .sw-title 19px/600, card title margin 14px) the reference wins here.
+   The SVG icon rules became Bootstrap Icon rules of the same size and colour. */
+
+:host { display: block; max-width: 1180px; }
+
+/* Hero — hairline strip, no shadow/blobs */
+.hero { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 20px; }
+.hero-row { position: relative; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+.hero-greet { display: flex; align-items: center; gap: 16px; }
+.hero-date-badge { width: 52px; height: 52px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--brand-soft); color: var(--brand); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+.hero-date-badge .hd-day { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; line-height: 1; }
+.hero-date-badge .hd-mon { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .85; margin-top: 2px; }
+.hero h1 { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 500; margin: 0 0 3px; color: var(--ink); letter-spacing: -0.2px; }
+.hero p { font-size: 12.5px; margin: 0; color: var(--ink-soft); }
+.hero-stats { display: flex; }
+.hero-stat { text-align: right; padding: 0 18px; border-left: 1px solid var(--line); }
+.hero-stat:first-child { border-left: none; }
+.hero-stat .hs-num { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; color: var(--ink); line-height: 1; }
+.hero-stat .hs-lbl { font-size: 10.5px; color: var(--ink-faint); font-weight: 600; margin-top: 4px; }
+
+:host .sw-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; color: var(--ink); margin-bottom: 16px; }
+
+:host .layout-row { display: flex; gap: 16px; align-items: flex-start; }
+.col-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+:host .col-side { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+
+:host .sw-card-main { flex: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+:host .card-title-row { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 500; color: var(--ink); margin-bottom: 14px; }
+.card-title-row span.sub { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--ink-faint); font-weight: 500; }
+
+.bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 140px; padding: 0 4px; }
+.bar-chart .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; height: 100%; }
+.bar-chart .bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--brand); }
+.bar-chart .bar.muted { background: var(--line-soft); }
+.bar-chart .bar-lbl { font-size: 10px; color: var(--ink-faint); font-weight: 600; }
+
+.donut-row { display: flex; align-items: center; gap: 20px; }
+.donut { width: 100px; height: 100px; border-radius: 50%; background: conic-gradient(var(--brand) 0% 75%, var(--line-soft) 75% 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 9px; }
+.donut-inner { width: 100%; height: 100%; border-radius: 50%; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.donut-inner b { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; color: var(--ink); }
+.donut-inner span { font-size: 9.5px; color: var(--ink-faint); }
+.donut-legend-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 12px; color: var(--ink-soft); border-top: 1px solid var(--line-soft); }
+.donut-legend-row:first-child { border-top: none; }
+.donut-legend-row b { color: var(--ink); }
+.legend-dot { width: 8px; height: 8px; display: inline-block; margin-right: 6px; }
+
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-nav { background: none; border: 0; padding: 0; color: var(--brand); cursor: pointer; font-size: 15px; line-height: 1; display: inline-flex; }
+.cal-month { font-size: 13px; font-weight: 700; color: var(--ink); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.cal-dow { font-size: 9.5px; font-weight: 700; color: var(--ink-faint); padding-bottom: 6px; }
+.cal-day { font-size: 12px; color: var(--ink-soft); padding: 7px 0; border-radius: 8px; position: relative; }
+.cal-day.muted { color: #DCD3F2; }
+.cal-day.today { background: var(--brand); color: #fff; font-weight: 700; }
+.cal-day.holiday::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: #B8265A; }
+.cal-day.today.holiday::after { background: #fff; }
+
+.arrival-row { display: flex; align-items: center; gap: 8px; padding: 8px 4px; border-radius: 8px; }
+.arrival-avatar { width: 30px; height: 30px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 10.5px; flex-shrink: 0; border: 1px solid var(--line); }
+.arrival-avatar .bi { font-size: 15px; }
+.arrival-avatar.av-brand { background: var(--brand-soft); color: var(--brand); border-color: var(--line); }
+.arrival-avatar.av-slate { background: var(--slate-soft); color: var(--slate); border-color: var(--line); }
+.arrival-name { font-size: 12px; font-weight: 600; color: var(--ink); }
+.arrival-sub { font-size: 10.5px; color: var(--ink-faint); }
+.arrival-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.status-chip { font-size: 10.5px; font-weight: 500; padding: 3px 10px; border-radius: 20px; border: 1px solid #E9CFA0; color: #9A6A16; background: transparent; }
+.arrival-row + .arrival-row { border-top: 1px solid var(--line-soft); }
+.view-all-link { display: block; text-align: center; font-size: 11.5px; color: var(--brand); font-weight: 600; margin-top: 10px; cursor: pointer; text-decoration: none; }
+
+.quick-links { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.ql-item { position: relative; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 8px; text-align: center; cursor: pointer; text-decoration: none; }
+.ql-item:hover { border-color: var(--slate); }
+.ql-item > .bi:first-child { font-size: 18px; line-height: 18px; color: var(--brand); margin-bottom: 6px; display: block; }
+.ql-item span { font-size: 10.5px; font-weight: 500; color: var(--ink-soft); }
+
+/* --- additions the reference has no state for (listed in the build report) --------- */
+/* Quick-action tile without the grant: the sidebar's locked look — grey, lock, no click. */
+.ql-item[aria-disabled="true"] { cursor: default; }
+.ql-item[aria-disabled="true"]:hover { border-color: var(--line); }
+.ql-item.locked { opacity: 0.55; }
+.ql-item.locked > .bi:first-child { color: var(--ink-faint); }
+.ql-item .lock { position: absolute; top: 6px; right: 6px; font-size: 10px; color: var(--ink-faint); }
+/* Per-card failed / loading / empty states (dashboard/errors.md). */
+.widget-error, .widget-loading { font-size: 12px; color: var(--ink-faint); padding: 8px 0; }
+.widget-error { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.retry-link { display: inline; margin: 0; background: none; border: 0; padding: 0; font-family: inherit; }
+.empty-line { padding: 8px 4px; }
+.row-actions { display: inline-flex; gap: 4px; }
+
+@media (max-width: 991px) {
+  :host .layout-row { flex-direction: column; }
+  :host .col-side { width: 100%; }
+  .hero-stats { width: 100%; justify-content: space-between; }
+  .hero-stat { padding: 0 12px; }
+}
+@media (max-width: 767px) {
+  .quick-links { grid-template-columns: repeat(2, 1fr); }
+  .hero-stats { flex-wrap: wrap; row-gap: 12px; }
+}

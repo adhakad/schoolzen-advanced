@@ -13,6 +13,7 @@ const { staffCounts } = require('../../helpers/staff/dependents');
 const { escapeRegExp } = require('../../helpers/staff/lookups');
 const { withTransaction } = require('../../helpers/with-transaction');
 const { logActivity } = require('../../services/activity-log.service');
+const { onDashboardChanged } = require('../../helpers/dashboard/cache-invalidation');
 
 const MODULE = 'staff';
 const ENTITY = 'Staff member';
@@ -123,6 +124,8 @@ let CreateStaff = async (req, res) => {
         createdBy: actor,
         updatedBy: actor,
     }).catch((error) => rethrowDuplicate(error, empCodeDuplicate));
+    // The Dashboard's Staff count is active staff — every status change busts it.
+    await onDashboardChanged(adminId, ['staff']);
 
     return res.status(200).json({ message: success.created(ENTITY), staff: toRow(staff) });
 };
@@ -150,6 +153,7 @@ let UpdateStaff = async (req, res) => {
     staff.updatedBy = actorOf(req);
     staff.updatedAt = new Date();
     await staff.save().catch((error) => rethrowDuplicate(error, empCodeDuplicate));
+    await onDashboardChanged(adminId, ['staff']);
 
     const changed = AUDITED.filter((field) => (staff[field] || null) !== before[field]);
     if (changed.length) {
@@ -171,6 +175,7 @@ let ChangeStatus = async (req, res) => {
     staff.updatedBy = actorOf(req);
     staff.updatedAt = new Date();
     await staff.save();
+    await onDashboardChanged(adminId, ['staff']);
     return res.status(200).json({ message: messages.statusChanged(status), status });
 };
 
@@ -228,6 +233,7 @@ const terminateOne = async (req, adminId, id) => {
         return revokeStaffAccess(req, { adminId, staffId, reason: 'terminated', dbSession });
     });
     await settingsCache.onAssignmentChanged(adminId, staffId);
+    await onDashboardChanged(adminId, ['staff']);
     await logActivity(req, {
         module: MODULE,
         action: 'staff.access.revoke',

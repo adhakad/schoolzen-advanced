@@ -4,6 +4,7 @@ const { ValidationError, NotFoundError, ConflictError, PermissionError } = requi
 const messages = require('../../helpers/messages/approvals.messages');
 const { resolveSessionId, findPeople } = require('../../helpers/leave/context');
 const { SOURCES, sourceFor } = require('../../helpers/approvals/sources');
+const { unionAggregate, describeRows } = require('../../helpers/approvals/inbox-query');
 const {
     INBOX_STATUSES, isObjectId, encodeCursor, decodeCursor, cursorMatch, mapSourceCode,
 } = require('../../helpers/approvals/approval-rules');
@@ -44,28 +45,6 @@ const peopleFor = async (adminId, sessionId, q) => {
         ids: results.flatMap((result) => result.rows.map((row) => row._id)),
         truncated: results.some((result) => result.truncated),
     };
-};
-
-/** One union pipeline over `sources`: per-source $match + $project, then `tail`. */
-const unionAggregate = (sources, matchFor, tail) => {
-    const branch = (source) => [{ $match: matchFor(source) }, { $project: source.project }];
-    const [first, ...rest] = sources;
-    return first.model.aggregate([
-        ...branch(first),
-        ...rest.map((source) => ({ $unionWith: { coll: source.model.collection.name, pipeline: branch(source) } })),
-        ...tail,
-    ]);
-};
-
-/** Rows of mixed types → table rows, each described by its own source, order kept. */
-const describeRows = async (adminId, sessionId, rows) => {
-    const described = new Map();
-    await Promise.all(SOURCES.map(async (source) => {
-        const own = rows.filter((row) => row.type === source.type);
-        if (!own.length) return;
-        (await source.describe(adminId, sessionId, own)).forEach((row) => described.set(`${row.type}|${row._id}`, row));
-    }));
-    return rows.map((row) => described.get(`${row.type}|${row._id}`)).filter(Boolean);
 };
 
 /** GET /requests — one keyset page of the union, plus total and the Overview counts. */

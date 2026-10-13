@@ -11,6 +11,7 @@ const { keepStoredForMasks } = require('./student-mask');
 const { uploadImageBuffer, destroyImages } = require('../../services/media/cloudinary.service');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
+const { onDashboardChanged } = require('../dashboard/cache-invalidation');
 const messages = require('../messages/student.messages');
 const { MODULE, resolvePlacement, withTransaction, toObjectId, rethrowAsDuplicate, loadListRow, loadClassIndex } = require('./student.utils');
 const { ensureSessionId, findSessionId } = require('../academic-session/session-resolver');
@@ -20,9 +21,13 @@ const { isValidSession, SESSION_EXAMPLE } = require('../academic-session-format'
 /**
  * Academic Setup's Students-Enrolled stat counts enrollments, so any enrollment create or
  * delete invalidates it in the same request (academic-setup/optimization.md: the one
- * cross-module invalidation that module accepts from outside).
+ * cross-module invalidation that module accepts from outside). The Dashboard's Students
+ * count and fee donut (every enrollment brings a fee record) are busted at the same point.
  */
-const invalidateClassStats = (adminId) => cacheService.del(cacheKeys.academicSetup.classStats(adminId));
+const invalidateClassStats = (adminId) => Promise.all([
+    cacheService.del(cacheKeys.academicSetup.classStats(adminId)),
+    onDashboardChanged(adminId, ['students', 'fees']),
+]);
 
 // The student write paths, shared by Manage Students (Create/Update) and Admission
 // (New Admission) — one implementation, so both forms create exactly the same documents.

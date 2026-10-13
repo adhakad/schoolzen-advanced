@@ -8,6 +8,7 @@ const { COLLATION } = require('../staff/lookups');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
 const { holidayDays } = require('./holiday-rules');
+const { onDashboardChanged } = require('../dashboard/cache-invalidation');
 
 // Shared pieces of the three Holiday controllers: the cached Holiday and Template lists,
 // session resolution, and the module's error builders.
@@ -64,6 +65,8 @@ const invalidateHolidays = (adminId) => Promise.all([
     cacheService.delPattern(cacheKeys.holiday.listPattern(adminId)),
     // Calendars embed holiday ranges, so a holiday edit is also a template edit.
     cacheService.delPattern(cacheKeys.holiday.templatesPattern(adminId)),
+    // The Dashboard's calendar dots and Upcoming holidays read the same rows.
+    onDashboardChanged(adminId, ['calendar', 'holidays']),
 ]);
 const invalidateTemplates = (adminId) => cacheService.delPattern(cacheKeys.holiday.templatesPattern(adminId));
 
