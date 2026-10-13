@@ -8,10 +8,16 @@
   <nav>
     <ng-container *ngFor="let group of groups; trackBy: trackByKey">
       <!-- Single item (Dashboard, Approvals) -->
-      <a *ngIf="group.route" class="nav-item"
+      <a *ngIf="group.route && !group.locked" class="nav-item"
          [class.active]="activeGroupKey === group.key"
          [routerLink]="group.route" (click)="onNavigate()">
         <span><i class="bi bi-{{ group.icon }} icon"></i>{{ group.label }}</span>
+      </a>
+      <!-- No View grant: VISIBLE but locked, like a locked sub-item. -->
+      <a *ngIf="group.route && group.locked" class="nav-item locked"
+         [attr.aria-disabled]="true" [title]="group.label + ' — no access'">
+        <span><i class="bi bi-{{ group.icon }} icon"></i>{{ group.label }}</span>
+        <i class="bi bi-lock-fill lock"></i>
       </a>
 
       <!-- Collapsible module group. One open at a time; the current page's group opens

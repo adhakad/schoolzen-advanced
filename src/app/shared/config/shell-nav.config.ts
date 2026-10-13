@@ -39,6 +39,11 @@ export interface ShellNavGroup {
   icon: string;
   /** A single item with no children (Dashboard, Approvals). */
   route?: string;
+  /**
+   * For a single-item group: the v2 Roles & Permissions module whose View it needs. An
+   * admin-session user without it sees the entry locked — the same grant its API enforces.
+   */
+  v2Permission?: string;
   items?: readonly ShellNavItem[];
   /** The whole group is removed for a teacher. */
   adminOnly?: boolean;
@@ -135,12 +140,14 @@ export const SHELL_NAV: readonly ShellNavGroup[] = [
   {
     key: 'certificates', label: 'Certificates', icon: 'award',
     items: [
-      { label: 'TC Structure', route: '/v2/certificates/tc-structure', adminOnly: true },
-      { label: 'Generate TC', route: '/v2/certificates/generate-tc', permission: 'transferCertificate' }
+      // Both pages' GET APIs need 'certificates' View; 'tc-structure' / 'tc-generate' gate
+      // the in-page Save / Issue actions.
+      { label: 'TC Structure', route: '/v2/certificates/tc-structure', adminOnly: true, v2Permission: 'certificates' },
+      { label: 'Generate TC', route: '/v2/certificates/generate-tc', permission: 'transferCertificate', v2Permission: 'certificates' }
     ]
   },
 
-  { key: 'approvals', label: 'Approvals', icon: 'check-circle', route: '/v2/approvals' },
+  { key: 'approvals', label: 'Approvals', icon: 'check-circle', route: '/v2/approvals', v2Permission: 'approvals' },
 
   {
     key: 'settings', label: 'Settings', icon: 'gear', adminOnly: true,

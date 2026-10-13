@@ -34,7 +34,8 @@ const MODULE_LABELS: Readonly<Record<string, string>> = {
   fees: 'Fees', 'fees-structure': 'Fee Structure', 'fees-collect': 'Collect Fees', 'fees-waiver': 'Fee Concession / Waiver',
   certificates: 'Certificates', 'tc-structure': 'TC Structure', 'tc-generate': 'Issue / Cancel TC',
   payroll: 'Payroll', 'payroll-assign': 'Assign Salary', 'payroll-generate': 'Generate Payroll',
-  'payroll-payout': 'Salary Payouts', settings: 'Settings'
+  'payroll-payout': 'Salary Payouts', approvals: 'Approvals', 'approvals-action': 'Approve / Reject Requests',
+  settings: 'Settings'
 };
 const MODULE_ICONS: Readonly<Record<string, string>> = {
   student: 'mortarboard', attendance: 'calendar-check', marksheet: 'journal-text',
@@ -42,6 +43,7 @@ const MODULE_ICONS: Readonly<Record<string, string>> = {
   holiday: 'sun', 'holiday-assign': 'calendar2-check',
   fees: 'wallet2', 'fees-structure': 'list-ul', 'fees-collect': 'cash', 'fees-waiver': 'percent', payroll: 'cash-stack', 'payroll-assign': 'person-check', 'payroll-generate': 'play-circle',
   'payroll-payout': 'cash-coin', certificates: 'award', 'tc-structure': 'list-ol', 'tc-generate': 'file-earmark-arrow-up',
+  approvals: 'check-circle', 'approvals-action': 'check2-square',
   settings: 'gear'
 };
 const SCOPE_FIELDS: readonly string[] = ['classId', 'streamId', 'sectionId', 'staffId'];

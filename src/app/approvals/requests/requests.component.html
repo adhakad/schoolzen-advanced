@@ -1,0 +1,131 @@
+<!-- Approval Requests.
+     Reference: docs/schoolzen-planning/v1/approvals/approvals.html
+     Toolbar: search; the 6-column Applicant cascade; then Type + Status. Pending rows act
+     straight from the row (after a confirm); decided rows are view-only (eye icon). -->
+
+<div class="page-head">
+  <div>
+    <h1>Approval Requests</h1>
+    <div class="subtitle">A single inbox for every request that needs your sign-off, across every module.</div>
+  </div>
+</div>
+
+<div class="layout-row">
+  <div class="sw-card-main">
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search by name or ID" aria-label="Search by name or ID"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+      </div>
+      <div class="toolbar-row2 ap-filter-grid">
+        <app-dd [options]="applicantOptions" [value]="personType" ariaLabel="Filter by applicant"
+                (valueChange)="onApplicantChange($event)"></app-dd>
+        <app-dd [options]="departmentOptions" [value]="departmentId" [disabled]="departmentDisabled"
+                disabledHint="Staff only" ariaLabel="Filter by department"
+                (valueChange)="onDepartmentChange($event)"></app-dd>
+        <app-dd [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
+                disabledHint="Select a department first" ariaLabel="Filter by designation"
+                (valueChange)="onDesignationChange($event)"></app-dd>
+        <app-dd [options]="classOptions" [value]="classId" [disabled]="classDisabled"
+                disabledHint="Students only" ariaLabel="Filter by class"
+                (valueChange)="onClassChange($event)"></app-dd>
+        <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
+                disabledHint="Only 11th/12th have streams" ariaLabel="Filter by stream"
+                (valueChange)="onStreamChange($event)"></app-dd>
+        <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
+                disabledHint="Select a class first" ariaLabel="Filter by section"
+                (valueChange)="onSectionChange($event)"></app-dd>
+      </div>
+      <div class="toolbar-row3">
+        <app-dd class="row3-pill" [options]="typeOptions" [value]="type" ariaLabel="Filter by type"
+                (valueChange)="onTypeChange($event)"></app-dd>
+        <app-dd class="row3-pill" [options]="statusOptions" [value]="status" ariaLabel="Filter by status"
+                (valueChange)="onStatusChange($event)"></app-dd>
+      </div>
+      <div class="fetch-error" *ngIf="lookupError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
+        <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
+      </div>
+    </div>
+
+    <div class="grid-scroll">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Name</th><th>Details</th><th>Status</th><th class="act">Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackById">
+            <td><span class="req-type-tag">{{ row.typeLabel || row.type }}</span></td>
+            <td><div class="rq-name">{{ row.name }}</div><div class="rq-code">{{ row.code }}</div></td>
+            <td class="rq-detail">{{ detailsOf(row) }}</td>
+            <td><span class="tag" [ngClass]="'tag-' + row.status">{{ statusLabel(row.status) }}</span></td>
+            <td class="act">
+              <div class="actions">
+                <ng-container *ngIf="canDecide(row); else viewOnly">
+                  <button type="button" class="icon-btn approve" title="Approve" [attr.aria-label]="'Approve request from ' + row.name"
+                          [disabled]="busy[row._id]" (click)="onDecide(row, 'approve')"><i class="bi bi-check-lg"></i></button>
+                  <button type="button" class="icon-btn reject" title="Reject" [attr.aria-label]="'Reject request from ' + row.name"
+                          [disabled]="busy[row._id]" (click)="onDecide(row, 'reject')"><i class="bi bi-x-lg"></i></button>
+                </ng-container>
+                <ng-template #viewOnly>
+                  <button type="button" class="icon-btn" title="View" [attr.aria-label]="'View request from ' + row.name"
+                          (click)="onView(row)"><i class="bi bi-eye"></i></button>
+                </ng-template>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+      <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">No requests match these filters.</div>
+    <div class="tbl-note" *ngIf="truncated">Showing the first matches only &mdash; narrow the filters to see everyone.</div>
+
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="total"
+                        (pageChange)="onPageChange($event)"
+                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+  </div>
+
+  <div class="col-side">
+    <div class="stats-card">
+      <div class="stats-card-head"><span class="stats-card-title">Overview</span></div>
+      <div class="stat-row accent"><span class="stat-label">Pending</span><span class="stat-value">{{ summary.pending }}</span></div>
+      <div class="stat-row"><span class="stat-label">Approved</span><span class="stat-value">{{ summary.approved }}</span></div>
+      <div class="stat-row"><span class="stat-label">Rejected</span><span class="stat-value">{{ summary.rejected }}</span></div>
+    </div>
+    <div class="status-card">
+      <div class="card-title-row">Good to know</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>This is a single inbox across modules &mdash; only Leave feeds it today, more request types will join later.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Approving or rejecting here does exactly what the same action would do on that request's own module page.</div>
+      <div class="tip-item"><i class="bi bi-info-circle"></i>Once decided, a request becomes view-only &mdash; use the eye icon to see it again.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Approve / Reject requires a confirmation before anything changes. -->
+<app-form-modal [open]="!!decision" [title]="decisionTitle" [submitLabel]="decisionLabel" [width]="400"
+                [submitDanger]="decision?.decision === 'reject'"
+                (submitted)="onDecisionConfirm()" (cancelled)="onDecisionCancel()">
+  <div class="decision-body" *ngIf="decision">
+    You're about to <b>{{ decision.decision === 'approve' ? 'approve' : 'reject' }}</b> {{ decision.row.name }}'s request
+    &mdash; {{ detailsOf(decision.row) }}. This does the same thing as deciding it on the request's own module page.
+  </div>
+</app-form-modal>
+
+<app-form-modal [open]="!!viewRow" title="Request Details" cancelLabel="Close" [width]="420" [showSubmit]="false"
+                (cancelled)="onViewClose()">
+  <ng-container *ngIf="viewRow">
+    <div class="detail-row"><span class="dl">Type</span><span class="dv">{{ viewRow.typeLabel || viewRow.type }}</span></div>
+    <div class="detail-row"><span class="dl">Name</span><span class="dv">{{ viewRow.name }}</span></div>
+    <div class="detail-row"><span class="dl">Reference</span><span class="dv">{{ viewRow.code }}</span></div>
+    <div class="detail-row"><span class="dl">Details</span><span class="dv">{{ detailsOf(viewRow) }}</span></div>
+    <div class="detail-row"><span class="dl">Status</span><span class="dv">{{ statusLabel(viewRow.status) }}</span></div>
+  </ng-container>
+</app-form-modal>

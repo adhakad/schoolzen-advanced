@@ -222,6 +222,9 @@
 .sz .nav-sub a.locked { color: #5E6473; cursor: not-allowed; }
 .sz .nav-sub a.locked:hover { color: #5E6473; }
 .sz .nav-sub .lock { font-size: 12px; opacity: .55; display: inline-flex; }
+/* A single-entry group (Approvals) without its View grant — same lock treatment. */
+.sz .nav-item.locked, .sz .nav-item.locked:hover { color: #5E6473; background: transparent; cursor: not-allowed; }
+.sz .nav-item.locked .lock { font-size: 12px; opacity: .55; display: inline-flex; }
 
 /* --- main + topbar ------------------------------------------------------------------ */
 

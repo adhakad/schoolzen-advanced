@@ -26,6 +26,8 @@ interface RenderedGroup {
   label: string;
   icon: string;
   route: string | null;
+  /** A single-item group the admin-session user's v2 role can't View. */
+  locked: boolean;
   items: RenderedItem[];
 }
 
@@ -85,6 +87,7 @@ export class ShellSidebarComponent implements OnChanges {
         label: group.label,
         icon: group.icon,
         route: group.route || null,
+        locked: isAdmin && !!group.route && !!group.v2Permission && !v2CanView(v2Permissions, group.v2Permission),
         items: (group.items || [])
           .filter((item: ShellNavItem) => isAdmin || !item.adminOnly)
           .map((item: ShellNavItem) => ({

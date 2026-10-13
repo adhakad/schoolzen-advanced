@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ShellSidebarComponent } from './shell-sidebar.component';
@@ -153,6 +154,44 @@ describe('ShellSidebarComponent', () => {
     subItems.forEach((subItem: HTMLElement) => {
       expect(subItem.querySelector('i')).withContext(subItem.textContent || '').toBeNull();
     });
+  });
+
+  it('locks Certificates items for an admin-session user without the v2 certificates grant', () => {
+    component.context = context({
+      role: 'admin',
+      v2Permissions: { isSuperAdmin: false, modules: { 'tc-structure': { canView: false, canEdit: false } } }
+    });
+    sync();
+    const certificates = component.groups.find((group) => group.key === 'certificates')!;
+    expect(certificates.items.map((item) => item.locked)).toEqual([true, true]);
+
+    component.context = context({
+      role: 'admin',
+      v2Permissions: { isSuperAdmin: false, modules: { certificates: { canView: true, canEdit: false } } }
+    });
+    sync();
+    expect(component.groups.find((group) => group.key === 'certificates')!.items.map((item) => item.locked)).toEqual([false, false]);
+  });
+
+  it('locks the Approvals entry without the v2 approvals grant, and links it with one', () => {
+    component.context = context({ role: 'admin', v2Permissions: { isSuperAdmin: false, modules: {} } });
+    sync();
+    expect(component.groups.find((group) => group.key === 'approvals')!.locked).toBeTrue();
+    const locked = fixture.nativeElement.querySelector('a.nav-item.locked') as HTMLElement;
+    expect(locked.textContent).toContain('Approvals');
+    expect(locked.getAttribute('href')).toBeNull();
+    expect(locked.querySelector('.bi-lock-fill')).not.toBeNull();
+
+    component.context = context({
+      role: 'admin',
+      v2Permissions: { isSuperAdmin: false, modules: { approvals: { canView: true, canEdit: false } } }
+    });
+    // A second input change: dirty the OnPush component's own view, not just the host's.
+    component.ngOnChanges();
+    fixture.debugElement.injector.get(ChangeDetectorRef).markForCheck();
+    fixture.detectChanges();
+    expect(component.groups.find((group) => group.key === 'approvals')!.locked).toBeFalse();
+    expect(fixture.nativeElement.querySelector('a.nav-item.locked')).toBeNull();
   });
 
   it('shows a lock on a permission-gated item, leaving it visible', () => {

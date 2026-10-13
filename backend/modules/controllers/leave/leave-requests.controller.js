@@ -295,9 +295,11 @@ const refreshLiveStats = async (adminId, dateKeys) => {
     }
 };
 
-let ApproveRequest = async (req, res) => {
-    const { adminId, forceApprove } = req.body;
-    const id = req.params.id;
+/**
+ * THE approve action — Leave Requests' own button and the Approvals inbox both call this,
+ * so the two entry points can never drift apart. Returns `{ message, request }`.
+ */
+const approveLeaveRequest = async (req, { adminId, id, forceApprove }) => {
     const actor = actorOf(req);
 
     const result = await withTransaction(async (dbSession) => {
@@ -348,13 +350,17 @@ let ApproveRequest = async (req, res) => {
     });
     const fresh = await LeaveRequestV2Model.findOne({ _id: id, adminId }).lean();
     const [row] = await decorate(adminId, fresh.sessionId, [fresh]);
-    return res.status(200).json({ message: messages.approved(result.dateKeys.length), request: row });
+    return { message: messages.approved(result.dateKeys.length), request: row };
 };
 
-/** Reject: terminal, touches neither attendance nor balance. */
-let RejectRequest = async (req, res) => {
-    const { adminId } = req.body;
-    const id = req.params.id;
+let ApproveRequest = async (req, res) => {
+    const { adminId, forceApprove } = req.body;
+    const result = await approveLeaveRequest(req, { adminId, id: req.params.id, forceApprove });
+    return res.status(200).json(result);
+};
+
+/** Reject: terminal, touches neither attendance nor balance. Shared with Approvals. */
+const rejectLeaveRequest = async (req, { adminId, id }) => {
     const request = await LeaveRequestV2Model.findOneAndUpdate(
         { _id: id, adminId, status: 'Pending' },
         { $set: { status: 'Rejected', actionedBy: actorOf(req), actionedAt: new Date(), updatedAt: new Date() } },
@@ -363,7 +369,12 @@ let RejectRequest = async (req, res) => {
     if (!request) await explainNoMatch(adminId, id, 'Rejected');
     await logActivity(req, { module: MODULE, action: 'leave.request.reject', targetId: id, changes: { before: { status: 'Pending' }, after: { status: 'Rejected' } } });
     const [row] = await decorate(adminId, request.sessionId, [request]);
-    return res.status(200).json({ message: messages.rejected(), request: row });
+    return { message: messages.rejected(), request: row };
+};
+
+let RejectRequest = async (req, res) => {
+    const result = await rejectLeaveRequest(req, { adminId: req.body.adminId, id: req.params.id });
+    return res.status(200).json(result);
 };
 
 /** Take Back: reverses usedDays (clamped) and removes the attendance marks it wrote. */
@@ -441,4 +452,6 @@ module.exports = {
     RejectRequest,
     CancelRequest,
     DeleteRequest,
+    approveLeaveRequest,
+    rejectLeaveRequest,
 };

@@ -1,0 +1,43 @@
+/* Approval Requests reference styles the global design system doesn't carry
+   (docs/schoolzen-planning/v1/approvals/approvals.html). */
+
+/* Row 2: the reference's 6-column grid; row 3: Type + Status at 180px each. */
+.toolbar-row2.ap-filter-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+.ap-filter-grid app-dd { min-width: 0; }
+.toolbar-row3 { display: flex; align-items: center; gap: 8px; }
+.toolbar-row3 .row3-pill { width: 180px; flex-shrink: 0; }
+
+.grid-scroll { overflow-x: auto; }
+td { padding: 16px; }
+th.act, td.act { text-align: right; }
+
+.req-type-tag { display: inline-flex; align-items: center; padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--brand-soft); color: var(--brand); }
+.rq-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
+.rq-code { font-size: 11px; color: var(--ink-faint); }
+.rq-detail { color: var(--ink-soft); font-size: 13px; }
+
+.tag { justify-content: center; width: 82px; padding: 4px 0; font-size: 11.5px; font-weight: 600; }
+.tag-pending { color: var(--warning); border-color: #E9D6A0; }
+.tag-approved { color: var(--success); border-color: #BFE0CC; }
+.tag-rejected { color: var(--danger); border-color: #E0BDB4; }
+
+.icon-btn.approve:hover:not(:disabled) { border-color: var(--success); color: var(--success); }
+.icon-btn.reject:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+.icon-btn:disabled { opacity: .5; cursor: not-allowed; }
+.tbl-note { font-size: 12px; color: var(--ink-faint); padding: 8px 4px; }
+
+/* Modals (projected into app-form-modal). */
+.decision-body { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
+.detail-row { display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--line-soft); font-size: 13px; }
+.detail-row:first-child { border-top: none; padding-top: 0; }
+.detail-row .dl { color: var(--ink-faint); }
+.detail-row .dv { color: var(--ink); font-weight: 600; }
+
+@media (max-width: 991px) {
+  .toolbar-row2.ap-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .toolbar-row2.ap-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar-row3 { flex-wrap: wrap; }
+  .toolbar-row3 .row3-pill { width: 100%; }
+}

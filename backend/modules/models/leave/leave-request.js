@@ -40,6 +40,9 @@ const LeaveRequestSchema = new mongoose.Schema({
 LeaveRequestSchema.index({ adminId: 1, sessionId: 1, status: 1, fromDateKey: -1 });
 // The overlap check and a person's own history.
 LeaveRequestSchema.index({ adminId: 1, personType: 1, personId: 1, fromDateKey: 1 });
+// The Approvals inbox (approvals/errors.md shape 3): every unioned source exposes an
+// indexed adminId + createdAt, and the union keyset-paginates on (createdAt, _id).
+LeaveRequestSchema.index({ adminId: 1, sessionId: 1, status: 1, createdAt: -1, _id: -1 });
 // Leave Type delete's cascade count.
 LeaveRequestSchema.index({ adminId: 1, leaveTypeId: 1 });
 

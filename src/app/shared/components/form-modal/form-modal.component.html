@@ -18,7 +18,7 @@
 
     <div class="modal-foot">
       <button type="button" class="btn-plain" (click)="onCancel()">{{ cancelLabel }}</button>
-      <button type="button" class="btn-brand" *ngIf="showSubmit"
+      <button type="button" class="btn-brand" *ngIf="showSubmit" [class.danger-fill]="submitDanger"
               [disabled]="submitDisabled" (click)="onSubmit()">
         {{ submitLabel }}
       </button>

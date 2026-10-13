@@ -25,11 +25,15 @@ const mongoose = require('mongoose');
 // enter marks) keeps its original meaning; 'marksheet-structure' and 'admit-card-structure'
 // gate setting up / editing / removing structures (which regenerates documents), and
 // 'admit-card' gates Generate Admit Card.
+// Approvals: 'approvals' views the cross-module inbox; 'approvals-action' approves/rejects
+// from it — and acting on a row ALSO needs that source's own grant ('leave' edit), so the
+// inbox is never a way around a module's permission.
 const PERMISSION_MODULES = Object.freeze([
     'student', 'attendance', 'marksheet', 'marksheet-structure', 'admit-card', 'admit-card-structure', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
     'fees', 'fees-structure', 'fees-collect', 'fees-waiver',
     'certificates', 'tc-structure', 'tc-generate',
-    'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout', 'settings',
+    'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout',
+    'approvals', 'approvals-action', 'settings',
 ]);
 
 const RoleSchema = new mongoose.Schema({

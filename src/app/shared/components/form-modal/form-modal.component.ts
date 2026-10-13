@@ -37,6 +37,8 @@ export class FormModalComponent {
   @Input() width = 460;
   /** Off for a read-only modal (the Details breakdown), which has only a Close button. */
   @Input() showSubmit = true;
+  /** A destructive decision (Approvals' Reject): the submit renders `.btn-brand.danger-fill`. */
+  @Input() submitDanger = false;
 
   @Output() submitted = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();

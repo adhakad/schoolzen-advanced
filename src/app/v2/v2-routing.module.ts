@@ -78,6 +78,12 @@ const routes: Routes = [
         loadChildren: () => import('src/app/certificates/certificates.module')
           .then((m) => m.CertificatesModule)
       },
+      // Module 11 — Approvals.
+      {
+        path: 'approvals',
+        loadChildren: () => import('src/app/approvals/approvals.module')
+          .then((m) => m.ApprovalsModule)
+      },
       // Module 12 — Settings.
       {
         path: 'settings',

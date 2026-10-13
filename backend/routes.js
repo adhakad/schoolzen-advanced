@@ -82,6 +82,8 @@ module.exports = app => {
     app.use('/api/v2/examination', require('./modules/routes/examination/examination.routes'));
     // Module 10 — Certificates. TC Structure and Generate TC.
     app.use('/api/v2/certificates', require('./modules/routes/certificates/certificates.routes'));
+    // Module 11 — Approvals. One inbox over every module's approvable requests.
+    app.use('/api/v2/approvals', require('./modules/routes/approvals/approvals.routes'));
     // Module 12 — Settings. Four disjoint pages under one base path, each its own route file.
     app.use('/api/v2/settings', require('./modules/routes/settings/academic-sessions.routes'));
     app.use('/api/v2/settings', require('./modules/routes/settings/admission-form-fields.routes'));

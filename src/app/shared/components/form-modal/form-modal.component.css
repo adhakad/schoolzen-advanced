@@ -3,3 +3,7 @@
    position:fixed and must not be clipped or offset by a host box. */
 
 :host { display: contents; }
+
+/* `submitDanger`: the reference's `.btn-brand.danger-fill` (approvals.html Reject). */
+.sz-modal-overlay .btn-brand.danger-fill { background: var(--danger); }
+.sz-modal-overlay .btn-brand.danger-fill:disabled { background: var(--line-soft); color: var(--ink-faint); }
