@@ -190,7 +190,8 @@ const tests = {
         // Sita (no roster, no template): Sunday is her weekly off, Saturday is not.
         const sita = grid.rows.find((row) => row._id === SITA).cells;
         assert.strictEqual(sita['2026-08-16'].s, 'WO');
-        assert.strictEqual(sita['2026-08-15'], undefined);
+        // No roster that day → the dashed '—' cell (attendance-fix1.md §3c), never a status.
+        assert.deepStrictEqual(sita['2026-08-15'], { s: '—', n: 1 });
         db.leaves = [];
         db.punches = [];
     },

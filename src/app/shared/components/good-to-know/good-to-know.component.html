@@ -1,0 +1,7 @@
+<div class="status-card">
+  <div class="card-title-row">{{ title }}</div>
+  <div class="tip-item" *ngFor="let tip of shown; trackBy: trackByIndex"><i class="bi bi-info-circle"></i><span>{{ tip }}</span></div>
+  <button type="button" class="gtk-more" *ngIf="hasMore" [attr.aria-expanded]="expanded" (click)="toggle()">
+    {{ expanded ? 'Show less' : 'Read more' }} <i class="bi" [ngClass]="expanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+  </button>
+</div>

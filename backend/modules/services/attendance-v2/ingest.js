@@ -11,6 +11,12 @@ const { buildPunchHash } = require('../../helpers/attendance/status');
 const liveStats = require('./live-stats');
 const { publishPunches } = require('./publisher');
 const logger = require('../../helpers/logger');
+const cacheService = require('../cache/cache.service');
+const cacheKeys = require('../cache/cache-keys');
+const { nowWallClock } = require('../../helpers/attendance-time');
+
+// "Last sync" (Overview's Sync now line) is kept a week — long after the next sync replaces it.
+const LAST_SYNC_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 // THE FAST PATH (attendance-overview.md): pull a school-day's raw punches from WDMS, land
 // them in v2 PunchLog with one insertMany, emit them over the socket. No status here — the
@@ -39,11 +45,18 @@ const getSchoolTerminalSns = async (adminId) => {
     return devices.map((device) => device.terminalSn).filter(Boolean);
 };
 
-/** WDMS emp_code → v2 person, for everyone who holds a card. Two scans per run. */
+/**
+ * WDMS emp_code → v2 person. Two `_id`-only scans per run.
+ *
+ * Every v2 person is indexed, not only card holders: a person is enrolled on the terminal
+ * under their own id (fingerprint / face as well as card), and filtering on `cardNumber` —
+ * which no one in the live school had set — silently dropped EVERY punch at this step
+ * (attendance-fix1.md §3e diagnosis).
+ */
 const getPersonIndex = async (adminId) => {
     const [staff, students] = await Promise.all([
-        StaffV2Model.find({ adminId, cardNumber: { $type: 'string' } }, { _id: 1 }).lean(),
-        StudentProfileModel.find({ adminId, cardNumber: { $type: 'string' } }, { _id: 1 }).lean(),
+        StaffV2Model.find({ adminId }, { _id: 1 }).lean(),
+        StudentProfileModel.find({ adminId }, { _id: 1 }).lean(),
     ]);
     const index = new Map();
     staff.forEach((row) => index.set(toWdmsEmpCode(String(row._id)), { personType: 'staff', personId: String(row._id) }));
@@ -51,13 +64,19 @@ const getPersonIndex = async (adminId) => {
     return index;
 };
 
-/** Pure: WDMS transactions → PunchLog rows. Unknown codes and unreadable times are dropped. */
+/**
+ * Pure: WDMS transactions → PunchLog rows. Unknown codes and unreadable times are dropped —
+ * and counted on `rows.unmatched` (the distinct unknown codes), so a sync that maps nobody
+ * is visible in the log instead of looking like "no punches".
+ */
 const toPunchRows = (adminId, transactions, index) => {
     const rows = [];
+    const unmatched = new Set();
     transactions.forEach((txn) => {
         const code = readEmpCode(txn);
         const person = code != null ? index.get(toWdmsEmpCode(String(code))) : null;
         const punchTime = parseWdmsPunchTime(readPunchTime(txn));
+        if (!person && code != null) unmatched.add(String(code));
         if (!person || !punchTime) return;
         rows.push({
             adminId,
@@ -69,6 +88,7 @@ const toPunchRows = (adminId, transactions, index) => {
             punchHash: buildPunchHash(adminId, person.personId, punchTime),
         });
     });
+    rows.unmatched = [...unmatched];
     return rows;
 };
 
@@ -99,7 +119,11 @@ const ingestDay = async (adminId, dateKey) => {
         fetchWdmsTransactions({ startTime: `${dateKey} 00:00:00`, endTime: `${dateKey} 23:59:59`, terminalSns }),
         getPersonIndex(adminId),
     ]);
-    const inserted = await insertPunchRows(toPunchRows(adminId, transactions, index));
+    const rows = toPunchRows(adminId, transactions, index);
+    if (rows.unmatched.length) {
+        logger.warn('attendance-v2.ingest.unmatchedEmpCodes', { adminId, dateKey, codes: rows.unmatched.slice(0, 20), count: rows.unmatched.length });
+    }
+    const inserted = await insertPunchRows(rows);
     const dateKeys = [...new Set(inserted.map((row) => row.dateKey))];
 
     if (inserted.length) {
@@ -107,7 +131,10 @@ const ingestDay = async (adminId, dateKey) => {
         await Promise.all(dateKeys.map((key) => liveStats.recompute(adminId, key)));
     }
     logger.info('attendance-v2.ingest.done', { adminId, dateKey, fetched: transactions.length, inserted: inserted.length });
-    return { terminals: terminalSns.length, fetched: transactions.length, inserted: inserted.length, dateKeys };
+    await cacheService.set(cacheKeys.attendance.lastSync(adminId), {
+        at: nowWallClock().toISOString(), dateKey, fetched: transactions.length, inserted: inserted.length, unmatched: rows.unmatched.length,
+    }, LAST_SYNC_TTL_SECONDS).catch((error) => logger.warn('attendance-v2.ingest.lastSyncWriteFailed', { adminId, reason: error.message }));
+    return { terminals: terminalSns.length, fetched: transactions.length, inserted: inserted.length, unmatched: rows.unmatched.length, dateKeys };
 };
 
 module.exports = { ingestDay, getSchoolTerminalSns, toPunchRows, insertPunchRows };

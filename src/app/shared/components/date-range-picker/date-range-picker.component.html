@@ -1,25 +1,46 @@
-<!-- The inline range calendar (holidays.html "Dates", leave-requests.html "Leave Dates"). -->
-<div class="m-hint drp-hint" *ngIf="hint">{{ hint }}</div>
-<div class="cal-legend" *ngIf="showMarkedChips">
-  <span class="cal-legend-chip" *ngFor="let mark of monthMarks; trackBy: trackByIndex">{{ markLabel(mark) }}</span>
-  <span class="not-set" *ngIf="!monthMarks.length">Nothing else this month</span>
-</div>
-<div class="range-cal-box" [class.is-invalid]="invalid">
-  <div class="range-cal-head">
-    <button type="button" class="range-cal-nav" aria-label="Previous month" [disabled]="prevDisabled" (click)="step(-1)"><i class="bi bi-chevron-left"></i></button>
-    <span class="range-cal-title">{{ monthLabel }}</span>
-    <button type="button" class="range-cal-nav" aria-label="Next month" [disabled]="nextDisabled" (click)="step(1)"><i class="bi bi-chevron-right"></i></button>
+<!-- The inline range calendar (holidays.html "Dates", leave-requests.html "Leave Dates").
+     `popover`: roster.html's "Applies to Month" field — a .range-input-trigger, the calendar
+     opening as an overlay directly below it. -->
+<button type="button" class="range-input-trigger" *ngIf="popover"
+        [class.is-invalid]="invalid" [class.open]="open" [disabled]="disabled"
+        [attr.aria-expanded]="open" aria-haspopup="dialog" [attr.aria-label]="ariaLabel || null"
+        (click)="toggle($event)">
+  <i class="bi bi-calendar3"></i>
+  <span class="range-input-label" [class.placeholder]="!start">{{ triggerLabel }}</span>
+  <i class="bi bi-chevron-down range-input-chevron"></i>
+</button>
+<div class="m-hint drp-hint" *ngIf="hint && popover">{{ hint }}</div>
+
+<!-- Inline: always shown. Popover: portaled to <body> while open, hidden here while closed. -->
+<div #panel class="drp-panel" [class.drp-inline]="!popover" (click)="markInside()"
+     role="dialog" [attr.aria-label]="ariaLabel || 'Choose dates'">
+  <ng-container *ngIf="!popover || open">
+  <div class="m-hint drp-hint" *ngIf="hint && !popover">{{ hint }}</div>
+  <div class="cal-legend" *ngIf="showMarkedChips">
+    <span class="cal-legend-chip" *ngFor="let mark of monthMarks; trackBy: trackByIndex">{{ markLabel(mark) }}</span>
+    <span class="not-set" *ngIf="!monthMarks.length">Nothing else this month</span>
   </div>
-  <div class="range-cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
-  <div class="range-cal-grid">
-    <div *ngFor="let cell of cells; trackBy: trackByIndex" [class]="cell.cls"
-         [attr.role]="cell.day ? 'button' : null" [attr.aria-label]="cell.key || null"
-         [attr.aria-disabled]="cell.day && cell.disabled ? true : null" [attr.title]="cell.title"
-         (click)="pick(cell)">
-      <span class="range-day-num" *ngIf="cell.day">{{ cell.day }}</span>
+  <div class="range-cal-box" [class.is-invalid]="invalid">
+    <div class="range-cal-head">
+      <button type="button" class="range-cal-nav" aria-label="Previous month" [disabled]="prevDisabled" (click)="step(-1)"><i class="bi bi-chevron-left"></i></button>
+      <span class="range-cal-title">{{ monthLabel }}</span>
+      <button type="button" class="range-cal-nav" aria-label="Next month" [disabled]="nextDisabled" (click)="step(1)"><i class="bi bi-chevron-right"></i></button>
+    </div>
+    <div class="range-cal-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+    <div class="range-cal-grid">
+      <div *ngFor="let cell of cells; trackBy: trackByIndex" [class]="cell.cls"
+           [attr.role]="cell.day ? 'button' : null" [attr.aria-label]="cell.key || null"
+           [attr.aria-disabled]="cell.day && cell.disabled ? true : null" [attr.title]="cell.title"
+           (click)="pick(cell)">
+        <span class="range-day-num" *ngIf="cell.day">{{ cell.day }}</span>
+      </div>
     </div>
   </div>
+  <div class="range-cal-summary" *ngIf="showSummary">{{ note }}</div>
+  <ng-content></ng-content>
+  <div class="drp-foot" *ngIf="(start && !disabled) || popover">
+    <button type="button" class="change-dates-link" *ngIf="start && !disabled" (click)="reset()">Change dates</button>
+    <button type="button" class="drp-done" *ngIf="popover" (click)="done($event)">Done</button>
+  </div>
+  </ng-container>
 </div>
-<div class="range-cal-summary" *ngIf="showSummary">{{ note }}</div>
-<ng-content></ng-content>
-<button type="button" class="change-dates-link" *ngIf="start && !disabled" (click)="reset()">Change dates</button>

@@ -57,3 +57,13 @@ export const monthCalendar = (monthKey: string): (number | null)[] => {
   const count = new Date(year, month, 0).getDate();
   return [...Array.from({ length: firstDow }, () => null), ...Array.from({ length: count }, (_, i) => i + 1)];
 };
+
+/**
+ * Every wall-clock time of a day in 15-minute steps, 12:00 AM … 11:45 PM — the options of a
+ * choose-only time `.dd` (value "HH:mm", label "8:15 AM"). No free typing anywhere a time is
+ * entered (global-fixes.md rule 4).
+ */
+export const TIME_OPTIONS: readonly { value: string; label: string }[] = Array.from({ length: 96 }, (_, index) => {
+  const value = String(Math.floor(index / 4)).padStart(2, '0') + ':' + String((index % 4) * 15).padStart(2, '0');
+  return { value, label: formatTime(value) };
+});

@@ -1,14 +1,24 @@
 /* Attendance Overview reference styles the global design system doesn't carry. */
 
-/* Row 2: THIS page's 6-column grid — six filters genuinely need it. */
-.toolbar-row2.ov-filter-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
-.ov-filter-grid app-dd { min-width: 0; }
+/* Row 2: seven equal filters (global rule 7 — one pill size everywhere), wrapping as a block. */
+.toolbar-row2.ov-filter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.ov-filter-row app-dd { flex: 0 0 var(--filter-pill-width); width: var(--filter-pill-width); min-width: 0; }
 .toolbar-row3 { display: flex; align-items: center; margin-top: 2px; }
 
+/* "Last sync: 9:05 AM / 42 punches today" — beside Sync now (attendance-fix1.md §3e). */
+.sync-row { display: flex; justify-content: flex-end; margin-top: -6px; }
+.sync-line { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
+.sync-line .bi { color: var(--brand); }
+.sw-gen-btn { flex-shrink: 0; height: 38px; background: var(--ink); color: #fff; border: none; border-radius: var(--radius); padding: 0 18px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; box-sizing: border-box; font-family: inherit; white-space: nowrap; }
+.sw-gen-btn:hover:not(:disabled) { background: #2A3242; }
+.sw-gen-btn .bi { color: #ae86ff; }
+.sw-gen-btn:disabled { opacity: .7; cursor: progress; }
+
+.toolbar-btn-group > .sw-report-btn { width: 162px; padding: 0 10px; justify-content: center; }
+.toolbar-row1 { flex-wrap: wrap; row-gap: 10px; }
 .sw-report-btn { flex-shrink: 0; height: 38px; background: var(--surface); color: var(--brand); border: 1px solid var(--brand); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; font-family: inherit; white-space: nowrap; }
 .sw-report-btn:hover:not(:disabled) { background: var(--brand-soft); }
 .sw-report-btn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
-.btn-primary:disabled { opacity: .7; cursor: progress; }
 .spinning { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -39,8 +49,21 @@
 .g-name { font-weight: 600; font-size: 12px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .g-shift { font-size: 9.5px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.chip { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 3px 4px; border-radius: var(--radius); width: 38px; height: 30px; border: 1px solid var(--line); background: transparent; text-align: center; cursor: pointer; font-family: inherit; }
-.chip:hover { border-color: var(--slate); }
+.grid-scroll.is-loading { opacity: .6; transition: opacity .12s; }
+
+/* The reference chip, widened 38 → 46px so "8:23 AM" fits (attendance-fix1.md §3a — the only
+   size change to the html). */
+.chip { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; padding: 3px 2px; border-radius: var(--radius); width: 46px; height: 30px; border: 1px solid var(--line); background: transparent; text-align: center; font-family: inherit; box-sizing: border-box; cursor: default; }
+.chip .t { white-space: nowrap; }
+button.chip { cursor: pointer; }
+button.chip:hover, button.chip.open { border-color: var(--brand); }
+.chip.markable { cursor: pointer; }
+/* §3c past / future / no-roster — same chip, only these modifiers, existing tokens only. */
+.chip.locked { opacity: .62; cursor: not-allowed; }
+.chip.future { opacity: .45; border: 1px dashed var(--line); background: transparent; cursor: not-allowed; }
+.chip.future .s { color: var(--ink-faint); }
+.chip.nocell { opacity: .35; border: 1px dashed var(--line); background: transparent; cursor: not-allowed; }
+.chip.nocell .s { color: var(--ink-faint); }
 .chip .s { font-size: 10px; font-weight: 700; }
 .chip .t { font-size: 8px; margin-top: 1px; font-weight: 500; }
 .chip.present .s, .chip.present .t { color: var(--success); }
@@ -53,7 +76,8 @@
 .chip.weekoff { background: var(--paper); }
 .chip.weekoff .s { color: var(--ink-faint); font-weight: 600; }
 
-.pulse-cell { display: flex; align-items: center; justify-content: center; width: 38px; height: 30px; margin: 0 auto; }
+.pulse-cell { display: flex; align-items: center; justify-content: center; width: 46px; height: 30px; margin: 0 auto; }
+.pulse-cell.clickable { cursor: pointer; }
 .pring { position: relative; width: 10px; height: 10px; }
 .pring .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--success); animation: ringpulse 1.4s infinite; }
 .pring .pdot2 { position: absolute; top: 2px; left: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
@@ -100,18 +124,33 @@
 .report-stat span { font-size: 9.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .04em; }
 .report-modal-foot { padding: 14px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; }
 
-/* Day detail */
-.day-loading { font-size: 12.5px; color: var(--ink-faint); }
-.day-status { font-size: 13px; color: var(--ink-soft); margin-bottom: 12px; }
-.day-status b { color: var(--ink); }
-.day-status .override { color: var(--slate); }
-.day-punch { font-size: 12.5px; color: var(--ink-soft); padding: 8px 0; border-top: 1px solid var(--line-soft); display: flex; align-items: center; gap: 8px; }
-.day-punch .bi { color: var(--brand); }
-.day-punch .terminal { color: var(--ink-faint); }
-
-@media (max-width: 991px) {
-  .toolbar-row2.ov-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Manual mark popover — portaled to <body> (position: fixed) directly below its cell. */
+.mark-pop { display: none; }
+.mark-pop.mark-portal {
+  display: block; position: fixed; z-index: 1000; width: 240px; padding: 10px; box-sizing: border-box;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 10px 26px rgba(30, 23, 48, 0.14); font-family: 'Inter', sans-serif;
 }
+.mark-pop.mark-portal.flipped { box-shadow: 0 -10px 26px rgba(30, 23, 48, 0.14); }
+.mark-head { padding: 2px 4px 8px; margin-bottom: 6px; border-bottom: 1px solid var(--line-soft); }
+.mark-head .g-name { font-size: 12.5px; }
+.mark-head .g-shift { font-size: 10.5px; }
+.mark-option { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 8px; border: none; background: none; border-radius: var(--radius); font-size: 12.5px; color: var(--ink-soft); cursor: pointer; font-family: inherit; text-align: left; }
+.mark-option:hover:not(:disabled) { background: var(--brand-soft); color: var(--brand); }
+.mark-option:disabled { cursor: progress; opacity: .7; }
+.mark-option.current { color: var(--brand); font-weight: 600; }
+.mark-option .btn-spinner { margin-right: 0; }
+.mark-code { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 20px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 10px; font-weight: 700; }
+.opt-P .mark-code { color: var(--success); }
+.opt-L .mark-code { color: var(--warning); }
+.opt-A .mark-code { color: var(--danger); }
+.mark-check { margin-left: auto; }
+.mark-note { font-size: 11px; color: var(--ink-faint); padding: 6px 4px 0; line-height: 1.4; }
+.mark-note.device { color: var(--ink-soft); padding: 4px; display: flex; gap: 6px; }
+.mark-note.device .bi { color: var(--brand); }
+.mark-error { font-size: 11px; color: var(--danger); padding: 6px 4px 0; line-height: 1.4; }
+
 @media (max-width: 767px) {
-  .toolbar-row2.ov-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ov-filter-row app-dd { flex: 1 1 100%; width: 100%; }
+  .sync-line { width: 100%; justify-content: center; }
 }

@@ -5,6 +5,8 @@ const router = express.Router();
 const { isAdminAuth } = require('../../middleware/admin-auth');
 const assertAdminScope = require('../../middleware/assert-admin-scope');
 const validateRequest = require('../../middleware/validate-request');
+const requirePermission = require('../../middleware/require-permission');
+const idempotency = require('../../middleware/idempotency');
 const v = require('../../validators/attendance/attendance.validator');
 const shifts = require('../../controllers/attendance/shifts.controller');
 const roster = require('../../controllers/attendance/roster.controller');
@@ -12,10 +14,13 @@ const overview = require('../../controllers/attendance/overview.controller');
 
 // Mounted at /api/v2/attendance — wiring only, no logic and no Mongoose calls.
 //
-// No Idempotency-Key here (attendance/optimization.md): sync is deduped by its BullMQ jobId,
-// punches by the punchHash index, and a manual edit is a natural upsert on the day's key.
+// Sync is deduped by its BullMQ jobId and punches by the punchHash index; a manual mark
+// additionally carries an Idempotency-Key (double-click guard).
 const MODULE = 'attendance';
 const base = [isAdminAuth, assertAdminScope(MODULE)];
+// Manual marking needs its own explicit grant, and an Idempotency-Key so a double click can
+// never write twice (attendance-fix1.md §3d).
+const markGuard = [...base, requirePermission('attendance-mark', 'edit'), idempotency(MODULE)];
 const body = (schema) => validateRequest(schema, MODULE);
 const query = (schema) => validateRequest(schema, MODULE, 'query');
 
@@ -40,6 +45,7 @@ router.get('/live-status', ...base, query(v.dayQuerySchema), overview.GetLiveSta
 router.get('/recent-arrivals', ...base, query(v.dayQuerySchema), overview.GetRecentArrivals);
 router.get('/day-punches', ...base, query(v.dayPunchesSchema), overview.GetDayPunches);
 router.post('/sync', ...base, body(v.syncSchema), overview.SyncNow);
-router.post('/manual', ...base, body(v.manualSchema), overview.SaveManualAttendance);
+router.get('/sync-status', ...base, query(v.dayQuerySchema), overview.GetSyncStatus);
+router.post('/mark', ...markGuard, body(v.markSchema), overview.MarkAttendance);
 
 module.exports = router;

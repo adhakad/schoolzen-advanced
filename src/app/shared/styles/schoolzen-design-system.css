@@ -51,6 +51,11 @@
      Buttons — Width rule). The page's main button is never given this — it sizes to its
      own label. */
   --toolbar-btn-width: 150px;
+  /* Global rule 7 (global-fixes.md): one size for every filter `.dd` pill, one search width,
+     and the calendar (month) filter's own constant width — never sized by its text. */
+  --filter-pill-width: 150px;
+  --search-width: 300px;
+  --month-filter-width: 210px;
 }
 
 /* --- root shell --------------------------------------------------------------------- */
@@ -495,7 +500,7 @@
 .sz .toolbar-row2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .sz .toolbar-btn-group { display: flex; align-items: center; gap: 10px; }
 
-.sz .search { position: relative; flex: 0 0 340px; width: 340px; }
+.sz .search { position: relative; flex: 0 0 var(--search-width); width: var(--search-width); }
 .sz .search input {
   width: 100%;
   height: 38px;
@@ -827,7 +832,8 @@
   letter-spacing: .03em;
   margin-bottom: 6px;
 }
-.sz-modal-overlay .m-field > input[type='text'] {
+.sz-modal-overlay .m-field > input[type='text'],
+.sz-modal-overlay .m-field > input[type='number'] {
   width: 100%;
   height: 38px;
   padding: 0 12px;
@@ -838,7 +844,8 @@
   font-family: inherit;
   outline: none;
 }
-.sz-modal-overlay .m-field > input[type='text']:focus { border-color: var(--brand); }
+.sz-modal-overlay .m-field > input[type='text']:focus,
+.sz-modal-overlay .m-field > input[type='number']:focus { border-color: var(--brand); }
 .sz-modal-overlay .m-hint { font-size: 11px; color: var(--ink-faint); margin-top: 6px; line-height: 1.4; }
 .sz-modal-overlay .m-hint.no-gap { margin: 0; }
 .sz-modal-overlay .m-hint.tight { margin-top: -10px; margin-bottom: 16px; }
@@ -1313,3 +1320,17 @@
 .sz-modal-overlay .subj-check.checked { color: var(--brand); font-weight: 600; }
 .sz-modal-overlay .subj-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; flex-shrink: 0; }
 .sz-modal-overlay .subj-check span { flex: 1; }
+
+/* Global rule 11 — every submit shows a spinner on its disabled button while in flight.
+   Inherits the button's text colour, so it reads on dark, light and danger buttons alike. */
+.btn-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 7px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: sz-spin .7s linear infinite;
+}

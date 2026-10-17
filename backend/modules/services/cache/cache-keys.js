@@ -51,6 +51,8 @@ const keys = {
         shifts: (adminId) => `${adminId}:attendance:shifts`,
         shiftsPattern: (adminId) => `${adminId}:attendance:shifts*`,
         liveStatus: (adminId, dateKey) => `${adminId}:attendance:live-status:${dateKey}`,
+        // The last finished device sync (time + counts) — Overview's "Last sync" line.
+        lastSync: (adminId) => `${adminId}:attendance:last-sync`,
     },
     // Leave (leave/optimization.md). Only the Leave Type list — never a LeaveLimit, request
     // or the assign grid (balances change on every approval).

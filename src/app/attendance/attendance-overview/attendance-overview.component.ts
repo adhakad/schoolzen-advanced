@@ -4,14 +4,21 @@
  * Reference: docs/schoolzen-planning/v1/attendance/attendance-overview.html
  *
  * THIS page's toolbar (its own shape, don't copy it elsewhere): row1 search + Generate
- * Report + Sync now; row2 a 6-column GRID of cascading `.dd`s (Person Type, Department,
- * Designation, Class, Stream, Section); row3 the month navigator.
+ * Report + Sync now (with its "Last sync" line); row2 the cascading `.dd` filters (Person
+ * Type, Department, Designation, Class, Stream, Stream Group, Section); row3 the month
+ * navigator.
  *
- * Sync never fires on a click — it opens a confirm first. Live updates (socket deltas) and
- * HTTP refreshes both merge rows through ONE function, applyPersonUpdate().
+ * Cells (attendance-fix1.md §3c): past days are locked, today is markable by hand for a
+ * person with 'attendance-mark' inside their shift's window, future days show what the
+ * roster expects. Manual marking is STATUS marking (Present / Late / Absent) through a
+ * popover under the cell — never a punch; every rule is enforced by the API.
+ *
+ * Sync never fires on a click — it opens a confirm first. Live updates (socket deltas),
+ * HTTP refreshes and a successful mark all merge rows through ONE function,
+ * applyPersonUpdate().
  */
 import {
-  ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild
 } from '@angular/core';
 import { forkJoin, of, Subject } from 'rxjs';
 import { auditTime, catchError, debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
@@ -25,15 +32,26 @@ import { DepartmentsService } from 'src/app/shared/services/staff/departments.se
 import { DesignationsService } from 'src/app/shared/services/staff/designations.service';
 import { StudentOptionsService } from 'src/app/shared/services/student/student-options.service';
 import {
-  ArrivalRow, ChipStatus, DayPunches, GridRow, LiveCounts, PersonType, PunchEventV2, RecentArrivals, ReconcileEventV2
+  ArrivalRow, GridCell, GridRow, LiveCounts, MarkStatus, PersonType, PunchEventV2, RecentArrivals, ReconcileEventV2, SyncStatus
 } from 'src/app/shared/models/attendance/attendance.model';
 import { MonthColumn } from 'src/app/shared/models/attendance/roster.model';
-import { FilterClass } from 'src/app/shared/models/student/student.model';
+import { FilterClass, FilterGroup } from 'src/app/shared/models/student/student.model';
 import { initialsOf } from 'src/app/shared/utils/avatar.util';
+import { errorMessageOf } from 'src/app/shared/utils/api-error.util';
+import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
+import { placeBelow } from 'src/app/shared/utils/overlay-position.util';
 import { currentMonthKey, monthLabel } from 'src/app/shared/utils/attendance-time.util';
 
-const CHIP_CLASS: Record<ChipStatus, string> = { P: 'present', L: 'late', HD: 'halfday', A: 'absent', LV: 'leave', H: 'holiday', WO: 'weekoff' };
+const CHIP_CLASS: Record<string, string> = { P: 'present', L: 'late', HD: 'halfday', A: 'absent', LV: 'leave', H: 'holiday', WO: 'weekoff' };
 const EMPTY_COUNTS: LiveCounts = { Present: 0, Late: 0, HalfDay: 0, Absent: 0, Leave: 0, Holiday: 0, WeeklyOff: 0, live: 0 };
+/** The statuses a person can be marked with by hand (§3d) — and the chip each shows. */
+const MARK_OPTIONS: readonly { status: MarkStatus; code: string; label: string }[] = [
+  { status: 'Present', code: 'P', label: 'Mark Present' },
+  { status: 'Late', code: 'L', label: 'Mark Late' },
+  { status: 'Absent', code: 'A', label: 'Mark Absent' }
+];
+
+const titleCase = (text: string): string => (text || '').charAt(0).toUpperCase() + (text || '').slice(1);
 
 interface ReportRow {
   name: string;
@@ -42,6 +60,14 @@ interface ReportRow {
   present: number;
   late: number;
   absent: number;
+}
+
+interface MarkTarget {
+  row: GridRow;
+  col: MonthColumn;
+  cell: GridCell;
+  /** Read-only: a device punch is recorded for today. */
+  device: boolean;
 }
 
 const localDateKey = (date = new Date()): string =>
@@ -55,6 +81,7 @@ const localDateKey = (date = new Date()): string =>
 })
 export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   @ViewChild('gridScroll') gridScroll?: ElementRef<HTMLElement>;
+  @ViewChild('markPop', { static: true }) markPop!: ElementRef<HTMLElement>;
 
   adminId = '';
   session = '';
@@ -62,12 +89,13 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   month = currentMonthKey();
   search = '';
 
-  // --- filters (row2 — the 6-column grid) -----------------------------------------------
+  // --- filters (row2) --------------------------------------------------------------------
   personType: PersonType = 'staff';
   departmentId = '';
   designationId = '';
   classId = '';
   streamId = '';
+  groupId = '';
   sectionId = '';
   readonly personTypeOptions: readonly DdOption[] = [
     { value: 'staff', label: 'Staff' },
@@ -76,6 +104,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   departmentOptions: DdOption[] = [{ value: '', label: 'All departments' }];
   private designations: { _id: string; title: string; departmentId: string | null }[] = [];
   classes: FilterClass[] = [];
+  private groups: FilterGroup[] = [];
   lookupError = '';
 
   // --- grid ------------------------------------------------------------------------------
@@ -84,6 +113,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   days: MonthColumn[] = [];
   rows: GridRow[] = [];
   truncated = false;
+  canMark = false;
   page = 1;
   limit = 10;
   selected = new Set<string>();
@@ -93,6 +123,15 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   arrivals: RecentArrivals = { dateKey: '', staff: [], student: [] };
   arrivalsError = '';
   expandedArrival = '';
+  readonly tips: readonly string[] = [
+    "Each row is one person; each column is a day of the month. Today's column is highlighted and the grid scrolls to it.",
+    'To mark someone by hand, click their chip under today and choose Present, Late or Absent. It saves straight away.',
+    'Marking is only open today, between the time set in Manage Shifts (Early Punch before start) and the shift end. Past days are locked.',
+    'Anyone not marked and without a device punch counts as Absent. If the device has recorded a punch, it cannot be changed by hand.',
+    'Faded dashed chips on future days show what the Roster expects: the shift letter, WO for a weekly off or H for a holiday. A dash means no roster.',
+    'Press Sync now to pull the latest punches from the biometric device. "Last sync" shows when that last happened and how many punches arrived today.',
+    'Tick people and press Generate Report to see their Present / Late / Absent totals for the month.'
+  ];
 
   // --- modals ----------------------------------------------------------------------------
   syncConfirmOpen = false;
@@ -103,16 +142,18 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     variant: 'neutral'
   };
   syncing = false;
+  syncStatus: SyncStatus | null = null;
 
   reportOpen = false;
   reportRows: ReportRow[] = [];
 
-  dayOpen = false;
-  dayTitle = '';
-  dayLoading = false;
-  dayError = '';
-  dayData: DayPunches | null = null;
-  private dayRequest: { row: GridRow; col: MonthColumn } | null = null;
+  // --- manual mark popover -----------------------------------------------------------------
+  readonly markOptions = MARK_OPTIONS;
+  markTarget: MarkTarget | null = null;
+  marking: MarkStatus | null = null;
+  markError = '';
+  private markKey = '';
+  private markAnchor: HTMLElement | null = null;
 
   private search$ = new Subject<string>();
   private refresh$ = new Subject<void>();
@@ -153,10 +194,13 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     });
     this.fetchGrid();
     this.fetchSidePanel();
+    this.fetchSyncStatus();
     this.listenLive();
   }
 
   ngOnDestroy(): void {
+    this.closeMark();
+    this.markPop.nativeElement.remove();
     this.destroyed$.next();
     this.destroyed$.complete();
   }
@@ -175,6 +219,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
         ...((res.departments?.rows || []) as { _id: string; name: string }[]).map((row) => ({ value: row._id, label: row.name }))];
       this.designations = (res.designations?.rows || []) as { _id: string; title: string; departmentId: string | null }[];
       this.classes = res.classes?.classes || [];
+      this.groups = res.classes?.groups || [];
       this.cdr.markForCheck();
     });
   }
@@ -197,7 +242,20 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   get streamOptions(): DdOption[] {
     const streams = this.selectedClass?.streams || [];
     return [{ value: '', label: 'All streams' },
-      ...streams.map((stream) => ({ value: stream._id, label: stream.name.charAt(0).toUpperCase() + stream.name.slice(1) }))];
+      ...streams.map((stream) => ({ value: stream._id, label: titleCase(stream.name) }))];
+  }
+
+  /**
+   * Stream Groups of the chosen class (+stream). A non-streamed class's only group is its
+   * automatic "General" — nothing to narrow by, so the pill stays disabled ("All stream groups").
+   */
+  get groupOptions(): DdOption[] {
+    const cls = this.selectedClass;
+    const ready = Boolean(cls) && (!cls?.hasStreams || Boolean(this.streamId));
+    const groups = ready
+      ? this.groups.filter((group) => !group.isSystemGroup && group.classId === cls?._id && (group.streamId || '') === (this.streamId || ''))
+      : [];
+    return [{ value: '', label: 'All stream groups' }, ...groups.map((group) => ({ value: group._id, label: group.name }))];
   }
 
   /** Section options come live from whichever of Class / Stream is set. */
@@ -213,6 +271,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   get classDisabled(): boolean { return this.isStaff; }
   /** Streams exist only on streamed classes (11th/12th). */
   get streamDisabled(): boolean { return this.isStaff || !this.selectedClass?.hasStreams; }
+  get groupDisabled(): boolean { return this.isStaff || this.groupOptions.length < 2; }
   get sectionDisabled(): boolean { return this.isStaff || this.sectionOptions.length < 2; }
 
   onPersonTypeChange(value: string): void {
@@ -223,6 +282,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     this.designationId = '';
     this.classId = '';
     this.streamId = '';
+    this.groupId = '';
     this.sectionId = '';
     this.onFiltersChanged();
   }
@@ -241,13 +301,20 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   onClassChange(value: string): void {
     this.classId = value;
     this.streamId = '';
+    this.groupId = '';
     this.sectionId = '';
     this.onFiltersChanged();
   }
 
   onStreamChange(value: string): void {
     this.streamId = value;
+    this.groupId = '';
     this.sectionId = '';
+    this.onFiltersChanged();
+  }
+
+  onGroupChange(value: string): void {
+    this.groupId = value;
     this.onFiltersChanged();
   }
 
@@ -276,13 +343,19 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
 
   // --- grid ------------------------------------------------------------------------------
 
+  private gridSeq = 0;
+
   fetchGrid(merge = false): void {
+    if (!this.isStaff && !this.session) return;
     if (!merge) {
       this.loading = true;
       this.loadError = '';
+      this.closeMark();
       this.cdr.markForCheck();
     }
-    if (!this.isStaff && !this.session) return;
+    // Only the latest request may land: a fast filter change must never be overwritten by
+    // the slower answer to the previous one.
+    const seq = ++this.gridSeq;
     this.api.getGrid(this.adminId, {
       personType: this.personType,
       month: this.month,
@@ -291,12 +364,15 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       designationId: this.designationId,
       classId: this.classId,
       streamId: this.streamId,
+      groupId: this.groupId,
       sectionId: this.sectionId,
       search: this.search
     }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+      if (seq !== this.gridSeq) return;
       this.days = res.days || [];
       this.today = res.today || this.today;
       this.truncated = res.truncated;
+      this.canMark = Boolean(res.canMark);
       if (merge) {
         // A live refresh: same rows, merged through the one update path.
         (res.rows || []).forEach((row) => this.applyPersonUpdate(row._id, row));
@@ -309,6 +385,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       this.scrollToToday();
     }, () => {
+      if (seq !== this.gridSeq) return;
       if (!merge) {
         this.rows = [];
         this.loadError = "Couldn't load attendance.";
@@ -319,8 +396,8 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * THE single merge path for a person's row — socket deltas and HTTP refreshes both land
-   * here (attendance/optimization.md §5), so the two can never disagree.
+   * THE single merge path for a person's row — socket deltas, HTTP refreshes and a mark all
+   * land here (attendance/optimization.md §5), so they can never disagree.
    */
   applyPersonUpdate(personId: string, patch: Partial<GridRow>): void {
     const index = this.rows.findIndex((row) => row._id === personId);
@@ -355,8 +432,43 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     this.page = 1;
   }
 
-  chipClass(status: ChipStatus): string {
-    return CHIP_CLASS[status] || 'absent';
+  // --- cells -------------------------------------------------------------------------------
+
+  /** The chip's classes: its status colour plus past (locked) / future / no-roster treatment. */
+  cellClass(cell: GridCell, col: MonthColumn, row: GridRow): string {
+    if (cell.n) return 'nocell';
+    if (cell.f) return 'future';
+    const classes = [CHIP_CLASS[cell.s] || 'absent'];
+    if (col.dateKey < this.today) classes.push('locked');
+    else if (col.isToday && this.isMarkable(row, cell)) classes.push('markable');
+    else if (col.isToday) classes.push('readonly');
+    if (cell.src === 'manual') classes.push('manual');
+    return classes.join(' ');
+  }
+
+  /** Today, a working day on a shift, the caller may mark, and the window is open. */
+  isMarkable(row: GridRow, cell: GridCell): boolean {
+    return this.canMark && Boolean(row.mark?.open) && ['P', 'L', 'A'].includes(cell.s);
+  }
+
+  /** Opens the popover: editable, or read-only when a device punch is recorded. */
+  canOpenMark(row: GridRow, cell: GridCell, col: MonthColumn): boolean {
+    if (!col.isToday || !this.canMark || !row.mark || cell.n || cell.f) return false;
+    if (cell.src === 'device') return true;
+    return this.isMarkable(row, cell);
+  }
+
+  cellTitle(row: GridRow, cell: GridCell, col: MonthColumn): string | null {
+    if (cell.n) return 'No roster for this day';
+    if (cell.f) return 'Upcoming date';
+    if (col.dateKey < this.today) return "Past dates can't be changed";
+    if (!col.isToday) return null;
+    if (cell.src === 'device') return 'Device punch recorded' + (cell.p ? ' at ' + cell.p : '');
+    if (!['P', 'L', 'A'].includes(cell.s)) return null;
+    if (!this.canMark) return "You don't have permission to mark attendance";
+    if (!row.mark) return 'No shift today';
+    if (!row.mark.open) return 'Attendance can be marked between ' + row.mark.from + ' and ' + row.mark.to;
+    return 'Click to mark attendance';
   }
 
   isLiveCell(row: GridRow, col: MonthColumn): boolean {
@@ -364,6 +476,93 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   }
 
   initials(name: string): string { return initialsOf(name); }
+
+  // --- manual mark popover -------------------------------------------------------------------
+
+  openMark(event: Event, row: GridRow, col: MonthColumn): void {
+    event.stopPropagation();
+    const cell = row.cells[col.dateKey];
+    if (!cell || !this.canOpenMark(row, cell, col)) return;
+    if (this.markTarget && this.markTarget.row._id === row._id) {
+      this.closeMark();
+      return;
+    }
+    this.closeMark();
+    this.markTarget = { row, col, cell, device: cell.src === 'device' };
+    this.markKey = newIdempotencyKey();
+    this.markError = '';
+    this.markAnchor = event.currentTarget as HTMLElement;
+    const panel = this.markPop.nativeElement;
+    panel.classList.add('mark-portal');
+    document.body.appendChild(panel);
+    this.cdr.detectChanges();
+    this.positionMark();
+    document.addEventListener('scroll', this.repositionMark, true);
+    window.addEventListener('resize', this.repositionMark);
+  }
+
+  closeMark(): void {
+    if (!this.markTarget) return;
+    this.markTarget = null;
+    this.marking = null;
+    this.markAnchor = null;
+    document.removeEventListener('scroll', this.repositionMark, true);
+    window.removeEventListener('resize', this.repositionMark);
+    const panel = this.markPop.nativeElement;
+    panel.classList.remove('mark-portal', 'flipped');
+    panel.removeAttribute('style');
+    this.cdr.markForCheck();
+  }
+
+  private repositionMark = (): void => this.positionMark();
+
+  private positionMark(): void {
+    if (this.markTarget && this.markAnchor) placeBelow(this.markPop.nativeElement, this.markAnchor.getBoundingClientRect());
+  }
+
+  isCurrentMark(status: MarkStatus): boolean {
+    const code = this.markTarget?.cell.s;
+    return MARK_OPTIONS.some((option) => option.status === status && option.code === code);
+  }
+
+  /** Choosing an option saves immediately — no extra confirm (§3d.5). */
+  chooseMark(status: MarkStatus): void {
+    const target = this.markTarget;
+    if (!target || target.device || this.marking) return;
+    if (this.isCurrentMark(status) && (status !== 'Absent' || target.cell.src !== 'manual')) {
+      this.closeMark();
+      return;
+    }
+    this.marking = status;
+    this.markError = '';
+    this.cdr.markForCheck();
+    this.api.mark(this.adminId, { personType: target.row.type, personId: target.row._id, status }, this.markKey)
+      .pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+        this.marking = null;
+        this.applyPersonUpdate(target.row._id, { cells: { [target.col.dateKey]: res.cell } });
+        this.closeMark();
+        this.snackBar.open(res.message, 'Close', { duration: 2500 });
+        this.refresh$.next();
+        this.cdr.markForCheck();
+      }, (error: unknown) => {
+        this.marking = null;
+        // The popover keeps the reason in place (window closed, device punch, permission).
+        this.markError = errorMessageOf(error, "Couldn't save — please try again.");
+        // A new attempt is a new submission.
+        this.markKey = newIdempotencyKey();
+        this.cdr.markForCheck();
+      });
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.markTarget && !this.markPop.nativeElement.contains(event.target as Node)) this.closeMark();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closeMark();
+  }
 
   // --- selection + report ------------------------------------------------------------------
 
@@ -385,10 +584,10 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   generateReport(): void {
     if (!this.selected.size) return;
     this.reportRows = this.rows.filter((row) => this.selected.has(row._id)).map((row) => {
-      const cells = Object.values(row.cells);
+      const cells = Object.values(row.cells).filter((cell) => !cell.f && !cell.n);
       return {
         name: row.name,
-        sub: row.shift || row.sub,
+        sub: row.sub,
         initials: initialsOf(row.name),
         present: cells.filter((cell) => cell.s === 'P').length,
         late: cells.filter((cell) => cell.s === 'L').length,
@@ -414,17 +613,21 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   }
 
   onSyncConfirmed(): void {
-    this.syncConfirmOpen = false;
     if (this.syncing) return;
+    // The confirm stays open with its spinner until the sync is queued (global rule 11).
     this.syncing = true;
     this.cdr.markForCheck();
     this.api.syncNow(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.syncing = false;
+      this.syncConfirmOpen = false;
       this.snackBar.open(res.message, 'Close', { duration: 4000 });
       this.cdr.markForCheck();
+      // The worker needs a moment — check the "Last sync" line again shortly.
+      setTimeout(() => this.fetchSyncStatus(), 8000);
     }, () => {
       // SYNC_ALREADY_RUNNING / no devices — the ErrorInterceptor has shown the message.
       this.syncing = false;
+      this.syncConfirmOpen = false;
       this.cdr.markForCheck();
     });
   }
@@ -433,37 +636,19 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     this.syncConfirmOpen = false;
   }
 
-  // --- day detail ----------------------------------------------------------------------------
-
-  openDay(row: GridRow, col: MonthColumn): void {
-    if (col.isFuture) return;
-    this.dayRequest = { row, col };
-    this.dayTitle = row.name + ' · ' + col.dow + ' ' + col.day + ' ' + monthLabel(this.month);
-    this.dayOpen = true;
-    this.loadDay();
+  fetchSyncStatus(): void {
+    this.api.getSyncStatus(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+      this.syncStatus = res;
+      this.cdr.markForCheck();
+    }, () => { /* the line keeps its last value */ });
   }
 
-  loadDay(): void {
-    if (!this.dayRequest) return;
-    const { row, col } = this.dayRequest;
-    this.dayLoading = true;
-    this.dayError = '';
-    this.dayData = null;
-    this.api.getDayPunches(this.adminId, row.type, row._id, col.dateKey).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
-      this.dayData = res;
-      this.dayLoading = false;
-      this.cdr.markForCheck();
-    }, () => {
-      // Distinct from "no punches that day" (errors.md, frontend requirements).
-      this.dayError = "Couldn't load this day's punches.";
-      this.dayLoading = false;
-      this.cdr.markForCheck();
-    });
-  }
-
-  closeDay(): void {
-    this.dayOpen = false;
-    this.dayRequest = null;
+  get syncLine(): string {
+    const status = this.syncStatus;
+    if (!status) return '';
+    const punches = status.punchesToday + (status.punchesToday === 1 ? ' punch' : ' punches');
+    const unknown = status.lastUnmatched ? ' · ' + status.lastUnmatched + ' unknown device ID' + (status.lastUnmatched === 1 ? '' : 's') : '';
+    return 'Last sync: ' + (status.lastSyncAt || 'never') + ' / ' + punches + ' today' + unknown;
   }
 
   // --- side panel + live -------------------------------------------------------------------
@@ -507,11 +692,15 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       if (event.dateKey.slice(0, 7) === this.month) this.fetchGrid(true);
       this.refresh$.next();
     });
-    this.refresh$.pipe(auditTime(3000), takeUntil(this.destroyed$)).subscribe(() => this.fetchSidePanel());
+    this.refresh$.pipe(auditTime(3000), takeUntil(this.destroyed$)).subscribe(() => {
+      this.fetchSidePanel();
+      this.fetchSyncStatus();
+    });
   }
 
   trackById = (_index: number, row: { _id: string }): string => row._id;
   trackByDate = (_index: number, col: MonthColumn): string => col.dateKey;
   trackByPerson = (_index: number, row: ArrivalRow): string => row.personId;
   trackByIndex = (index: number): number => index;
+  trackByStatus = (_index: number, option: { status: string }): string => option.status;
 }

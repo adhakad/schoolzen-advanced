@@ -2,7 +2,7 @@
 // Essential checks for the v2 Attendance rules — pure functions only, no DB or Redis.
 // Run: node scripts/test-attendance-v2.js
 const assert = require('assert');
-const { computeDayStatus, buildPunchHash, isTimeRangeValid, shiftCode } = require('../modules/helpers/attendance/status');
+const { computeDayStatus, buildPunchHash, isTimeRangeValid, shiftCode, chipTime, hhmmLabel } = require('../modules/helpers/attendance/status');
 const { toPunchRows } = require('../modules/services/attendance-v2/ingest');
 const { toWdmsEmpCode } = require('../modules/services/wdms-employee');
 
@@ -40,6 +40,25 @@ const tests = {
         assert.strictEqual(rows.length, 2);
         assert.strictEqual(rows[0].punchHash, rows[1].punchHash);
         assert.strictEqual(rows[0].dateKey, '2026-08-10');
+    },
+    'every time is 12-hour AM/PM (global rule 4)': () => {
+        assert.strictEqual(chipTime(at('08:23')), '8:23 AM');
+        assert.strictEqual(chipTime(at('12:05')), '12:05 PM');
+        assert.strictEqual(chipTime(at('00:10')), '12:10 AM');
+        assert.strictEqual(chipTime(at('14:00')), '2:00 PM');
+        assert.strictEqual(hhmmLabel('07:45'), '7:45 AM');
+        assert.strictEqual(hhmmLabel('19:30'), '7:30 PM');
+    },
+    'device codes that belong to nobody are counted, not silently lost': () => {
+        const personId = '64b7f0c2a1b2c3d4e5f60718';
+        const index = new Map([[toWdmsEmpCode(personId), { personType: 'staff', personId }]]);
+        const rows = toPunchRows('admin1', [
+            { emp_code: toWdmsEmpCode(personId), punch_time: '2026-08-10 09:01:00' },
+            { emp_code: '41a33711f47020ba841b', punch_time: '2026-08-10 09:02:00' },
+            { emp_code: '41a33711f47020ba841b', punch_time: '2026-08-10 09:03:00' },
+        ], index);
+        assert.strictEqual(rows.length, 1);
+        assert.deepStrictEqual(rows.unmatched, ['41a33711f47020ba841b']);
     },
     'shift codes for roster chips': () => {
         assert.strictEqual(shiftCode('Morning Shift'), 'M');

@@ -60,14 +60,16 @@ const loadLeaveKeys = async (adminId, people, fromKey, toKey) => {
  *   sessionId resolves students' templates (their enrollment). includeLeave:false answers
  *   "what would this day be without any approved leave" — what a NEW leave is charged on.
  */
-const resolveDays = async (adminId, { sessionId = null, people, fromKey, toKey, includeLeave = true }) => {
+// `rosterCells` lets a caller that already read the Roster for the range (Overview's grid)
+// hand it in instead of paying for the same scan twice.
+const resolveDays = async (adminId, { sessionId = null, people, fromKey, toKey, includeLeave = true, rosterCells = null }) => {
     const result = new Map();
     const days = eachKey(fromKey, toKey);
     if (!people.length || !days.length) return result;
     const staffIds = people.filter((p) => p.personType === 'staff').map((p) => String(p.personId));
     const [holidays, roster, leave] = await Promise.all([
         getHolidayKeysForPeople(adminId, sessionId, people, fromKey, toKey),
-        loadRosterCells(adminId, staffIds, fromKey, toKey),
+        rosterCells || loadRosterCells(adminId, staffIds, fromKey, toKey),
         includeLeave ? loadLeaveKeys(adminId, people, fromKey, toKey) : new Map(),
     ]);
     people.forEach((p) => {
@@ -89,4 +91,4 @@ const workingDayKeys = async (adminId, { sessionId, personType, personId, fromKe
     return days ? [...days].filter(([, type]) => type === DAY_TYPE.WORKING).map(([dateKey]) => dateKey) : [];
 };
 
-module.exports = { DAY_TYPE, personKey, resolveDays, workingDayKeys, loadLeaveDays };
+module.exports = { DAY_TYPE, personKey, resolveDays, workingDayKeys, loadLeaveDays, loadRosterCells };

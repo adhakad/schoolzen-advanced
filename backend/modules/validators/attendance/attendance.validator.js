@@ -19,7 +19,12 @@ const minutesMessages = (label) => ({
     'number.min': `${label} must be a number of minutes, 0 or more.`,
     'number.integer': `${label} must be a number of minutes, 0 or more.`,
 });
-const requiredMinutes = (label) => Joi.number().integer().min(0).default(0).messages(minutesMessages(label));
+// Early Punch and Grace decide every arrival's status, so a shift can't be saved without
+// them (attendance-fix1.md §2.3) — 0 is a valid answer, blank is not.
+const requiredMinutes = (label) => Joi.number().integer().min(0).required().messages({
+    ...minutesMessages(label),
+    'any.required': `${label} is required.`,
+});
 const optionalMinutes = (label) => Joi.number().integer().min(0).allow(null, '').empty('').default(null).messages(minutesMessages(label));
 
 // ---- Manage Shifts ------------------------------------------------------------------------
@@ -125,6 +130,7 @@ const gridSchema = Joi.object({
     designationId: nullableId,
     classId: nullableId,
     streamId: nullableId,
+    groupId: nullableId,
     sectionId: nullableId,
     search,
 });
@@ -144,16 +150,18 @@ const syncSchema = Joi.object({
     confirmed: Joi.boolean().valid(true).required().messages({ 'any.only': 'Confirm the sync before it runs.', 'any.required': 'Confirm the sync before it runs.' }),
 });
 
-const manualSchema = Joi.object({
+// Manual marking (attendance-fix1.md §3d) — today only, status marking, never a punch.
+// Date and time are the SERVER's; the client sends only who and which status.
+const markSchema = Joi.object({
     adminId,
     personType: Joi.string().valid('staff', 'student').required(),
     personId: objectId.required(),
-    date: dateKey.required(),
-    // The enum is checked in the controller so it can answer with STATUS_INVALID.
-    status: Joi.string().trim().required(),
-    inTime: hhmm.allow('', null).empty('').default(null).messages({ 'string.pattern.base': 'Enter a valid in time.' }),
-    outTime: hhmm.allow('', null).empty('').default(null).messages({ 'string.pattern.base': 'Enter a valid out time.' }),
-    remark: Joi.string().trim().allow('', null).max(200).empty('').default(null),
+    // Optional and never trusted: kept only so a past/future date is refused (403), not ignored.
+    date: dateKey.optional(),
+    status: Joi.string().valid('Present', 'Late', 'Absent').required().messages({
+        'any.only': 'Status must be Present, Late or Absent.',
+        'any.required': 'Status must be Present, Late or Absent.',
+    }),
 });
 
 module.exports = {
@@ -169,5 +177,5 @@ module.exports = {
     dayQuerySchema,
     dayPunchesSchema,
     syncSchema,
-    manualSchema,
+    markSchema,
 };

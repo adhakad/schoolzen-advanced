@@ -60,6 +60,7 @@
     "@angular-devkit/build-angular": "^14.0.1",
     "@angular/cli": "~14.0.1",
     "@angular/compiler-cli": "^14.0.0",
+    "@playwright/test": "^1.48.2",
     "@types/file-saver": "^2.0.5",
     "@types/jasmine": "~4.0.0",
     "@types/number-to-words": "^1.2.3",

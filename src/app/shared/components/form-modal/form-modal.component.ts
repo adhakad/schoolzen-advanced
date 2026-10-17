@@ -39,12 +39,14 @@ export class FormModalComponent {
   @Input() showSubmit = true;
   /** A destructive decision (Approvals' Reject): the submit renders `.btn-brand.danger-fill`. */
   @Input() submitDanger = false;
+  /** A submit in flight: the button stays disabled and shows a spinner (global rule 11). */
+  @Input() busy = false;
 
   @Output() submitted = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
   onSubmit(): void {
-    if (this.submitDisabled) return;
+    if (this.submitDisabled || this.busy) return;
     this.submitted.emit();
   }
 

@@ -60,10 +60,39 @@ describe('ManageShiftsComponent', () => {
   it('refuses an end time before the start time without calling the API', () => {
     component.onCreate();
     component.onFieldChange('name', 'Night');
-    component.onFieldChange('startTime', '02:00 PM');
-    component.onFieldChange('endTime', '08:00 AM');
+    component.onFieldChange('earlyInMinutes', '10');
+    component.onFieldChange('graceMinutes', '5');
+    component.onTimeChange('startTime', '14:00');
+    component.onTimeChange('endTime', '08:00');
+    expect(component.fieldErrors['endTime']).toContain('after');
     component.onFormSubmit();
-    expect(component.fieldErrors['endTime']).toContain('before');
     expect(api.createShift).not.toHaveBeenCalled();
+  });
+
+  it('Start / End offer every 15 minutes, 12:00 AM … 11:45 PM, choose-only', () => {
+    expect(component.timeOptions.length).toBe(96);
+    expect(component.timeOptions[0]).toEqual({ value: '00:00', label: '12:00 AM' });
+    expect(component.timeOptions[33]).toEqual({ value: '08:15', label: '8:15 AM' });
+    expect(component.timeOptions[95]).toEqual({ value: '23:45', label: '11:45 PM' });
+  });
+
+  it('Submit stays disabled until Early Punch and Grace are valid numbers', () => {
+    component.onCreate();
+    component.onFieldChange('name', 'Morning');
+    component.onTimeChange('startTime', '08:00');
+    component.onTimeChange('endTime', '14:00');
+    expect(component.submitDisabled).toBeTrue();
+    component.onFieldChange('earlyInMinutes', '15');
+    expect(component.submitDisabled).toBeTrue();
+    component.onFieldChange('graceMinutes', 'abc');
+    expect(component.submitDisabled).toBeTrue();
+    component.onFieldChange('graceMinutes', '0');
+    expect(component.submitDisabled).toBeFalse();
+  });
+
+  it('edit prefills the time dropdowns from the stored HH:mm', () => {
+    component.onEdit(component.rows[0]);
+    expect(component.form.startTime).toBe('08:00');
+    expect(component.form.endTime).toBe('14:00');
   });
 });

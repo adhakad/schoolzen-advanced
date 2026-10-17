@@ -27,14 +27,15 @@
     </div>
 
     <div class="confirm-foot">
-      <button type="button" class="confirm-cancel" (click)="onCancel()">
+      <button type="button" class="confirm-cancel" [disabled]="busy" (click)="onCancel()">
         {{ config.cancelLabel || 'Cancel' }}
       </button>
       <button type="button" class="confirm-delete"
               [class.neutral]="config.variant !== 'warning'"
-              [disabled]="confirmDisabled"
+              [disabled]="confirmDisabled || busy"
+              [attr.aria-busy]="busy || null"
               (click)="onConfirm()">
-        {{ config.confirmLabel }}
+        <span class="btn-spinner" *ngIf="busy" aria-hidden="true"></span>{{ config.confirmLabel }}
       </button>
     </div>
   </div>

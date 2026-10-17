@@ -26,12 +26,13 @@ class AuthenticationError extends AppError {
  * AuthenticationError (who are you) vs. this (you, but not allowed).
  */
 class PermissionError extends AppError {
-  constructor(message = "You don't have permission to do this.", { module, context } = {}) {
+  constructor(message = "You don't have permission to do this.", { module, context, code } = {}) {
     super(message, {
       category: 'PermissionError',
       statusCode: 403,
       module,
       context,
+      code,
       isOperational: true
     });
   }

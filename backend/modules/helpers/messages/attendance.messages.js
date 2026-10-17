@@ -37,6 +37,13 @@ const syncNoDevices = () => 'No active devices are assigned to this school.';
 const queueUnavailable = () => "Background processing is unavailable right now — please try again shortly.";
 const manualSaved = () => 'Attendance updated.';
 const sessionMissing = () => 'No academic session is active — set one in Settings first.';
+// Manual marking (attendance-fix1.md §3d) — status marking, never "punch".
+const markNotToday = () => "Attendance can only be marked for today — past and future dates can't be changed.";
+const markDayOff = () => "This is a day off for this person, so attendance can't be marked.";
+const markNoShift = () => 'No shift is assigned to this person today — assign one in Roster first.';
+const markOutsideWindow = (from, to) => `Attendance can only be marked today between ${from} and ${to}.`;
+const markDeviceRecorded = (at) => (at ? `Device punch recorded at ${at} — it can't be changed by hand.` : "A device punch is recorded for today — it can't be changed by hand.");
+const marked = (name, status) => (status === 'Absent' ? `${name} marked Absent.` : `${name} marked ${status}.`);
 
 module.exports = {
     notFound,
@@ -65,4 +72,10 @@ module.exports = {
     queueUnavailable,
     manualSaved,
     sessionMissing,
+    markNotToday,
+    markDayOff,
+    markNoShift,
+    markOutsideWindow,
+    markDeviceRecorded,
+    marked,
 };

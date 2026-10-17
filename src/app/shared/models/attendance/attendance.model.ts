@@ -6,10 +6,30 @@ export type PersonType = 'staff' | 'student';
 /** Chip status code: Present, Late, Half Day, Absent, Leave, Holiday, Weekly Off (the person's Roster WO). */
 export type ChipStatus = 'P' | 'L' | 'HD' | 'A' | 'LV' | 'H' | 'WO';
 
+/**
+ * One day's cell (attendance-fix1.md §3c):
+ *   real status    { s: 'P', t: '8:23 AM', src }  — `src` 'manual' (marked by hand) | 'device'
+ *   future day     { s: 'M' | 'WO' | 'H' | 'LV', f: 1 } — what the roster expects
+ *   no roster      { s: '—', n: 1 }
+ */
 export interface GridCell {
-  s: ChipStatus;
-  /** "8:23" — arrival time; null for Absent/Holiday/Leave/Weekly Off. */
-  t: string | null;
+  /** A ChipStatus, a shift code on a future day, or '—'. */
+  s: ChipStatus | string;
+  /** "8:23 AM" — arrival / marked time; null for Absent/Holiday/Leave/Weekly Off. */
+  t?: string | null;
+  src?: 'manual' | 'device';
+  /** Today's first device punch, "8:23 AM" — the mark popover's read-only note. */
+  p?: string;
+  f?: 1;
+  n?: 1;
+}
+
+/** Today's marking window for a row, from its shift: Early Punch before start → end. */
+export interface MarkWindow {
+  from: string;
+  to: string;
+  /** The server's clock is inside the window right now. */
+  open: boolean;
 }
 
 export interface GridRow {
@@ -17,8 +37,10 @@ export interface GridRow {
   name: string;
   sub: string;
   code: string | null;
-  /** Expected shift name (today, or the month's first day) — the reference's sub-line. */
+  /** Today's expected shift name. */
   shift: string | null;
+  /** Today's marking window — absent when the person has no shift today. */
+  mark?: MarkWindow;
   type: PersonType;
   cells: Record<string, GridCell>;
   /** Punched in today, not yet reconciled / no punch-out → the pulsing ring. */
@@ -33,6 +55,8 @@ export interface GridResponse {
   days: MonthColumn[];
   rows: GridRow[];
   truncated: boolean;
+  /** The caller holds 'attendance-mark' (edit). */
+  canMark: boolean;
 }
 
 export interface GridQuery {
@@ -43,6 +67,7 @@ export interface GridQuery {
   designationId?: string;
   classId?: string;
   streamId?: string;
+  groupId?: string;
   sectionId?: string;
   search?: string;
 }
@@ -86,7 +111,27 @@ export interface RecentArrivals {
 export interface DayPunches {
   date: string;
   punches: { time: string; terminalSn: string | null }[];
-  record: { status: string; inTime: string | null; outTime: string | null; isOverridden: boolean; remark: string | null } | null;
+  record: { status: string; inTime: string | null; outTime: string | null; source: 'device' | 'manual' | 'system'; markedAt: string | null; remark: string | null } | null;
+}
+
+export type MarkStatus = 'Present' | 'Late' | 'Absent';
+
+export interface MarkResponse {
+  message: string;
+  cell: GridCell;
+  markedAt: string | null;
+}
+
+export interface SyncStatus {
+  dateKey: string;
+  /** "9:05 AM", or null when no sync has finished yet. */
+  lastSyncAt: string | null;
+  lastSyncDate: string | null;
+  lastFetched: number;
+  lastInserted: number;
+  /** Punches whose device ID belongs to nobody in this school (not enrolled under a v2 id). */
+  lastUnmatched: number;
+  punchesToday: number;
 }
 
 export interface SyncResponse {

@@ -27,7 +27,15 @@ const AttendanceRecordSchema = new mongoose.Schema({
     inTime: { type: Date, default: null },
     outTime: { type: Date, default: null },
     shiftId: { type: String, default: null },
-    // A manual correction wins over every later reconcile of the same day.
+    // Where today's status came from. 'device' = reconciled from punches; 'manual' = marked
+    // by hand (Present / Late / Absent, never a punch); 'system' = decided without either
+    // (an end-of-day Absent, a holiday, a leave, a weekly off).
+    source: { type: String, enum: ['device', 'manual', 'system'], default: 'system' },
+    // A manual mark's SERVER time (never the browser's) and who made it.
+    markedAt: { type: Date, default: null },
+    markedBy: { type: String, default: null },
+    // A correction that wins over every later reconcile of the same day (a leave's own marks).
+    // A manual mark does NOT set this: a device punch for the day always wins over it.
     isOverridden: { type: Boolean, default: false },
     remark: { type: String, trim: true, default: null },
     // Soft delete — attendance is a historical record (database-design-principles.md).

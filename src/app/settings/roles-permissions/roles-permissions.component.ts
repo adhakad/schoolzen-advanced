@@ -27,7 +27,7 @@ import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 import { BulkOutcomeLine } from 'src/app/shared/models/academic-setup/bulk-delete.model';
 
 const MODULE_LABELS: Readonly<Record<string, string>> = {
-  student: 'Student', staff: 'Staff', attendance: 'Attendance', marksheet: 'Generate Marksheet / Enter Marks',
+  student: 'Student', staff: 'Staff', attendance: 'Attendance', 'attendance-mark': 'Mark Attendance (manual)', marksheet: 'Generate Marksheet / Enter Marks',
   'marksheet-structure': 'Marksheet Structure', 'admit-card': 'Generate Admit Card',
   'admit-card-structure': 'Admit Card Structure', leave: 'Leave', 'leave-limit': 'Leave Limits',
   holiday: 'Holidays', 'holiday-assign': 'Holiday Assign',
@@ -38,7 +38,7 @@ const MODULE_LABELS: Readonly<Record<string, string>> = {
   settings: 'Settings'
 };
 const MODULE_ICONS: Readonly<Record<string, string>> = {
-  student: 'mortarboard', staff: 'people', attendance: 'calendar-check', marksheet: 'journal-text',
+  student: 'mortarboard', staff: 'people', attendance: 'calendar-check', 'attendance-mark': 'person-check', marksheet: 'journal-text',
   'marksheet-structure': 'table', 'admit-card': 'card-heading', 'admit-card-structure': 'calendar-week', leave: 'calendar-plus', 'leave-limit': 'sliders',
   holiday: 'sun', 'holiday-assign': 'calendar2-check',
   fees: 'wallet2', 'fees-structure': 'list-ul', 'fees-collect': 'cash', 'fees-waiver': 'percent', payroll: 'cash-stack', 'payroll-assign': 'person-check', 'payroll-generate': 'play-circle',

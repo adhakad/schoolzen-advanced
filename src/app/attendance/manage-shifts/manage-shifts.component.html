@@ -89,17 +89,12 @@
       <div class="stat-row"><span class="stat-label">Inactive</span><span class="stat-value">{{ summary.inactive }}</span></div>
     </div>
 
-    <div class="status-card">
-      <div class="card-title-row">Good to know</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Punch-in settings apply to both staff and students on this shift.</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Half day, early/late checkout only affect staff &mdash; a student's day is decided by arrival punch alone.</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Deactivating a shift keeps its history but stops new assignments.</div>
-    </div>
+    <app-good-to-know [tips]="tips"></app-good-to-know>
   </div>
 </div>
 
 <app-form-modal [open]="formOpen" [title]="formTitle" submitLabel="Submit" [width]="480"
-                [submitDisabled]="submitDisabled"
+                [submitDisabled]="submitDisabled" [busy]="saving"
                 (submitted)="onFormSubmit()" (cancelled)="onFormCancel()">
   <p class="m-error form-level" *ngIf="formError">{{ formError }}</p>
   <div class="m-field">
@@ -111,14 +106,16 @@
   <div class="m-row">
     <div class="m-field">
       <label for="shift-start">Start Time <span class="req-star">*</span></label>
-      <input id="shift-start" type="text" placeholder="08:00 AM"
-             [value]="form.startTime" (input)="onFieldChange('startTime', $any($event.target).value)" />
+      <app-dd id="shift-start" [options]="timeOptions" [value]="form.startTime" placeholder="Select time"
+              ariaLabel="Start time" [invalid]="!!fieldErrors['startTime']" [class.is-invalid]="!!fieldErrors['startTime']"
+              (valueChange)="onTimeChange('startTime', $event)"></app-dd>
       <p class="m-error" *ngIf="fieldErrors['startTime']">{{ fieldErrors['startTime'] }}</p>
     </div>
     <div class="m-field">
       <label for="shift-end">End Time <span class="req-star">*</span></label>
-      <input id="shift-end" type="text" placeholder="02:00 PM"
-             [value]="form.endTime" (input)="onFieldChange('endTime', $any($event.target).value)" />
+      <app-dd id="shift-end" [options]="timeOptions" [value]="form.endTime" placeholder="Select time"
+              ariaLabel="End time" [invalid]="!!fieldErrors['endTime']" [class.is-invalid]="!!fieldErrors['endTime']"
+              (valueChange)="onTimeChange('endTime', $event)"></app-dd>
       <p class="m-error" *ngIf="fieldErrors['endTime']">{{ fieldErrors['endTime'] }}</p>
     </div>
   </div>
@@ -127,14 +124,14 @@
   <p class="group-note">Applies to staff and students.</p>
   <div class="m-row">
     <div class="m-field">
-      <label for="shift-early">Early Punch (min)</label>
+      <label for="shift-early">Early Punch (min) <span class="req-star">*</span></label>
       <input id="shift-early" type="number" min="0" placeholder="15"
              [value]="form.earlyInMinutes" (input)="onFieldChange('earlyInMinutes', $any($event.target).value)" />
       <div class="m-hint">How early before start time an arrival punch is accepted.</div>
       <p class="m-error" *ngIf="fieldErrors['earlyInMinutes']">{{ fieldErrors['earlyInMinutes'] }}</p>
     </div>
     <div class="m-field">
-      <label for="shift-grace">Grace (min)</label>
+      <label for="shift-grace">Grace (min) <span class="req-star">*</span></label>
       <input id="shift-grace" type="number" min="0" placeholder="10"
              [value]="form.graceMinutes" (input)="onFieldChange('graceMinutes', $any($event.target).value)" />
       <div class="m-hint">Minutes after start time before a punch counts as Late.</div>
@@ -172,5 +169,5 @@
   </div>
 </app-form-modal>
 
-<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig" [busy]="deleting"
                    (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

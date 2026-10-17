@@ -18,7 +18,7 @@ import { ConfirmConfig, DdOption } from 'src/app/shared/models/shared-components
 import { ShiftsService } from 'src/app/shared/services/attendance/shifts.service';
 import { Shift, ShiftPayload, ShiftStatus, ShiftSummary } from 'src/app/shared/models/attendance/shift.model';
 import { validationErrorsOf } from 'src/app/shared/utils/api-error.util';
-import { formatTime, parseTimeInput } from 'src/app/shared/utils/attendance-time.util';
+import { formatTime, TIME_OPTIONS } from 'src/app/shared/utils/attendance-time.util';
 
 interface ShiftForm {
   id: string | null;
@@ -41,6 +41,8 @@ const KNOWN_FIELDS = ['name', 'startTime', 'endTime', 'earlyInMinutes', 'graceMi
 const MINUTE_FIELDS: (keyof ShiftForm)[] = ['earlyInMinutes', 'graceMinutes', 'halfDayAfterMinutes', 'earlyOutMinutes', 'lateOutMinutes'];
 
 const plural = (count: number, one: string, many: string): string => count + ' ' + (count === 1 ? one : many);
+/** A whole number of minutes, 0 or more — what Early Punch and Grace must be. */
+const isMinutes = (raw: string): boolean => /^\d+$/.test(String(raw ?? '').trim());
 
 @Component({
   selector: 'app-manage-shifts',
@@ -79,6 +81,16 @@ export class ManageShiftsComponent implements OnInit, OnDestroy {
   deleting = false;
 
   readonly formatTime = formatTime;
+  /** Start / End are choose-only `.dd`s: every time in 15-minute steps, 12-hour AM/PM. */
+  readonly timeOptions: readonly DdOption[] = TIME_OPTIONS;
+  readonly tips: readonly string[] = [
+    'Press Create Shift, give it a name (e.g. Morning), then choose its Start and End time from the lists.',
+    'Early Punch is how many minutes before the start a punch or mark already counts. Grace is how many minutes after the start someone is still on time.',
+    'Both Early Punch and Grace are required (use 0 for none) — the Submit button stays off until they are filled.',
+    'Half Day After, Early Checkout and Late Checkout only affect staff. A student\'s day is decided by arrival alone.',
+    'After creating a shift, open Roster to give it to staff (by date) or to whole classes.',
+    'Deactivating a shift keeps its history but stops new assignments. A shift still in use cannot be deleted.'
+  ];
 
   private searchInput$ = new Subject<string>();
   private destroyed$ = new Subject<void>();
@@ -113,8 +125,9 @@ export class ManageShiftsComponent implements OnInit, OnDestroy {
 
   // --- list ---------------------------------------------------------------------------
 
-  fetch(): void {
-    this.loading = true;
+  /** `quiet`: a refresh after a write — the rows on screen stay until the answer lands. */
+  fetch(quiet = false): void {
+    if (!quiet) this.loading = true;
     this.loadError = '';
     this.api.getShifts(this.adminId, { search: this.search, page: this.page, limit: this.limit })
       .pipe(takeUntil(this.destroyed$))
@@ -164,8 +177,8 @@ export class ManageShiftsComponent implements OnInit, OnDestroy {
     this.openForm('Edit Shift', {
       id: row._id,
       name: row.name,
-      startTime: formatTime(row.startTime),
-      endTime: formatTime(row.endTime),
+      startTime: row.startTime,
+      endTime: row.endTime,
       earlyInMinutes: text(row.earlyInMinutes),
       graceMinutes: text(row.graceMinutes),
       halfDayAfterMinutes: text(row.halfDayAfterMinutes),
@@ -193,8 +206,20 @@ export class ManageShiftsComponent implements OnInit, OnDestroy {
     this.form = { ...this.form, status: value === 'inactive' ? 'inactive' : 'active' };
   }
 
+  /** Name, both times, and a valid Early Punch + Grace (attendance-fix1.md §2.3). */
   get submitDisabled(): boolean {
-    return this.saving || !this.form.name.trim() || !this.form.startTime.trim() || !this.form.endTime.trim();
+    return this.saving || !this.form.name.trim() || !this.form.startTime || !this.form.endTime
+      || !isMinutes(this.form.earlyInMinutes) || !isMinutes(this.form.graceMinutes);
+  }
+
+  onTimeChange(field: 'startTime' | 'endTime', value: string): void {
+    this.onFieldChange(field, value);
+    const errors = { ...this.fieldErrors };
+    delete errors['endTime'];
+    if (this.form.startTime && this.form.endTime && this.form.startTime >= this.form.endTime) {
+      errors['endTime'] = 'End time must be after the start time.';
+    }
+    this.fieldErrors = errors;
   }
 
   onFormCancel(): void {
@@ -205,11 +230,13 @@ export class ManageShiftsComponent implements OnInit, OnDestroy {
   /** Client-side mirror of the server rules, so the obvious mistakes never leave the page. */
   private buildPayload(): ShiftPayload | null {
     const errors: Record<string, string> = {};
-    const startTime = parseTimeInput(this.form.startTime);
-    const endTime = parseTimeInput(this.form.endTime);
-    if (!startTime) errors['startTime'] = 'Enter a valid start time, e.g. 08:00 AM.';
-    if (!endTime) errors['endTime'] = 'Enter a valid end time, e.g. 02:00 PM.';
-    if (startTime && endTime && startTime >= endTime) errors['endTime'] = 'Start time must be before end time.';
+    const startTime = this.form.startTime;
+    const endTime = this.form.endTime;
+    if (!startTime) errors['startTime'] = 'Choose a start time.';
+    if (!endTime) errors['endTime'] = 'Choose an end time.';
+    if (startTime && endTime && startTime >= endTime) errors['endTime'] = 'End time must be after the start time.';
+    if (!isMinutes(this.form.earlyInMinutes)) errors['earlyInMinutes'] = 'Early Punch is required — minutes, 0 or more.';
+    if (!isMinutes(this.form.graceMinutes)) errors['graceMinutes'] = 'Grace is required — minutes, 0 or more.';
 
     const numbers: Record<string, number | null> = {};
     MINUTE_FIELDS.forEach((field) => {
@@ -257,7 +284,7 @@ export class ManageShiftsComponent implements OnInit, OnDestroy {
       this.saving = false;
       this.formOpen = false;
       this.snackBar.open(res.message, 'Close', { duration: 3000 });
-      this.fetch();
+      this.fetch(true);
       this.cdr.markForCheck();
     }, (error: unknown) => {
       this.saving = false;
@@ -304,21 +331,28 @@ export class ManageShiftsComponent implements OnInit, OnDestroy {
   }
 
   onConfirmed(): void {
-    this.confirmOpen = false;
     const row = this.deleteTarget;
-    this.deleteTarget = null;
     if (!row || this.deleting || this.inUseText(row)) return;
+    // The confirm stays open, its button spinning, until the delete answers (global rule 11).
     this.deleting = true;
     this.api.deleteShift(this.adminId, row._id)
       .pipe(takeUntil(this.destroyed$))
       .subscribe((res) => {
         this.deleting = false;
+        this.confirmOpen = false;
+        this.deleteTarget = null;
+        // Drop the row at once; the quiet refetch only corrects counts and the page.
+        this.rows = this.rows.filter((candidate) => candidate._id !== row._id);
         this.snackBar.open(res.message, 'Close', { duration: 3000 });
-        this.fetch();
+        this.fetch(true);
+        this.cdr.markForCheck();
       }, () => {
         // ErrorInterceptor has already shown SHIFT_IN_USE (with its count) or the failure.
         this.deleting = false;
-        this.fetch();
+        this.confirmOpen = false;
+        this.deleteTarget = null;
+        this.fetch(true);
+        this.cdr.markForCheck();
       });
   }
 

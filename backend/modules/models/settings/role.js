@@ -29,8 +29,10 @@ const mongoose = require('mongoose');
 // from it — and acting on a row ALSO needs that source's own grant ('leave' edit), so the
 // inbox is never a way around a module's permission.
 // Staff: 'staff' views staff headcounts (today: the Dashboard's Staff stat).
+// Attendance: 'attendance' views/maintains Overview, Shifts and Roster; 'attendance-mark'
+// (edit) is the explicit grant to mark a person Present / Late / Absent by hand today.
 const PERMISSION_MODULES = Object.freeze([
-    'student', 'staff', 'attendance', 'marksheet', 'marksheet-structure', 'admit-card', 'admit-card-structure', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
+    'student', 'staff', 'attendance', 'attendance-mark', 'marksheet', 'marksheet-structure', 'admit-card', 'admit-card-structure', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
     'fees', 'fees-structure', 'fees-collect', 'fees-waiver',
     'certificates', 'tc-structure', 'tc-generate',
     'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout',

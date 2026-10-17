@@ -19,8 +19,8 @@
     <div class="modal-foot">
       <button type="button" class="btn-plain" (click)="onCancel()">{{ cancelLabel }}</button>
       <button type="button" class="btn-brand" *ngIf="showSubmit" [class.danger-fill]="submitDanger"
-              [disabled]="submitDisabled" (click)="onSubmit()">
-        {{ submitLabel }}
+              [disabled]="submitDisabled || busy" [attr.aria-busy]="busy || null" (click)="onSubmit()">
+        <span class="btn-spinner" *ngIf="busy" aria-hidden="true"></span>{{ submitLabel }}
       </button>
     </div>
   </div>

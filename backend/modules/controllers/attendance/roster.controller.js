@@ -38,20 +38,22 @@ const editableDays = (month, fromDate, toDate) => {
     return days;
 };
 
-/** Keep `shiftIds` equal to the distinct shifts in `days` (what the delete guard counts). */
+/** `shiftIds` = the distinct shifts in `days` (what the Manage Shifts delete guard counts). */
+const SHIFT_IDS_STAGE = {
+    $set: {
+        shiftIds: {
+            $setDifference: [
+                { $setUnion: [{ $map: { input: { $objectToArray: { $ifNull: ['$days', {}] } }, in: '$$this.v' } }, []] },
+                [WEEK_OFF],
+            ],
+        },
+        updatedAt: '$$NOW',
+    },
+};
+
 const refreshShiftIds = (adminId, staffIds, year, month) => RosterV2Model.updateMany(
     { adminId, staffId: { $in: staffIds }, year, month },
-    [{
-        $set: {
-            shiftIds: {
-                $setDifference: [
-                    { $setUnion: [{ $map: { input: { $objectToArray: { $ifNull: ['$days', {}] } }, in: '$$this.v' } }, []] },
-                    [WEEK_OFF],
-                ],
-            },
-            updatedAt: '$$NOW',
-        },
-    }]
+    [SHIFT_IDS_STAGE]
 );
 
 /** Splits requested ids into this school's active staff and failed rows (shape 7). */
@@ -197,11 +199,13 @@ let ClearStaffRoster = async (req, res) => {
     const { adminId, staffIds, month } = req.body;
     const days = editableDays(month);
     const { valid, failed } = await partitionStaff(adminId, staffIds);
-    const unset = {};
-    days.forEach((key) => { unset[`days.${key}`] = ''; });
     const { year, month: monthNo } = parseDateKey(days[0]);
-    await RosterV2Model.updateMany({ adminId, staffId: { $in: valid }, year, month: monthNo }, { $unset: unset });
-    await refreshShiftIds(adminId, valid, year, monthNo);
+    // ONE write for the whole selection: drop today-onward cells and recompute shiftIds in
+    // the same pipeline update, so a delete can never leave a half-cleared roster behind.
+    await RosterV2Model.updateMany(
+        { adminId, staffId: { $in: valid }, year, month: monthNo },
+        [{ $unset: days.map((key) => `days.${key}`) }, SHIFT_IDS_STAGE]
+    );
 
     if (days[0] === todayKey()) await enqueueReconcile(adminId, days[0]);
     await logActivity(req, { module: MODULE, action: 'attendance.roster.clear', meta: { month, people: valid.length } });

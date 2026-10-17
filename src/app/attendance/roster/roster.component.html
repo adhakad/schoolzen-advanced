@@ -38,14 +38,24 @@
       <div class="toolbar-row2">
         <app-dd class="roster-pill" [options]="personTypeOptions" [value]="personType"
                 ariaLabel="Person type" (valueChange)="onPersonTypeChange($event)"></app-dd>
-        <app-dd class="roster-pill" [options]="secondOptions" [value]="secondValue"
-                [ariaLabel]="personType === 'staff' ? 'Filter by department' : 'Filter by class'"
-                (valueChange)="onSecondChange($event)"></app-dd>
-        <!-- Always present, disabled until its parent is chosen. -->
-        <app-dd class="roster-pill" [options]="thirdOptions" [value]="thirdValue"
-                [disabled]="thirdDisabled" [disabledHint]="thirdHint"
-                [ariaLabel]="personType === 'staff' ? 'Filter by designation' : 'Filter by section'"
-                (valueChange)="onThirdChange($event)"></app-dd>
+        <!-- Dependent pills are always present, disabled until their parent is chosen, and keep
+             their "All …" label while disabled (global rule 8). -->
+        <ng-container *ngIf="personType === 'staff'; else studentFilters">
+          <app-dd class="roster-pill" [options]="departmentOptions" [value]="departmentId"
+                  ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
+          <app-dd class="roster-pill" [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
+                  ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
+        </ng-container>
+        <ng-template #studentFilters>
+          <app-dd class="roster-pill" [options]="classOptions" [value]="classId"
+                  ariaLabel="Filter by class" (valueChange)="onClassChange($event)"></app-dd>
+          <app-dd class="roster-pill" [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
+                  ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
+          <app-dd class="roster-pill" [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
+                  ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
+          <app-dd class="roster-pill" [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
+                  ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
+        </ng-template>
       </div>
       <div class="toolbar-row3">
         <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
@@ -134,6 +144,7 @@
             </td>
             <td class="name-cell">
               <span class="cls-name" [class.sub]="row.level === 1" [class.subsub]="row.level === 2">{{ row.label }}</span>
+              <span class="group-tag" *ngIf="groupLabelOf(row) as group" [attr.title]="'Stream Group: ' + group">{{ group }}</span>
             </td>
             <ng-container *ngIf="row.selectable; else heading">
               <td>
@@ -172,17 +183,12 @@
       </div>
       <div class="stat-row accent"><span class="stat-label">Unassigned</span><span class="stat-value">{{ stats.unassigned }}</span></div>
     </div>
-    <div class="status-card">
-      <div class="card-title-row">Good to know</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>The legend only lists shifts actually in use this month.</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>Switch Staff/Student above to assign whole classes instead of individuals.</div>
-      <div class="tip-item"><i class="bi bi-info-circle"></i>A class heading row with no checkbox means it has sections &mdash; assign at the section level.</div>
-    </div>
+    <app-good-to-know [tips]="tips"></app-good-to-know>
   </div>
 </div>
 
 <app-form-modal [open]="assignOpen" [title]="assignTitle" submitLabel="Assign" [width]="460"
-                [submitDisabled]="assignSubmitDisabled"
+                [submitDisabled]="assignSubmitDisabled" [busy]="saving"
                 (submitted)="onAssignSubmit()" (cancelled)="onAssignCancel()">
   <p class="modal-note">
     {{ personType === 'staff'
@@ -195,10 +201,21 @@
             ariaLabel="Shift" (valueChange)="onAssignShift($event)"></app-dd>
   </div>
 
+  <!-- Students: the Stream Group follows the class — show-only, "General" for a class
+       without streams (global rule 2). -->
+  <div class="m-field" *ngIf="personType === 'student'">
+    <label for="assign-group">Stream Group</label>
+    <app-dd id="assign-group" [options]="assignGroupOptions" [value]="assignGroupValue" [disabled]="true"
+            ariaLabel="Stream group"></app-dd>
+    <div class="m-hint">Follows the selected class &mdash; the shift applies to every group in it.</div>
+  </div>
+
   <ng-container *ngIf="personType === 'staff'">
     <div class="m-field">
-      <label>Applies to Dates <span class="req-star">*</span></label>
-      <app-date-range-picker [start]="assignFrom" [end]="assignTo" [min]="today" noun="day"
+      <label>Applies to <span class="req-star">*</span></label>
+      <!-- roster.html "Applies to Month": the calendar stays hidden until the field is clicked. -->
+      <app-date-range-picker [popover]="true" [start]="assignFrom" [end]="assignTo" [min]="today" noun="day"
+                             placeholder="Pick the first and last day" ariaLabel="Applies to dates"
                              hint="Roster can only be set from today onward &mdash; earlier days are locked."
                              (rangeChange)="onAssignRange($event)"></app-date-range-picker>
     </div>
@@ -210,10 +227,10 @@
                 [class.active]="assignWeekdays.has(day.value)" [attr.aria-pressed]="assignWeekdays.has(day.value)"
                 (click)="toggleWeekday(day.value)">{{ day.label }}</button>
       </div>
-      <div class="m-hint">Deselect weekly-off days so the shift only applies where staff actually attend.</div>
+      <div class="m-hint">Sunday is the weekly off by default. Click any day to switch it between working and weekly off (WO).</div>
     </div>
   </ng-container>
 </app-form-modal>
 
-<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig" [busy]="deleting"
                    (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>

@@ -67,4 +67,19 @@ describe('ConfirmModalComponent', () => {
     component.onConfirm();
     expect(confirmed).toBe(1);
   });
+
+  it('busy: the confirm button is disabled with a spinner and the modal cannot be cancelled', () => {
+    component.open = true;
+    component.config = { title: 'Delete?', message: 'Gone.', confirmLabel: 'Delete' };
+    sync();
+    component.busy = true;
+    sync();
+    const button = fixture.nativeElement.querySelector('.confirm-delete') as HTMLButtonElement;
+    expect(button.disabled).toBeTrue();
+    expect(button.querySelector('.btn-spinner')).not.toBeNull();
+    const cancelled = jasmine.createSpy('cancelled');
+    component.cancelled.subscribe(cancelled);
+    component.onCancel();
+    expect(cancelled).not.toHaveBeenCalled();
+  });
 });

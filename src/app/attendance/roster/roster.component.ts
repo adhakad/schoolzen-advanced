@@ -10,6 +10,10 @@
  *
  * Past days are locked (attendance may already be recorded); every write is today onward.
  * Delete Selected needs typed DELETE.
+ *
+ * "Has a roster" (what decides Assign vs Edit vs Delete) is judged on the EDITABLE days only
+ * — today onward. Delete clears exactly those days and keeps the locked past, so a row that
+ * was just deleted must read as unassigned again, or Assign would stay disabled.
  */
 import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild
@@ -29,7 +33,7 @@ import { Shift } from 'src/app/shared/models/attendance/shift.model';
 import {
   BulkWriteResponse, ClassShiftRow, MonthColumn, RosterLegend, RosterStats, RowFailure, StaffRosterRow, WEEK_OFF
 } from 'src/app/shared/models/attendance/roster.model';
-import { FilterClass } from 'src/app/shared/models/student/student.model';
+import { FilterClass, FilterGroup } from 'src/app/shared/models/student/student.model';
 import { rowErrorsOf } from 'src/app/shared/utils/api-error.util';
 import { DateRange } from 'src/app/shared/components/date-range-picker/date-range-picker.component';
 import {
@@ -71,7 +75,9 @@ export class RosterComponent implements OnInit, OnDestroy {
   departmentId = '';
   designationId = '';
   classId = '';
-  sectionKey = '';
+  streamId = '';
+  groupId = '';
+  sectionId = '';
   readonly personTypeOptions: readonly DdOption[] = [
     { value: 'staff', label: 'Staff' },
     { value: 'student', label: 'Student' }
@@ -79,7 +85,17 @@ export class RosterComponent implements OnInit, OnDestroy {
   departmentOptions: DdOption[] = [{ value: '', label: 'All departments' }];
   private designations: { _id: string; title: string; departmentId: string | null }[] = [];
   classes: FilterClass[] = [];
+  private groups: FilterGroup[] = [];
   lookupError = '';
+  readonly tips: readonly string[] = [
+    'Tick the staff (or classes) you want, then press Assign to Selected and choose a shift.',
+    'Click "Applies to" to open the calendar: click the first day, then the last day. Only today onward can be changed — past days are locked.',
+    'All weekdays except Sunday are ticked. Click any day to switch it between a working day and a weekly off (WO).',
+    'To change an existing roster, tick those rows and press Edit Assignment — the form opens with their current shift and days.',
+    'Delete Selected removes the shift from today to the end of the month for the ticked rows; type DELETE to confirm. You can assign them again straight after.',
+    'Switch Staff/Student above to set the shift for whole classes, streams or sections instead of individual people.',
+    'The legend only lists shifts in use this month. A class heading with no checkbox has sections — assign at the section level.'
+  ];
 
   // --- data ----------------------------------------------------------------------------
   loading = true;
@@ -177,6 +193,7 @@ export class RosterComponent implements OnInit, OnDestroy {
         ...(res.departments.rows || []).map((row: { _id: string; name: string }) => ({ value: row._id, label: row.name }))];
       this.designations = (res.designations.rows || []) as { _id: string; title: string; departmentId: string | null }[];
       this.classes = res.classes.classes || [];
+      this.groups = res.classes.groups || [];
       this.cdr.markForCheck();
     }, () => {
       this.lookupError = "Couldn't load shifts and filters.";
@@ -193,28 +210,66 @@ export class RosterComponent implements OnInit, OnDestroy {
     return [{ value: '', label: 'All classes' }, ...this.classes.map((row) => ({ value: row._id, label: row.label }))];
   }
 
-  /** Sections of the chosen class — its own, or every stream's, keyed so the filter can match a row. */
-  get sectionOptions(): DdOption[] {
-    const cls = this.classes.find((row) => row._id === this.classId);
-    const options: DdOption[] = [{ value: '', label: 'All sections' }];
-    if (!cls) return options;
-    cls.sections.forEach((section) => options.push({ value: '|' + section._id, label: 'Section ' + section.name }));
-    cls.streams.forEach((stream) => {
-      const streamName = stream.name.charAt(0).toUpperCase() + stream.name.slice(1);
-      options.push({ value: stream._id + '|', label: streamName });
-      stream.sections.forEach((section) => options.push({ value: stream._id + '|' + section._id, label: streamName + ' · ' + section.name }));
-    });
-    return options;
+  private get selectedClass(): FilterClass | undefined {
+    return this.classes.find((row) => row._id === this.classId);
   }
 
-  /** Second pill: Department for staff, Class for students. */
-  get secondOptions(): DdOption[] { return this.personType === 'staff' ? this.departmentOptions : this.classOptions; }
-  get secondValue(): string { return this.personType === 'staff' ? this.departmentId : this.classId; }
-  /** Third pill: Designation (needs a department) or Section (needs a class). */
-  get thirdOptions(): DdOption[] { return this.personType === 'staff' ? this.designationOptions : this.sectionOptions; }
-  get thirdValue(): string { return this.personType === 'staff' ? this.designationId : this.sectionKey; }
-  get thirdDisabled(): boolean { return this.personType === 'staff' ? !this.departmentId : !this.classId || this.sectionOptions.length < 2; }
-  get thirdHint(): string { return this.personType === 'staff' ? 'Select a department first' : 'Select a class first'; }
+  get streamOptions(): DdOption[] {
+    return [{ value: '', label: 'All streams' }, ...(this.selectedClass?.streams || [])
+      .map((stream) => ({ value: stream._id, label: stream.name.charAt(0).toUpperCase() + stream.name.slice(1) }))];
+  }
+
+  /** Stream Groups of the chosen class(+stream) — never the automatic "General" (show-only). */
+  get groupOptions(): DdOption[] {
+    const cls = this.selectedClass;
+    const ready = Boolean(cls) && (!cls?.hasStreams || Boolean(this.streamId));
+    const groups = ready
+      ? this.groups.filter((group) => !group.isSystemGroup && group.classId === cls?._id && (group.streamId || '') === this.streamId)
+      : [];
+    return [{ value: '', label: 'All stream groups' }, ...groups.map((group) => ({ value: group._id, label: group.name }))];
+  }
+
+  get sectionOptions(): DdOption[] {
+    const cls = this.selectedClass;
+    let sections = cls && !cls.hasStreams ? cls.sections : [];
+    if (cls && cls.hasStreams && this.streamId) sections = cls.streams.find((stream) => stream._id === this.streamId)?.sections || [];
+    return [{ value: '', label: 'All sections' }, ...sections.map((section) => ({ value: section._id, label: 'Section ' + section.name }))];
+  }
+
+  get streamDisabled(): boolean { return !this.selectedClass?.hasStreams; }
+  get groupDisabled(): boolean { return this.groupOptions.length < 2; }
+  get sectionDisabled(): boolean { return this.sectionOptions.length < 2; }
+  get designationDisabled(): boolean { return !this.departmentId; }
+
+  /** "General" for a class without streams, else that stream's group names — the class rows' Stream Group. */
+  groupLabelOf(row: ClassShiftRow): string {
+    if (row.level === 0 && row.selectable) {
+      const cls = this.classes.find((candidate) => candidate._id === row.classId);
+      return cls && !cls.hasStreams ? 'General' : '';
+    }
+    if (row.streamId && !row.sectionId) {
+      return this.groups.filter((group) => !group.isSystemGroup && group.classId === row.classId && group.streamId === row.streamId)
+        .map((group) => group.name).join(', ');
+    }
+    if (row.level === 1 && row.sectionId && !row.streamId) return 'General';
+    return '';
+  }
+
+  /** The Assign modal's show-only Stream Group: "General" when every target is a General-group class. */
+  get assignGroupOptions(): DdOption[] {
+    const targets = this.targetsOf(this.assignTargets);
+    const streamIds = new Set(targets.map((target) => target.streamId || ''));
+    if (targets.length && streamIds.size === 1 && !streamIds.has('')) {
+      const [target] = targets;
+      const names = this.groups.filter((group) => !group.isSystemGroup && group.classId === target.classId && group.streamId === target.streamId);
+      return [{ value: '', label: 'All stream groups' }, ...names.map((group) => ({ value: group._id, label: group.name }))];
+    }
+    return [{ value: 'general', label: 'General' }];
+  }
+
+  get assignGroupValue(): string {
+    return this.assignGroupOptions[0].value;
+  }
 
   onPersonTypeChange(value: string): void {
     const next: PersonType = value === 'student' ? 'student' : 'staff';
@@ -223,35 +278,54 @@ export class RosterComponent implements OnInit, OnDestroy {
     this.departmentId = '';
     this.designationId = '';
     this.classId = '';
-    this.sectionKey = '';
+    this.streamId = '';
+    this.groupId = '';
+    this.sectionId = '';
     this.selected.clear();
     this.failures = [];
     this.fetch();
   }
 
-  onSecondChange(value: string): void {
-    if (this.personType === 'staff') {
-      this.departmentId = value;
-      this.designationId = '';
-      this.selected.clear();
-      this.fetch();
-    } else {
-      this.classId = value;
-      this.sectionKey = '';
-      this.selected.clear();
-    }
+  onDepartmentChange(value: string): void {
+    this.departmentId = value;
+    this.designationId = '';
+    this.selected.clear();
+    this.fetch();
+  }
+
+  onDesignationChange(value: string): void {
+    this.designationId = value;
+    this.selected.clear();
+    this.fetch();
+  }
+
+  /** Students: Class → Stream → Stream Group → Section, each change resetting what depends on it. */
+  onClassChange(value: string): void {
+    this.classId = value;
+    this.streamId = '';
+    this.groupId = '';
+    this.sectionId = '';
+    this.selected.clear();
     this.cdr.markForCheck();
   }
 
-  onThirdChange(value: string): void {
-    if (this.personType === 'staff') {
-      this.designationId = value;
-      this.selected.clear();
-      this.fetch();
-    } else {
-      this.sectionKey = value;
-      this.selected.clear();
-    }
+  onStreamChange(value: string): void {
+    this.streamId = value;
+    this.groupId = '';
+    this.sectionId = '';
+    this.selected.clear();
+    this.cdr.markForCheck();
+  }
+
+  onGroupChange(value: string): void {
+    this.groupId = value;
+    this.selected.clear();
+    this.cdr.markForCheck();
+  }
+
+  onSectionChange(value: string): void {
+    this.sectionId = value;
+    this.selected.clear();
     this.cdr.markForCheck();
   }
 
@@ -269,14 +343,22 @@ export class RosterComponent implements OnInit, OnDestroy {
 
   // --- data ----------------------------------------------------------------------------
 
-  fetch(): void {
-    this.loading = true;
-    this.loadError = '';
+  private fetchSeq = 0;
+
+  /** `quiet`: a refresh after a write — the current grid stays visible meanwhile. */
+  fetch(quiet = false): void {
+    if (!quiet) {
+      this.loading = true;
+      this.loadError = '';
+    }
     this.cdr.markForCheck();
+    // Only the newest request may land — a fast filter change never shows a stale answer.
+    const seq = ++this.fetchSeq;
     if (this.personType === 'staff') {
       this.api.getStaffRoster(this.adminId, {
         month: this.month, departmentId: this.departmentId, designationId: this.designationId, search: this.search
       }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+        if (seq !== this.fetchSeq) return;
         this.days = res.days || [];
         this.staffRows = res.rows || [];
         this.truncated = res.truncated;
@@ -294,6 +376,7 @@ export class RosterComponent implements OnInit, OnDestroy {
       return;
     }
     this.api.getClassShifts(this.adminId, this.session).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+      if (seq !== this.fetchSeq) return;
       this.classRows = res.rows || [];
       this.setLegend(res.legend);
       this.stats = res.stats;
@@ -337,13 +420,12 @@ export class RosterComponent implements OnInit, OnDestroy {
     const term = this.search.toLowerCase();
     return this.classRows.filter((row) => {
       if (this.classId && row.classId !== this.classId) return false;
-      // Headings stay so the narrowed rows keep their Class → Stream context.
-      if (this.sectionKey && row.level > 0) {
-        const [streamId, sectionId] = this.sectionKey.split('|');
-        if (streamId && row.streamId !== streamId) return false;
-        if (sectionId && row.sectionId && row.sectionId !== sectionId) return false;
-        if (sectionId && !row.sectionId && !streamId) return false;
-      }
+      // Headings stay so the narrowed rows keep their Class → Stream context. A Stream Group
+      // belongs to one stream, so it narrows to that stream's rows (shifts are set per
+      // stream/section, never per group — the group is show-only).
+      const streamId = this.streamId || (this.groupId ? this.groups.find((group) => group._id === this.groupId)?.streamId || '' : '');
+      if (streamId && row.level > 0 && row.streamId !== streamId) return false;
+      if (this.sectionId && row.level > 0 && row.sectionId !== this.sectionId && !(row.streamId && !row.sectionId)) return false;
       if (term) {
         const cls = this.classRows.find((candidate) => candidate.level === 0 && candidate.classId === row.classId);
         return (cls?.label || '').toLowerCase().includes(term) || row.label.toLowerCase().includes(term);
@@ -372,7 +454,7 @@ export class RosterComponent implements OnInit, OnDestroy {
   }
 
   shiftTime(shift: Shift | null | undefined): string {
-    return shift ? formatTime(shift.startTime) + '–' + formatTime(shift.endTime) : '';
+    return shift ? formatTime(shift.startTime) + ' – ' + formatTime(shift.endTime) : '';
   }
 
   shiftOf(id: string | null): Shift | null {
@@ -381,10 +463,15 @@ export class RosterComponent implements OnInit, OnDestroy {
 
   // --- selection -----------------------------------------------------------------------
 
+  /**
+   * A row "has a roster" when a shift sits on an EDITABLE day (today onward). Locked past
+   * days are kept by Delete on purpose, so counting them made a deleted row still read as
+   * assigned — Assign stayed disabled and only Edit was enabled (attendance-fix1.md §1.4).
+   */
   private hasAssignment(key: string): boolean {
     if (this.personType === 'staff') {
       const row = this.staffRows.find((candidate) => candidate._id === key);
-      return !!row && Object.values(row.days).some((value) => value && value !== WEEK_OFF);
+      return !!row && Object.entries(row.days).some(([dateKey, value]) => dateKey >= this.today && value && value !== WEEK_OFF);
     }
     const row = this.classRows.find((candidate) => candidate.key === key);
     return !!row?.shiftId;
@@ -447,7 +534,7 @@ export class RosterComponent implements OnInit, OnDestroy {
   get shiftOptions(): DdOption[] {
     return [{ value: '', label: '— Select —' }, ...this.shifts
       .filter((shift) => shift.status === 'active')
-      .map((shift) => ({ value: shift._id, label: shift.name + ' · ' + formatTime(shift.startTime).replace(/ (AM|PM)/, '') + '–' + formatTime(shift.endTime).replace(/ (AM|PM)/, '') }))];
+      .map((shift) => ({ value: shift._id, label: shift.name + ' · ' + this.shiftTime(shift) }))];
   }
 
   openAssign(): void {
@@ -485,12 +572,14 @@ export class RosterComponent implements OnInit, OnDestroy {
       this.assignShiftId = row?.shiftId || '';
       return;
     }
-    const row = this.staffRows.find((candidate) => keys.includes(candidate._id) && Object.values(candidate.days).some((value) => value !== WEEK_OFF));
+    const editable = (dateKey: string): boolean => dateKey >= this.today;
+    const row = this.staffRows.find((candidate) => keys.includes(candidate._id)
+      && Object.entries(candidate.days).some(([dateKey, value]) => editable(dateKey) && value !== WEEK_OFF));
     if (!row) return;
     const working = new Set<number>();
     let shiftId = '';
     Object.entries(row.days).forEach(([dateKey, value]) => {
-      if (value === WEEK_OFF) return;
+      if (value === WEEK_OFF || !editable(dateKey)) return;
       shiftId = shiftId || value;
       working.add(new Date(dateKey + 'T00:00:00').getDay());
     });
@@ -572,10 +661,13 @@ export class RosterComponent implements OnInit, OnDestroy {
   }
 
   onConfirmed(): void {
-    this.confirmOpen = false;
     if (this.deleting) return;
     const keys = [...this.selected].filter((key) => this.hasAssignment(key));
-    if (!keys.length) return;
+    if (!keys.length) {
+      this.confirmOpen = false;
+      return;
+    }
+    // One bulk write; the confirm stays open with its spinner until it answers (rule 11).
     this.deleting = true;
     this.failures = [];
     const request = this.personType === 'staff'
@@ -583,12 +675,31 @@ export class RosterComponent implements OnInit, OnDestroy {
       : this.api.clearClasses({ adminId: this.adminId, session: this.session, targets: this.targetsOf(keys), confirmed: true });
     request.pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.deleting = false;
+      this.confirmOpen = false;
+      const failed = new Set((res.failed || []).map((row) => keys[row.row]));
+      this.clearLocally(keys.filter((key) => !failed.has(key)));
       this.afterBulk(res, keys);
     }, (error: unknown) => {
       this.deleting = false;
+      this.confirmOpen = false;
       this.showFailures(rowErrorsOf(error) as RowFailure[], keys);
       this.cdr.markForCheck();
     });
+  }
+
+  /** Mirror a successful delete at once — the cells empty and Assign re-enables without waiting. */
+  private clearLocally(keys: string[]): void {
+    const cleared = new Set(keys);
+    if (this.personType === 'staff') {
+      this.staffRows = this.staffRows.map((row) => {
+        if (!cleared.has(row._id)) return row;
+        const days: Record<string, string> = {};
+        Object.entries(row.days).forEach(([dateKey, value]) => { if (dateKey < this.today) days[dateKey] = value; });
+        return { ...row, days };
+      });
+    } else {
+      this.classRows = this.classRows.map((row) => (cleared.has(row.key) ? { ...row, shiftId: null } : row));
+    }
   }
 
   onConfirmCancelled(): void {
@@ -599,7 +710,8 @@ export class RosterComponent implements OnInit, OnDestroy {
     this.selected.clear();
     this.showFailures(res.failed || [], keys);
     this.snackBar.open(res.warning ? res.message + ' ' + res.warning.message : res.message, 'Close', { duration: res.warning ? 6000 : 3000 });
-    this.fetch();
+    // A quiet refresh: the grid on screen stays until the server's answer lands.
+    this.fetch(true);
   }
 
   /** Name each failed row (the server reports positions in the list it was sent). */

@@ -51,6 +51,7 @@ import { MonthNavComponent } from './components/month-nav/month-nav.component';
 import { PersonFilterComponent } from './components/person-filter/person-filter.component';
 import { DateRangePickerComponent } from './components/date-range-picker/date-range-picker.component';
 import { PrintModeChoiceComponent } from './components/print-mode-choice/print-mode-choice.component';
+import { GoodToKnowComponent } from './components/good-to-know/good-to-know.component';
 import { TextCasePipe } from './pipes/text-case.pipe';
 
 const COMPONENTS = [
@@ -91,6 +92,8 @@ const COMPONENTS = [
   DateRangePickerComponent,
   // "One / Two Students in One Page" — Generate Admit Card, Generate Marksheet (and Generate TC).
   PrintModeChoiceComponent,
+  // The "Good to know" side card — 2-3 plain-language steps, the rest behind "Read more".
+  GoodToKnowComponent,
   TextCasePipe
 ];
 

@@ -18,8 +18,9 @@ const logger = require('../../helpers/logger');
 // person's expected Shift. Allowed to lag the fast path; the grid shows "live" meanwhile.
 //
 // Re-runnable by construction: every write is an upsert on the record's unique key, so a
-// retried or duplicate job converges on the same rows. Manual corrections (isOverridden)
-// are never touched.
+// retried or duplicate job converges on the same rows. Leave marks (isOverridden) are never
+// touched. A manual Present/Late mark (source 'manual') is kept while the person has no
+// device punch that day — and replaced the moment one arrives: a device punch always wins.
 
 const WRITE_CHUNK = 1000;
 
@@ -64,11 +65,16 @@ const reconcileDay = async (adminId, dateKey) => {
 
     const [logs, overridden, session, shifts] = await Promise.all([
         PunchLogV2Model.find({ adminId, dateKey }, { personType: 1, personId: 1, punchTime: 1, reconciled: 1 }).lean(),
-        AttendanceRecordV2Model.find({ adminId, date, isOverridden: true }, { personType: 1, personId: 1 }).lean(),
+        AttendanceRecordV2Model.find(
+            { adminId, date, deletedAt: null, $or: [{ isOverridden: true }, { source: 'manual' }] },
+            { personType: 1, personId: 1, isOverridden: 1, source: 1 }
+        ).lean(),
         getActiveSession(adminId),
         shiftIndex(adminId),
     ]);
-    const skip = new Set(overridden.map((row) => `${row.personType}|${row.personId}`));
+    const skip = new Set(overridden.filter((row) => row.isOverridden).map((row) => `${row.personType}|${row.personId}`));
+    // Marked by hand and no punch: keep the mark (never turned into an end-of-day Absent).
+    const manual = new Set(overridden.filter((row) => !row.isOverridden && row.source === 'manual').map((row) => `${row.personType}|${row.personId}`));
     const sessionId = session ? session._id : null;
     const punched = groupPunches(logs);
 
@@ -87,7 +93,10 @@ const reconcileDay = async (adminId, dateKey) => {
     // Who is decided today: everyone who punched, plus — once the day is over — everyone
     // expected on a shift, so a no-show becomes an Absent row.
     const expected = dayComplete
-        ? (await expectedPeople(adminId, dateKey, sessionId)).filter((person) => !punched.has(personKey(person.personType, person.personId)))
+        ? (await expectedPeople(adminId, dateKey, sessionId)).filter((person) => {
+            const key = personKey(person.personType, person.personId);
+            return !punched.has(key) && !manual.has(key);
+        })
         : [];
     const people = [...punched.values()].map((p) => ({ personType: p.personType, personId: p.personId }))
         .concat(expected.map((p) => ({ personType: p.personType, personId: p.personId })))
@@ -106,12 +115,12 @@ const reconcileDay = async (adminId, dateKey) => {
         const dayType = dayTypeOf(key);
         if (dayType !== DAY_TYPE.WORKING) {
             // Punches on a day off are kept on the row; the day itself stays off.
-            entries.push({ personType: person.personType, personId: person.personId, shiftId: null, ...result, status: dayType });
+            entries.push({ personType: person.personType, personId: person.personId, shiftId: null, ...result, status: dayType, source: 'device' });
             return;
         }
         // Before the day is over, "no arrival in the window" is not yet an absence.
         if (!dayComplete && result.status === 'Absent') return;
-        entries.push({ personType: person.personType, personId: person.personId, shiftId, ...result });
+        entries.push({ personType: person.personType, personId: person.personId, shiftId, ...result, source: 'device' });
     });
 
     expected.forEach((person) => {
@@ -127,6 +136,7 @@ const reconcileDay = async (adminId, dateKey) => {
             inTime: null,
             outTime: null,
             punches: [],
+            source: 'system',
         });
     });
 
@@ -143,10 +153,12 @@ const reconcileDay = async (adminId, dateKey) => {
                         outTime: entry.outTime,
                         punches: entry.punches,
                         shiftId: entry.shiftId,
+                        source: entry.source,
+                        deletedAt: null,
                         updatedBy: 'reconcile',
                         updatedAt: now,
                     },
-                    $setOnInsert: { createdAt: now, isOverridden: false, deletedAt: null },
+                    $setOnInsert: { createdAt: now, isOverridden: false },
                 },
                 upsert: true,
             },

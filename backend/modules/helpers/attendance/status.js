@@ -67,12 +67,20 @@ const toPunches = (inTime, outTime) => {
     return punches;
 };
 
-/** "HH:mm" → "h:mm" for a grid chip (the reference shows 8:23, 9:50). */
+/** A wall-clock instant → "8:23 AM" — every time the UI shows is 12-hour AM/PM (global rule 4). */
 const chipTime = (date) => {
     if (!date) return null;
     const d = new Date(date);
     const hours = d.getUTCHours();
-    return `${hours % 12 === 0 ? 12 : hours % 12}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    return `${hours % 12 === 0 ? 12 : hours % 12}:${String(d.getUTCMinutes()).padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
+};
+
+/** "HH:mm" (a shift's start/end) → "8:00 AM". */
+const hhmmLabel = (hhmm) => {
+    const match = /^(\d{2}):(\d{2})$/.exec(hhmm || '');
+    if (!match) return '';
+    const hours = Number(match[1]);
+    return `${hours % 12 === 0 ? 12 : hours % 12}:${match[2]} ${hours >= 12 ? 'PM' : 'AM'}`;
 };
 
 /** Short shift code for roster chips — "Morning Shift" → "MS", "Evening" → "E". */
@@ -92,4 +100,4 @@ const isTimeRangeValid = (startTime, endTime) => {
     return start !== null && end !== null && start < end;
 };
 
-module.exports = { buildPunchHash, computeDayStatus, chipTime, shiftCode, isTimeRangeValid };
+module.exports = { buildPunchHash, computeDayStatus, chipTime, hhmmLabel, shiftCode, isTimeRangeValid };

@@ -11,10 +11,19 @@
  * deliberate way back in. `marked` ranges (e.g. existing holidays) are shown lightly, with a
  * chip per range in the visible month.
  *
+ * `popover` (global-fixes.md rule 1 — the Roster "Applies to" field is the final design for
+ * every picker): the calendar is hidden behind a `.range-input-trigger` field and opens as an
+ * overlay portaled to <body>, directly below the field (flipping above only when it can't
+ * fit), exactly like `.dd` / `.dp`. It closes on Done, an outside click or Escape.
+ *
  * Values are 'YYYY-MM-DD' strings ('' = not chosen) — never Date objects, which drift a day
  * across time zones.
  */
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import {
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges,
+  OnDestroy, Output, SimpleChanges, ViewChild
+} from '@angular/core';
+import { placeBelow } from 'src/app/shared/utils/overlay-position.util';
 
 export interface DateRange {
   start: string;
@@ -68,7 +77,7 @@ export const rangeLabel = (start: string, end: string): string =>
   styleUrls: ['./date-range-picker.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DateRangePickerComponent implements OnChanges {
+export class DateRangePickerComponent implements OnChanges, OnDestroy {
   @Input() start = '';
   @Input() end = '';
   /** Inclusive bounds — days outside are shown but can't be picked. */
@@ -86,8 +95,105 @@ export class DateRangePickerComponent implements OnChanges {
   /** View-only: nothing can be picked (e.g. a person's holiday calendar). */
   @Input() disabled = false;
   @Input() showSummary = true;
+  /** Hidden until its trigger field is clicked; opens as an overlay below it. */
+  @Input() popover = false;
+  /** The trigger's text while no range is chosen (popover mode). */
+  @Input() placeholder = 'Select dates';
+  @Input() ariaLabel = '';
 
   @Output() rangeChange = new EventEmitter<DateRange>();
+  /** Every close of the popover — Done, outside click, Escape. */
+  @Output() closed = new EventEmitter<void>();
+
+  @ViewChild('panel', { static: true }) panel!: ElementRef<HTMLElement>;
+
+  open = false;
+  /** A click that started inside the panel. Its target may be re-rendered away before the
+   *  document listener sees it, so DOM containment alone can't be trusted. */
+  private insideClick = false;
+
+  constructor(private host: ElementRef<HTMLElement>, private cdr: ChangeDetectorRef) {}
+
+  ngOnDestroy(): void {
+    this.detach();
+    if (this.popover) this.panel.nativeElement.remove();
+  }
+
+  /** "5 August 2026 – 31 August 2026", or the placeholder. */
+  get triggerLabel(): string {
+    if (!this.start) return this.placeholder;
+    return rangeLabel(this.start, this.end || this.start);
+  }
+
+  toggle(event: Event): void {
+    event.stopPropagation();
+    if (!this.popover || this.disabled) return;
+    if (this.open) this.close();
+    else this.openPanel();
+  }
+
+  markInside(): void {
+    this.insideClick = true;
+  }
+
+  done(event: Event): void {
+    event.stopPropagation();
+    this.close();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.open) return;
+    if (this.insideClick) {
+      this.insideClick = false;
+      return;
+    }
+    const node = event.target as Node | null;
+    if (node && this.host.nativeElement.contains(node)) return;
+    this.close();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.open) this.close();
+  }
+
+  private openPanel(): void {
+    this.open = true;
+    const panel = this.panel.nativeElement;
+    panel.classList.add('drp-portal');
+    document.body.appendChild(panel);
+    // Render the calendar now so the flip decision measures the real panel height.
+    this.cdr.detectChanges();
+    this.position();
+    document.addEventListener('scroll', this.reposition, true);
+    window.addEventListener('resize', this.reposition);
+  }
+
+  private close(): void {
+    this.open = false;
+    this.detach();
+    const panel = this.panel.nativeElement;
+    panel.classList.remove('drp-portal', 'flipped');
+    panel.removeAttribute('style');
+    this.host.nativeElement.appendChild(panel);
+    this.closed.emit();
+    this.cdr.markForCheck();
+  }
+
+  private detach(): void {
+    document.removeEventListener('scroll', this.reposition, true);
+    window.removeEventListener('resize', this.reposition);
+  }
+
+  private reposition = (): void => {
+    if (this.open) this.position();
+  };
+
+  private position(): void {
+    const trigger = this.host.nativeElement.querySelector('.range-input-trigger') as HTMLElement | null;
+    placeBelow(this.panel.nativeElement, (trigger || this.host.nativeElement).getBoundingClientRect());
+  }
 
   readonly today = localToday();
   viewMonth = this.today.slice(0, 7);
@@ -120,6 +226,8 @@ export class DateRangePickerComponent implements OnChanges {
   step(delta: number): void {
     const date = new Date(Number(this.viewMonth.slice(0, 4)), Number(this.viewMonth.slice(5, 7)) - 1 + delta, 1);
     this.viewMonth = date.getFullYear() + '-' + pad(date.getMonth() + 1);
+    // A 5- vs 6-row month changes the panel's height — keep it anchored to the field.
+    if (this.open) setTimeout(() => this.position());
   }
 
   private markOf(key: string): DateRangeMark | null {

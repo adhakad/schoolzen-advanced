@@ -3,10 +3,11 @@
  */
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import {
-  DayPunches, GridQuery, GridResponse, LiveStatus, PersonType, RecentArrivals, SyncResponse
+  DayPunches, GridQuery, GridResponse, LiveStatus, MarkResponse, MarkStatus, PersonType, RecentArrivals, SyncResponse, SyncStatus
 } from 'src/app/shared/models/attendance/attendance.model';
 
 @Injectable({ providedIn: 'root' })
@@ -36,5 +37,14 @@ export class AttendanceOverviewService {
   /** Only ever called after the confirm modal — `confirmed` is the server's backstop. */
   syncNow(adminId: string): Observable<SyncResponse> {
     return this.http.post<SyncResponse>(`${this.url}/sync`, { adminId, confirmed: true });
+  }
+
+  getSyncStatus(adminId: string): Observable<SyncStatus> {
+    return this.http.get<SyncStatus>(`${this.url}/sync-status`, { params: { adminId } });
+  }
+
+  /** Manual status marking — today only, server time; `key` is the popover's Idempotency-Key. */
+  mark(adminId: string, body: { personType: PersonType; personId: string; status: MarkStatus }, key: string): Observable<MarkResponse> {
+    return this.http.post<MarkResponse>(`${this.url}/mark`, { adminId, ...body }, { headers: idempotencyHeaders(key) });
   }
 }

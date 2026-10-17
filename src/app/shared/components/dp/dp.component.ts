@@ -30,10 +30,8 @@ import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostBinding,
   HostListener, Input, OnChanges, OnDestroy, Output, ViewChild
 } from '@angular/core';
+import { placeBelow } from 'src/app/shared/utils/overlay-position.util';
 
-/** Gap between trigger and panel, and the minimum margin kept from the viewport edge. */
-const GAP = 8;
-const EDGE = 8;
 
 interface DayCell {
   iso: string;
@@ -289,29 +287,7 @@ export class DpComponent implements OnChanges, OnDestroy {
    * with the field and clamped inside the viewport.
    */
   private position(): void {
-    const panel = this.panel.nativeElement;
-    const rect = this.host.nativeElement.getBoundingClientRect();
-    const viewportW = window.innerWidth;
-    const viewportH = window.innerHeight;
-
-    panel.style.position = 'fixed';
-    panel.style.maxHeight = '';
-
-    const height = panel.offsetHeight;
-    const width = panel.offsetWidth;
-    const below = viewportH - rect.bottom - GAP - EDGE;
-    const above = rect.top - GAP - EDGE;
-
-    this.flipped = height > below && (height <= above || above > below);
-    const room = this.flipped ? above : below;
-    if (height > room) panel.style.maxHeight = `${Math.max(160, room)}px`;
-    const finalHeight = Math.min(height, Math.max(160, room));
-    const top = this.flipped ? rect.top - GAP - finalHeight : rect.bottom + GAP;
-    const left = Math.min(Math.max(EDGE, rect.left), viewportW - width - EDGE);
-
-    panel.style.top = `${Math.min(Math.max(EDGE, top), Math.max(EDGE, viewportH - finalHeight - EDGE))}px`;
-    panel.style.left = `${Math.max(EDGE, left)}px`;
-    panel.classList.toggle('flipped', this.flipped);
+    this.flipped = placeBelow(this.panel.nativeElement, this.host.nativeElement.getBoundingClientRect());
   }
 
   private syncViewToValue(): void {

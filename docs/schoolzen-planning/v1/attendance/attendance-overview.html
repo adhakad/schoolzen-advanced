@@ -81,7 +81,9 @@
 
   .sw-toolbar{ display:flex; flex-direction:column; gap:14px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
   .toolbar-row1{display:flex; align-items:center; justify-content:space-between; gap:16px;}
-  .toolbar-row2{display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; align-items:stretch;}
+  .toolbar-row2{display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:8px; align-items:stretch;}
+  .toolbar-row2 .dd{min-width:0; width:100%;} .toolbar-row2 .sw-select-pill{width:100%; min-width:0;}
+  @media (max-width:640px){ .toolbar-row2{grid-template-columns:repeat(2, minmax(0,1fr));} }
   .toolbar-row2 .dd{display:flex; align-items:stretch;}
   .toolbar-row3{display:flex; align-items:center; margin-top:2px;}
   .search{position:relative; flex:0 0 340px; width:340px;}
@@ -365,6 +367,14 @@
                 <div class="dd-option selected" onclick="selectFilter(this,'streamPill','','All streams')">All streams</div>
                 <div class="dd-option" onclick="selectFilter(this,'streamPill','science','Science')">Science</div>
                 <div class="dd-option" onclick="selectFilter(this,'streamPill','commerce','Commerce')">Commerce</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled" id="groupPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'groupPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All stream groups</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'groupPill','','All stream groups')">All stream groups</div>
               </div>
             </div>
             <div class="dd sw-select-pill disabled" id="sectionPill" data-value="">
@@ -1075,44 +1085,45 @@ function renderToolbarMonth(){
 renderToolbarMonth();
 
 const classSections = { '6': ['A', 'B'], '9': ['A', 'B', 'C'] };
-const streamSections = { 'science': ['A', 'B'] };
+const streamGroups = { 'science': ['PCM', 'PCB'], 'commerce': ['Accounts', 'Maths'] };
+const groupSections = { 'PCM': ['A'], 'PCB': ['B'], 'Accounts': ['A'], 'Maths': ['B'] };
 
+function fillSections(list){
+  enableDD('sectionPill');
+  document.querySelector('#sectionPill .dd-menu').innerHTML = list.map(s =>
+    `<div class="dd-option" onclick="selectFilter(this,'sectionPill','${s}','Section ${s}')">Section ${s}</div>`).join('');
+  setDDValue('sectionPill', '', 'All sections');
+}
+// Order: Class -> Stream -> Stream Group -> Section (a Group belongs to a Stream)
 function cascadeFilters(){
   const ptype = document.getElementById('ptypePill').dataset.value;
   const dept = document.getElementById('deptPill').dataset.value;
   const cls = document.getElementById('classPill').dataset.value;
   const stream = document.getElementById('streamPill').dataset.value;
-
+  const group = document.getElementById('groupPill').dataset.value;
   if (ptype === 'staff') {
     enableDD('deptPill');
-    disableDD('classPill', 'All classes');
-    disableDD('streamPill', 'All streams');
-    disableDD('sectionPill', 'All sections');
+    ['classPill','streamPill','groupPill','sectionPill'].forEach((id,i)=>disableDD(id, ['All classes','All streams','All stream groups','All sections'][i]));
     if (dept) enableDD('desigPill'); else disableDD('desigPill', 'All designations');
-  } else {
-    enableDD('classPill');
-    disableDD('deptPill', 'All departments');
-    disableDD('desigPill', 'All designations');
-    disableDD('streamPill', 'All streams');
-    disableDD('sectionPill', 'All sections');
-    if (cls === '11' || cls === '12') {
-      enableDD('streamPill');
-    } else if (cls && classSections[cls]) {
-      enableDD('sectionPill');
-      const menu = document.querySelector('#sectionPill .dd-menu');
-      menu.innerHTML = classSections[cls].map(s =>
-        `<div class="dd-option" onclick="selectFilter(this,'sectionPill','${s}','Section ${s}')">Section ${s}</div>`
-      ).join('');
-      setDDValue('sectionPill', '', 'All sections');
+    return;
+  }
+  enableDD('classPill');
+  disableDD('deptPill', 'All departments');
+  disableDD('desigPill', 'All designations');
+  disableDD('streamPill', 'All streams');
+  disableDD('groupPill', 'All stream groups');
+  disableDD('sectionPill', 'All sections');
+  if (cls === '11' || cls === '12') {
+    enableDD('streamPill');
+    if (stream && streamGroups[stream]) {
+      enableDD('groupPill');
+      document.querySelector('#groupPill .dd-menu').innerHTML =
+        `<div class="dd-option selected" onclick="selectFilter(this,'groupPill','','All stream groups')">All stream groups</div>` +
+        streamGroups[stream].map(g => `<div class="dd-option" onclick="selectFilter(this,'groupPill','${g}','${g}')">${g}</div>`).join('');
+      if (group && groupSections[group]) fillSections(groupSections[group]);
     }
-    if (stream && streamSections[stream]) {
-      enableDD('sectionPill');
-      const menu = document.querySelector('#sectionPill .dd-menu');
-      menu.innerHTML = streamSections[stream].map(s =>
-        `<div class="dd-option" onclick="selectFilter(this,'sectionPill','${s}','Section ${s}')">Section ${s}</div>`
-      ).join('');
-      setDDValue('sectionPill', '', 'All sections');
-    }
+  } else if (cls && classSections[cls]) {
+    fillSections(classSections[cls]); // General-group class: group stays disabled, show-only
   }
 }
 
@@ -1168,8 +1179,125 @@ function performSync(){
 
 cascadeFilters();
 const todayCell = document.querySelector('.att-grid th.today-col');
-if (todayCell) todayCell.scrollIntoView({ inline: 'center', block: 'nearest' });
+if (todayCell) {
+  // scroll only the grid wrapper (never the page), keeping today just right of the sticky columns
+  const sc = document.getElementById('gridScroll');
+  const stickyW = Array.from(sc.querySelectorAll('thead th.check-col, thead th.name-col, thead th.type-col')).filter(t => t.offsetParent).reduce((a, t) => a + t.offsetWidth, 0);
+  sc.scrollLeft = Math.max(0, todayCell.offsetLeft - stickyW - 8);
+}
 function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle('open'); }
 </script>
+<style>
+  /* ===== Manual attendance, past/future chip states, Stream Group filter (additions to the reference) ===== */
+  .att-grid{min-width:2210px; table-layout:fixed;}
+  .att-grid .check-col,.att-grid .check-cell{width:38px; min-width:38px; max-width:38px;}
+  .att-grid .name-col,.att-grid .name-cell{width:160px; min-width:160px; max-width:160px;}
+  .att-grid .type-col,.att-grid .type-cell{width:90px; min-width:90px; max-width:90px;}
+  .day-cell{width:62px; min-width:62px;}
+  /* Mobile: fixed columns must not eat the grid. Keep only checkbox + name sticky, hide Type (ID line already shows staff/student), narrower days */
+  @media (max-width:640px){
+    .toolbar-row1{flex-wrap:wrap;} .search{flex:1 1 100%; width:100%;} .toolbar-row1 > div:last-child{margin-left:auto;}
+    .att-grid{min-width:calc(134px + 31 * 54px);}
+    .att-grid .check-col,.att-grid .check-cell{width:30px; min-width:30px; max-width:30px; padding-left:4px; padding-right:4px;}
+    .att-grid th.name-col,.att-grid td.name-cell{left:30px; width:104px; min-width:104px; max-width:104px; padding-left:6px; padding-right:4px;}
+    .att-grid .type-col,.att-grid .type-cell{display:none;}
+    .att-grid .g-avatar{display:none;}
+    .att-grid .g-name{white-space:normal; line-height:1.15;}
+    .day-cell{width:54px; min-width:54px;}
+  }
+  .chip{width:45px; height:36px; padding:3px 6px; gap:2px;} /* 5:4 ratio (100:80) */
+  .chip .s{font-size:10.5px;}
+  .chip .t{font-size:7.5px; margin-top:0; white-space:nowrap;}
+  .chip.locked-past{opacity:.55; cursor:not-allowed;}
+  .chip.future{opacity:.6; cursor:not-allowed; border:1px dashed var(--ink-faint); background:transparent;}
+  .chip.future .s{color:var(--ink-faint) !important;}
+  .chip.nocell{opacity:.45; cursor:not-allowed; border:1px dashed var(--ink-faint); background:transparent;}
+  .chip.live-click{cursor:pointer; border-color:var(--brand);}
+  .chip.live-click:hover{box-shadow:0 0 0 3px var(--brand-soft);}
+  .chip.closed{opacity:.6; cursor:not-allowed; border-color:var(--line);}
+  .pulse-cell.live-click{cursor:pointer;}
+  .g-id{font-size:9.5px; color:var(--ink-soft); font-weight:600;}
+  #apop{position:fixed; z-index:9999; width:230px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 12px 32px rgba(30,23,48,.18); padding:12px; display:none;}
+  #apop h4{margin:0; font-size:13px; color:var(--ink);} #apop p{margin:2px 0 8px; font-size:11px; color:var(--ink-faint);}
+  #apop .opt{width:100%; height:34px; margin-top:6px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); font-weight:600; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:0 10px;}
+  #apop .opt:hover{border-color:var(--brand);} #apop .opt.on{border-color:var(--brand); background:var(--brand-soft);}
+  #apop .opt.p{color:var(--success);} #apop .opt.l{color:var(--warning);} #apop .opt.a{color:var(--danger);}
+  #apop .opt:disabled{opacity:.5; cursor:not-allowed;}
+  #apop .cap{font-size:10px; color:var(--ink-faint); margin-top:8px;}
+  .spin{width:12px; height:12px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:sp .7s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #atip{position:fixed; z-index:10000; background:#1E1730; color:#fff; font-size:11px; padding:5px 9px; border-radius:6px; display:none; pointer-events:none;}
+</style>
+<div id="apop"></div><div id="atip"></div>
+<script>
+(function(){
+ var S={win:true,perm:true,WIN:"7:30 AM – 2:30 PM"};
+ var tbl=document.querySelector('.att-grid'), ths=[].slice.call(tbl.querySelectorAll('thead th'));
+ var ti=ths.findIndex(function(t){return t.classList.contains('today-col')});
+ var rows=[].slice.call(tbl.querySelectorAll('tbody tr')), tip=document.getElementById('atip'), pop=document.getElementById('apop');
+ var cur=null, SEQ=0;
+ function ampm(txt){var m=/^(\d{1,2}):(\d{2})$/.exec(txt);if(!m)return txt;var h=+m[1];return txt+" "+((h>=7&&h<12)?"AM":"PM");}
+ function fmtNow(){var d=new Date(),h=d.getHours(),m=d.getMinutes(),ap=h>=12?"PM":"AM";h=h%12||12;return h+":"+(m<10?"0":"")+m+" "+ap;}
+ function showTip(el,msg){tip.textContent=msg;tip.style.display="block";var r=el.getBoundingClientRect();tip.style.left=Math.max(6,r.left-40)+"px";tip.style.top=(r.bottom+6)+"px";clearTimeout(showTip.t);showTip.t=setTimeout(function(){tip.style.display="none"},1800);}
+ function build(){
+  rows.forEach(function(row,ri){
+   var sub=row.querySelector('.g-shift'), isStaff=!!row.querySelector('.type-tag.brand');
+   var code=(sub.textContent||"S").charAt(0);
+   sub.insertAdjacentHTML('beforebegin','<div class="g-id">'+(isStaff?'EMP-'+String(14+ri*3).padStart(3,'0'):'Roll '+(7+ri*2))+'</div>');
+   var tds=[].slice.call(row.children);
+   tds.forEach(function(td,i){
+    if(i<3)return;
+    var chip=td.querySelector('.chip'), pulse=td.querySelector('.pulse-cell');
+    if(chip){var t=chip.querySelector('.t'); if(t&&!/AM|PM/.test(t.textContent))t.textContent=ampm(t.textContent.trim());}
+    if(i<ti){ if(chip){chip.classList.add('locked-past');chip.dataset.m='Purani date: badal nahi sakte';} }
+    else if(i>ti){
+      if(chip&&chip.classList.contains('holiday')){chip.classList.add('future');chip.dataset.m='Aane wali date';}
+      else if(ri%6===5){td.innerHTML='<span class="chip nocell" data-m="Roster nahi laga hai"><span class="s">—</span></span>';}
+      else {td.innerHTML='<span class="chip future" data-m="Aane wali date (roster ke hisaab se)"><span class="s">'+code+'</span></span>';}
+    } else {
+      if(chip&&chip.classList.contains('holiday'))return;
+      td.classList.add('today-col');
+      if(pulse){td.innerHTML='<span class="chip present" data-t="8:12 AM"><span class="s">P</span><span class="t">8:12 AM</span></span>';chip=td.querySelector('.chip');}
+      chip.classList.add('live-click'); chip.dataset.r=ri;
+    }
+   });
+  });
+  refresh();
+ }
+ function refresh(){
+  [].slice.call(tbl.querySelectorAll('.live-click')).forEach(function(el){
+   var ok=S.win&&S.perm; el.classList.toggle('closed',!ok);
+   el.dataset.m=!S.perm?'Aapko attendance lagane ki permission nahi hai':(!S.win?'Attendance window band hai ('+S.WIN+')':'');
+  });
+ }
+ function curStatus(el){return el.classList.contains('late')?'l':(el.classList.contains('absent')?'a':'p');}
+ tbl.addEventListener('click',function(e){
+  var el=e.target.closest('.chip'); if(!el)return;
+  if(!el.classList.contains('live-click')||el.classList.contains('closed')){if(el.dataset.m)showTip(el,el.dataset.m);return;}
+  var row=rows[+el.dataset.r]; cur={el:el,row:row};
+  var nm=row.querySelector('.g-name').textContent, c=curStatus(el), t=el.querySelector('.t');
+  pop.innerHTML='<h4>'+nm+'</h4><p>Aaj • '+(row.querySelector('.g-id').textContent)+'</p>'+
+   ['p|Present','l|Late','a|Absent'].map(function(x){var k=x.split('|');return '<button class="opt '+k[0]+(c===k[0]?' on':'')+'" data-k="'+k[0]+'"><span>Mark '+k[1]+'</span></button>';}).join('')+
+   '<div class="cap">'+(t?'Marked at '+t.textContent+'. ':'')+'Time server se aata hai (AM/PM).</div>';
+  var r=el.getBoundingClientRect(); pop.style.display='block'; pop.style.left=Math.min(r.left,innerWidth-250)+'px'; pop.style.top=Math.min(r.bottom+8,innerHeight-230)+'px';
+  [].slice.call(pop.querySelectorAll('.opt')).forEach(function(b){b.onclick=function(){act(b,b.dataset.k)}});
+  e.stopPropagation();
+ });
+ function act(btn,k){
+  [].slice.call(pop.querySelectorAll('.opt')).forEach(function(b){b.disabled=true});
+  btn.innerHTML='<span class="spin"></span> Ho raha hai...';
+  setTimeout(function(){
+   var el=cur.el, cls=k==='p'?'present':(k==='l'?'late':'absent'), L=k==='p'?'P':(k==='l'?'L':'A');
+   el.className='chip '+cls+' live-click';
+   el.innerHTML='<span class="s">'+L+'</span>'+(k==='a'?'':'<span class="t">'+fmtNow()+'</span>');
+   pop.style.display='none'; refresh();
+  },600);
+ }
+ document.addEventListener('click',function(e){if(!pop.contains(e.target))pop.style.display='none'});
+ tbl.addEventListener('mouseover',function(e){var c=e.target.closest('.chip[data-m]');if(c&&c.dataset.m)c.title=c.dataset.m;});
+ build();
+})();
+</script>
+
 </body>
 </html>
