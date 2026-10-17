@@ -5,15 +5,27 @@
 //
 // Run: node scripts/test-attendance-mark-v2.js      (needs backend/.env: DB_URL, REDIS_URL)
 //      TEST_DB_NAME=other_db node scripts/test-attendance-mark-v2.js
+//      LIVE_APP_DB=1 node scripts/test-attendance-mark-v2.js   — the Live suite (attendance-fix2.md
+//        Part C §3): the app's REAL database, scoped to a brand-new throwaway school id; every
+//        row with that adminId (and its Redis keys / queued jobs) is deleted at the end and the
+//        cleanup is verified, instead of dropping a database.
 require('dotenv').config();
+// The window tests build shifts around "now"; at night in the school's zone there is no room,
+// so the test clock moves to the first zone where it is daytime (the code reads SCHOOL_TIMEZONE).
+{
+    const { DateTime } = require('luxon');
+    const zones = [process.env.SCHOOL_TIMEZONE || 'Asia/Kolkata', 'UTC', 'America/New_York', 'Asia/Tokyo', 'Pacific/Auckland'];
+    process.env.SCHOOL_TIMEZONE = zones.find((zone) => { const h = DateTime.now().setZone(zone).hour; return h >= 2 && h <= 19; });
+}
 global.global_config = require('../config/config.js');
 const assert = require('assert');
 const http = require('http');
 const express = require('express');
 const mongoose = require('mongoose');
 
+const LIVE = process.env.LIVE_APP_DB === '1';
 const TEST_DB = process.env.TEST_DB_NAME || 'schoolzen_attendance_fix1_test';
-if (!/test/i.test(TEST_DB)) throw new Error('TEST_DB_NAME must contain "test" — this script drops it.');
+if (!LIVE && !/test/i.test(TEST_DB)) throw new Error('TEST_DB_NAME must contain "test" — this script drops it.');
 
 const ShiftV2Model = require('../modules/models/attendance/shift');
 const RosterV2Model = require('../modules/models/attendance/roster');
@@ -32,6 +44,10 @@ const requirePermission = require('../modules/middleware/require-permission');
 const idempotency = require('../modules/middleware/idempotency');
 const v = require('../modules/validators/attendance/attendance.validator');
 const ActivityLogModel = require('../modules/models/audit/activity-log');
+const AcademicSessionV2Model = require('../modules/models/settings/academic-session');
+const StudentProfileModel = require('../modules/models/student/student');
+const StudentEnrollmentModel = require('../modules/models/student/student-enrollment');
+const ClassShiftV2Model = require('../modules/models/attendance/class-shift');
 
 const ADMIN = new mongoose.Types.ObjectId().toHexString();
 const pad = (n) => String(n).padStart(2, '0');
@@ -55,8 +71,21 @@ let staffNone;
 let staffDevice;
 let shiftOpen;
 let shiftClosed;
+// Students (attendance-fix2.md Part D): enrolled in a CLOSED session that the header shows,
+// while another session is the server's "active" one — the live data shape that broke marking.
+const OID = () => new mongoose.Types.ObjectId();
+const CLASS_A = OID();
+const CLASS_B = OID();
+const SECTION_X = OID();
+const SECTION_Y = OID();
+const SHOWN_SESSION = '2026-2027';
+let studentOpen;
+let studentClosed;
 
 const setup = async () => {
+    // A fresh DB is still building indexes, and MongoDB aborts transactions on those catalog
+    // changes — wait for every registered model's collection + indexes first.
+    await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
     const now = nowWallClock();
     const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
     if (minutes < 60 || minutes > 1260) throw new Error('Run between 01:00 and 21:00 school time — the window tests build shifts around "now".');
@@ -80,7 +109,26 @@ const setup = async () => {
         adminId: ADMIN, personType: 'staff', personId: String(staffDevice._id), punchTime, dateKey: today, terminalSn: 'T1',
         punchHash: buildPunchHash(ADMIN, String(staffDevice._id), punchTime),
     });
+
+    const [shown] = await AcademicSessionV2Model.insertMany([
+        { adminId: ADMIN, label: SHOWN_SESSION, startDate: new Date('2026-04-01'), endDate: new Date('2027-03-31'), status: 'closed' },
+        { adminId: ADMIN, label: '2027-2028', startDate: new Date('2027-04-01'), endDate: new Date('2028-03-31'), status: 'active' },
+    ]);
+    [studentOpen, studentClosed] = await StudentProfileModel.insertMany([{ adminId: ADMIN, name: 'Sita Student' }, { adminId: ADMIN, name: 'Raju Student' }]);
+    await StudentEnrollmentModel.insertMany([
+        { adminId: ADMIN, studentId: studentOpen._id, sessionId: shown._id, classId: CLASS_A, class: 8, sectionId: SECTION_X, rollNumber: 1, entryType: 'admission' },
+        { adminId: ADMIN, studentId: studentClosed._id, sessionId: shown._id, classId: CLASS_B, class: 9, rollNumber: 1, entryType: 'admission' },
+    ]);
+    await ClassShiftV2Model.insertMany([
+        { adminId: ADMIN, sessionId: String(shown._id), classId: String(CLASS_A), shiftId: String(shiftOpen._id) },
+        { adminId: ADMIN, sessionId: String(shown._id), classId: String(CLASS_B), shiftId: String(shiftClosed._id) },
+    ]);
 };
+
+const markStudent = (student, status, context = {}) => call(overview.MarkAttendance, reqOf({
+    body: { adminId: ADMIN, personType: 'student', personId: String(student._id), status, ...context },
+}));
+const ctxA = { session: SHOWN_SESSION, classId: String(CLASS_A), sectionId: String(SECTION_X) };
 
 const mark = (personId, status, extraReq = {}) => call(overview.MarkAttendance, reqOf({ body: { adminId: ADMIN, personType: 'staff', personId: String(personId), status }, ...extraReq }));
 
@@ -222,6 +270,57 @@ const tests = {
         doc = await RosterV2Model.findOne({ adminId: ADMIN, staffId: staffIds[0] }).lean();
         assert.strictEqual(doc.days[todayKey()], String(shiftClosed._id), 're-assigned over the deleted cell');
     },
+    'student: mark Present in the shown session + class → written, grid reads it back': async () => {
+        const res = await markStudent(studentOpen, 'Present', ctxA);
+        assert.ifError(res.error);
+        assert.strictEqual(res.body.cell.s, 'P');
+        const record = await AttendanceRecordV2Model.findOne({ adminId: ADMIN, personType: 'student', personId: String(studentOpen._id), deletedAt: null }).lean();
+        assert.strictEqual(record && record.status, 'Present');
+        const grid = await call(overview.GetGrid, reqOf({ query: { adminId: ADMIN, personType: 'student', month: todayKey().slice(0, 7), session: SHOWN_SESSION, classId: String(CLASS_A), search: '' } }));
+        assert.ifError(grid.error);
+        const row = grid.body.rows.find((r) => r._id === String(studentOpen._id));
+        assert.ok(row, 'student is in the class grid');
+        assert.strictEqual(row.cells[todayKey()].s, 'P');
+        assert.strictEqual(row.cells[todayKey()].src, 'manual');
+        assert.strictEqual(row.mark.open, true, 'class shift window is open');
+    },
+    'student: no class → 400 MARK_CLASS_REQUIRED; grid with no class → no rows, needsClass': async () => {
+        const res = await markStudent(studentOpen, 'Present', { session: SHOWN_SESSION });
+        assert.strictEqual(res.error && res.error.statusCode, 400);
+        assert.strictEqual(res.error.code, 'MARK_CLASS_REQUIRED');
+        const grid = await call(overview.GetGrid, reqOf({ query: { adminId: ADMIN, personType: 'student', month: todayKey().slice(0, 7), session: SHOWN_SESSION, search: '' } }));
+        assert.ifError(grid.error);
+        assert.strictEqual(grid.body.needsClass, true);
+        assert.strictEqual(grid.body.rows.length, 0);
+    },
+    'student: wrong class / wrong section / other session → 403 MARK_NOT_ENROLLED, nothing written': async () => {
+        const before = await AttendanceRecordV2Model.countDocuments({ adminId: ADMIN, personType: 'student' });
+        for (const context of [
+            { session: SHOWN_SESSION, classId: String(CLASS_B) },
+            { session: SHOWN_SESSION, classId: String(CLASS_A), sectionId: String(SECTION_Y) },
+            { session: '2027-2028', classId: String(CLASS_A) },
+        ]) {
+            const res = await markStudent(studentOpen, 'Late', context);
+            assert.strictEqual(res.error && res.error.code, 'MARK_NOT_ENROLLED', JSON.stringify(context));
+            assert.strictEqual(res.error.statusCode, 403);
+        }
+        assert.strictEqual(await AttendanceRecordV2Model.countDocuments({ adminId: ADMIN, personType: 'student' }), before);
+    },
+    'student: past/future refused MARK_NOT_TODAY; outside the class shift window refused': async () => {
+        for (const date of ['2020-01-01', '2099-12-31']) {
+            const res = await markStudent(studentOpen, 'Present', { ...ctxA, date });
+            assert.strictEqual(res.error && res.error.code, 'MARK_NOT_TODAY');
+        }
+        const res = await markStudent(studentClosed, 'Present', { session: SHOWN_SESSION, classId: String(CLASS_B) });
+        assert.strictEqual(res.error && res.error.code, 'MARK_OUTSIDE_WINDOW');
+        assert.match(res.error.message, /(AM|PM)/);
+    },
+    'student: the mark route is behind attendance-mark (no grant → 403)': async () => {
+        const denied = await new Promise((resolve) => {
+            requirePermission('attendance-mark', 'edit')({ user: { staffId: String(staffClosed._id) }, adminId: ADMIN, body: { personType: 'student' } }, {}, resolve);
+        });
+        assert.ok(denied && denied.statusCode === 403);
+    },
     'shift validation: Early Punch and Grace are required': async () => {
         const base = { adminId: ADMIN, name: 'X', startTime: '08:00', endTime: '14:00' };
         assert.ok(v.shiftSchema.validate(base).error, 'both missing → refused');
@@ -231,8 +330,28 @@ const tests = {
     },
 };
 
+/** Live suite: delete every row this run's throwaway school owns, then prove none is left. */
+const cleanupLive = async () => {
+    const db = mongoose.connection.db;
+    const names = (await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name).filter((n) => !n.startsWith('system.'));
+    let removed = 0;
+    for (const name of names) removed += (await db.collection(name).deleteMany({ adminId: ADMIN })).deletedCount;
+    let left = 0;
+    for (const name of names) left += await db.collection(name).countDocuments({ adminId: ADMIN });
+    const cache = require('../modules/services/cache/cache.service');
+    await cache.delPattern(`${ADMIN}:*`);
+    try {
+        const q = require('../modules/queues/attendance-v2-queue');
+        const job = await q.attendanceV2Queue.getJob(q.reconcileJobId(ADMIN, todayKey()));
+        if (job) await job.remove().catch(() => undefined);
+    } catch (error) { /* queue optional */ }
+    console.log(`  live cleanup: ${removed} rows removed across ${names.length} collections, ${left} left`);
+    if (left) throw new Error(`live cleanup left ${left} rows for ${ADMIN}`);
+};
+
 (async () => {
-    await mongoose.connect(process.env.DB_URL, { dbName: TEST_DB, serverSelectionTimeoutMS: 20000 });
+    await mongoose.connect(process.env.DB_URL, LIVE ? { serverSelectionTimeoutMS: 20000 } : { dbName: TEST_DB, serverSelectionTimeoutMS: 20000 });
+    if (LIVE) console.log(`  live: database "${mongoose.connection.name}", throwaway adminId ${ADMIN}`);
     let failed = 0;
     try {
         await setup();
@@ -247,12 +366,15 @@ const tests = {
             }
         }
     } finally {
-        await mongoose.connection.db.dropDatabase();
+        if (LIVE) await cleanupLive();
+        else await mongoose.connection.db.dropDatabase();
         await mongoose.disconnect();
     }
     console.log(failed ? `\n${failed} failed` : `\nall ${Object.keys(tests).length} passed`);
     process.exit(failed ? 1 : 0);
 })().catch((error) => {
     console.error('setup failed:', error.message);
-    mongoose.connection.db && mongoose.connection.db.dropDatabase().finally(() => process.exit(1));
+    // NEVER drop in live mode — that is the app's own database; delete this run's rows only.
+    const cleanup = LIVE ? cleanupLive() : (mongoose.connection.db ? mongoose.connection.db.dropDatabase() : Promise.resolve());
+    cleanup.catch((e) => console.error('cleanup failed:', e.message)).finally(() => process.exit(1));
 });

@@ -60,6 +60,19 @@ export interface GridResponse {
   truncated: boolean;
   /** The caller holds 'attendance-mark' (edit). */
   canMark: boolean;
+  /** Student view with no class chosen — the server sends no rows (class-first rule). */
+  needsClass?: boolean;
+}
+
+export interface MarkRequest {
+  personType: PersonType;
+  personId: string;
+  status: MarkStatus;
+  session?: string;
+  classId?: string;
+  streamId?: string;
+  groupId?: string;
+  sectionId?: string;
 }
 
 export interface GridQuery {

@@ -104,6 +104,8 @@ Hairline border only (`1px solid var(--line)`), `border-radius:6px`, no box-shad
 ## Constants
 Control height 38px everywhere (search, pills, buttons, month-nav). Radius 6px (pills 20px, circular avatars 50%). Gap in layout-row/col-side: 16px.
 
+**Month filter (`.month-nav`) is one shared component with one global width token**: `--month-filter-w: 178px` (sized for the longest label, "September 2026"). The label is centred between the two chevrons, `flex:1; min-width:0; white-space:nowrap`, and never changes the filter width. Defined once in the global stylesheet and used by Attendance, Roster, Leave, Holiday and every future page; no page sets its own width for it.
+
 ## Responsive — plain CSS, width-based tiers, additive only
 
 No Bootstrap grid, no separate framework — just plain `@media (max-width: …)` rules layered on top of the desktop CSS above. **Additive only**: a rule only ever applies below its own breakpoint — nothing above it changes, so nothing already built shifts. Keyed off **width only** — a landscape phone and a small tablet at the same width behave the same, so orientation isn't tracked separately; it falls out of width automatically (a phone rotated to landscape simply reports a wider viewport and lands in the next tier up).

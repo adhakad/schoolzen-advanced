@@ -18,7 +18,7 @@
 import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild
 } from '@angular/core';
-import { forkJoin, of, Subject } from 'rxjs';
+import { forkJoin, of, Subject, Subscription } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
@@ -344,6 +344,8 @@ export class RosterComponent implements OnInit, OnDestroy {
   // --- data ----------------------------------------------------------------------------
 
   private fetchSeq = 0;
+  /** The load in flight — cancelled (not just ignored) when a newer one starts. */
+  private fetchSub?: Subscription;
 
   /** `quiet`: a refresh after a write — the current grid stays visible meanwhile. */
   fetch(quiet = false): void {
@@ -354,8 +356,9 @@ export class RosterComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
     // Only the newest request may land — a fast filter change never shows a stale answer.
     const seq = ++this.fetchSeq;
+    this.fetchSub?.unsubscribe();
     if (this.personType === 'staff') {
-      this.api.getStaffRoster(this.adminId, {
+      this.fetchSub = this.api.getStaffRoster(this.adminId, {
         month: this.month, departmentId: this.departmentId, designationId: this.designationId, search: this.search
       }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
         if (seq !== this.fetchSeq) return;
@@ -375,7 +378,7 @@ export class RosterComponent implements OnInit, OnDestroy {
       this.loading = false;
       return;
     }
-    this.api.getClassShifts(this.adminId, this.session).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+    this.fetchSub = this.api.getClassShifts(this.adminId, this.session).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       if (seq !== this.fetchSeq) return;
       this.classRows = res.rows || [];
       this.setLegend(res.legend);

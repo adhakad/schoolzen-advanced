@@ -11,6 +11,7 @@ const { isTimeRangeValid } = require('../../helpers/attendance/status');
 const { COLLATION, matcher, paginate } = require('../../helpers/staff/lookups');
 const { loadShifts } = require('../../services/attendance-v2/shift-lookup');
 const { logActivity } = require('../../services/activity-log.service');
+const { withTransaction } = require('../../helpers/with-transaction');
 
 const MODULE = 'attendance';
 const ENTITY = 'Shift';
@@ -116,28 +117,38 @@ let CreateShift = async (req, res) => {
 
 let UpdateShift = async (req, res) => {
     const { adminId } = req.body;
-    // Another school's shift reads exactly like a missing one.
-    const shift = await ShiftV2Model.findOne({ _id: req.params.id, adminId });
-    if (!shift) throw notFound(req.params.id);
     assertShiftRules(req.body);
-    await assertNameFree(adminId, req.body.name, shift._id);
+    // Another school's shift reads exactly like a missing one. The name check runs alongside
+    // (it excludes this id either way), so not-found still wins over a duplicate name.
+    const [shift, nameCheck] = await Promise.all([
+        ShiftV2Model.findOne({ _id: req.params.id, adminId }),
+        assertNameFree(adminId, req.body.name, req.params.id).then(() => null, (error) => error),
+    ]);
+    if (!shift) throw notFound(req.params.id);
+    if (nameCheck) throw nameCheck;
 
     const before = shiftFields(shift);
     Object.assign(shift, shiftFields(req.body), { updatedBy: String(req.user && req.user.id || 'admin'), updatedAt: new Date() });
-    await shift.save().catch(rethrowShiftDuplicate);
+    // The change and its log entry commit together; the cache is cleared once it has.
+    await withTransaction(async (dbSession) => {
+        await shift.save({ session: dbSession }).catch(rethrowShiftDuplicate);
+        await logActivity(req, { module: MODULE, action: 'attendance.shift.update', targetId: String(shift._id), changes: { before, after: shiftFields(shift) } }, dbSession);
+    });
     await cacheInvalidation.onShiftsChanged(adminId);
-    await logActivity(req, { module: MODULE, action: 'attendance.shift.update', targetId: String(shift._id), changes: { before, after: shiftFields(shift) } });
     return res.status(200).json({ message: success.updated(ENTITY), shift });
 };
 
 /** In use → SHIFT_IN_USE with both counts in the payload (errors.md shape 6). Never forced. */
 let DeleteShift = async (req, res) => {
     const { adminId } = req.query;
-    const shift = await ShiftV2Model.findOne({ _id: req.params.id, adminId }, 'name').lean();
+    const [shift, usage] = await Promise.all([
+        ShiftV2Model.findOne({ _id: req.params.id, adminId }, 'name').lean(),
+        usageCounts(adminId, [String(req.params.id)]),
+    ]);
     if (!shift) throw notFound(req.params.id);
     const id = String(shift._id);
 
-    const counts = (await usageCounts(adminId, [id])).get(id);
+    const counts = usage.get(id);
     if (counts.people || counts.classes) {
         throw new ConflictError(messages.shiftInUse(counts.people, counts.classes), {
             module: MODULE,
@@ -147,9 +158,11 @@ let DeleteShift = async (req, res) => {
         });
     }
 
-    await ShiftV2Model.deleteOne({ _id: id, adminId });
+    await withTransaction(async (dbSession) => {
+        await ShiftV2Model.deleteOne({ _id: id, adminId }, { session: dbSession });
+        await logActivity(req, { module: MODULE, action: 'attendance.shift.delete', targetId: id, meta: { name: shift.name } }, dbSession);
+    });
     await cacheInvalidation.onShiftsChanged(adminId);
-    await logActivity(req, { module: MODULE, action: 'attendance.shift.delete', targetId: id, meta: { name: shift.name } });
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };
 

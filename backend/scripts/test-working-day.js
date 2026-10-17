@@ -11,6 +11,8 @@ cacheService.wrap = (_key, _ttl, fn) => fn();
 cacheService.del = async () => {};
 cacheService.delPattern = async () => {};
 require('../modules/services/activity-log.service').logActivity = async () => {};
+// No database here: the roster write's transaction just runs its work (no session).
+require('../modules/helpers/with-transaction').withTransaction = async (work) => work(null);
 require('../modules/services/attendance-v2/publisher').publishReconciled = async () => {};
 require('../modules/services/attendance-v2/live-stats').recompute = async () => {};
 require('../modules/helpers/academic-session/session-resolver').getActiveSession = async () => ({ _id: 'session1' });
@@ -28,7 +30,7 @@ const LeaveRequestV2Model = require('../modules/models/leave/leave-request');
 
 /** A chainable stand-in for a mongoose query that resolves to `rows`. */
 const query = (rows) => {
-    const q = { sort: () => q, limit: () => q, skip: () => q, collation: () => q, session: () => q, select: () => q };
+    const q = { sort: () => q, limit: () => q, skip: () => q, collation: () => q, session: () => q, select: () => q, batchSize: () => q };
     q.lean = () => Promise.resolve(rows);
     q.then = (resolve, reject) => Promise.resolve(rows).then(resolve, reject);
     return q;
@@ -76,7 +78,11 @@ RosterV2Model.bulkWrite = async (ops) => {
     ops.forEach(({ updateOne: { filter, update } }) => {
         let doc = db.rosters.find((row) => row.staffId === filter.staffId && row.year === filter.year && row.month === filter.month);
         if (!doc) db.rosters.push(doc = { staffId: filter.staffId, year: filter.year, month: filter.month, days: {} });
-        Object.entries(update.$set).forEach(([path, value]) => { if (path.startsWith('days.')) doc.days[path.slice(5)] = value; });
+        // A pipeline update (cells + shiftIds in one write): the first stage's $set carries the cells.
+        const set = Array.isArray(update) ? update[0].$set : update.$set;
+        Object.entries(set).forEach(([path, value]) => {
+            if (path.startsWith('days.')) doc.days[path.slice(5)] = value && value.$literal !== undefined ? value.$literal : value;
+        });
     });
 };
 LeaveRequestV2Model.find = (filter) => query(db.leaves.filter((row) => row.status === filter.status

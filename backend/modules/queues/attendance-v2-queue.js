@@ -49,6 +49,16 @@ const isRunning = async (jobId) => {
     return Boolean(found && ACTIVE_STATES.has(found.state));
 };
 
+/**
+ * Is a worker consuming this queue? Read from the worker's heartbeat key (workers/heartbeat.js)
+ * — never BullMQ's CLIENT LIST, which Upstash doesn't report. False means a queued job would
+ * wait forever.
+ */
+const workerAlive = async () => {
+    const { readHeartbeat } = require('../workers/heartbeat');
+    return (await readHeartbeat(QUEUE_NAME)).alive;
+};
+
 const addFresh = async (name, jobId, data, opts = {}) => {
     const found = await stateOf(jobId);
     if (found && FINISHED_STATES.has(found.state)) {
@@ -71,6 +81,7 @@ module.exports = {
     reconcileJobId,
     staggerDelayMs,
     isRunning,
+    workerAlive,
     addSyncJob,
     addReconcileJob,
 };

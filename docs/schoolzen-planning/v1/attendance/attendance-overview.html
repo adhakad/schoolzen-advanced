@@ -121,7 +121,9 @@
   .range-day.today .range-day-num{border:1.5px solid var(--brand); color:var(--brand); font-weight:600;}
   .range-day.today.chain-endpoint .range-day-num{background:var(--brand); color:#fff; border:none;}
   .month-nav .bi{cursor:pointer; color:var(--brand); font-size:13px;}
-  .month-nav span{font-size:13.5px; font-weight:600; color:var(--ink); min-width:90px; text-align:center;}
+  .month-nav span{font-size:13.5px; font-weight:600; color:var(--ink); min-width:0; flex:1; text-align:center; white-space:nowrap;}
+  /* calendar filter: constant width for every month, sized for the longest label ("September 2026") */
+  #monthDD{flex:0 0 178px; width:178px;} #monthDD .month-nav{width:178px;}
   .sw-gen-btn{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
   .sw-gen-btn:hover{background:#2A3242;}
   .sw-gen-btn .bi{color:#ae86ff;}
@@ -1208,7 +1210,14 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
   .chip{width:45px; height:36px; padding:3px 6px; gap:2px;} /* 5:4 ratio (100:80) */
   .chip .s{font-size:10.5px;}
   .chip .t{font-size:7.5px; margin-top:0; white-space:nowrap;}
-  .chip.locked-past{opacity:.55; cursor:not-allowed;}
+  .chip.locked-past{opacity:.85; cursor:not-allowed;}
+  /* readability: darker status text/time, Present = white chip with the brand purple border */
+  .chip .s{font-weight:800;} .chip .t{font-weight:600; opacity:1 !important;}
+  .chip.present{background:#fff; border-color:var(--brand);} .chip.present .s,.chip.present .t{color:#176B3B;}
+  .chip.present.locked-past{border-color:var(--line);} /* past dates: always the plain gray border */
+  .chip.late .s,.chip.late .t{color:#84580F;}
+  .chip.absent .s{color:#A24A38;}
+  .chip.holiday .s{color:#6B6480;}
   .chip.future{opacity:.6; cursor:not-allowed; border:1px dashed var(--ink-faint); background:transparent;}
   .chip.future .s{color:var(--ink-faint) !important;}
   .chip.nocell{opacity:.45; cursor:not-allowed; border:1px dashed var(--ink-faint); background:transparent;}

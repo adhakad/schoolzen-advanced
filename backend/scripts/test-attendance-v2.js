@@ -5,6 +5,9 @@ const assert = require('assert');
 const { computeDayStatus, buildPunchHash, isTimeRangeValid, shiftCode, chipTime, hhmmLabel } = require('../modules/helpers/attendance/status');
 const { toPunchRows } = require('../modules/services/attendance-v2/ingest');
 const { toWdmsEmpCode } = require('../modules/services/wdms-employee');
+const { DAY_TYPE, resolveDayType } = require('../modules/helpers/calendar/working-day-rules');
+// Manual-mark guards (pure) — requiring the controller loads models but opens no connection.
+const { markWindowOf, windowLabel } = require('../modules/controllers/attendance/overview.controller');
 
 const shift = {
     startTime: '09:00', endTime: '15:00', earlyInMinutes: 30, graceMinutes: 10,
@@ -64,6 +67,32 @@ const tests = {
         assert.strictEqual(shiftCode('Morning Shift'), 'M');
         assert.strictEqual(shiftCode('Evening'), 'E');
         assert.strictEqual(shiftCode('Old Summer Shift'), 'OS');
+    },
+    // --- attendance-fix2.md Part C: manual mark guards, day-type precedence --------------
+    'mark window opens Early Punch before start and closes at shift end': () => {
+        const window = markWindowOf({ startTime: '08:00', endTime: '14:00', earlyInMinutes: 15 }, '2026-10-16');
+        assert.strictEqual(window.open.toISOString(), '2026-10-16T07:45:00.000Z');
+        assert.strictEqual(window.close.toISOString(), '2026-10-16T14:00:00.000Z');
+        assert.strictEqual(markWindowOf({ startTime: 'bad', endTime: '14:00' }, '2026-10-16'), null, 'unparseable shift → no window, mark refused');
+    },
+    'mark window label is AM/PM and wraps past midnight': () => {
+        assert.deepStrictEqual(windowLabel({ startTime: '08:00', endTime: '14:00', earlyInMinutes: 15 }), { from: '7:45 AM', to: '2:00 PM' });
+        assert.deepStrictEqual(windowLabel({ startTime: '00:10', endTime: '06:00', earlyInMinutes: 20 }), { from: '11:50 PM', to: '6:00 AM' });
+        assert.deepStrictEqual(windowLabel({ startTime: '12:00', endTime: '13:00', earlyInMinutes: 0 }), { from: '12:00 PM', to: '1:00 PM' });
+    },
+    'working-day precedence: Holiday > Leave > roster WO > working': () => {
+        const monday = '2026-10-12';
+        assert.strictEqual(resolveDayType({ dateKey: monday, holiday: true, leave: true, rosterValue: 'WO' }), DAY_TYPE.HOLIDAY);
+        assert.strictEqual(resolveDayType({ dateKey: monday, holiday: false, leave: true, rosterValue: 'WO' }), DAY_TYPE.LEAVE);
+        assert.strictEqual(resolveDayType({ dateKey: monday, holiday: false, leave: false, rosterValue: 'WO' }), DAY_TYPE.WEEKLY_OFF);
+        assert.strictEqual(resolveDayType({ dateKey: monday, holiday: false, leave: false, rosterValue: 'shift1' }), DAY_TYPE.WORKING);
+        // A rostered shift on a Sunday is a working day; no roster on a Sunday is the fallback off.
+        assert.strictEqual(resolveDayType({ dateKey: '2026-10-11', holiday: false, leave: false, rosterValue: 'shift1' }), DAY_TYPE.WORKING);
+        assert.strictEqual(resolveDayType({ dateKey: '2026-10-11', holiday: false, leave: false, rosterValue: undefined }), DAY_TYPE.WEEKLY_OFF);
+    },
+    'Late vs Present boundary is exactly start + grace': () => {
+        assert.strictEqual(day('staff', ['09:10', '15:05']), 'Present', 'at start + grace');
+        assert.strictEqual(day('staff', ['09:11', '15:05']), 'Late', 'one minute past grace');
     },
 };
 

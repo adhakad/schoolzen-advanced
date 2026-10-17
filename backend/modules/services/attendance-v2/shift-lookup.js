@@ -59,7 +59,7 @@ const getStaffShiftIdsForDate = async (adminId, dateKey, staffIds) => {
  * then the bare class.
  */
 const loadClassShiftResolver = async (adminId, sessionId) => {
-    const rows = sessionId ? await ClassShiftV2Model.find({ adminId, sessionId: String(sessionId) }).lean() : [];
+    const rows = sessionId ? await ClassShiftV2Model.find({ adminId, sessionId: String(sessionId) }).batchSize(100000).lean() : [];
     const byKey = new Map(rows.map((row) => [`${row.classId}|${row.streamId || ''}|${row.sectionId || ''}`, row.shiftId]));
     return (placement) => {
         const classId = String(placement.classId || '');

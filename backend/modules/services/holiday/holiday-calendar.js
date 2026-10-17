@@ -60,10 +60,12 @@ const assignedTemplates = async (adminId, sessionId, people) => {
  * Map<"type|id", Set<dateKey>> — the dated holidays in from..to for each person.
  * `people`: [{ personType, personId }]; students resolve through `sessionId`'s enrollment.
  */
-const getHolidayKeysForPeople = async (adminId, sessionId, people, fromKey, toKey) => {
+// `assigned` (Map<"type|id", templateId|null>) lets a caller that already read the people
+// (Overview's grid) skip the staff/enrollment re-read.
+const getHolidayKeysForPeople = async (adminId, sessionId, people, fromKey, toKey, assigned = null) => {
     const result = new Map();
     if (!people.length) return result;
-    const assigned = await assignedTemplates(adminId, sessionId, people);
+    if (!assigned) assigned = await assignedTemplates(adminId, sessionId, people);
     const keysByTemplate = new Map();
     await Promise.all([...new Set([...assigned.values()].filter(Boolean))].map(async (id) => {
         const calendar = await loadCalendar(adminId, id);

@@ -8,7 +8,7 @@ fixes/<module>-fix2.md
 fixes/global-fixes.md   (cross-module rules + status table; the one file that IS updated each run)
 ```
 
-Never edit a module fix file after it's applied (global-fixes.md is the exception, it carries the Status table) — the next round of issues becomes `-v2`, so there's a permanent record of what was wrong and when it was fixed.
+Never edit a module fix file after it's applied (global-fixes.md is the exception, it carries the Status table) — the next round of issues becomes `-fix2`, so there's a permanent record of what was wrong and when it was fixed.
 
 ```bash
 claude "Read prompts/fixes/global-fixes.md and prompts/fixes/attendance-fix1.md fully, fix everything in the attendance file and apply the global rules in the same run, then update the Status table in global-fixes.md."

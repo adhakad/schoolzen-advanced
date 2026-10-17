@@ -34,6 +34,7 @@ const syncRequiresConfirm = () => 'Confirm the sync before it runs.';
 const syncAlreadyRunning = () => 'A sync is already running for this day!';
 const syncQueued = () => 'Sync started — new punches will appear as they are processed.';
 const syncNoDevices = () => 'No active devices are assigned to this school.';
+const syncWorkerDown = () => "The attendance sync service isn't running, so punches can't be pulled right now — ask your administrator to start it.";
 const queueUnavailable = () => "Background processing is unavailable right now — please try again shortly.";
 const manualSaved = () => 'Attendance updated.';
 const sessionMissing = () => 'No academic session is active — set one in Settings first.';
@@ -43,6 +44,8 @@ const markDayOff = () => "This is a day off for this person, so attendance can't
 const markNoShift = () => 'No shift is assigned to this person today — assign one in Roster first.';
 const markOutsideWindow = (from, to) => `Attendance can only be marked today between ${from} and ${to}.`;
 const markDeviceRecorded = (at) => (at ? `Device punch recorded at ${at} — it can't be changed by hand.` : "A device punch is recorded for today — it can't be changed by hand.");
+const markClassRequired = () => 'Select a class first — student attendance is marked one class at a time.';
+const markNotEnrolled = () => "This student isn't in the selected class or section for this session.";
 const marked = (name, status) => (status === 'Absent' ? `${name} marked Absent.` : `${name} marked ${status}.`);
 
 module.exports = {
@@ -70,6 +73,7 @@ module.exports = {
     syncQueued,
     syncNoDevices,
     queueUnavailable,
+    syncWorkerDown,
     manualSaved,
     sessionMissing,
     markNotToday,
@@ -77,5 +81,7 @@ module.exports = {
     markNoShift,
     markOutsideWindow,
     markDeviceRecorded,
+    markClassRequired,
+    markNotEnrolled,
     marked,
 };

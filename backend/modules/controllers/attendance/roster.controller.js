@@ -12,6 +12,7 @@ const {
 } = require('../../helpers/attendance/context');
 const { WEEK_OFF, loadShifts } = require('../../services/attendance-v2/shift-lookup');
 const { logActivity } = require('../../services/activity-log.service');
+const { withTransaction } = require('../../helpers/with-transaction');
 
 // Roster (roster.md) — which shift each staff member works on each day (v2-roster, monthly
 // snapshot), and which shift each class/stream/section follows (v2-class-shift).
@@ -50,11 +51,6 @@ const SHIFT_IDS_STAGE = {
         updatedAt: '$$NOW',
     },
 };
-
-const refreshShiftIds = (adminId, staffIds, year, month) => RosterV2Model.updateMany(
-    { adminId, staffId: { $in: staffIds }, year, month },
-    [SHIFT_IDS_STAGE]
-);
 
 /** Splits requested ids into this school's active staff and failed rows (shape 7). */
 const partitionStaff = async (adminId, staffIds) => {
@@ -160,31 +156,33 @@ const editableRange = (fromDate, toDate) => {
 let AssignStaffRoster = async (req, res) => {
     const { adminId, staffIds, shiftId, month, weekdays, fromDate, toDate } = req.body;
     const days = fromDate ? editableRange(fromDate, toDate) : editableDays(month);
-    await assertAssignableShift(adminId, shiftId);
-    const { valid, failed } = await partitionStaff(adminId, staffIds);
+    const [, { valid, failed }] = await Promise.all([assertAssignableShift(adminId, shiftId), partitionStaff(adminId, staffIds)]);
 
     const byMonth = new Map();
     days.forEach((key) => {
         const { year, month: monthNo } = parseDateKey(key);
         const monthKey = `${year}-${monthNo}`;
-        if (!byMonth.has(monthKey)) byMonth.set(monthKey, { year, month: monthNo, set: { updatedAt: new Date() } });
-        byMonth.get(monthKey).set[`days.${key}`] = weekdays.includes(new Date(`${key}T00:00:00Z`).getUTCDay()) ? shiftId : WEEK_OFF;
+        if (!byMonth.has(monthKey)) byMonth.set(monthKey, { year, month: monthNo, set: {} });
+        byMonth.get(monthKey).set[`days.${key}`] = { $literal: weekdays.includes(new Date(`${key}T00:00:00Z`).getUTCDay()) ? shiftId : WEEK_OFF };
     });
     const groups = [...byMonth.values()];
-    await RosterV2Model.bulkWrite(groups.flatMap((group) => valid.map((staffId) => ({
-        updateOne: {
-            filter: { adminId, staffId, year: group.year, month: group.month },
-            update: { $set: group.set, $setOnInsert: { createdAt: new Date() } },
-            upsert: true,
-        },
-    }))), { ordered: false });
-    await Promise.all(groups.map((group) => refreshShiftIds(adminId, valid, group.year, group.month)));
-
-    if (days[0] === todayKey()) await enqueueReconcile(adminId, days[0]);
-    await logActivity(req, {
-        module: MODULE, action: 'attendance.roster.assign',
-        meta: { shiftId, month, fromDate, toDate, weekdays, people: valid.length, days: days.length },
+    // ONE bulk write — the cells and the recomputed shiftIds in the same pipeline update per
+    // doc — and its activity-log entry, in one transaction: all of it lands or none of it.
+    await withTransaction(async (dbSession) => {
+        await RosterV2Model.bulkWrite(groups.flatMap((group) => valid.map((staffId) => ({
+            updateOne: {
+                filter: { adminId, staffId, year: group.year, month: group.month },
+                update: [{ $set: { ...group.set, createdAt: { $ifNull: ['$createdAt', '$$NOW'] } } }, SHIFT_IDS_STAGE],
+                upsert: true,
+            },
+        }))), { ordered: true, session: dbSession });
+        await logActivity(req, {
+            module: MODULE, action: 'attendance.roster.assign',
+            meta: { shiftId, month, fromDate, toDate, weekdays, people: valid.length, days: days.length },
+        }, dbSession);
     });
+    // Best effort and never rejects (context.js) — the response doesn't wait on the queue.
+    if (days[0] === todayKey()) enqueueReconcile(adminId, days[0]);
 
     return res.status(200).json({
         message: messages.rosterAssigned(valid.length, days.length),
@@ -202,13 +200,16 @@ let ClearStaffRoster = async (req, res) => {
     const { year, month: monthNo } = parseDateKey(days[0]);
     // ONE write for the whole selection: drop today-onward cells and recompute shiftIds in
     // the same pipeline update, so a delete can never leave a half-cleared roster behind.
-    await RosterV2Model.updateMany(
-        { adminId, staffId: { $in: valid }, year, month: monthNo },
-        [{ $unset: days.map((key) => `days.${key}`) }, SHIFT_IDS_STAGE]
-    );
-
-    if (days[0] === todayKey()) await enqueueReconcile(adminId, days[0]);
-    await logActivity(req, { module: MODULE, action: 'attendance.roster.clear', meta: { month, people: valid.length } });
+    await withTransaction(async (dbSession) => {
+        await RosterV2Model.updateMany(
+            { adminId, staffId: { $in: valid }, year, month: monthNo },
+            [{ $unset: days.map((key) => `days.${key}`) }, SHIFT_IDS_STAGE],
+            { session: dbSession }
+        );
+        await logActivity(req, { module: MODULE, action: 'attendance.roster.clear', meta: { month, people: valid.length } }, dbSession);
+    });
+    // Best effort and never rejects (context.js) — the response doesn't wait on the queue.
+    if (days[0] === todayKey()) enqueueReconcile(adminId, days[0]);
     return res.status(200).json({
         message: messages.rosterCleared(valid.length),
         updated: valid.length,
@@ -290,20 +291,23 @@ const partitionTargets = async (adminId, targets) => {
 
 let AssignClassShifts = async (req, res) => {
     const { adminId, session, targets, shiftId } = req.body;
-    const sessionId = await resolveSessionId(adminId, session);
-    await assertAssignableShift(adminId, shiftId);
-    const { valid, failed } = await partitionTargets(adminId, targets);
+    const [sessionId, , { valid, failed }] = await Promise.all([
+        resolveSessionId(adminId, session), assertAssignableShift(adminId, shiftId), partitionTargets(adminId, targets),
+    ]);
     const now = new Date();
     const actor = String(req.user && req.user.id || 'admin');
-    await ClassShiftV2Model.bulkWrite(valid.map((target) => ({
-        updateOne: {
-            filter: { adminId, sessionId, classId: target.classId, streamId: target.streamId || null, sectionId: target.sectionId || null },
-            update: { $set: { shiftId, updatedBy: actor, updatedAt: now }, $setOnInsert: { createdAt: now } },
-            upsert: true,
-        },
-    })), { ordered: false });
-    await enqueueReconcile(adminId, todayKey());
-    await logActivity(req, { module: MODULE, action: 'attendance.class-shift.assign', meta: { shiftId, classes: valid.length } });
+    await withTransaction(async (dbSession) => {
+        await ClassShiftV2Model.bulkWrite(valid.map((target) => ({
+            updateOne: {
+                filter: { adminId, sessionId, classId: target.classId, streamId: target.streamId || null, sectionId: target.sectionId || null },
+                update: { $set: { shiftId, updatedBy: actor, updatedAt: now }, $setOnInsert: { createdAt: now } },
+                upsert: true,
+            },
+        })), { ordered: true, session: dbSession });
+        await logActivity(req, { module: MODULE, action: 'attendance.class-shift.assign', meta: { shiftId, classes: valid.length } }, dbSession);
+    });
+    // Best effort and never rejects (context.js) — the response doesn't wait on the queue.
+    enqueueReconcile(adminId, todayKey());
     return res.status(200).json({
         message: messages.classShiftAssigned(valid.length),
         updated: valid.length,
@@ -314,15 +318,17 @@ let AssignClassShifts = async (req, res) => {
 
 let ClearClassShifts = async (req, res) => {
     const { adminId, session, targets } = req.body;
-    const sessionId = await resolveSessionId(adminId, session);
-    const { valid, failed } = await partitionTargets(adminId, targets);
-    await ClassShiftV2Model.deleteMany({
-        adminId,
-        sessionId,
-        $or: valid.map((target) => ({ classId: target.classId, streamId: target.streamId || null, sectionId: target.sectionId || null })),
+    const [sessionId, { valid, failed }] = await Promise.all([resolveSessionId(adminId, session), partitionTargets(adminId, targets)]);
+    await withTransaction(async (dbSession) => {
+        await ClassShiftV2Model.deleteMany({
+            adminId,
+            sessionId,
+            $or: valid.map((target) => ({ classId: target.classId, streamId: target.streamId || null, sectionId: target.sectionId || null })),
+        }, { session: dbSession });
+        await logActivity(req, { module: MODULE, action: 'attendance.class-shift.clear', meta: { classes: valid.length } }, dbSession);
     });
-    await enqueueReconcile(adminId, todayKey());
-    await logActivity(req, { module: MODULE, action: 'attendance.class-shift.clear', meta: { classes: valid.length } });
+    // Best effort and never rejects (context.js) — the response doesn't wait on the queue.
+    enqueueReconcile(adminId, todayKey());
     return res.status(200).json({
         message: messages.classShiftCleared(valid.length),
         updated: valid.length,

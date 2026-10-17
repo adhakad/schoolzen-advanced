@@ -156,6 +156,13 @@ const markSchema = Joi.object({
     adminId,
     personType: Joi.string().valid('staff', 'student').required(),
     personId: objectId.required(),
+    // Students only: the class context the grid shows (class-first rule) — the server checks
+    // the student is enrolled there for this session.
+    session,
+    classId: nullableId,
+    streamId: nullableId,
+    groupId: nullableId,
+    sectionId: nullableId,
     // Optional and never trusted: kept only so a past/future date is refused (403), not ignored.
     date: dateKey.optional(),
     status: Joi.string().valid('Present', 'Late', 'Absent').required().messages({

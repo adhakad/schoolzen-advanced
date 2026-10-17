@@ -20,7 +20,7 @@
 import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild
 } from '@angular/core';
-import { forkJoin, of, Subject } from 'rxjs';
+import { forkJoin, of, Subject, Subscription } from 'rxjs';
 import { auditTime, catchError, debounceTime, distinctUntilChanged, map, takeUntil } from 'rxjs/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
@@ -114,6 +114,8 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   rows: GridRow[] = [];
   truncated = false;
   canMark = false;
+  /** Student view with no class chosen: no rows until a class is picked (class-first rule). */
+  needsClass = false;
   page = 1;
   limit = 10;
   selected = new Set<string>();
@@ -126,6 +128,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   readonly tips: readonly string[] = [
     "Each row is one person; each column is a day of the month. Today's column is highlighted and the grid scrolls to it.",
     'To mark someone by hand, click their chip under today and choose Present, Late or Absent. It saves straight away.',
+    'For students, choose a Class first (then Section if you like) — attendance is marked one class at a time.',
     'Marking is only open today, between the time set in Manage Shifts (Early Punch before start) and the shift end. Past days are locked.',
     'Anyone not marked and without a device punch counts as Absent. If the device has recorded a punch, it cannot be changed by hand.',
     'Faded dashed chips on future days show what the Roster expects: the shift letter, WO for a weekly off or H for a holiday. A dash means no roster.',
@@ -142,6 +145,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     variant: 'neutral'
   };
   syncing = false;
+  syncError = '';
   syncStatus: SyncStatus | null = null;
 
   reportOpen = false;
@@ -152,6 +156,8 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   markTarget: MarkTarget | null = null;
   marking: MarkStatus | null = null;
   markError = '';
+  /** The status the last failed save tried — what Retry sends again. */
+  failedMark: MarkStatus | null = null;
   private markKey = '';
   private markAnchor: HTMLElement | null = null;
 
@@ -344,9 +350,24 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   // --- grid ------------------------------------------------------------------------------
 
   private gridSeq = 0;
+  /** The grid request in flight — cancelled (not just ignored) when a newer one starts. */
+  private gridSub?: Subscription;
 
   fetchGrid(merge = false): void {
     if (!this.isStaff && !this.session) return;
+    // Students are marked one class at a time: no class, no request and no rows.
+    this.needsClass = !this.isStaff && !this.classId;
+    if (this.needsClass) {
+      ++this.gridSeq;
+      this.gridSub?.unsubscribe();
+      this.rows = [];
+      this.selected.clear();
+      this.loading = false;
+      this.loadError = '';
+      this.closeMark();
+      this.cdr.markForCheck();
+      return;
+    }
     if (!merge) {
       this.loading = true;
       this.loadError = '';
@@ -356,7 +377,8 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     // Only the latest request may land: a fast filter change must never be overwritten by
     // the slower answer to the previous one.
     const seq = ++this.gridSeq;
-    this.api.getGrid(this.adminId, {
+    this.gridSub?.unsubscribe();
+    this.gridSub = this.api.getGrid(this.adminId, {
       personType: this.personType,
       month: this.month,
       session: this.isStaff ? '' : this.session,
@@ -462,6 +484,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   /** Opens the popover: editable, or read-only when a device punch is recorded. */
   canOpenMark(row: GridRow, cell: GridCell, col: MonthColumn): boolean {
     if (!col.isToday || !this.canMark || !row.mark || cell.n || cell.f) return false;
+    if (row.type === 'student' && !this.classId) return false;
     if (cell.src === 'device') return true;
     return this.isMarkable(row, cell);
   }
@@ -474,6 +497,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     if (cell.src === 'device') return 'Device punch recorded' + (cell.p ? ' at ' + cell.p : '');
     if (!['P', 'L', 'A'].includes(cell.s)) return null;
     if (!this.canMark) return "You don't have permission to mark attendance";
+    if (row.type === 'student' && !this.classId) return 'Select a class first';
     if (!row.mark) return 'No shift today';
     if (!row.mark.open) return 'Attendance can be marked between ' + row.mark.from + ' and ' + row.mark.to;
     return 'Click to mark attendance';
@@ -543,8 +567,18 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     }
     this.marking = status;
     this.markError = '';
+    this.failedMark = null;
+    // Optimistic: the chip changes now; the popover keeps its spinner until the server
+    // answers, and a refusal puts the previous cell back (Part B / Part D §4).
+    const previousCell = target.row.cells[target.col.dateKey];
+    const code = MARK_OPTIONS.find((option) => option.status === status)?.code || 'A';
+    this.applyPersonUpdate(target.row._id, { cells: { [target.col.dateKey]: { ...previousCell, s: code, src: status === 'Absent' ? undefined : 'manual' } } });
     this.cdr.markForCheck();
-    this.api.mark(this.adminId, { personType: target.row.type, personId: target.row._id, status }, this.markKey)
+    // Students carry the grid's session + class context; the server checks the enrolment.
+    const context = target.row.type === 'student'
+      ? { session: this.session, classId: this.classId, streamId: this.streamId, groupId: this.groupId, sectionId: this.sectionId }
+      : {};
+    this.api.mark(this.adminId, { personType: target.row.type, personId: target.row._id, status, ...context }, this.markKey)
       .pipe(takeUntil(this.destroyed$)).subscribe((res) => {
         this.marking = null;
         this.applyPersonUpdate(target.row._id, { cells: { [target.col.dateKey]: res.cell } });
@@ -554,12 +588,19 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       }, (error: unknown) => {
         this.marking = null;
-        // The popover keeps the reason in place (window closed, device punch, permission).
+        // The popover keeps the reason in place (window closed, device punch, permission);
+        // the cell itself is untouched until a save succeeds.
+        this.applyPersonUpdate(target.row._id, { cells: { [target.col.dateKey]: previousCell } });
         this.markError = errorMessageOf(error, "Couldn't save — please try again.");
+        this.failedMark = status;
         // A new attempt is a new submission.
         this.markKey = newIdempotencyKey();
         this.cdr.markForCheck();
       });
+  }
+
+  retryMark(): void {
+    if (this.failedMark) this.chooseMark(this.failedMark);
   }
 
   @HostListener('document:click', ['$event'])
@@ -624,6 +665,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     if (this.syncing) return;
     // The confirm stays open with its spinner until the sync is queued (global rule 11).
     this.syncing = true;
+    this.syncError = '';
     this.cdr.markForCheck();
     this.api.syncNow(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.syncing = false;
@@ -632,9 +674,10 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       // The worker needs a moment — check the "Last sync" line again shortly.
       setTimeout(() => this.fetchSyncStatus(), 8000);
-    }, () => {
-      // SYNC_ALREADY_RUNNING / no devices — the ErrorInterceptor has shown the message.
+    }, (error: unknown) => {
+      // SYNC_ALREADY_RUNNING / no devices — kept under the button with a Retry.
       this.syncing = false;
+      this.syncError = errorMessageOf(error, "Couldn't start the sync — please try again.");
       this.syncConfirmOpen = false;
       this.cdr.markForCheck();
     });

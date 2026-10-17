@@ -55,7 +55,8 @@
      and the calendar (month) filter's own constant width — never sized by its text. */
   --filter-pill-width: 150px;
   --search-width: 300px;
-  --month-filter-width: 210px;
+  /* Sized for the longest label, "September 2026" (design-system.md, Constants). */
+  --month-filter-w: 178px;
 }
 
 /* --- root shell --------------------------------------------------------------------- */

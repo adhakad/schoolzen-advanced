@@ -2,8 +2,11 @@
  * The toolbar's month navigator — chevrons step a month, the label opens a calendar preview
  * of that month. Same control on Overview and Roster (both references share it).
  */
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, Output, ViewChild
+} from '@angular/core';
 import { monthCalendar, monthLabel, shiftMonth } from 'src/app/shared/utils/attendance-time.util';
+import { placeBelow } from 'src/app/shared/utils/overlay-position.util';
 
 @Component({
   selector: 'app-month-nav',
@@ -11,7 +14,9 @@ import { monthCalendar, monthLabel, shiftMonth } from 'src/app/shared/utils/atte
   styleUrls: ['./month-nav.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class MonthNavComponent {
+export class MonthNavComponent implements OnDestroy {
+  @ViewChild('menu', { static: true }) menu!: ElementRef<HTMLElement>;
+  @ViewChild('trigger', { static: true }) trigger!: ElementRef<HTMLElement>;
   /** "YYYY-MM". */
   @Input() month = '';
   /** "YYYY-MM-DD" — outlined in the calendar. */
@@ -20,7 +25,11 @@ export class MonthNavComponent {
 
   open = false;
 
-  constructor(private host: ElementRef<HTMLElement>) {}
+  constructor(private host: ElementRef<HTMLElement>, private cdr: ChangeDetectorRef) {}
+
+  ngOnDestroy(): void {
+    this.close();
+  }
 
   get label(): string {
     return this.month ? monthLabel(this.month) : '';
@@ -44,8 +53,41 @@ export class MonthNavComponent {
 
   toggle(event: Event): void {
     event.stopPropagation();
-    this.open = !this.open;
+    if (this.open) this.close();
+    else this.openMenu();
   }
+
+  /** Same overlay rule as every `.dd`: portaled to <body>, placed directly below the trigger. */
+  private openMenu(): void {
+    this.open = true;
+    const menu = this.menu.nativeElement;
+    menu.classList.add('dd-portal');
+    document.body.appendChild(menu);
+    this.cdr.detectChanges();
+    this.position();
+    document.addEventListener('scroll', this.reposition, true);
+    window.addEventListener('resize', this.reposition);
+  }
+
+  private close(): void {
+    if (!this.open) return;
+    this.open = false;
+    document.removeEventListener('scroll', this.reposition, true);
+    window.removeEventListener('resize', this.reposition);
+    const menu = this.menu.nativeElement;
+    menu.classList.remove('dd-portal', 'flipped');
+    menu.removeAttribute('style');
+    this.host.nativeElement.querySelector('.dd')?.appendChild(menu);
+    this.cdr.markForCheck();
+  }
+
+  private position(): void {
+    placeBelow(this.menu.nativeElement, this.trigger.nativeElement.getBoundingClientRect());
+  }
+
+  private reposition = (): void => {
+    if (this.open) this.position();
+  };
 
   step(event: Event, delta: number): void {
     event.stopPropagation();
@@ -54,12 +96,13 @@ export class MonthNavComponent {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: Event): void {
-    if (this.open && !this.host.nativeElement.contains(event.target as Node)) this.open = false;
+    const target = event.target as Node;
+    if (this.open && !this.host.nativeElement.contains(target) && !this.menu.nativeElement.contains(target)) this.close();
   }
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
-    this.open = false;
+    this.close();
   }
 
   trackByIndex = (index: number): number => index;

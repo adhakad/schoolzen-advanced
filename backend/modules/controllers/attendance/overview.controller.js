@@ -17,11 +17,12 @@ const {
 const { getSchoolTerminalSns } = require('../../services/attendance-v2/ingest');
 const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
 const {
-    WEEK_OFF, shiftIndex, getStaffShiftIdsForDate, getStudentShiftIds,
+    WEEK_OFF, shiftIndex, getStaffShiftIdsForDate, getStudentShiftIds, loadClassShiftResolver,
 } = require('../../services/attendance-v2/shift-lookup');
 const liveStats = require('../../services/attendance-v2/live-stats');
 const { DAY_TYPE, resolveDays, loadRosterCells } = require('../../services/calendar/working-day');
 const { logActivity } = require('../../services/activity-log.service');
+const { withTransaction } = require('../../helpers/with-transaction');
 const { loadPermissions, allows, resolveStaffId } = require('../../middleware/require-permission');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
@@ -39,6 +40,9 @@ const cacheKeys = require('../../services/cache/cache-keys');
 // is the default when nothing is marked and no device punch exists).
 
 const MAX_PEOPLE = 1000;
+// The driver's first batch is 101 documents; anything bigger pays a getMore round-trip. Every
+// grid read asks for its whole answer in the first batch (attendance-fix2.md Part B).
+const ONE_BATCH = 100000;
 const { ObjectId } = mongoose.Types;
 const CHIP = { Present: 'P', Late: 'L', HalfDay: 'HD', Absent: 'A', Leave: 'LV', Holiday: 'H', WeeklyOff: 'WO' };
 // A non-working day as the shared resolver decides it → its chip.
@@ -67,9 +71,10 @@ const loadPeople = async (adminId, query, resolvedSessionId = null) => {
         if (departmentId) filter.departmentId = departmentId;
         if (designationId) filter.designationId = designationId;
         if (pattern) filter.$or = [{ name: pattern }, { empCode: pattern }];
-        const rows = await StaffV2Model.find(filter, { name: 1, empCode: 1 }).sort({ name: 1 }).limit(MAX_PEOPLE + 1).lean();
+        const rows = await StaffV2Model.find(filter, { name: 1, empCode: 1, holidayTemplateId: 1 }).sort({ name: 1 }).limit(MAX_PEOPLE + 1).batchSize(MAX_PEOPLE + 1).lean();
         return rows.map((row) => ({
             _id: String(row._id), name: row.name, idLine: row.empCode ? `EMP ID ${row.empCode}` : 'No employee ID', sub: '', code: row.empCode || null,
+            holidayTemplateId: row.holidayTemplateId ? String(row.holidayTemplateId) : null,
         }));
     }
 
@@ -79,24 +84,37 @@ const loadPeople = async (adminId, query, resolvedSessionId = null) => {
     if (streamId) match.streamId = new ObjectId(streamId);
     if (groupId) match.groupId = new ObjectId(groupId);
     if (sectionId) match.sectionId = new ObjectId(sectionId);
+    // ONE round-trip for enrollments + profiles ($lookup on _id), instead of two in a row.
+    const profileMatch = { adminId };
+    const pipeline = [
+        { $match: match },
+        { $project: { studentId: 1, classId: 1, streamId: 1, sectionId: 1, class: 1, rollNumber: 1, holidayTemplateId: 1 } },
+        {
+            $lookup: {
+                from: StudentProfileModel.collection.name, localField: 'studentId', foreignField: '_id', as: 'profile',
+                pipeline: [{ $match: profileMatch }, { $project: { name: 1, nameLower: 1 } }],
+            },
+        },
+        { $unwind: '$profile' },
+    ];
+    if (pattern) {
+        const or = [{ 'profile.name': pattern }];
+        if (/^\d+$/.test(search)) or.push({ rollNumber: Number(search) });
+        pipeline.push({ $match: { $or: or } });
+    }
+    pipeline.push({ $sort: { 'profile.nameLower': 1 } }, { $limit: MAX_PEOPLE + 1 });
     const [enrollments, classIndex] = await Promise.all([
-        StudentEnrollmentModel.find(match, { studentId: 1, classId: 1, streamId: 1, sectionId: 1, class: 1, rollNumber: 1 }).lean(),
+        StudentEnrollmentModel.aggregate(pipeline).option({ batchSize: MAX_PEOPLE + 1 }),
         loadClassIndex(adminId),
     ]);
-    const byStudent = new Map(enrollments.map((row) => [String(row.studentId), row]));
-    const profileFilter = { adminId, _id: { $in: enrollments.map((row) => row.studentId) } };
-    if (pattern) {
-        const rollIds = /^\d+$/.test(search)
-            ? enrollments.filter((row) => row.rollNumber === Number(search)).map((row) => row.studentId)
-            : [];
-        profileFilter.$or = [{ name: pattern }, { _id: { $in: rollIds } }];
-    }
-    const students = await StudentProfileModel.find(profileFilter, { name: 1 }).sort({ nameLower: 1 }).limit(MAX_PEOPLE + 1).lean();
-    return students.map((row) => {
-        const enrollment = byStudent.get(String(row._id));
+    return enrollments.map((enrollment) => {
         const label = classSectionLabel(describePlacement(classIndex, enrollment));
-        const roll = enrollment && enrollment.rollNumber != null ? String(enrollment.rollNumber) : null;
-        return { _id: String(row._id), name: row.name, idLine: roll ? `Roll ${roll}` : 'No roll no', sub: label || 'Student', code: roll };
+        const roll = enrollment.rollNumber != null ? String(enrollment.rollNumber) : null;
+        return {
+            _id: String(enrollment.studentId), name: enrollment.profile.name, idLine: roll ? `Roll ${roll}` : 'No roll no', sub: label || 'Student', code: roll,
+            holidayTemplateId: enrollment.holidayTemplateId ? String(enrollment.holidayTemplateId) : null,
+            placement: { classId: enrollment.classId, streamId: enrollment.streamId, sectionId: enrollment.sectionId },
+        };
     });
 };
 
@@ -135,30 +153,40 @@ let GetGrid = async (req, res) => {
     const today = todayKey();
     const includesToday = keys.includes(today);
 
-    // Speed (global rule 5): every lookup that doesn't need the people list runs alongside
-    // it, and everything that does runs in ONE parallel stage — two round-trips to the
-    // database in all, whatever the headcount.
-    const sessionLookup = personType === 'student' ? resolveSessionId(adminId, req.query.session) : Promise.resolve(null);
-    const [shifts, canMark, sessionId, people] = await Promise.all([
+    // Class-first (attendance-fix2.md Part D): students are shown and marked one class at a
+    // time — no class, no rows (and no school-wide student scan).
+    if (personType === 'student' && !req.query.classId) {
+        return res.status(200).json({ month, personType, today, days: monthColumns(month), rows: [], truncated: false, canMark: false, needsClass: true });
+    }
+
+    // Speed (global rule 5, attendance-fix2.md Part B): every query costs a network round-trip,
+    // so the grid is TWO parallel stages whatever the headcount, and nothing is read twice —
+    // the people read also carries each person's holiday template and (students) placement,
+    // which the class-shift and holiday lookups reuse instead of re-reading staff/enrollments.
+    const isStaff = personType === 'staff';
+    const sessionLookup = isStaff ? Promise.resolve(null) : resolveSessionId(adminId, req.query.session);
+    const [shifts, canMark, sessionId, people, resolveClassShift] = await Promise.all([
         shiftIndex(adminId),
         canMarkOf(req),
         sessionLookup,
         sessionLookup.then((id) => loadPeople(adminId, req.query, id)),
+        isStaff ? null : sessionLookup.then((id) => loadClassShiftResolver(adminId, id)),
     ]);
     const truncated = people.length > MAX_PEOPLE;
     const rows = people.slice(0, MAX_PEOPLE);
     const ids = rows.map((row) => row._id);
     const persons = ids.map((personId) => ({ personType, personId }));
+    const assignedTemplates = new Map(rows.map((row) => [`${personType}|${row._id}`, row.holidayTemplateId]));
 
-    // Expected shift per person per day: the staff Roster (one scan for the month) or the
-    // student's class shift (session-wide).
-    const [rosterCells, studentShifts, records, pending, dayTypes] = await Promise.all([
-        personType === 'staff' ? loadRosterCells(adminId, ids, fromKey, toKey) : new Map(),
-        personType === 'student' ? getStudentShiftIds(adminId, sessionId, ids.map((id) => new ObjectId(id))) : new Map(),
+    // Expected shift per person per day: the staff Roster (one scan for the month, shared
+    // with the day-type resolver) or the student's class shift (resolved in memory).
+    const rosterRead = isStaff ? loadRosterCells(adminId, ids, fromKey, toKey) : Promise.resolve(new Map());
+    const [rosterCells, records, pending, dayTypes] = await Promise.all([
+        rosterRead,
         AttendanceRecordV2Model.find(
             { adminId, personType, personId: { $in: ids }, date: { $gte: toUtcMidnight(fromKey), $lte: toUtcMidnight(toKey) }, deletedAt: null },
             { personId: 1, dateKey: 1, status: 1, inTime: 1, outTime: 1, isOverridden: 1, updatedBy: 1, source: 1, markedAt: 1, punches: 1 }
-        ).lean(),
+        ).batchSize(ONE_BATCH).lean(),
         includesToday
             ? PunchLogV2Model.aggregate([
                 { $match: { adminId, dateKey: today, personId: { $in: ids } } },
@@ -166,10 +194,16 @@ let GetGrid = async (req, res) => {
             ])
             : [],
         // Holiday > Leave > WeeklyOff from the shared resolver — the same answer Leave and the
-        // reconcile worker get. Run in this same stage (its own small roster read in parallel
-        // beats one more sequential round-trip).
-        resolveDays(adminId, { sessionId, people: persons, fromKey, toKey }),
+        // reconcile worker get.
+        resolveDays(adminId, { sessionId, people: persons, fromKey, toKey, rosterCells: rosterRead, assignedTemplates }),
     ]);
+    const studentShifts = new Map();
+    if (!isStaff) {
+        rows.forEach((row) => {
+            const shiftId = row.placement ? resolveClassShift(row.placement) : null;
+            if (shiftId) studentShifts.set(row._id, shiftId);
+        });
+    }
     const expectedOf = (personId, dateKey) => {
         if (personType === 'staff') return (rosterCells.get(personId) || {})[dateKey] || null;
         return studentShifts.get(personId) || null;
@@ -218,7 +252,8 @@ let GetGrid = async (req, res) => {
             cells[dateKey] = { s: NO_ROSTER, n: 1 };
         });
 
-        const out = { ...row, type: personType, cells, live: false, presentCount: 0 };
+        const { holidayTemplateId, placement, ...person } = row;
+        const out = { ...person, type: personType, cells, live: false, presentCount: 0 };
         out.presentCount = Object.values(cells).filter((cell) => !cell.f && ['P', 'L', 'HD'].includes(cell.s)).length;
         const todayShiftId = expectedOf(row._id, today);
         const todayShift = todayShiftId && todayShiftId !== WEEK_OFF ? shifts.get(todayShiftId) : null;
@@ -346,20 +381,29 @@ let SyncNow = async (req, res) => {
     if (dateKey > todayKey()) {
         throw new ValidationError(messages.dateRangeInvalid(), { module: MODULE, code: 'DATE_RANGE_INVALID', fields: [{ field: 'date', message: 'Pick today or an earlier day.' }] });
     }
-    const terminals = await getSchoolTerminalSns(adminId);
-    if (!terminals.length) throw new ValidationError(messages.syncNoDevices(), { module: MODULE, code: 'SYNC_NO_DEVICES' });
-
     let q;
     try {
         q = queue();
     } catch (error) {
         throw new ExternalServiceError(messages.queueUnavailable(), { module: MODULE, code: 'QUEUE_UNAVAILABLE', context: { reason: error.message } });
     }
-    if (await q.isRunning(q.syncJobId(adminId, dateKey))) {
+    // Speed (Part B): the three independent checks are one parallel stage; they are still
+    // reported in a fixed order (no devices → worker down → already running).
+    const [terminals, workerAlive, running] = await Promise.all([
+        getSchoolTerminalSns(adminId),
+        q.workerAlive(),
+        q.isRunning(q.syncJobId(adminId, dateKey)),
+    ]);
+    if (!terminals.length) throw new ValidationError(messages.syncNoDevices(), { module: MODULE, code: 'SYNC_NO_DEVICES' });
+    // No worker → a queued job never runs and every later Sync reads "already running".
+    if (!workerAlive) throw new ExternalServiceError(messages.syncWorkerDown(), { module: MODULE, code: 'SYNC_WORKER_DOWN' });
+    if (running) {
         throw new ConflictError(messages.syncAlreadyRunning(), { module: MODULE, code: 'SYNC_ALREADY_RUNNING', context: { dateKey } });
     }
-    const jobId = await q.addSyncJob({ adminId, dateKey });
-    await logActivity(req, { module: MODULE, action: 'attendance.sync', meta: { dateKey, terminals: terminals.length } });
+    const [jobId] = await Promise.all([
+        q.addSyncJob({ adminId, dateKey }),
+        logActivity(req, { module: MODULE, action: 'attendance.sync', meta: { dateKey, terminals: terminals.length } }),
+    ]);
     return res.status(202).json({ message: messages.syncQueued(), jobId, dateKey });
 };
 
@@ -403,22 +447,48 @@ let MarkAttendance = async (req, res) => {
     const today = todayKey();
     const now = nowWallClock();
     if (requestedDate && requestedDate !== today) throw markError(PermissionError, 'MARK_NOT_TODAY', messages.markNotToday());
-    const person = await assertPerson(adminId, personType, personId);
-
-    // The person's shift today.
-    let shiftId = null;
-    let sessionId = null;
-    if (personType === 'staff') {
-        shiftId = (await getStaffShiftIdsForDate(adminId, today, [personId])).get(personId) || null;
-    } else {
-        const session = await getActiveSession(adminId);
-        sessionId = session ? String(session._id) : null;
-        shiftId = (await getStudentShiftIds(adminId, sessionId, [new ObjectId(personId)])).get(personId) || null;
+    // Class-first (attendance-fix2.md Part D): a student is marked from the class the grid
+    // shows, in the grid's session — never the server's "active" one, which can differ from
+    // the session picked in the header.
+    const { classId, streamId, groupId, sectionId } = req.body;
+    if (personType === 'student' && !classId) {
+        throw new ValidationError(messages.markClassRequired(), {
+            module: MODULE, code: 'MARK_CLASS_REQUIRED', fields: [{ field: 'classId', message: messages.markClassRequired() }],
+        });
     }
-    const [shifts, dayTypes] = await Promise.all([
+
+    // Speed (Part B): every read the checks need runs in ONE parallel stage; the checks then
+    // run in their fixed order, so the refusal a caller sees never depends on timing.
+    const date = toUtcMidnight(today);
+    const studentLookup = async () => {
+        const sessionId = await resolveSessionId(adminId, req.body.session);
+        const match = { adminId, sessionId: new ObjectId(sessionId), studentId: new ObjectId(personId), classId: new ObjectId(classId) };
+        if (streamId) match.streamId = new ObjectId(streamId);
+        if (groupId) match.groupId = new ObjectId(groupId);
+        if (sectionId) match.sectionId = new ObjectId(sectionId);
+        const [enrollment, resolveClassShift, dayTypes] = await Promise.all([
+            StudentEnrollmentModel.findOne(match, { classId: 1, streamId: 1, sectionId: 1 }).lean(),
+            loadClassShiftResolver(adminId, sessionId),
+            resolveDays(adminId, { sessionId, people: [{ personType, personId }], fromKey: today, toKey: today }),
+        ]);
+        return { enrollment, shiftId: enrollment ? resolveClassShift(enrollment) || null : null, dayTypes };
+    };
+    const staffLookup = async () => {
+        const [shiftIds, dayTypes] = await Promise.all([
+            getStaffShiftIdsForDate(adminId, today, [personId]),
+            resolveDays(adminId, { sessionId: null, people: [{ personType, personId }], fromKey: today, toKey: today }),
+        ]);
+        return { enrollment: null, shiftId: shiftIds.get(personId) || null, dayTypes };
+    };
+    const [person, lookup, shifts, punch, previous] = await Promise.all([
+        assertPerson(adminId, personType, personId),
+        personType === 'staff' ? staffLookup() : studentLookup(),
         shiftIndex(adminId),
-        resolveDays(adminId, { sessionId, people: [{ personType, personId }], fromKey: today, toKey: today }),
+        PunchLogV2Model.findOne({ adminId, personId, dateKey: today }, { punchTime: 1 }).sort({ punchTime: 1 }).lean(),
+        AttendanceRecordV2Model.findOne({ adminId, personType, personId, date }, { status: 1, source: 1, markedAt: 1, deletedAt: 1, isOverridden: 1, updatedBy: 1 }).lean(),
     ]);
+    if (personType === 'student' && !lookup.enrollment) throw markError(PermissionError, 'MARK_NOT_ENROLLED', messages.markNotEnrolled());
+    const { shiftId, dayTypes } = lookup;
     const dayType = (dayTypes.get(`${personType}|${personId}`) || new Map()).get(today) || DAY_TYPE.WORKING;
     const shift = shiftId && shiftId !== WEEK_OFF ? shifts.get(shiftId) : null;
     if (dayType !== DAY_TYPE.WORKING || shiftId === WEEK_OFF) {
@@ -432,11 +502,6 @@ let MarkAttendance = async (req, res) => {
         throw markError(PermissionError, 'MARK_OUTSIDE_WINDOW', messages.markOutsideWindow(from, to), { from, to });
     }
 
-    const date = toUtcMidnight(today);
-    const [punch, previous] = await Promise.all([
-        PunchLogV2Model.findOne({ adminId, personId, dateKey: today }, { punchTime: 1 }).sort({ punchTime: 1 }).lean(),
-        AttendanceRecordV2Model.findOne({ adminId, personType, personId, date }, { status: 1, source: 1, markedAt: 1, deletedAt: 1, isOverridden: 1, updatedBy: 1 }).lean(),
-    ]);
     if (punch || (previous && !previous.deletedAt && previous.source === 'device')) {
         const at = chipTime(punch ? punch.punchTime : null);
         throw markError(ConflictError, 'MARK_DEVICE_RECORDED', messages.markDeviceRecorded(at), { at });
@@ -446,41 +511,46 @@ let MarkAttendance = async (req, res) => {
     }
 
     const actor = String(req.staffId || (req.user && req.user.id) || 'admin');
-    if (status === 'Absent') {
-        // Absent is the default — clearing the mark is enough (soft, so history stays).
-        if (previous && !previous.deletedAt) {
+    // The record and its activity-log entry are ONE transaction: a failure in either leaves
+    // neither behind (attendance-fix2.md Part C, failure/rollback).
+    await withTransaction(async (dbSession) => {
+        if (status === 'Absent') {
+            // Absent is the default — clearing the mark is enough (soft, so history stays).
+            if (previous && !previous.deletedAt) {
+                await AttendanceRecordV2Model.updateOne(
+                    { _id: previous._id },
+                    { $set: { status: 'Absent', source: 'system', markedAt: null, markedBy: actor, deletedAt: now, updatedBy: actor, updatedAt: new Date() } },
+                    { session: dbSession }
+                );
+            }
+        } else {
             await AttendanceRecordV2Model.updateOne(
-                { _id: previous._id },
-                { $set: { status: 'Absent', source: 'system', markedAt: null, markedBy: actor, deletedAt: now, updatedBy: actor, updatedAt: new Date() } }
+                { adminId, personType, personId, date },
+                {
+                    $set: {
+                        dateKey: today, status, source: 'manual', markedAt: now, markedBy: actor, shiftId,
+                        inTime: null, outTime: null, punches: [], isOverridden: false, deletedAt: null, updatedBy: actor, updatedAt: new Date(),
+                    },
+                    $setOnInsert: { createdAt: new Date() },
+                },
+                { upsert: true, session: dbSession }
             );
         }
-    } else {
-        await AttendanceRecordV2Model.updateOne(
-            { adminId, personType, personId, date },
-            {
-                $set: {
-                    dateKey: today, status, source: 'manual', markedAt: now, markedBy: actor, shiftId,
-                    inTime: null, outTime: null, punches: [], isOverridden: false, deletedAt: null, updatedBy: actor, updatedAt: new Date(),
-                },
-                $setOnInsert: { createdAt: new Date() },
+        await logActivity(req, {
+            module: MODULE,
+            action: 'attendance.mark',
+            targetId: personId,
+            meta: {
+                personType,
+                name: person.name,
+                status,
+                markedAt: chipTime(now),
+                previous: previous && !previous.deletedAt ? { status: previous.status, source: previous.source || 'system', markedAt: chipTime(previous.markedAt) } : { status: 'Absent' },
             },
-            { upsert: true }
-        );
-    }
+        }, dbSession);
+    });
     // Write-through: today's counts change in the same request (optimization.md).
     await liveStats.recompute(adminId, today);
-    await logActivity(req, {
-        module: MODULE,
-        action: 'attendance.mark',
-        targetId: personId,
-        meta: {
-            personType,
-            name: person.name,
-            status,
-            markedAt: chipTime(now),
-            previous: previous && !previous.deletedAt ? { status: previous.status, source: previous.source || 'system', markedAt: chipTime(previous.markedAt) } : { status: 'Absent' },
-        },
-    });
 
     const marked = status !== 'Absent';
     return res.status(200).json({

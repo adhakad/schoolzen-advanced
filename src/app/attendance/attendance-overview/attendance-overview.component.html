@@ -32,6 +32,10 @@
       <div class="sync-row" *ngIf="syncLine">
         <span class="sync-line" role="status" aria-live="polite"><i class="bi bi-fingerprint"></i> {{ syncLine }}</span>
       </div>
+      <div class="fetch-error" *ngIf="syncError" role="alert">
+        <i class="bi bi-exclamation-circle"></i> {{ syncError }}
+        <button type="button" class="link-btn" [disabled]="syncing" (click)="onSyncConfirmed()">Retry</button>
+      </div>
       <div class="toolbar-row2 ov-filter-row">
         <app-dd [options]="personTypeOptions" [value]="personType"
                 ariaLabel="Person type" (valueChange)="onPersonTypeChange($event)"></app-dd>
@@ -122,7 +126,10 @@
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetchGrid()">Retry</button>
     </div>
-    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError">
+    <div class="tbl-empty needs-class" *ngIf="needsClass && !loading">
+      <i class="bi bi-mortarboard"></i> Select a class to see students and mark attendance
+    </div>
+    <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError && !needsClass">
       {{ search ? 'No one matches that search.' : (isStaff ? 'No staff match these filters.' : 'No students match these filters.') }}
     </div>
     <div class="tbl-empty" *ngIf="truncated">Showing the first 1,000 people &mdash; narrow the filters to see the rest.</div>
@@ -204,7 +211,10 @@
         <ng-container *ngIf="target.row.mark">Open today {{ target.row.mark.from }} – {{ target.row.mark.to }}.</ng-container>
       </div>
     </ng-container>
-    <div class="mark-error" *ngIf="markError" role="alert"><i class="bi bi-exclamation-circle"></i> {{ markError }}</div>
+    <div class="mark-error" *ngIf="markError" role="alert">
+      <i class="bi bi-exclamation-circle"></i> {{ markError }}
+      <button type="button" class="link-btn" *ngIf="failedMark" [disabled]="marking !== null" (click)="retryMark()">Retry</button>
+    </div>
   </ng-container>
 </div>
 

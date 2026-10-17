@@ -6,7 +6,9 @@ const cacheKeys = require('../../services/cache/cache-keys');
 // triggers"). Roster writes invalidate nothing here — they re-enqueue reconcile, and THAT
 // completing is what busts the day's live-status key.
 
-const onShiftsChanged = (adminId) => cacheService.delPattern(cacheKeys.attendance.shiftsPattern(adminId));
+// The shifts list is ONE key (shift-lookup.js) — a plain DEL, not a keyspace SCAN, which on
+// managed Redis cost ~0.4 s per shift write (attendance-fix2.md Part B).
+const onShiftsChanged = (adminId) => cacheService.del(cacheKeys.attendance.shifts(adminId));
 
 const onLiveStatusChanged = (adminId, dateKey) => cacheService.del(cacheKeys.attendance.liveStatus(adminId, dateKey));
 

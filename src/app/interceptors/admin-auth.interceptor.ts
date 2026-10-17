@@ -13,7 +13,9 @@ import { environment } from 'src/environments/environment';
 
 @Injectable()
 export class AdminAuthInterceptor implements HttpInterceptor {
-  url = `${environment.API_URL}/api/admin`;
+  // The legacy admin auth router is mounted at /v1/admin (backend/routes.js) — the refresh
+  // endpoint is POST /v1/admin/refresh, never under /api.
+  url = `${environment.API_URL}/v1/admin`;
   refresh=false
   
   constructor(private http:HttpClient, private adminAuthService: AdminAuthService) {}
@@ -31,11 +33,16 @@ export class AdminAuthInterceptor implements HttpInterceptor {
       })
 
       return next.handle(req).pipe(catchError((err: HttpErrorResponse) => {
-        if (err.status === 403 && !this.refresh) {
+        // Only an expired/missing token is refreshed. A v2 PermissionError is also a 403, but
+        // it carries a shaped `{ error: { category } }` body and must reach the page as-is
+        // (e.g. "Attendance can only be marked between …"), never be swallowed by a refresh.
+        const shaped = Boolean(err.error && typeof err.error === 'object' && err.error.error && err.error.error.category);
+        if (err.status === 403 && !shaped && !this.refresh) {
           this.refresh = true;
           const refreshToken = this.adminAuthService.getRefreshToken()?.refreshToken;
           return this.http.post(`${this.url}/refresh`, {token:refreshToken}).pipe(
             switchMap((res: any) => {
+              this.refresh = false;
               const newAccessToken = res.accessToken
               this.adminAuthService.storeAccessToken(newAccessToken)
               return next.handle(request.clone({
@@ -43,6 +50,11 @@ export class AdminAuthInterceptor implements HttpInterceptor {
                   Authorization: `Bearer ${newAccessToken}`
                 }
               }));
+            }),
+            // A failed refresh must not replace the original error with its own.
+            catchError(() => {
+              this.refresh = false;
+              return throwError(() => err);
             })
           ) as Observable<HttpEvent<any>>;
         }

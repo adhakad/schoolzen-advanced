@@ -21,7 +21,8 @@ const loadRosterCells = async (adminId, staffIds, fromKey, toKey) => {
     const months = monthsOf(fromKey, toKey);
     // One day (the reconcile worker, a whole school): read just that cell.
     const projection = fromKey === toKey ? { staffId: 1, [`days.${fromKey}`]: 1 } : { staffId: 1, days: 1 };
-    const docs = await RosterV2Model.find({ adminId, staffId: { $in: staffIds }, $or: months }, projection).lean();
+    // batchSize: one doc per person — past 101 people the default first batch would cost a getMore.
+    const docs = await RosterV2Model.find({ adminId, staffId: { $in: staffIds }, $or: months }, projection).batchSize(100000).lean();
     docs.forEach((doc) => cells.set(doc.staffId, { ...(cells.get(doc.staffId) || {}), ...(doc.days || {}) }));
     return cells;
 };
@@ -36,7 +37,7 @@ const loadLeaveDays = async (adminId, people, fromKey, toKey) => {
     const rows = await LeaveRequestV2Model.find(
         { adminId, status: 'Approved', personId: { $in: people.map((p) => String(p.personId)) }, fromDateKey: { $lte: toKey }, toDateKey: { $gte: fromKey } },
         { personType: 1, personId: 1, leaveTypeId: 1, dateKeys: 1, attendanceDateKeys: 1 }
-    ).lean();
+    ).batchSize(100000).lean();
     rows.forEach((row) => {
         const key = personKey(row.personType, row.personId);
         if (!days.has(key)) days.set(key, new Map());
@@ -62,13 +63,15 @@ const loadLeaveKeys = async (adminId, people, fromKey, toKey) => {
  */
 // `rosterCells` lets a caller that already read the Roster for the range (Overview's grid)
 // hand it in instead of paying for the same scan twice.
-const resolveDays = async (adminId, { sessionId = null, people, fromKey, toKey, includeLeave = true, rosterCells = null }) => {
+// `assignedTemplates` likewise skips the holiday-template re-read; `rosterCells` may be a
+// promise, so the caller's own roster read still runs in this same parallel stage.
+const resolveDays = async (adminId, { sessionId = null, people, fromKey, toKey, includeLeave = true, rosterCells = null, assignedTemplates = null }) => {
     const result = new Map();
     const days = eachKey(fromKey, toKey);
     if (!people.length || !days.length) return result;
     const staffIds = people.filter((p) => p.personType === 'staff').map((p) => String(p.personId));
     const [holidays, roster, leave] = await Promise.all([
-        getHolidayKeysForPeople(adminId, sessionId, people, fromKey, toKey),
+        getHolidayKeysForPeople(adminId, sessionId, people, fromKey, toKey, assignedTemplates),
         rosterCells || loadRosterCells(adminId, staffIds, fromKey, toKey),
         includeLeave ? loadLeaveKeys(adminId, people, fromKey, toKey) : new Map(),
     ]);

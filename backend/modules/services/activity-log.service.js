@@ -25,10 +25,12 @@ const actorOf = (req) => {
  * @param {String} [entry.targetId]
  * @param {Object} [entry.meta]     context only — never a sensitive value itself
  * @param {Object} [entry.changes]  { before, after } of changed, non-sensitive fields
+ * @param {ClientSession} [dbSession] write inside the caller's transaction, so the change and
+ *                                    its log entry commit or roll back together
  */
-const logActivity = async (req, { module, action, targetId = null, meta, changes }) => {
+const logActivity = async (req, { module, action, targetId = null, meta, changes }, dbSession = null) => {
     const adminId = req.adminId || (req.query && req.query.adminId) || (req.body && req.body.adminId);
-    await ActivityLogModel.create({
+    const entry = {
         adminId: String(adminId),
         ...actorOf(req),
         module,
@@ -38,7 +40,9 @@ const logActivity = async (req, { module, action, targetId = null, meta, changes
         changes,
         ipAddress: req.ip || null,
         userAgent: (req.get && req.get('user-agent')) || null,
-    });
+    };
+    if (dbSession) await ActivityLogModel.create([entry], { session: dbSession });
+    else await ActivityLogModel.create(entry);
 };
 
 module.exports = { logActivity };

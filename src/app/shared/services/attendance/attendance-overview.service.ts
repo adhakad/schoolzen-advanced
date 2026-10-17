@@ -7,7 +7,7 @@ import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import {
-  DayPunches, GridQuery, GridResponse, LiveStatus, MarkResponse, MarkStatus, PersonType, RecentArrivals, SyncResponse, SyncStatus
+  DayPunches, GridQuery, GridResponse, LiveStatus, MarkRequest, MarkResponse, PersonType, RecentArrivals, SyncResponse, SyncStatus
 } from 'src/app/shared/models/attendance/attendance.model';
 
 @Injectable({ providedIn: 'root' })
@@ -43,8 +43,11 @@ export class AttendanceOverviewService {
     return this.http.get<SyncStatus>(`${this.url}/sync-status`, { params: { adminId } });
   }
 
-  /** Manual status marking — today only, server time; `key` is the popover's Idempotency-Key. */
-  mark(adminId: string, body: { personType: PersonType; personId: string; status: MarkStatus }, key: string): Observable<MarkResponse> {
+  /**
+   * Manual status marking — today only, server time; `key` is the popover's Idempotency-Key.
+   * Students also carry the grid's session + class context (class-first rule).
+   */
+  mark(adminId: string, body: MarkRequest, key: string): Observable<MarkResponse> {
     return this.http.post<MarkResponse>(`${this.url}/mark`, { adminId, ...body }, { headers: idempotencyHeaders(key) });
   }
 }
