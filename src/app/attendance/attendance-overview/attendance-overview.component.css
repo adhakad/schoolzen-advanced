@@ -58,24 +58,26 @@
 
 /* The reference chip at 45 x 36 (5:4) so "8:23 AM" fits — the html's own additions block. */
 .chip { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 3px 6px; border-radius: var(--radius); width: 45px; height: 36px; border: 1px solid var(--line); background: transparent; text-align: center; font-family: inherit; box-sizing: border-box; cursor: default; }
-.chip .s { font-size: 10.5px; font-weight: 700; line-height: 1.1; }
-.chip .t { font-size: 7.5px; margin-top: 0; font-weight: 500; white-space: nowrap; line-height: 1.1; }
+.chip .s { font-size: 10.5px; font-weight: 800; line-height: 1.1; }
+.chip .t { font-size: 7.5px; margin-top: 0; font-weight: 600; white-space: nowrap; line-height: 1.1; }
 /* Today, markable: brand border + soft ring on hover. `.closed` = no permission / window shut. */
 .chip.live-click { cursor: pointer; border-color: var(--brand); }
 .chip.live-click:hover, .chip.live-click.open { box-shadow: 0 0 0 3px var(--brand-soft); }
 .chip.closed { opacity: .6; cursor: not-allowed; border-color: var(--line); }
 /* §3c past / future / no-roster — the html's modifiers, existing tokens only. */
-.chip.locked-past { opacity: .55; cursor: not-allowed; }
+.chip.locked-past { opacity: .85; cursor: not-allowed; }
 .chip.future { opacity: .6; border: 1px dashed var(--ink-faint); background: transparent; cursor: not-allowed; }
 .chip.future .s { color: var(--ink-faint) !important; }
 .chip.nocell { opacity: .45; border: 1px dashed var(--ink-faint); background: transparent; cursor: not-allowed; }
 .chip.nocell .s { color: var(--ink-faint); }
-.chip.present .s, .chip.present .t { color: var(--success); }
-.chip.late .s, .chip.late .t, .chip.halfday .s, .chip.halfday .t { color: var(--warning); }
-.chip.present .t, .chip.late .t, .chip.halfday .t { opacity: .75; }
-.chip.absent .s { color: var(--danger); }
+.chip.present { background: #fff; border-color: var(--brand); }
+.chip.present.locked-past { border-color: var(--line); } /* every past chip keeps the plain gray border */
+.chip.present .s, .chip.present .t { color: #176B3B; }
+.chip.late .s, .chip.late .t, .chip.halfday .s, .chip.halfday .t { color: #84580F; }
+.chip.present .t, .chip.late .t, .chip.halfday .t { opacity: 1; }
+.chip.absent .s { color: #A24A38; }
 .chip.leave .s { color: var(--slate); }
-.chip.holiday .s { color: var(--ink-faint); }
+.chip.holiday .s { color: #6B6480; }
 /* Roster weekly off — same quiet look as the Roster grid's WO chip. */
 .chip.weekoff { background: var(--paper); }
 .chip.weekoff .s { color: var(--ink-faint); font-weight: 600; }

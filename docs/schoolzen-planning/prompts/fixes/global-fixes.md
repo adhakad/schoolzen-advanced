@@ -28,7 +28,8 @@ run the build and the tests you wrote; do not report PASS for anything you have 
    before/after ms; fix slow queries (indexes, lean, projection, no N+1), no blocking animations, no full reloads after writes.
 6. **"Good to know"** panel on every page: plain-language steps for non-technical users; 2-3 shown, rest under "Read more".
 7. **Uniform sizes:** one fixed search-box size everywhere, same size for the buttons to its right, all filters equal
-   height and width. Only calendar filters have their own width, constant regardless of month text length.
+   height and width. Only calendar (month) filters have their own width, constant regardless of month text length: ONE shared month-filter component/style in the global stylesheet
+   (`--month-filter-w: 178px`, sized for "September 2026"), used by every page. Never a per-page width override.
 8. **Disabled filters** show the same text as enabled ("All departments"), never "Select a department".
 9. **Tests (market-ready):** Unit/spec, Backend API, Live (real DB), Failure/rollback, Browser/UI. Run as the separate
    test round, not inside a module fix run, unless the fix file asks.
