@@ -201,7 +201,8 @@ const tests = {
         assert.strictEqual(rows.get(String(staffOpen._id)).mark.open, true);
         assert.strictEqual(rows.get(String(staffNone._id)).cells[today].n, 1, 'no roster → dash');
         assert.strictEqual(rows.get(String(staffDevice._id)).cells[today].src, 'device');
-        assert.strictEqual(closed.sub, 'ID T-1', 'identity line is the employee ID');
+        assert.strictEqual(closed.idLine, 'EMP ID T-1', 'identity line is the employee ID');
+        assert.ok(closed.sub && closed.sub === closed.shift, 'staff second line is today\'s shift');
         assert.strictEqual(typeof res.body.canMark, 'boolean');
         const future = Object.entries(closed.cells).find(([key]) => key > today);
         if (future) assert.ok(future[1].f === 1 || future[1].n === 1, 'future days are expected/no-roster, never a real status');

@@ -35,6 +35,9 @@ export interface MarkWindow {
 export interface GridRow {
   _id: string;
   name: string;
+  /** Identity line: "EMP ID 014" (staff) or "Roll 12" (student). */
+  idLine: string;
+  /** Line under it: today's shift (staff) or Class-Section (student). */
   sub: string;
   code: string | null;
   /** Today's expected shift name. */

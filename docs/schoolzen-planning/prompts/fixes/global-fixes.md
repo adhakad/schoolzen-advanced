@@ -43,7 +43,7 @@ run the build and the tests you wrote; do not report PASS for anything you have 
 ## Status (Claude Code updates this after each module run)
 | Module | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 | R13 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Attendance | - | - | - | - | - | - | - | - | - | - | - | - | - |
+| Attendance | partial | done | done | done | partial | done | done | done | partial | done | done | done | done |
 | Student | - | - | - | - | - | - | - | - | - | - | - | - | - |
 | Academic Setup | - | - | - | - | - | - | - | - | - | - | - | - | - |
 | Staff | - | - | - | - | - | - | - | - | - | - | - | - | - |
@@ -56,3 +56,9 @@ run the build and the tests you wrote; do not report PASS for anything you have 
 | Dashboard | - | - | - | - | - | - | - | - | - | - | - | - | - |
 
 `-` = not checked yet. Add a short "Notes" list under the table for every partial / not done.
+
+### Notes — Attendance (2026-10-17)
+- R1 partial: Overview mark popover verified 8px under its cell (Playwright); Roster "Applies to Month" picker is a popover. Other `.dd` overlays not re-checked one by one in this run.
+- R5 partial: live `GET /grid` measured at 1.9–3.5 s (staff, 3 people) and ~0.95 s (students) on the remote cluster. No optimisation done in this run, so there is no before/after.
+- R9 partial: ran unit/spec (Karma), backend pure tests, live real-DB tests (`test-attendance-mark-v2`, `test-working-day`) and browser tests (Playwright parity for Overview, Roster, Manage Shifts). There is no dedicated failure/rollback suite; refusal paths are covered inside the live tests.
+- Device punches: the pipeline code works, but zero punches reach v2. The terminal (GED7261701240) has sent nothing to WDMS since 2026-08-27, and its 2 enrolled codes belong to legacy `staffs` ids, not v2 Staff. v2 staff are never enrolled on WDMS. Needs a v2 Staff → WDMS enrolment (Staff module) plus re-enrolment on the device.

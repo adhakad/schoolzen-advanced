@@ -5,7 +5,7 @@ import { pathToFileURL } from 'url';
 // attendance-fix1.md §4: one parity check of the Overview table against
 // docs/schoolzen-planning/v1/attendance/attendance-overview.html — chips, today column,
 // sticky columns, past/future styles. The reference is loaded side by side and its computed
-// styles are the expected values (the chip is 46px wide instead of 38px by decision §3a).
+// styles are the expected values (including its additions block: chip 45x36, fixed sticky widths, past/future states).
 
 const REFERENCE = pathToFileURL(path.resolve(__dirname, '..', 'docs', 'schoolzen-planning', 'v1', 'attendance', 'attendance-overview.html')).href;
 const TODAY = '2026-10-16';
@@ -24,13 +24,13 @@ const grid = {
   month: MONTH, personType: 'staff', today: TODAY, truncated: false, canMark: true, days,
   rows: [
     {
-      _id: 'p1', name: 'Priya Sharma', sub: 'ID STF-0142', code: 'STF-0142', shift: 'Morning', type: 'staff', live: false, presentCount: 9,
+      _id: 'p1', name: 'Priya Sharma', idLine: 'EMP ID STF-0142', sub: 'Morning', code: 'STF-0142', shift: 'Morning', type: 'staff', live: false, presentCount: 9,
       mark: { from: '7:45 AM', to: '2:00 PM', open: true },
       cells: cellsFor((d) => (d < 16 ? (d % 7 === 4 ? { s: 'H', t: null } : d % 5 === 0 ? { s: 'L', t: '9:36 AM' } : d % 6 === 0 ? { s: 'A', t: null } : { s: 'P', t: '8:23 AM' })
         : d === 16 ? { s: 'P', t: '9:02 AM', src: 'manual' } : d % 7 === 4 ? { s: 'WO', f: 1 } : { s: 'M', f: 1 }))
     },
     {
-      _id: 'p2', name: 'Rahul Verma', sub: 'ID STF-0203', code: 'STF-0203', shift: 'Morning', type: 'staff', live: true, presentCount: 3,
+      _id: 'p2', name: 'Rahul Verma', idLine: 'EMP ID STF-0203', sub: 'Morning', code: 'STF-0203', shift: 'Morning', type: 'staff', live: true, presentCount: 3,
       mark: { from: '7:45 AM', to: '2:00 PM', open: true },
       cells: cellsFor((d) => (d < 16 ? { s: 'P', t: '8:55 AM' } : d === 16 ? { s: 'P', t: '8:55 AM', src: 'device', p: '8:55 AM' } : { s: '—', n: 1 }))
     }
@@ -80,31 +80,44 @@ test('Overview table matches attendance-overview.html', async ({ page, browser }
   expect(await styles(page, '.att-grid td.today-col', ['background-color'])).toEqual(await styles(reference, '.att-grid td.today-col', ['background-color']));
   await expect(page.locator('.att-grid th.today-col')).toContainText('16');
 
-  // Chips: same height/radius/fonts/colours as the reference; width 46px (decided §3a).
-  const chipProps = ['height', 'border-top-left-radius', 'flex-direction'];
+  // Fixed column widths and table layout exactly as the reference.
+  const widthProps = ['width', 'min-width', 'max-width'];
+  for (const selector of ['.att-grid th.check-col', '.att-grid th.name-col', '.att-grid th.type-col', '.att-grid th.day-cell']) {
+    expect(await styles(page, selector, widthProps), selector).toEqual(await styles(reference, selector, widthProps));
+  }
+  expect(await styles(page, '.att-grid', ['table-layout', 'min-width'])).toEqual(await styles(reference, '.att-grid', ['table-layout', 'min-width']));
+
+  // Filter row: 6 equal columns, the 7th wraps.
+  const cols = await page.locator('.toolbar-row2').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+  expect(cols).toBe(6);
+
+  // Chips: size, padding, gap, radius, fonts and colours as the reference (45 x 36).
+  const chipProps = ['width', 'height', 'padding-left', 'padding-right', 'row-gap', 'border-top-left-radius', 'flex-direction'];
   expect(await styles(page, '.chip.present', chipProps)).toEqual(await styles(reference, '.chip.present', chipProps));
-  expect((await styles(page, '.chip.present', ['width']))['width']).toBe('46px');
   for (const status of ['present', 'late', 'absent', 'holiday']) {
     const want = await styles(reference, `.chip.${status} .s`, ['color', 'font-size', 'font-weight']);
     expect(await styles(page, `.chip.${status} .s`, ['color', 'font-size', 'font-weight']), status).toEqual(want);
   }
-  expect((await styles(page, '.chip.present .t', ['font-size']))['font-size']).toBe('8px');
+  expect(await styles(page, '.chip.present .t', ['font-size', 'white-space'])).toEqual(await styles(reference, '.chip.present .t', ['font-size', 'white-space']));
   await expect(page.locator('.chip.present .t').first()).toHaveText(/^\d{1,2}:\d{2} (AM|PM)$/);
 
-  // Past / future / no-roster treatment (§3c).
-  expect((await styles(page, '.chip.locked', ['opacity', 'cursor']))).toEqual({ opacity: '0.62', cursor: 'not-allowed' });
-  await expect(page.locator('.chip.locked').first()).toHaveAttribute('title', "Past dates can't be changed");
-  expect(await styles(page, '.chip.future', ['opacity', 'border-top-style', 'cursor'])).toEqual({ opacity: '0.45', 'border-top-style': 'dashed', cursor: 'not-allowed' });
+  // Past / future / no-roster / today-markable treatment (§3c), the reference's classes and values.
+  const stateProps = ['opacity', 'cursor', 'border-top-style', 'border-top-color'];
+  for (const cls of ['locked-past', 'future', 'nocell', 'live-click']) {
+    expect(await styles(page, `.chip.${cls}`, stateProps), cls).toEqual(await styles(reference, `.chip.${cls}`, stateProps));
+  }
+  await expect(page.locator('.chip.locked-past').first()).toHaveAttribute('title', "Past dates can't be changed");
   await expect(page.locator('.chip.future').first()).toHaveAttribute('title', 'Upcoming date');
   await expect(page.locator('.chip.future .s').first()).toHaveText('M');
-  expect(await styles(page, '.chip.nocell', ['opacity', 'border-top-style'])).toEqual({ opacity: '0.35', 'border-top-style': 'dashed' });
 
   // Live pulsing ring for punched-in-no-out, and the Recent Arrivals panel.
   await expect(page.locator('td.today-col .pulse-cell .pring .ring')).toHaveCount(1);
   await expect(page.locator('.arrival-row .aname')).toHaveText(['Rahul Verma']);
 
   // Identity line + the Last sync line.
-  await expect(page.locator('.g-shift').first()).toHaveText('ID STF-0142');
+  await expect(page.locator('.g-id').first()).toHaveText('EMP ID STF-0142');
+  await expect(page.locator('.g-shift').first()).toHaveText('Morning');
+  expect(await styles(page, '.g-id', ['font-size', 'font-weight', 'color'])).toEqual(await styles(reference, '.g-id', ['font-size', 'font-weight', 'color']));
   await expect(page.locator('.sync-line')).toContainText('Last sync: 9:05 AM / 42 punches today');
 
   // Manual marking: popover directly below today's chip, three options, saves on click.
@@ -113,6 +126,9 @@ test('Overview table matches attendance-overview.html', async ({ page, browser }
   const pop = page.locator('body > .mark-pop.mark-portal');
   await expect(pop).toBeVisible();
   await expect(pop.locator('.mark-option')).toHaveText([/Mark Present/, /Mark Late/, /Mark Absent/]);
+  await expect(pop.locator('.mark-option.on')).toHaveText(/Mark Present/);
+  await expect(pop.locator('.mark-sub')).toHaveText('Today • EMP ID STF-0142');
+  expect((await styles(page, 'body > .mark-pop', ['width']))['width']).toBe('230px');
   const chipBox = await todayChip.boundingBox();
   const popBox = await pop.boundingBox();
   expect(Math.round((popBox?.y ?? 0) - ((chipBox?.y ?? 0) + (chipBox?.height ?? 0)))).toBe(8);
@@ -122,4 +138,28 @@ test('Overview table matches attendance-overview.html', async ({ page, browser }
   await expect(todayChip.locator('.t')).toHaveText('9:20 AM');
 
   await reference.close();
+});
+
+test('Overview on a 390px phone matches the reference mobile rules', async ({ browser }) => {
+  const viewport = { width: 390, height: 800 };
+  const reference = await browser.newPage({ viewport });
+  await reference.goto(REFERENCE);
+  const page = await browser.newPage({ viewport });
+  await openApp(page);
+
+  // Only checkbox + name sticky; Type and avatar hidden; narrower day columns.
+  await expect(page.locator('.att-grid th.type-col')).toBeHidden();
+  await expect(page.locator('.att-grid .g-avatar').first()).toBeHidden();
+  const props = ['width', 'left'];
+  for (const selector of ['.att-grid th.check-col', '.att-grid th.name-col', '.att-grid th.day-cell']) {
+    expect((await styles(page, selector, props)), selector).toEqual(await styles(reference, selector, props));
+  }
+  // Filters 2 per row; the page itself never scrolls sideways, only the grid wrapper.
+  const cols = await page.locator('.toolbar-row2').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
+  expect(cols).toBe(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => window.scrollX)).toBe(0);
+
+  await reference.close();
+  await page.close();
 });

@@ -75,9 +75,10 @@
             <td class="name-cell">
               <div class="name-inner">
                 <div class="g-avatar" [class.student]="row.type === 'student'">{{ initials(row.name) }}</div>
-                <div class="name-text" [attr.title]="row.shift ? row.name + ' · ' + row.shift : row.name">
+                <div class="name-text" [attr.title]="row.name + ' · ' + row.idLine + (row.sub ? ' · ' + row.sub : '')">
                   <div class="g-name">{{ row.name }}</div>
-                  <div class="g-shift">{{ row.sub }}</div>
+                  <div class="g-id">{{ row.idLine }}</div>
+                  <div class="g-shift" *ngIf="row.sub">{{ row.sub }}</div>
                 </div>
               </div>
             </td>
@@ -91,7 +92,7 @@
                 <!-- Punched in, no punch-out yet: the live ring (a device record — the
                      popover it opens is read-only). -->
                 <div class="pulse-cell" *ngIf="isLiveCell(row, col); else staticCell"
-                     [class.clickable]="canOpenMark(row, cell, col)"
+                     [class.live-click]="canOpenMark(row, cell, col)"
                      [attr.title]="'Punched in — live' + (cell.p ? ' since ' + cell.p : '')"
                      (click)="openMark($event, row, col)">
                   <span class="pring"><span class="ring"></span><span class="pdot2"></span></span>
@@ -184,25 +185,24 @@
 <!-- Manual mark popover — portaled to <body> under the clicked cell while open (§3d.5). -->
 <div #markPop class="mark-pop" role="dialog" aria-label="Mark attendance" (click)="$event.stopPropagation()">
   <ng-container *ngIf="markTarget as target">
-    <div class="mark-head">
-      <div class="g-name">{{ target.row.name }}</div>
-      <div class="g-shift">{{ target.row.sub }}<ng-container *ngIf="target.row.shift"> &middot; {{ target.row.shift }}</ng-container></div>
-    </div>
+    <h4>{{ target.row.name }}</h4>
+    <p class="mark-sub">Today &bull; {{ target.row.idLine }}</p>
     <div class="mark-note device" *ngIf="target.device">
       <i class="bi bi-fingerprint"></i>
-      Device punch recorded{{ target.cell.p ? ' at ' + target.cell.p : '' }}. It can't be changed by hand.
+      <span>Device punch recorded{{ target.cell.p ? ' at ' + target.cell.p : '' }}. It can't be changed by hand.</span>
     </div>
     <ng-container *ngIf="!target.device">
       <button type="button" class="mark-option" *ngFor="let option of markOptions; trackBy: trackByStatus"
-              [ngClass]="'opt-' + option.code" [class.current]="isCurrentMark(option.status)"
+              [ngClass]="option.code.toLowerCase()" [class.on]="isCurrentMark(option.status)"
               [disabled]="marking !== null" [attr.aria-pressed]="isCurrentMark(option.status)"
               (click)="chooseMark(option.status)">
-        <span class="btn-spinner" *ngIf="marking === option.status" aria-hidden="true"></span>
-        <span class="mark-code">{{ option.code }}</span> {{ option.label }}
-        <i class="bi bi-check2 mark-check" *ngIf="isCurrentMark(option.status)"></i>
+        <span class="opt-label"><span class="btn-spinner" *ngIf="marking === option.status" aria-hidden="true"></span>{{ option.label }}</span>
+        <i class="bi bi-check2" *ngIf="isCurrentMark(option.status)"></i>
       </button>
-      <div class="mark-note" *ngIf="target.cell.src === 'manual' && target.cell.t">Marked at {{ target.cell.t }}</div>
-      <div class="mark-note" *ngIf="target.row.mark">Open today {{ target.row.mark.from }} – {{ target.row.mark.to }}</div>
+      <div class="cap">
+        <ng-container *ngIf="target.cell.src === 'manual' && target.cell.t">Marked at {{ target.cell.t }}. </ng-container>
+        <ng-container *ngIf="target.row.mark">Open today {{ target.row.mark.from }} – {{ target.row.mark.to }}.</ng-container>
+      </div>
     </ng-container>
     <div class="mark-error" *ngIf="markError" role="alert"><i class="bi bi-exclamation-circle"></i> {{ markError }}</div>
   </ng-container>

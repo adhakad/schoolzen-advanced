@@ -35,12 +35,12 @@ describe('AttendanceOverviewComponent', () => {
       ],
       rows: [
         {
-          _id: 'p1', name: 'Priya', sub: 'ID STF-1', code: 'STF-1', shift: 'Morning', type: 'staff', live: false, presentCount: 1,
+          _id: 'p1', name: 'Priya', idLine: 'EMP ID STF-1', sub: 'Morning', code: 'STF-1', shift: 'Morning', type: 'staff', live: false, presentCount: 1,
           mark: { from: '7:45 AM', to: '2:00 PM', open: true },
           cells: { '2026-08-09': { s: 'P', t: '8:23 AM' }, '2026-08-10': { s: 'A', t: null }, '2026-08-11': { s: 'M', f: 1 } }
         },
         {
-          _id: 'p2', name: 'Rahul', sub: 'ID STF-2', code: 'STF-2', shift: 'Morning', type: 'staff', live: false, presentCount: 0,
+          _id: 'p2', name: 'Rahul', idLine: 'EMP ID STF-2', sub: 'Morning', code: 'STF-2', shift: 'Morning', type: 'staff', live: false, presentCount: 0,
           mark: { from: '7:45 AM', to: '2:00 PM', open: true },
           cells: { '2026-08-09': { s: '—', n: 1 }, '2026-08-10': { s: 'P', t: '8:01 AM', src: 'device', p: '8:01 AM' }, '2026-08-11': { s: 'WO', f: 1 } }
         }
@@ -94,9 +94,9 @@ describe('AttendanceOverviewComponent', () => {
   it('past / today / future / no-roster cells get the §3c treatment', () => {
     const [priya, rahul] = component.rows;
     const [past, today, future] = component.days;
-    expect(component.cellClass(priya.cells['2026-08-09'], past, priya)).toBe('present locked');
+    expect(component.cellClass(priya.cells['2026-08-09'], past, priya)).toBe('present locked-past');
     expect(component.cellTitle(priya, priya.cells['2026-08-09'], past)).toBe("Past dates can't be changed");
-    expect(component.cellClass(priya.cells['2026-08-10'], today, priya)).toBe('absent markable');
+    expect(component.cellClass(priya.cells['2026-08-10'], today, priya)).toBe('absent live-click');
     expect(component.cellClass(priya.cells['2026-08-11'], future, priya)).toBe('future');
     expect(component.cellTitle(priya, priya.cells['2026-08-11'], future)).toBe('Upcoming date');
     expect(component.cellClass(rahul.cells['2026-08-09'], past, rahul)).toBe('nocell');
@@ -136,6 +136,7 @@ describe('AttendanceOverviewComponent', () => {
     priya.mark = { from: '7:45 AM', to: '2:00 PM', open: false };
     expect(component.canOpenMark(priya, priya.cells['2026-08-10'], component.days[1])).toBeFalse();
     expect(component.cellTitle(priya, priya.cells['2026-08-10'], component.days[1])).toBe('Attendance can be marked between 7:45 AM and 2:00 PM');
+    expect(component.cellClass(priya.cells['2026-08-10'], component.days[1], priya)).toBe('absent live-click closed');
   });
 
   it('staff cascade: Department enables Designation; student filters stay disabled', () => {

@@ -413,7 +413,12 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       const host = this.gridScroll?.nativeElement;
       const cell = host?.querySelector('th.today-col') as HTMLElement | null;
       if (host && cell) {
-        host.scrollLeft = Math.max(0, cell.offsetLeft - host.clientWidth / 2);
+        // The reference's formula: today lands just right of the visible sticky columns.
+        // Only the wrapper scrolls, never the page.
+        const sticky = Array.from(host.querySelectorAll<HTMLElement>('thead th.check-col, thead th.name-col, thead th.type-col'))
+          .filter((th) => th.offsetParent)
+          .reduce((sum, th) => sum + th.offsetWidth, 0);
+        host.scrollLeft = Math.max(0, cell.offsetLeft - sticky - 8);
         this.scrolledToToday = true;
       }
     });
@@ -434,14 +439,17 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
 
   // --- cells -------------------------------------------------------------------------------
 
-  /** The chip's classes: its status colour plus past (locked) / future / no-roster treatment. */
+  /**
+   * The chip's classes, named as in the reference html: status colour plus `locked-past` /
+   * `future` / `nocell`; today's P/L/A chip is `live-click`, plus `closed` when it can't be marked.
+   */
   cellClass(cell: GridCell, col: MonthColumn, row: GridRow): string {
     if (cell.n) return 'nocell';
     if (cell.f) return 'future';
     const classes = [CHIP_CLASS[cell.s] || 'absent'];
-    if (col.dateKey < this.today) classes.push('locked');
-    else if (col.isToday && this.isMarkable(row, cell)) classes.push('markable');
-    else if (col.isToday) classes.push('readonly');
+    if (col.dateKey < this.today) classes.push('locked-past');
+    else if (col.isToday && this.canOpenMark(row, cell, col)) classes.push('live-click');
+    else if (col.isToday && ['P', 'L', 'A'].includes(cell.s)) classes.push('live-click', 'closed');
     if (cell.src === 'manual') classes.push('manual');
     return classes.join(' ');
   }

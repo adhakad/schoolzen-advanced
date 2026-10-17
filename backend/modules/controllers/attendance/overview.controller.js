@@ -53,8 +53,9 @@ const classSectionLabel = (placement) => {
 };
 
 /**
- * The filtered people for the grid: [{ _id, name, sub, code }]. `sub` is the identity line
- * (attendance-fix1.md §3a): staff → Employee ID; student → "Roll 12 • 8th-A". Search matches
+ * The filtered people for the grid: [{ _id, name, idLine, sub, code }]. `idLine` is the identity
+ * line (attendance-fix1.md §3a): staff → "EMP ID 014"; student → "Roll 12". `sub` is the line under
+ * it: student → "8th-A"; staff → today's shift, filled in by GetGrid. Search matches
  * name, employee ID, or (students) roll number.
  */
 const loadPeople = async (adminId, query, resolvedSessionId = null) => {
@@ -68,7 +69,7 @@ const loadPeople = async (adminId, query, resolvedSessionId = null) => {
         if (pattern) filter.$or = [{ name: pattern }, { empCode: pattern }];
         const rows = await StaffV2Model.find(filter, { name: 1, empCode: 1 }).sort({ name: 1 }).limit(MAX_PEOPLE + 1).lean();
         return rows.map((row) => ({
-            _id: String(row._id), name: row.name, sub: row.empCode ? `ID ${row.empCode}` : 'No employee ID', code: row.empCode || null,
+            _id: String(row._id), name: row.name, idLine: row.empCode ? `EMP ID ${row.empCode}` : 'No employee ID', sub: '', code: row.empCode || null,
         }));
     }
 
@@ -95,7 +96,7 @@ const loadPeople = async (adminId, query, resolvedSessionId = null) => {
         const enrollment = byStudent.get(String(row._id));
         const label = classSectionLabel(describePlacement(classIndex, enrollment));
         const roll = enrollment && enrollment.rollNumber != null ? String(enrollment.rollNumber) : null;
-        return { _id: String(row._id), name: row.name, sub: roll ? `Roll ${roll} • ${label}` : label || 'Student', code: roll };
+        return { _id: String(row._id), name: row.name, idLine: roll ? `Roll ${roll}` : 'No roll no', sub: label || 'Student', code: roll };
     });
 };
 
@@ -222,6 +223,8 @@ let GetGrid = async (req, res) => {
         const todayShiftId = expectedOf(row._id, today);
         const todayShift = todayShiftId && todayShiftId !== WEEK_OFF ? shifts.get(todayShiftId) : null;
         out.shift = todayShift ? todayShift.name : null;
+        // Staff second line is today's shift (the reference's "Morning Shift"); students keep Class-Section.
+        if (personType === 'staff') out.sub = out.shift || 'No shift today';
 
         if (includesToday) {
             const punch = punchedToday.get(row._id);
