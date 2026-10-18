@@ -21,6 +21,7 @@ const path = require('path');
 const requestId = require('./modules/middleware/requestId');
 const errorHandler = require('./modules/middleware/errorHandler');
 const compression = require('./modules/middleware/compression');
+const serverTiming = require('./modules/middleware/server-timing');
 const { NotFoundError } = require('./modules/errors');
 require('./cron-job');
 
@@ -35,6 +36,8 @@ app.use(cors());
 // response body, and the X-Request-Id response header, so a user's error toast
 // can be traced to an exact log line.
 app.use(requestId);
+// Server-side ms + DB round trips per request, in the Server-Timing header (global rule 5).
+app.use(serverTiming);
 // Index sync runs once the connection is actually open, on every startup — local and
 // production alike. It is deliberately NOT awaited before listen(): index builds on large
 // collections take time, and the API has no reason to be unreachable while they run.

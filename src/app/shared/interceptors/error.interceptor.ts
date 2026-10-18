@@ -10,10 +10,9 @@
  *   1. Sentry goes through ErrorReporterService (no @sentry/angular installed yet).
  *   2. AuthenticationError redirects to /admin/login or /teacher/login — this app has
  *      no single /login route.
- *   3. An unshaped 401/403 is rethrown SILENTLY. Legacy endpoints answer with bare
- *      strings, and AdminAuthInterceptor refreshes the token on a 403 and retries the
- *      request; toasting there would fire a spurious "Something went wrong" on every
- *      normal token refresh. Any other unshaped error still gets the generic toast.
+ *   3. An unshaped 401/403 is rethrown SILENTLY. A 401 is handled by TokenRefreshInterceptor
+ *      (refresh + one retry, or logout); a bare-string 403 is a legacy business refusal the
+ *      calling page shows itself. Any other unshaped error still gets the generic toast.
  */
 import { Injectable } from '@angular/core';
 import {

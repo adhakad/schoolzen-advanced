@@ -1,4 +1,5 @@
 import { test, expect, Page, Locator } from '@playwright/test';
+import { hermetic } from './hermetic';
 
 // attendance-fix2.md — browser checks for Part A (every dropdown / picker on Overview, Roster
 // and Manage Shifts is the shared overlay, opening directly below its trigger; one month-filter
@@ -34,6 +35,7 @@ interface Seen { method: string; path: string; query: URLSearchParams; body: any
 /** Opens a page with fixtures; `override(path, method)` may answer a call first. */
 const openApp = async (page: Page, route: string, override?: (path: string, method: string, url: URL) => { status: number; body: object } | null): Promise<Seen[]> => {
   const seen: Seen[] = [];
+  await hermetic(page);
   await page.context().addCookies([{ name: 'adminAccessToken', value: fakeJwt, domain: 'localhost', path: '/' }]);
   await page.route('http://localhost:3000/**', (r) => {
     const url = new URL(r.request().url());
@@ -175,20 +177,25 @@ test('Part A: Manage Shifts form dropdowns (start, end, status) open below their
   }
 });
 
-test('Part A: one month-filter width (178px) on Overview and Roster, any month, desktop and 390px', async ({ page }) => {
+// Global rule 7 (2026-10-18): the month filter is ONE filter cell of its row — (row − 40px) / 6
+// on desktop, (row − 8px) / 2 on a phone — whatever the month, with 3-letter month names.
+test('Part A: month filter is one filter cell wide on Overview and Roster, any month, desktop and 390px', async ({ page }) => {
+  const cell = (row: number, perRow: number) => (row - (perRow - 1) * 8) / perRow;
   for (const route of ['/v2/attendance/overview', '/v2/attendance/roster']) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await openApp(page, route);
     const nav = page.locator('app-month-nav .month-nav');
     await nav.waitFor();
+    const rowWidth = () => page.locator('app-month-nav').evaluate((el) => (el.parentElement as HTMLElement).clientWidth);
     const widths: number[] = [];
     for (let i = 0; i < 12; i++) {
       widths.push(Math.round((await nav.boundingBox())!.width));
+      expect(await nav.locator('.dd-label').textContent()).toMatch(/^[A-Z][a-z]{2} \d{4}$/);
       await nav.locator('.bi-chevron-right').first().click();
     }
-    expect(new Set(widths), route + ' ' + widths).toEqual(new Set([178]));
+    expect(new Set(widths), route + ' ' + widths).toEqual(new Set([Math.round(cell(await rowWidth(), 6))]));
     await page.setViewportSize({ width: 390, height: 800 });
-    expect(Math.round((await nav.boundingBox())!.width)).toBe(178);
+    expect(Math.abs((await nav.boundingBox())!.width - cell(await rowWidth(), 2))).toBeLessThan(1.5);
     await page.unrouteAll({ behavior: 'ignoreErrors' });
   }
 });

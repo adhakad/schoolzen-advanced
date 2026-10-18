@@ -538,7 +538,7 @@ decision itself is final, not still open.)
 folder dependency.** Confirmed real bug: upload failed with "Upload
 folder is missing on the server" because a `multer.diskStorage`
 destination folder didn't exist on a fresh deploy. Fixed per
-`prompts/fixes/student-fix3.md` and the permanent rule in
+`prompts/fixes/student/student-fix3.md` and the permanent rule in
 `_core/additional-technical-considerations.md`'s File upload handling
 section — v2's Student photo upload uses its own `memoryStorage` +
 `upload_stream`→Cloudinary path; legacy `helpers/file-upload.js` and

@@ -53,6 +53,9 @@ const keys = {
         liveStatus: (adminId, dateKey) => `${adminId}:attendance:live-status:${dateKey}`,
         // The last finished device sync (time + counts) — Overview's "Last sync" line.
         lastSync: (adminId) => `${adminId}:attendance:last-sync`,
+        // Overview grid: who a filter (session + class/dept…, never the search) covers —
+        // [[personId, holidayTemplateId]], a HINT the grid re-checks against its people read.
+        gridMembers: (adminId, personType, filterKey) => `${adminId}:attendance:grid-members:${personType}:${filterKey}`,
     },
     // Leave (leave/optimization.md). Only the Leave Type list — never a LeaveLimit, request
     // or the assign grid (balances change on every approval).

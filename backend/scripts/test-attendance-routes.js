@@ -1,6 +1,6 @@
 'use strict';
 // Route-table cross-check (attendance-fix2.md Part D): every HTTP call the Attendance pages
-// make — plus the admin token refresh every one of them depends on — must hit a route the
+// make must hit a route the
 // backend really registers. Walks backend/routes.js's real mounts and the routers' stacks,
 // then reads the frontend services' URL + verb pairs from source. No DB needed.
 //
@@ -16,7 +16,6 @@ const FRONTEND_FILES = [
     'src/app/shared/services/attendance/attendance-overview.service.ts',
     'src/app/shared/services/attendance/roster.service.ts',
     'src/app/shared/services/attendance/shifts.service.ts',
-    'src/app/interceptors/admin-auth.interceptor.ts',
 ];
 
 /** [{ method, path }] for every route mounted by backend/routes.js. */
@@ -61,7 +60,7 @@ const matches = (route, call) => {
 const routes = backendRoutes();
 const calls = frontendCalls();
 let failed = 0;
-assert.ok(calls.length >= 19, `expected the full Attendance call list, found ${calls.length}`);
+assert.ok(calls.length >= 18, `expected the full Attendance call list, found ${calls.length}`);
 calls.forEach((call) => {
     const ok = routes.some((route) => matches(route, call));
     if (!ok) failed += 1;

@@ -45,9 +45,12 @@ export const shiftMonth = (monthKey: string, delta: number): string => {
   return Math.floor(index / 12) + '-' + String((index % 12) + 1).padStart(2, '0');
 };
 
+/** Month names are 3 letters wherever a month label appears (global rule 7): "Sep 2026". */
+export const MONTH_SHORT = MONTH_NAMES.map((name) => name.slice(0, 3));
+
 export const monthLabel = (monthKey: string): string => {
   const [year, month] = monthKey.split('-').map(Number);
-  return MONTH_NAMES[month - 1] + ' ' + year;
+  return MONTH_SHORT[month - 1] + ' ' + year;
 };
 
 /** Leading blanks + day numbers for a Sun-first calendar of the month. */

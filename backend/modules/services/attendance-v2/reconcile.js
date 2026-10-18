@@ -3,7 +3,7 @@ const AttendanceRecordV2Model = require('../../models/attendance/attendance-reco
 const PunchLogV2Model = require('../../models/attendance/punch-log');
 const StaffV2Model = require('../../models/staff/staff');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
-const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
+const { findSessionIdForDate } = require('../../helpers/academic-session/session-resolver');
 const { toUtcMidnight, toDateKey } = require('../../helpers/date-only');
 const { nowWallClock } = require('../../helpers/attendance-time');
 const { computeDayStatus } = require('../../helpers/attendance/status');
@@ -63,19 +63,19 @@ const reconcileDay = async (adminId, dateKey) => {
     const today = toDateKey(nowWallClock());
     const dayComplete = dateKey < today;
 
-    const [logs, overridden, session, shifts] = await Promise.all([
+    const [logs, overridden, sessionId, shifts] = await Promise.all([
         PunchLogV2Model.find({ adminId, dateKey }, { personType: 1, personId: 1, punchTime: 1, reconciled: 1 }).lean(),
         AttendanceRecordV2Model.find(
             { adminId, date, deletedAt: null, $or: [{ isOverridden: true }, { source: 'manual' }] },
             { personType: 1, personId: 1, isOverridden: 1, source: 1 }
         ).lean(),
-        getActiveSession(adminId),
+        // The session that covers this day, not whichever one is flagged active today.
+        findSessionIdForDate(adminId, date),
         shiftIndex(adminId),
     ]);
     const skip = new Set(overridden.filter((row) => row.isOverridden).map((row) => `${row.personType}|${row.personId}`));
     // Marked by hand and no punch: keep the mark (never turned into an end-of-day Absent).
     const manual = new Set(overridden.filter((row) => !row.isOverridden && row.source === 'manual').map((row) => `${row.personType}|${row.personId}`));
-    const sessionId = session ? session._id : null;
     const punched = groupPunches(logs);
 
     // Expected shift per person who punched.

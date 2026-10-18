@@ -15,7 +15,7 @@ const {
     MODULE, todayKey, monthDays, monthColumns, resolveSessionId, queue, escapeRegExp,
 } = require('../../helpers/attendance/context');
 const { getSchoolTerminalSns } = require('../../services/attendance-v2/ingest');
-const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
 const {
     WEEK_OFF, shiftIndex, getStaffShiftIdsForDate, getStudentShiftIds, loadClassShiftResolver,
 } = require('../../services/attendance-v2/shift-lookup');
@@ -159,44 +159,68 @@ let GetGrid = async (req, res) => {
         return res.status(200).json({ month, personType, today, days: monthColumns(month), rows: [], truncated: false, canMark: false, needsClass: true });
     }
 
-    // Speed (global rule 5, attendance-fix2.md Part B): every query costs a network round-trip,
-    // so the grid is TWO parallel stages whatever the headcount, and nothing is read twice —
-    // the people read also carries each person's holiday template and (students) placement,
-    // which the class-shift and holiday lookups reuse instead of re-reading staff/enrollments.
+    // Speed (global rule 5, attendance-fix3.md C): ONE DB round trip on a cache hit. The
+    // per-person reads (records, punches, roster, leave) need the people read's ids, which made
+    // them a second stage. The filter's member list ([id, holiday template], keyed by filter,
+    // never by search) is now a Redis hint read alongside the session, so both stages run at
+    // once. The hint is checked against the real people read: a person it misses, or whose
+    // template differs, re-runs the per-person reads for the real list and rewrites the hint —
+    // a stale hint costs one round trip, never a wrong cell. Extra ids in a hint (left the
+    // class, narrowed by a search) are simply ignored.
     const isStaff = personType === 'staff';
-    const sessionLookup = isStaff ? Promise.resolve(null) : resolveSessionId(adminId, req.query.session);
-    const [shifts, canMark, sessionId, people, resolveClassShift] = await Promise.all([
+    const timing = res.locals && res.locals.timing;
+    const q = req.query;
+    const filterKey = (isStaff ? [q.departmentId, q.designationId] : [q.session, q.classId, q.streamId, q.groupId, q.sectionId])
+        .map((value) => value || '').join('|');
+    const membersKey = cacheKeys.attendance.gridMembers(adminId, personType, filterKey);
+    const sessionLookup = isStaff ? Promise.resolve(null) : resolveSessionId(adminId, q.session);
+
+    // Every per-person read for one member list, in parallel.
+    const readMarks = (members, sessionId) => {
+        const ids = members.map(([id]) => id);
+        const persons = ids.map((personId) => ({ personType, personId }));
+        const assignedTemplates = new Map(members.map(([id, templateId]) => [`${personType}|${id}`, templateId]));
+        // Expected shift per person per day: the staff Roster (one scan for the month, shared
+        // with the day-type resolver) or the student's class shift (resolved in memory).
+        const rosterRead = isStaff ? loadRosterCells(adminId, ids, fromKey, toKey) : Promise.resolve(new Map());
+        return Promise.all([
+            rosterRead,
+            AttendanceRecordV2Model.find(
+                { adminId, personType, personId: { $in: ids }, date: { $gte: toUtcMidnight(fromKey), $lte: toUtcMidnight(toKey) }, deletedAt: null },
+                { personId: 1, dateKey: 1, status: 1, inTime: 1, outTime: 1, isOverridden: 1, updatedBy: 1, source: 1, markedAt: 1, punches: 1 }
+            ).batchSize(ONE_BATCH).lean(),
+            includesToday
+                ? PunchLogV2Model.aggregate([
+                    { $match: { adminId, dateKey: today, personId: { $in: ids } } },
+                    { $group: { _id: '$personId', first: { $min: '$punchTime' }, pending: { $max: { $cond: ['$reconciled', 0, 1] } } } },
+                ])
+                : [],
+            // Holiday > Leave > WeeklyOff from the shared resolver — the same answer Leave and the
+            // reconcile worker get.
+            resolveDays(adminId, { sessionId, people: persons, fromKey, toKey, rosterCells: rosterRead, assignedTemplates }),
+        ]);
+    };
+
+    const hint = cacheService.get(membersKey);
+    const [shifts, canMark, sessionId, people, resolveClassShift, hintMembers, hinted] = await Promise.all([
         shiftIndex(adminId),
         canMarkOf(req),
         sessionLookup,
-        sessionLookup.then((id) => loadPeople(adminId, req.query, id)),
+        sessionLookup.then((id) => loadPeople(adminId, q, id)),
         isStaff ? null : sessionLookup.then((id) => loadClassShiftResolver(adminId, id)),
+        hint,
+        Promise.all([hint, sessionLookup]).then(([members, id]) => (Array.isArray(members) && members.length ? readMarks(members, id) : null)),
     ]);
     const truncated = people.length > MAX_PEOPLE;
     const rows = people.slice(0, MAX_PEOPLE);
     const ids = rows.map((row) => row._id);
-    const persons = ids.map((personId) => ({ personType, personId }));
-    const assignedTemplates = new Map(rows.map((row) => [`${personType}|${row._id}`, row.holidayTemplateId]));
+    const members = rows.map((row) => [row._id, row.holidayTemplateId || null]);
 
-    // Expected shift per person per day: the staff Roster (one scan for the month, shared
-    // with the day-type resolver) or the student's class shift (resolved in memory).
-    const rosterRead = isStaff ? loadRosterCells(adminId, ids, fromKey, toKey) : Promise.resolve(new Map());
-    const [rosterCells, records, pending, dayTypes] = await Promise.all([
-        rosterRead,
-        AttendanceRecordV2Model.find(
-            { adminId, personType, personId: { $in: ids }, date: { $gte: toUtcMidnight(fromKey), $lte: toUtcMidnight(toKey) }, deletedAt: null },
-            { personId: 1, dateKey: 1, status: 1, inTime: 1, outTime: 1, isOverridden: 1, updatedBy: 1, source: 1, markedAt: 1, punches: 1 }
-        ).batchSize(ONE_BATCH).lean(),
-        includesToday
-            ? PunchLogV2Model.aggregate([
-                { $match: { adminId, dateKey: today, personId: { $in: ids } } },
-                { $group: { _id: '$personId', first: { $min: '$punchTime' }, pending: { $max: { $cond: ['$reconciled', 0, 1] } } } },
-            ])
-            : [],
-        // Holiday > Leave > WeeklyOff from the shared resolver — the same answer Leave and the
-        // reconcile worker get.
-        resolveDays(adminId, { sessionId, people: persons, fromKey, toKey, rosterCells: rosterRead, assignedTemplates }),
-    ]);
+    const hintIndex = new Map((hinted ? hintMembers : []).map(([id, templateId]) => [id, templateId || null]));
+    const hintCovers = Boolean(hinted) && members.every(([id, templateId]) => hintIndex.get(id) === templateId);
+    if (timing) timing.mark(hintCovers ? 'grid-hint-hit' : 'grid-stage1');
+    const [rosterCells, records, pending, dayTypes] = hintCovers ? hinted : await readMarks(members, sessionId);
+    if (!hintCovers && !q.search && members.length) cacheService.set(membersKey, members, cacheService.TTL.NEAR_STATIC_30);
     const studentShifts = new Map();
     if (!isStaff) {
         rows.forEach((row) => {
@@ -300,8 +324,8 @@ let GetRecentArrivals = async (req, res) => {
     const staffIds = first.filter((row) => row._id.personType === 'staff').map((row) => row._id.personId);
     const studentIds = first.filter((row) => row._id.personType === 'student').map((row) => row._id.personId);
     const monthStart = toUtcMidnight(`${dateKey.slice(0, 7)}-01`);
-    const session = studentIds.length ? await getActiveSession(adminId) : null;
-    const sessionId = session ? String(session._id) : null;
+    // The header's session (S2); the active one only when the client sends none.
+    const sessionId = studentIds.length ? await resolveRequestSessionId(adminId, req.query.session, MODULE) : null;
     const [staff, students, enrollments, classIndex, tallies, shifts, staffShifts, studentShifts] = await Promise.all([
         staffIds.length ? StaffV2Model.find({ adminId, _id: { $in: staffIds } }, { name: 1, empCode: 1, designation: 1 }).lean() : [],
         studentIds.length ? StudentProfileModel.find({ adminId, _id: { $in: studentIds } }, { name: 1 }).lean() : [],

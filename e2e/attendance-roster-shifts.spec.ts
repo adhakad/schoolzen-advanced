@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { hermetic, hermeticPage } from './hermetic';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 
@@ -35,6 +36,7 @@ const fixtures: Record<string, object> = {
 };
 
 const openApp = async (page: Page, route: string): Promise<void> => {
+  await hermetic(page);
   await page.context().addCookies([{ name: 'adminAccessToken', value: fakeJwt, domain: 'localhost', path: '/' }]);
   await page.route('http://localhost:3000/**', (r) => {
     const body = fixtures[new URL(r.request().url()).pathname] ?? { rows: [], data: [], classes: [], groups: [], total: 0 };
@@ -51,7 +53,7 @@ const styles = (page: Page, selector: string, props: string[]) => page.locator(s
 const BOX = ['height', 'border-top-width', 'border-top-color', 'border-top-left-radius', 'font-size', 'padding-left'];
 
 test('Roster grid and toolbar match roster.html', async ({ page, browser }) => {
-  const reference = await browser.newPage();
+  const reference = await hermeticPage(browser);
   await reference.goto(ref('roster.html'));
   await openApp(page, '/v2/attendance/roster');
   await page.locator('.rg-grid tbody tr').first().waitFor();
@@ -68,11 +70,15 @@ test('Roster grid and toolbar match roster.html', async ({ page, browser }) => {
   expect((await styles(page, '.rg-grid th.today-col', ['color', 'background-color'])))
     .toEqual(await styles(reference, '.rg-grid th.today-col', ['color', 'background-color']));
   expect((await styles(page, '.rg-grid th.today-col .dow', ['color']))['color']).toBe(brand);
-  // Filters: 6 equal columns on desktop, 2 on a phone (global rule 12).
-  const cols = () => page.locator('.toolbar-row2').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
-  expect(await cols()).toBe(6);
+  // Filters (roster.html, attendance-fix3.md B): Roster's own flex-wrap row of equal ~150px pills,
+  // not the 6-column grid; 2 per row on a phone (global rule 12).
+  expect((await styles(page, '.toolbar-row2', ['display', 'flex-wrap']))).toEqual({ display: 'flex', 'flex-wrap': 'wrap' });
+  const pillWidths = () => page.locator('.toolbar-row2 > .roster-pill').evaluateAll((els) => els.map((el) => Math.round((el as HTMLElement).getBoundingClientRect().width)));
+  const refPill = Math.round(parseFloat((await styles(reference, '.toolbar-row2 .sw-select-pill', ['width']))['width']));
+  expect(new Set(await pillWidths())).toEqual(new Set([refPill]));
   await page.setViewportSize({ width: 390, height: 800 });
-  expect(await cols()).toBe(2);
+  const rowW = await page.locator('.toolbar-row2').evaluate((el) => (el as HTMLElement).clientWidth);
+  expect(new Set(await pillWidths())).toEqual(new Set([Math.round((rowW - 8) / 2)]));
   // Sticky columns take at most ~40% of a 390px phone (global rule 13); the page never scrolls sideways.
   const sticky = await page.evaluate(() => ['th.chk-col', 'th.name-col'].reduce((sum, s) => sum + (document.querySelector('.rg-grid ' + s) as HTMLElement).offsetWidth, 0));
   expect(sticky).toBeLessThanOrEqual(156);
@@ -81,7 +87,7 @@ test('Roster grid and toolbar match roster.html', async ({ page, browser }) => {
 });
 
 test('Manage Shifts form inputs match manage-shifts.html', async ({ page, browser }) => {
-  const reference = await browser.newPage();
+  const reference = await hermeticPage(browser);
   await reference.goto(ref('manage-shifts.html'));
   await reference.evaluate(() => (window as unknown as { openShiftModal: () => void }).openShiftModal());
   await openApp(page, '/v2/attendance/shifts');

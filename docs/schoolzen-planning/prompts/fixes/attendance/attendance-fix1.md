@@ -1,7 +1,7 @@
 # Attendance — fix 1 (Roster, Manage Shifts, Overview)
 
 ONE fix file for the three Attendance pages. Fresh Claude Code session, no agents, don't commit.
-Also read `prompts/fixes/global-fixes.md` first (cross-module rules + status per module). Apply its rules to the Attendance pages in the same run and `prompts/fixes/attendance-leave-holiday-fixes.md`
+Also read `prompts/fixes/global-fixes.md` first (cross-module rules + status per module). Apply its rules to the Attendance pages in the same run and `prompts/fixes/attendance/attendance-leave-holiday-fixes.md`
 (resolver / roster-WO / UI audit; items there still apply, do not redo what is done).
 
 **Source of truth:** `v1/attendance/roster.html|md`, `manage-shifts.html|md`, `attendance-overview.html|md`.

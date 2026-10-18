@@ -16,8 +16,9 @@
       <div class="toolbar-row1">
         <div class="search">
           <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search name, employee ID or roll no" aria-label="Search by name, employee ID or roll number"
-                 (input)="onSearchChange($any($event.target).value)" />
+          <input type="text" placeholder="Search name, employee ID or roll no"
+            aria-label="Search by name, employee ID or roll number"
+            (input)="onSearchChange($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group">
           <button type="button" class="sw-report-btn" [disabled]="!selected.size" (click)="generateReport()">
@@ -37,22 +38,20 @@
         <button type="button" class="link-btn" [disabled]="syncing" (click)="onSyncConfirmed()">Retry</button>
       </div>
       <div class="toolbar-row2 ov-filter-row">
-        <app-dd [options]="personTypeOptions" [value]="personType"
-                ariaLabel="Person type" (valueChange)="onPersonTypeChange($event)"></app-dd>
+        <app-dd [options]="personTypeOptions" [value]="personType" ariaLabel="Person type"
+          (valueChange)="onPersonTypeChange($event)"></app-dd>
         <app-dd [options]="departmentOptions" [value]="departmentId" [disabled]="departmentDisabled"
-                ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
+          ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
         <app-dd [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
-                ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
-        <app-dd [options]="classOptions" [value]="classId" [disabled]="classDisabled"
-                ariaLabel="Filter by class" (valueChange)="onClassChange($event)"></app-dd>
-        <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
-                ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
-        <app-dd [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
-                ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
+          ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
+        <app-dd [options]="classOptions" [value]="classId" [disabled]="classDisabled" ariaLabel="Filter by class"
+          (valueChange)="onClassChange($event)"></app-dd>
+        <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled" ariaLabel="Filter by stream"
+          (valueChange)="onStreamChange($event)"></app-dd>
+        <app-dd [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled" ariaLabel="Filter by stream group"
+          (valueChange)="onGroupChange($event)"></app-dd>
         <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
-                ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
-      </div>
-      <div class="toolbar-row3">
+          ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
         <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
       </div>
       <div class="fetch-error" *ngIf="lookupError" role="alert">
@@ -65,7 +64,8 @@
       <table class="att-grid">
         <thead>
           <tr>
-            <th class="check-col"><input type="checkbox" aria-label="Select all on this page" [checked]="allSelected" (change)="toggleAll()" /></th>
+            <th class="check-col"><input type="checkbox" aria-label="Select all on this page" [checked]="allSelected"
+                (change)="toggleAll()" /></th>
             <th class="name-col">Name</th>
             <th class="type-col">Type</th>
             <th class="day-cell" *ngFor="let col of days; trackBy: trackByDate" [class.today-col]="col.isToday">
@@ -75,7 +75,8 @@
         </thead>
         <tbody>
           <tr *ngFor="let row of pageRows; trackBy: trackById">
-            <td class="check-cell"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="selected.has(row._id)" (change)="toggleRow(row._id)" /></td>
+            <td class="check-cell"><input type="checkbox" [attr.aria-label]="'Select ' + row.name"
+                [checked]="selected.has(row._id)" (change)="toggleRow(row._id)" /></td>
             <td class="name-cell">
               <div class="name-inner">
                 <div class="g-avatar" [class.student]="row.type === 'student'">{{ initials(row.name) }}</div>
@@ -96,17 +97,17 @@
                 <!-- Punched in, no punch-out yet: the live ring (a device record — the
                      popover it opens is read-only). -->
                 <div class="pulse-cell" *ngIf="isLiveCell(row, col); else staticCell"
-                     [class.live-click]="canOpenMark(row, cell, col)"
-                     [attr.title]="'Punched in — live' + (cell.p ? ' since ' + cell.p : '')"
-                     (click)="openMark($event, row, col)">
+                  [class.live-click]="canOpenMark(row, cell, col)"
+                  [attr.title]="'Punched in — live' + (cell.p ? ' since ' + cell.p : '')"
+                  (click)="openMark($event, row, col)">
                   <span class="pring"><span class="ring"></span><span class="pdot2"></span></span>
                 </div>
                 <ng-template #staticCell>
                   <button type="button" class="chip" *ngIf="canOpenMark(row, cell, col); else plainChip"
-                          [ngClass]="cellClass(cell, col, row)" [class.open]="markTarget?.row?._id === row._id"
-                          [attr.title]="cellTitle(row, cell, col)" aria-haspopup="dialog"
-                          [attr.aria-label]="row.name + ', today: ' + cell.s + '. Change attendance'"
-                          (click)="openMark($event, row, col)">
+                    [ngClass]="cellClass(cell, col, row)" [class.open]="markTarget?.row?._id === row._id"
+                    [attr.title]="cellTitle(row, cell, col)" aria-haspopup="dialog"
+                    [attr.aria-label]="row.name + ', today: ' + cell.s + '. Change attendance'"
+                    (click)="openMark($event, row, col)">
                     <span class="s">{{ cell.s }}</span><span class="t" *ngIf="cell.t">{{ cell.t }}</span>
                   </button>
                   <ng-template #plainChip>
@@ -130,13 +131,14 @@
       <i class="bi bi-mortarboard"></i> Select a class to see students and mark attendance
     </div>
     <div class="tbl-empty" *ngIf="!rows.length && !loading && !loadError && !needsClass">
-      {{ search ? 'No one matches that search.' : (isStaff ? 'No staff match these filters.' : 'No students match these filters.') }}
+      {{ search ? 'No one matches that search.' : (isStaff ? 'No staff match these filters.' : 'No students match these
+      filters.') }}
     </div>
-    <div class="tbl-empty" *ngIf="truncated">Showing the first 1,000 people &mdash; narrow the filters to see the rest.</div>
+    <div class="tbl-empty" *ngIf="truncated">Showing the first 1,000 people &mdash; narrow the filters to see the rest.
+    </div>
 
-    <app-pagination-bar [page]="page" [limit]="limit" [total]="rows.length"
-                        (pageChange)="onPageChange($event)"
-                        (limitChange)="onLimitChange($event)"></app-pagination-bar>
+    <app-pagination-bar [page]="page" [limit]="limit" [total]="rows.length" (pageChange)="onPageChange($event)"
+      (limitChange)="onLimitChange($event)"></app-pagination-bar>
   </div>
 
   <div class="col-side">
@@ -145,10 +147,14 @@
         <span class="stats-card-title">Live Status</span>
         <span class="ls-badge"><span class="ls-dot"></span>Live</span>
       </div>
-      <div class="stat-row"><span class="stat-label">Present</span><span class="stat-value">{{ liveCounts.Present }}</span></div>
-      <div class="stat-row"><span class="stat-label">Late</span><span class="stat-value">{{ liveCounts.Late }}</span></div>
-      <div class="stat-row accent"><span class="stat-label">Punched</span><span class="stat-value">{{ liveCounts.live }}</span></div>
-      <div class="stat-row"><span class="stat-label">Absent</span><span class="stat-value">{{ liveCounts.Absent }}</span></div>
+      <div class="stat-row"><span class="stat-label">Present</span><span class="stat-value">{{ liveCounts.Present
+          }}</span></div>
+      <div class="stat-row"><span class="stat-label">Late</span><span class="stat-value">{{ liveCounts.Late }}</span>
+      </div>
+      <div class="stat-row accent"><span class="stat-label">Punched</span><span class="stat-value">{{ liveCounts.live
+          }}</span></div>
+      <div class="stat-row"><span class="stat-label">Absent</span><span class="stat-value">{{ liveCounts.Absent
+          }}</span></div>
     </div>
 
     <div class="status-card">
@@ -179,13 +185,15 @@
 
 <ng-template #arrivalTpl let-row>
   <div class="arrival-row" role="button" tabindex="0" [attr.aria-expanded]="expandedArrival === row.personId"
-       (click)="toggleArrival(row)" (keydown.enter)="toggleArrival(row)">
+    (click)="toggleArrival(row)" (keydown.enter)="toggleArrival(row)">
     <span class="pdot"></span><span class="aname">{{ row.name }}</span><span class="atime">{{ row.time }}</span>
   </div>
   <div class="arrival-info" *ngIf="expandedArrival === row.personId">
     <div class="role-line">{{ row.role }}</div>
-    <div class="id-line" *ngIf="row.code"><span class="id-label">{{ row.idLabel }}</span><span class="id-value">{{ row.code }}</span></div>
-    <ng-container *ngIf="row.shift">{{ row.shift }} &middot; </ng-container>{{ row.presentThisMonth }} present this month
+    <div class="id-line" *ngIf="row.code"><span class="id-label">{{ row.idLabel }}</span><span class="id-value">{{
+        row.code }}</span></div>
+    <ng-container *ngIf="row.shift">{{ row.shift }} &middot; </ng-container>{{ row.presentThisMonth }} present this
+    month
   </div>
 </ng-template>
 
@@ -200,33 +208,37 @@
     </div>
     <ng-container *ngIf="!target.device">
       <button type="button" class="mark-option" *ngFor="let option of markOptions; trackBy: trackByStatus"
-              [ngClass]="option.code.toLowerCase()" [class.on]="isCurrentMark(option.status)"
-              [disabled]="marking !== null" [attr.aria-pressed]="isCurrentMark(option.status)"
-              (click)="chooseMark(option.status)">
-        <span class="opt-label"><span class="btn-spinner" *ngIf="marking === option.status" aria-hidden="true"></span>{{ option.label }}</span>
+        [ngClass]="option.code.toLowerCase()" [class.on]="isCurrentMark(option.status)" [disabled]="marking !== null"
+        [attr.aria-pressed]="isCurrentMark(option.status)" (click)="chooseMark(option.status)">
+        <span class="opt-label"><span class="btn-spinner" *ngIf="marking === option.status" aria-hidden="true"></span>{{
+          marking === option.status ? 'Saving...' : option.label }}</span>
         <i class="bi bi-check2" *ngIf="isCurrentMark(option.status)"></i>
       </button>
       <div class="cap">
-        <ng-container *ngIf="target.cell.src === 'manual' && target.cell.t">Marked at {{ target.cell.t }}. </ng-container>
-        <ng-container *ngIf="target.row.mark">Open today {{ target.row.mark.from }} – {{ target.row.mark.to }}.</ng-container>
+        <ng-container *ngIf="target.cell.src === 'manual' && target.cell.t">Marked at {{ target.cell.t }}.
+        </ng-container>
+        Time comes from the server (AM/PM).
       </div>
     </ng-container>
     <div class="mark-error" *ngIf="markError" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ markError }}
-      <button type="button" class="link-btn" *ngIf="failedMark" [disabled]="marking !== null" (click)="retryMark()">Retry</button>
+      <button type="button" class="link-btn" *ngIf="failedMark" [disabled]="marking !== null"
+        (click)="retryMark()">Retry</button>
     </div>
   </ng-container>
 </div>
 
 <!-- Monthly report: built from the chips currently rendered. -->
-<div class="sz-modal-overlay open report-overlay" *ngIf="reportOpen" (click)="$event.target === $event.currentTarget && closeReport()">
+<div class="sz-modal-overlay open report-overlay" *ngIf="reportOpen"
+  (click)="$event.target === $event.currentTarget && closeReport()">
   <div class="report-modal" role="dialog" aria-label="Monthly Attendance Report">
     <div class="report-modal-head">
       <div>
         <div class="report-modal-title">Monthly Attendance Report</div>
         <div class="report-modal-sub">{{ reportSub }}</div>
       </div>
-      <button type="button" class="report-close" aria-label="Close" (click)="closeReport()"><i class="bi bi-x-lg"></i></button>
+      <button type="button" class="report-close" aria-label="Close" (click)="closeReport()"><i
+          class="bi bi-x-lg"></i></button>
     </div>
     <div class="report-modal-body">
       <div class="report-row" *ngFor="let row of reportRows; trackBy: trackByIndex">
@@ -248,5 +260,5 @@
   </div>
 </div>
 
-<app-confirm-modal [open]="syncConfirmOpen" [config]="syncConfirm" [busy]="syncing"
-                   (confirmed)="onSyncConfirmed()" (cancelled)="onSyncCancelled()"></app-confirm-modal>
+<app-confirm-modal [open]="syncConfirmOpen" [config]="syncConfirm" [busy]="syncing" (confirmed)="onSyncConfirmed()"
+  (cancelled)="onSyncCancelled()"></app-confirm-modal>

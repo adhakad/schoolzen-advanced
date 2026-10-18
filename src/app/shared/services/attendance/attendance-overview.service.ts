@@ -26,8 +26,10 @@ export class AttendanceOverviewService {
     return this.http.get<LiveStatus>(`${this.url}/live-status`, { params: { adminId } });
   }
 
-  getRecentArrivals(adminId: string): Observable<RecentArrivals> {
-    return this.http.get<RecentArrivals>(`${this.url}/recent-arrivals`, { params: { adminId } });
+  getRecentArrivals(adminId: string, session = ''): Observable<RecentArrivals> {
+    // The header's session, so students resolve against it (shared-fix1.md S2).
+    const params: Record<string, string> = session ? { adminId, session } : { adminId };
+    return this.http.get<RecentArrivals>(`${this.url}/recent-arrivals`, { params });
   }
 
   getDayPunches(adminId: string, personType: PersonType, personId: string, date: string): Observable<DayPunches> {

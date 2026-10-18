@@ -135,7 +135,7 @@ const gridSchema = Joi.object({
     search,
 });
 
-const dayQuerySchema = Joi.object({ adminId, date: dateKey.allow('').default('') });
+const dayQuerySchema = Joi.object({ adminId, date: dateKey.allow('').default(''), session });
 
 const dayPunchesSchema = Joi.object({
     adminId,

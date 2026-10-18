@@ -31,8 +31,13 @@
         </div>
       </div>
       <div class="toolbar-row2">
-        <app-holiday-calendar-filter [month]="month" [holidays]="allHolidays" [today]="todayMonth"
-                                     (monthChange)="onMonthChange($event)"></app-holiday-calendar-filter>
+        <app-month-nav [month]="month" [today]="todayMonth" [marks]="allHolidays" emptyLabel="Holiday Calendar"
+                       showAllLabel="Show all months" [wide]="true" (monthChange)="onMonthChange($event)">
+          <div monthNavHead class="cal-legend" *ngIf="monthChips.length; else noneThisMonth">
+            <span class="cal-legend-chip" *ngFor="let chip of monthChips; trackBy: trackByChip">{{ chip.label }}</span>
+          </div>
+          <ng-template #noneThisMonth><div monthNavHead class="hcf-none">No holidays this month.</div></ng-template>
+        </app-month-nav>
       </div>
     </div>
 

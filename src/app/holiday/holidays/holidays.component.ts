@@ -4,7 +4,7 @@
  * Reference: docs/schoolzen-planning/v1/holiday/holidays.html
  *
  * Row 1: search + Delete Selected + Generate from Public Holidays + Add Holiday. Row 2: the
- * custom month-calendar filter (its own component, not a `.dd`). A holiday does nothing on
+ * shared month filter (app-month-nav) with this page's holiday bands, chips and "Show all months". A holiday does nothing on
  * its own until a Template includes it; deleting one detaches it from every template, and
  * the API reports how many.
  */
@@ -20,6 +20,7 @@ import { HolidaysService } from 'src/app/shared/services/holiday/holidays.servic
 import { Holiday, HolidayPayload, SystemHolidayEntry, SystemHolidayState } from 'src/app/shared/models/holiday/holiday.model';
 import { validationErrorsOf } from 'src/app/shared/utils/api-error.util';
 import { DateRange, DateRangeMark, longDate } from 'src/app/shared/components/date-range-picker/date-range-picker.component';
+import { currentMonthKey } from 'src/app/shared/utils/attendance-time.util';
 
 interface HolidayForm {
   id: string | null;
@@ -51,7 +52,7 @@ export class HolidaysComponent implements OnInit, OnDestroy {
   loadError = '';
   search = '';
   month = '';
-  readonly todayMonth = new Date().toISOString().slice(0, 7);
+  readonly todayMonth = currentMonthKey();
 
   rows: Holiday[] = [];
   page = 1;
@@ -162,6 +163,19 @@ export class HolidaysComponent implements OnInit, OnDestroy {
   onSearchChange(value: string): void {
     this.searchInput$.next(value.trim());
   }
+
+  /** The holidays in the month the filter's calendar shows — its chips ("Diwali · 28 Oct – 1 Nov"). */
+  get monthChips(): { id: string; label: string }[] {
+    const month = this.month || this.todayMonth;
+    const first = month + '-01';
+    const last = month + '-31';
+    const short = (key: string) => Number(key.slice(8, 10)) + ' ' + MONTHS[Number(key.slice(5, 7)) - 1];
+    return this.allHolidays
+      .filter((row) => row.startDate <= last && row.endDate >= first)
+      .map((row) => ({ id: row._id, label: row.name + ' · ' + short(row.startDate) + (row.startDate !== row.endDate ? ' – ' + short(row.endDate) : '') }));
+  }
+
+  trackByChip = (_index: number, chip: { id: string }): string => chip.id;
 
   onMonthChange(month: string): void {
     this.month = month;

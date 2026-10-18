@@ -3,7 +3,7 @@ const HolidayV2Model = require('../../models/holiday/holiday');
 const HolidayTemplateV2Model = require('../../models/holiday/holiday-template');
 const { ConflictError, NotFoundError } = require('../../errors');
 const messages = require('../messages/holiday.messages');
-const { findSessionId, getActiveSession } = require('../academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../academic-session/session-resolver');
 const { COLLATION } = require('../staff/lookups');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
@@ -16,15 +16,8 @@ const MODULE = 'holiday';
 
 const actorOf = (req) => String((req.user && (req.user.staffId || req.user.id)) || req.staffId || 'admin');
 
-/** The header's session label → its id, else the active session, else null (staff-only pages still work). */
-const findSession = async (adminId, label) => {
-    if (label) {
-        const id = await findSessionId(adminId, label);
-        if (id) return String(id);
-    }
-    const active = await getActiveSession(adminId);
-    return active ? String(active._id) : null;
-};
+/** The header's session label → its id (404 for an unknown label), else the active session, else null (staff-only pages still work). */
+const findSession = (adminId, label) => resolveRequestSessionId(adminId, label, MODULE);
 
 const notFound = (id) => new NotFoundError(messages.notFound(), { module: MODULE, context: { id } });
 

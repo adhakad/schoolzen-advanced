@@ -122,8 +122,10 @@
   .range-day.today.chain-endpoint .range-day-num{background:var(--brand); color:#fff; border:none;}
   .month-nav .bi{cursor:pointer; color:var(--brand); font-size:13px;}
   .month-nav span{font-size:13.5px; font-weight:600; color:var(--ink); min-width:0; flex:1; text-align:center; white-space:nowrap;}
-  /* calendar filter: constant width for every month, sized for the longest label ("September 2026") */
-  #monthDD{flex:0 0 178px; width:178px;} #monthDD .month-nav{width:178px;}
+  /* calendar filter: same width as one filter cell (6 per row desktop, 2 per row mobile); label uses 3-letter month ("Sep 2026") */
+  :root{--month-filter-w:calc((100% - 40px) / 6);}
+  @media (max-width:640px){ :root{--month-filter-w:calc((100% - 8px) / 2);} }
+  #monthDD{flex:0 0 var(--month-filter-w); width:var(--month-filter-w);} #monthDD .month-nav{width:100%;}
   .sw-gen-btn{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
   .sw-gen-btn:hover{background:#2A3242;}
   .sw-gen-btn .bi{color:#ae86ff;}
@@ -392,13 +394,13 @@
             <div class="dd" id="monthDD">
               <div class="month-nav dd-trigger" onclick="toggleDD(event,'monthDD')">
                 <i class="bi bi-chevron-left" onclick="event.stopPropagation(); toolbarMonthShift(-1)"></i>
-                <span class="dd-label" id="toolbarMonthLabel">August 2026</span>
+                <span class="dd-label" id="toolbarMonthLabel">Aug 2026</span>
                 <i class="bi bi-chevron-right" onclick="event.stopPropagation(); toolbarMonthShift(1)"></i>
               </div>
               <div class="dd-menu align-left" style="padding:14px; width:260px;" onclick="event.stopPropagation();">
                 <div class="range-cal-head">
                   <button type="button" class="range-cal-nav" onclick="toolbarMonthShift(-1)"><i class="bi bi-chevron-left"></i></button>
-                  <span class="range-cal-title" id="toolbarMonthTitle">August 2026</span>
+                  <span class="range-cal-title" id="toolbarMonthTitle">Aug 2026</span>
                   <button type="button" class="range-cal-nav" onclick="toolbarMonthShift(1)"><i class="bi bi-chevron-right"></i></button>
                 </div>
                 <div class="range-cal">
@@ -1046,7 +1048,7 @@ function selectSession(optionEl, label){
 }
 
 /* Calendar-view month filter — same component/behaviour as Roster's toolbar month picker */
-const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const toolbarCal = { year: 2026, month: 7 };
 function toolbarMonthShift(dir){
   toolbarCal.month += dir;
@@ -1258,11 +1260,11 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
     if(i<3)return;
     var chip=td.querySelector('.chip'), pulse=td.querySelector('.pulse-cell');
     if(chip){var t=chip.querySelector('.t'); if(t&&!/AM|PM/.test(t.textContent))t.textContent=ampm(t.textContent.trim());}
-    if(i<ti){ if(chip){chip.classList.add('locked-past');chip.dataset.m='Purani date: badal nahi sakte';} }
+    if(i<ti){ if(chip){chip.classList.add('locked-past');chip.dataset.m='Past dates can\'t be changed';} }
     else if(i>ti){
-      if(chip&&chip.classList.contains('holiday')){chip.classList.add('future');chip.dataset.m='Aane wali date';}
-      else if(ri%6===5){td.innerHTML='<span class="chip nocell" data-m="Roster nahi laga hai"><span class="s">—</span></span>';}
-      else {td.innerHTML='<span class="chip future" data-m="Aane wali date (roster ke hisaab se)"><span class="s">'+code+'</span></span>';}
+      if(chip&&chip.classList.contains('holiday')){chip.classList.add('future');chip.dataset.m='Upcoming date';}
+      else if(ri%6===5){td.innerHTML='<span class="chip nocell" data-m="No roster for this day"><span class="s">—</span></span>';}
+      else {td.innerHTML='<span class="chip future" data-m="Upcoming date (from roster)"><span class="s">'+code+'</span></span>';}
     } else {
       if(chip&&chip.classList.contains('holiday'))return;
       td.classList.add('today-col');
@@ -1276,7 +1278,7 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
  function refresh(){
   [].slice.call(tbl.querySelectorAll('.live-click')).forEach(function(el){
    var ok=S.win&&S.perm; el.classList.toggle('closed',!ok);
-   el.dataset.m=!S.perm?'Aapko attendance lagane ki permission nahi hai':(!S.win?'Attendance window band hai ('+S.WIN+')':'');
+   el.dataset.m=!S.perm?'You do not have permission to mark attendance':(!S.win?'Attendance window is closed ('+S.WIN+')':'');
   });
  }
  function curStatus(el){return el.classList.contains('late')?'l':(el.classList.contains('absent')?'a':'p');}
@@ -1285,16 +1287,16 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
   if(!el.classList.contains('live-click')||el.classList.contains('closed')){if(el.dataset.m)showTip(el,el.dataset.m);return;}
   var row=rows[+el.dataset.r]; cur={el:el,row:row};
   var nm=row.querySelector('.g-name').textContent, c=curStatus(el), t=el.querySelector('.t');
-  pop.innerHTML='<h4>'+nm+'</h4><p>Aaj • '+(row.querySelector('.g-id').textContent)+'</p>'+
+  pop.innerHTML='<h4>'+nm+'</h4><p>Today • '+(row.querySelector('.g-id').textContent)+'</p>'+
    ['p|Present','l|Late','a|Absent'].map(function(x){var k=x.split('|');return '<button class="opt '+k[0]+(c===k[0]?' on':'')+'" data-k="'+k[0]+'"><span>Mark '+k[1]+'</span></button>';}).join('')+
-   '<div class="cap">'+(t?'Marked at '+t.textContent+'. ':'')+'Time server se aata hai (AM/PM).</div>';
+   '<div class="cap">'+(t?'Marked at '+t.textContent+'. ':'')+'Time comes from the server (AM/PM).</div>';
   var r=el.getBoundingClientRect(); pop.style.display='block'; pop.style.left=Math.min(r.left,innerWidth-250)+'px'; pop.style.top=Math.min(r.bottom+8,innerHeight-230)+'px';
   [].slice.call(pop.querySelectorAll('.opt')).forEach(function(b){b.onclick=function(){act(b,b.dataset.k)}});
   e.stopPropagation();
  });
  function act(btn,k){
   [].slice.call(pop.querySelectorAll('.opt')).forEach(function(b){b.disabled=true});
-  btn.innerHTML='<span class="spin"></span> Ho raha hai...';
+  btn.innerHTML='<span class="spin"></span> Saving...';
   setTimeout(function(){
    var el=cur.el, cls=k==='p'?'present':(k==='l'?'late':'absent'), L=k==='p'?'P':(k==='l'?'L':'A');
    el.className='chip '+cls+' live-click';

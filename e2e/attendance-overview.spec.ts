@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { hermetic, hermeticPage } from './hermetic';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
 
@@ -45,6 +46,7 @@ const fixtures: Record<string, object> = {
 };
 
 const openApp = async (page: Page): Promise<void> => {
+  await hermetic(page);
   await page.context().addCookies([{ name: 'adminAccessToken', value: fakeJwt, domain: 'localhost', path: '/' }]);
   await page.route('http://localhost:3000/**', (route) => {
     const url = new URL(route.request().url());
@@ -62,7 +64,7 @@ const styles = (page: Page, selector: string, props: string[]) => page.locator(s
 }, props);
 
 test('Overview table matches attendance-overview.html', async ({ page, browser }) => {
-  const reference = await browser.newPage();
+  const reference = await hermeticPage(browser);
   await reference.goto(REFERENCE);
   await openApp(page);
 
@@ -107,7 +109,7 @@ test('Overview table matches attendance-overview.html', async ({ page, browser }
     expect(await styles(page, `.chip.${cls}`, stateProps), cls).toEqual(await styles(reference, `.chip.${cls}`, stateProps));
   }
   await expect(page.locator('.chip.locked-past').first()).toHaveAttribute('title', "Past dates can't be changed");
-  await expect(page.locator('.chip.future').first()).toHaveAttribute('title', 'Upcoming date');
+  await expect(page.locator('.chip.future').first()).toHaveAttribute('title', 'Upcoming date (from roster)');
   await expect(page.locator('.chip.future .s').first()).toHaveText('M');
 
   // Live pulsing ring for punched-in-no-out, and the Recent Arrivals panel.
@@ -142,9 +144,9 @@ test('Overview table matches attendance-overview.html', async ({ page, browser }
 
 test('Overview on a 390px phone matches the reference mobile rules', async ({ browser }) => {
   const viewport = { width: 390, height: 800 };
-  const reference = await browser.newPage({ viewport });
+  const reference = await hermeticPage(browser, { viewport });
   await reference.goto(REFERENCE);
-  const page = await browser.newPage({ viewport });
+  const page = await hermeticPage(browser, { viewport });
   await openApp(page);
 
   // Only checkbox + name sticky; Type and avatar hidden; narrower day columns.

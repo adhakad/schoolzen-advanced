@@ -116,7 +116,7 @@ directly in memory (for CSV/Excel, already bounded by the existing
 size-limit config), with no local folder ever created, checked, or
 depended on. This removes an entire class of "works on my machine,
 breaks on a fresh server" bugs — there is no folder to be missing.
-`prompts/fixes/student-fix3.md` has the concrete patch for the Student
+`prompts/fixes/student/student-fix3.md` has the concrete patch for the Student
 photo route (already confirmed broken) — the same `diskStorage` →
 `memoryStorage()` swap applies wherever else a `multer.diskStorage`
 call turns up (Staff photo, Admission ID proofs, Bulk Assign Cards'

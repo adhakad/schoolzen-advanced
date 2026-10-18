@@ -4,6 +4,7 @@ const AcademicSessionV2Model = require('../../models/settings/academic-session')
 const { parseSession, isValidSession } = require('../academic-session-format');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
+const { NotFoundError } = require('../../errors');
 
 // Label ⇄ AcademicSession._id, per school.
 //
@@ -159,6 +160,38 @@ const getActiveSession = async (adminId) => {
     return read();
 };
 
+/**
+ * THE session rule for request paths (shared-fix1.md S2): the session the user selected in
+ * the header (sent by the client) wins, validated against this school's sessions. A label the
+ * school has no session for is a 404 SESSION_NOT_FOUND — never a silent fall back to another
+ * session. The active flag is only the default when the client sends no label at all.
+ * Returns the id as a string, or null when nothing was sent and no session is active.
+ */
+const resolveRequestSessionId = async (adminId, label, module) => {
+    if (label) {
+        const id = await findSessionId(adminId, label);
+        if (!id) {
+            throw new NotFoundError('This academic session does not exist yet.', { module, code: 'SESSION_NOT_FOUND', context: { label } });
+        }
+        return String(id);
+    }
+    const active = await getActiveSession(adminId);
+    return active ? String(active._id) : null;
+};
+
+/**
+ * The session a calendar day belongs to (by its start/end dates) — for background work with no
+ * client, e.g. punch reconciliation. Falls back to the active session only when no session
+ * covers the day.
+ */
+const findSessionIdForDate = async (adminId, date) => {
+    const covering = await AcademicSessionV2Model
+        .findOne({ adminId, startDate: { $lte: date }, endDate: { $gte: date } }, '_id').lean();
+    if (covering) return String(covering._id);
+    const active = await getActiveSession(adminId);
+    return active ? String(active._id) : null;
+};
+
 /** The label for a session id (for responses), or null. */
 const labelOfSessionId = async (adminId, sessionId) => {
     if (!sessionId) return null;
@@ -174,5 +207,7 @@ module.exports = {
     loadSessionMap,
     markSessionLocked,
     getActiveSession,
+    resolveRequestSessionId,
+    findSessionIdForDate,
     currentSessionLabel,
 };

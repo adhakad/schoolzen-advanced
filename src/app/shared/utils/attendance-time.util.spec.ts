@@ -29,7 +29,7 @@ describe('attendance-time.util', () => {
   });
 
   it('month helpers: label, stepping across a year, calendar padding', () => {
-    expect(monthLabel('2026-09')).toBe('September 2026');
+    expect(monthLabel('2026-09')).toBe('Sep 2026');
     expect(shiftMonth('2026-12', 1)).toBe('2027-01');
     expect(shiftMonth('2026-01', -1)).toBe('2025-12');
     const october = monthCalendar('2026-10');

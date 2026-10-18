@@ -24,8 +24,7 @@
         <app-staff-cascade-filter [adminId]="adminId" [value]="filter" (valueChange)="onFilterChange($event)"></app-staff-cascade-filter>
         <app-dd [options]="modeOptions" [value]="mode" ariaLabel="Filter by mode" (valueChange)="onModeChange($event)"></app-dd>
         <app-dd [options]="statusOptions" [value]="status" ariaLabel="Filter by status" (valueChange)="onStatusChange($event)"></app-dd>
-        <app-dd class="month-dd" [options]="monthMenu" [value]="month" triggerIcon="calendar-event" menuAlign="left"
-                ariaLabel="Choose month" (valueChange)="onMonthChange($event)"></app-dd>
+        <app-month-nav [month]="month" (monthChange)="onMonthChange($event)"></app-month-nav>
       </div>
     </div>
 

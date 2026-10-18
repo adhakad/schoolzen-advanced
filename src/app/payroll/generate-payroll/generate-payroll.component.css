@@ -4,7 +4,6 @@
 .btn-gen { flex-shrink: 0; height: 38px; background: var(--surface); color: var(--brand); border: 1px solid var(--brand); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; }
 .btn-gen:hover:not(:disabled) { background: var(--brand-soft); }
 .btn-gen:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
-.month-dd ::ng-deep .dd-trigger .bi-calendar-event { color: var(--brand); font-size: 13px; }
 
 .table-inner { min-width: 920px; }
 th, td { white-space: nowrap; }

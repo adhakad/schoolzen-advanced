@@ -98,7 +98,8 @@ describe('AttendanceOverviewComponent', () => {
     expect(component.cellTitle(priya, priya.cells['2026-08-09'], past)).toBe("Past dates can't be changed");
     expect(component.cellClass(priya.cells['2026-08-10'], today, priya)).toBe('absent live-click');
     expect(component.cellClass(priya.cells['2026-08-11'], future, priya)).toBe('future');
-    expect(component.cellTitle(priya, priya.cells['2026-08-11'], future)).toBe('Upcoming date');
+    expect(component.cellTitle(priya, priya.cells['2026-08-11'], future)).toBe('Upcoming date (from roster)');
+    expect(component.cellTitle(priya, { s: 'H', f: 1 }, future)).toBe('Upcoming date');
     expect(component.cellClass(rahul.cells['2026-08-09'], past, rahul)).toBe('nocell');
   });
 
@@ -135,7 +136,7 @@ describe('AttendanceOverviewComponent', () => {
     component.canMark = true;
     priya.mark = { from: '7:45 AM', to: '2:00 PM', open: false };
     expect(component.canOpenMark(priya, priya.cells['2026-08-10'], component.days[1])).toBeFalse();
-    expect(component.cellTitle(priya, priya.cells['2026-08-10'], component.days[1])).toBe('Attendance can be marked between 7:45 AM and 2:00 PM');
+    expect(component.cellTitle(priya, priya.cells['2026-08-10'], component.days[1])).toBe('Attendance window is closed (7:45 AM - 2:00 PM)');
     expect(component.cellClass(priya.cells['2026-08-10'], component.days[1], priya)).toBe('absent live-click closed');
   });
 

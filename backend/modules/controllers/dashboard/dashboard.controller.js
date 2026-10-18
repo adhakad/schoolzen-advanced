@@ -1,6 +1,6 @@
 'use strict';
 const { NotFoundError, PermissionError } = require('../../errors');
-const { findSessionId, getActiveSession } = require('../../helpers/academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
 const { toDateKey } = require('../../helpers/date-only');
 const { nowWallClock } = require('../../helpers/attendance-time');
 const { allows } = require('../../middleware/require-permission');
@@ -18,12 +18,8 @@ const { monthOf } = require('../../helpers/dashboard/dashboard-rules');
 
 const MODULE = 'dashboard';
 
-const resolveSession = async (adminId, label) => {
-    const byLabel = label ? await findSessionId(adminId, label) : null;
-    if (byLabel) return String(byLabel);
-    const active = await getActiveSession(adminId);
-    return active ? String(active._id) : null;
-};
+// The header's session wins; an unknown label is a 404, never a silent switch (shared-fix1.md S2).
+const resolveSession = (adminId, label) => resolveRequestSessionId(adminId, label, MODULE);
 
 const contextOf = async (req) => {
     const todayKey = toDateKey(nowWallClock());

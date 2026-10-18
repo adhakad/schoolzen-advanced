@@ -10,7 +10,7 @@ Reference: `attendance-overview.html`
 **Toolbar** (this page's OWN shape — 7 filters need a grid, don't copy this row-split onto pages with fewer filters):
 - row1: search + button group (Generate Report outline, Sync Now primary — Sync opens a confirm modal first, never fires on click)
 - row2: grid `repeat(6,minmax(0,1fr))` so all filters are equal width, 6 per row, the 7th wraps to the next row (2 per row on mobile). Filters: Person Type, Department, Designation, Class, Stream, **Stream Group**, Section, all `.dd`, cascading (Staff enables Dept→Desig; Student enables Class→Stream(11/12 only)→Stream Group→Section; a Group belongs to a Stream. Classes without streams (General group) keep Stream Group disabled/show-only. Disabled filters show the same "All ..." text as enabled.)
-- row3: month navigation, a calendar filter with a constant 178px width for every month (sized for the longest label, "September 2026"); the label is centred between the two chevrons and never changes the filter width
+- row3: month navigation, a calendar filter exactly as wide as one filter cell (6 per row on desktop, 2 per row on mobile); the label uses a 3-letter month ("Sep 2026"), is centred between the two chevrons and never changes the filter width
 
 **Grid**: horizontally scrollable, full month of day-columns, sticky checkbox+name+type columns on the left, "today" column visually distinguished and auto-scrolled into view. Cells: Present (chip+time), Late (chip+time), Absent (chip, no time), Holiday (chip, no time), or — only in today's column for someone punched-in with no punch-out yet — a pulsing "live" ring instead of a static chip.
 
@@ -27,7 +27,7 @@ Reference: `attendance-overview.html`
 - Future dates: roster-expected state (shift code, WO, H) as `.future` (lighter, dashed border, not clickable). People with no roster entry show a dashed `—` (`.nocell`). Approved Leave stays visible as Leave.
 - Today: normal chip; `.live-click` (brand border, pointer) only for a user with `attendance-mark` inside the attendance window.
 
-**Manual attendance (today only)**: click a today chip -> overlay popover under the cell with Mark Present / Mark Late / Mark Absent (no punch wording). Server supplies the time (`markedAt`, AM/PM); past/future rejected 403; outside window rejected; needs `attendance-mark` permission; activity-logged; Idempotency-Key + spinner; a device punch is never overwritten by a manual mark. Full rules in `prompts/fixes/attendance-fix1.md` section 3d.
+**Manual attendance (today only)**: click a today chip -> overlay popover under the cell with Mark Present / Mark Late / Mark Absent (no punch wording). Server supplies the time (`markedAt`, AM/PM); past/future rejected 403; outside window rejected; needs `attendance-mark` permission; activity-logged; Idempotency-Key + spinner; a device punch is never overwritten by a manual mark. Full rules in `prompts/fixes/attendance/attendance-fix1.md` section 3d.
 
 **Student view needs a Class first**: with Person Type = Student and no Class chosen the grid shows an empty state ("Select a class to see students and mark attendance"); marking is allowed only inside a chosen class/section and the server verifies the student's enrolment there. (A behaviour rule, not in the html.)
 

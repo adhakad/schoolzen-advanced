@@ -2,7 +2,7 @@
 const { ValidationError, NotFoundError } = require('../../errors');
 const ShiftV2Model = require('../../models/attendance/shift');
 const messages = require('../messages/attendance.messages');
-const { findSessionId, getActiveSession } = require('../academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../academic-session/session-resolver');
 const { toDateKey, toUtcMidnight } = require('../date-only');
 const { nowWallClock } = require('../attendance-time');
 const logger = require('../logger');
@@ -34,15 +34,11 @@ const monthColumns = (monthKey) => {
     }));
 };
 
-/** The header's session label → its id, falling back to the active session. */
+/** The header's session label → its id (404 for an unknown label); the active session only when none is sent. */
 const resolveSessionId = async (adminId, label) => {
-    if (label) {
-        const id = await findSessionId(adminId, label);
-        if (id) return String(id);
-    }
-    const active = await getActiveSession(adminId);
-    if (!active) throw new ValidationError(messages.sessionMissing(), { module: MODULE, code: 'SESSION_MISSING' });
-    return String(active._id);
+    const id = await resolveRequestSessionId(adminId, label, MODULE);
+    if (!id) throw new ValidationError(messages.sessionMissing(), { module: MODULE, code: 'SESSION_MISSING' });
+    return id;
 };
 
 /** SHIFT_NOT_FOUND for a missing OR another school's shift; SHIFT_INACTIVE for a retired one. */

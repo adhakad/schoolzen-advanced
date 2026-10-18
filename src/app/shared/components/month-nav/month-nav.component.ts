@@ -1,12 +1,25 @@
 /**
- * The toolbar's month navigator — chevrons step a month, the label opens a calendar preview
- * of that month. Same control on Overview and Roster (both references share it).
+ * THE month filter (global rule 7, design-system.md "Month filter") — every page's month
+ * filter is this component: chevrons step a month, the label opens a calendar of that month.
+ * Its width is the global `--month-filter-w` (one filter cell), set once in the global stylesheet.
+ *
+ * Optional, for pages whose month filter does more (Holidays):
+ *  - `emptyLabel`: `month` may be '' ("all months"); the trigger then shows this label.
+ *  - `marks`: band only these date ranges (with their names as tooltips) instead of the month.
+ *  - `showAllLabel`: a link under the calendar that clears the filter (emits '').
+ *  - `[monthNavHead]` content is projected above the calendar (e.g. the month's holiday chips).
  */
 import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, Output, ViewChild
 } from '@angular/core';
-import { monthCalendar, monthLabel, shiftMonth } from 'src/app/shared/utils/attendance-time.util';
+import { currentMonthKey, monthCalendar, monthLabel, shiftMonth } from 'src/app/shared/utils/attendance-time.util';
 import { placeBelow } from 'src/app/shared/utils/overlay-position.util';
+
+export interface MonthNavMark {
+  startDate: string;
+  endDate: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-month-nav',
@@ -17,10 +30,15 @@ import { placeBelow } from 'src/app/shared/utils/overlay-position.util';
 export class MonthNavComponent implements OnDestroy {
   @ViewChild('menu', { static: true }) menu!: ElementRef<HTMLElement>;
   @ViewChild('trigger', { static: true }) trigger!: ElementRef<HTMLElement>;
-  /** "YYYY-MM". */
+  /** "YYYY-MM", or '' for all months when `emptyLabel` is set. */
   @Input() month = '';
-  /** "YYYY-MM-DD" — outlined in the calendar. */
+  /** "YYYY-MM-DD" (outlined in the calendar) or "YYYY-MM"; also the month shown while `month` is ''. */
   @Input() today = '';
+  @Input() emptyLabel = '';
+  @Input() marks: MonthNavMark[] | null = null;
+  @Input() showAllLabel = '';
+  /** A wider calendar for projected head content (Holidays' chips). */
+  @Input() wide = false;
   @Output() monthChange = new EventEmitter<string>();
 
   open = false;
@@ -31,23 +49,48 @@ export class MonthNavComponent implements OnDestroy {
     this.close();
   }
 
-  get label(): string {
-    return this.month ? monthLabel(this.month) : '';
+  /** The month the calendar shows. */
+  get viewMonth(): string {
+    return this.month || (this.today ? this.today.slice(0, 7) : currentMonthKey());
   }
 
-  get days(): { day: number | null; cls: string }[] {
-    if (!this.month) return [];
-    const cells = monthCalendar(this.month);
+  get label(): string {
+    return this.month ? monthLabel(this.month) : this.emptyLabel;
+  }
+
+  get title(): string {
+    return monthLabel(this.viewMonth);
+  }
+
+  get days(): { day: number | null; cls: string; names: string | null }[] {
+    const month = this.viewMonth;
+    const cells = monthCalendar(month);
     const last = cells[cells.length - 1];
     return cells.map((day, index) => {
-      if (day === null) return { day, cls: 'range-day' };
+      if (day === null) return { day, cls: 'range-day', names: null };
+      const key = month + '-' + String(day).padStart(2, '0');
       const dow = index % 7;
-      const classes = ['range-day', 'in-range'];
-      if (dow === 0 || day === 1) classes.push('band-l');
-      if (dow === 6 || day === last) classes.push('band-r');
-      if (day === 1 || day === last) classes.push('chain-endpoint');
-      if (this.today === this.month + '-' + String(day).padStart(2, '0')) classes.push('today');
-      return { day, cls: classes.join(' ') };
+      const classes = ['range-day'];
+      let names: string | null = null;
+      if (this.marks) {
+        const hits = this.marks.filter((mark) => mark.startDate <= key && mark.endDate >= key);
+        // Each day's OWN first mark decides its band, so back-to-back ranges never merge.
+        const own = hits[0];
+        if (own) {
+          classes.push('in-range', 'marked');
+          if (dow === 0 || own.startDate === key) classes.push('band-l');
+          if (dow === 6 || own.endDate === key) classes.push('band-r');
+          if (own.startDate === key || own.endDate === key) classes.push('chain-endpoint');
+          names = hits.map((mark) => mark.name).join(', ');
+        }
+      } else {
+        classes.push('in-range');
+        if (dow === 0 || day === 1) classes.push('band-l');
+        if (dow === 6 || day === last) classes.push('band-r');
+        if (day === 1 || day === last) classes.push('chain-endpoint');
+      }
+      if (this.today === key) classes.push('today');
+      return { day, cls: classes.join(' '), names };
     });
   }
 
@@ -91,7 +134,12 @@ export class MonthNavComponent implements OnDestroy {
 
   step(event: Event, delta: number): void {
     event.stopPropagation();
-    this.monthChange.emit(shiftMonth(this.month, delta));
+    this.monthChange.emit(shiftMonth(this.viewMonth, delta));
+  }
+
+  showAll(): void {
+    this.close();
+    this.monthChange.emit('');
   }
 
   @HostListener('document:click', ['$event'])

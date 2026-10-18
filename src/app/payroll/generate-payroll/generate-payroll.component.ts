@@ -34,7 +34,7 @@ import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
 import { avatarGradient, initialsOf } from 'src/app/shared/utils/avatar.util';
 import { StaffCascadeValue } from '../staff-cascade-filter/staff-cascade-filter.component';
 import {
-  compactRupees, currentMonthKey, minusRupees, monthName, monthOptions, rupees, splitMonth
+  compactRupees, currentMonthKey, minusRupees, monthName, rupees, splitMonth
 } from '../payroll-format';
 
 type ConfirmKind = 'lock' | 'unlock' | 'regenerate';
@@ -83,7 +83,6 @@ export class GeneratePayrollComponent implements OnInit, OnDestroy {
     { value: 'draft', label: 'Draft' },
     { value: 'pending', label: 'Pending' }
   ];
-  monthMenu: DdOption[] = monthOptions(this.month);
 
   rows: PayrollRunRow[] = [];
   total = 0;
@@ -170,7 +169,6 @@ export class GeneratePayrollComponent implements OnInit, OnDestroy {
 
   onMonthChange(value: string): void {
     this.month = value;
-    this.monthMenu = monthOptions(value);
     this.warning = '';
     this.fetch();
   }

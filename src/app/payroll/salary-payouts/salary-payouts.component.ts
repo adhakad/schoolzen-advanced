@@ -27,7 +27,7 @@ import { errorMessageOf, validationErrorsOf } from 'src/app/shared/utils/api-err
 import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
 import { StaffCascadeValue } from '../staff-cascade-filter/staff-cascade-filter.component';
 import {
-  compactRupees, currentMonthKey, monthName, monthOptions, rupees, shortDate, splitMonth, todayKey
+  compactRupees, currentMonthKey, monthName, rupees, shortDate, splitMonth, todayKey
 } from '../payroll-format';
 
 const STATUS_LABELS: Record<PayoutStatus, string> = { full: 'Fully Paid', partial: 'Partially Paid', unpaid: 'Unpaid' };
@@ -67,7 +67,6 @@ export class SalaryPayoutsComponent implements OnInit, OnDestroy {
     { value: 'unpaid', label: 'Unpaid' }
   ];
   readonly paymentModeOptions: DdOption[] = this.modeOptions.slice(1);
-  monthMenu: DdOption[] = monthOptions(this.month);
 
   rows: PayoutRow[] = [];
   total = 0;
@@ -147,7 +146,6 @@ export class SalaryPayoutsComponent implements OnInit, OnDestroy {
 
   onMonthChange(value: string): void {
     this.month = value;
-    this.monthMenu = monthOptions(value);
     this.fetch();
   }
 

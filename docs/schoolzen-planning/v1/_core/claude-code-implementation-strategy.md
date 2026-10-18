@@ -18,7 +18,7 @@ Build one module's schema+API+frontend completely (all its pages together) befor
 4. Build schema/API/frontend for the whole module in one pass.
 5. Verify the built page against its own `.html` reference side by side — specifically check: `.dd` component (no native select)? Bootstrap Icons only? This page's OWN toolbar row structure (not copied from a different page)? Confirm-before-action on destructive buttons?
 6. `git commit` after this verified unit of work — don't let uncommitted changes pile up across a build + multiple fix rounds.
-7. If something doesn't match, write it as `prompts/fixes/<module>-vN.md`, numbered, never edited after being applied.
+7. If something doesn't match, write it as `prompts/fixes/<module>/<module>-fixN.md`, numbered, never edited after being applied.
 8. Move to the next module in dependency order.
 
 ## Existing/related module — reference only, and only when needed

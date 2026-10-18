@@ -10,10 +10,9 @@ import { HolidayRoutingModule } from './holiday-routing.module';
 import { HolidaysComponent } from './holidays/holidays.component';
 import { HolidayTemplatesComponent } from './templates/templates.component';
 import { HolidayAssignComponent } from './assign/assign.component';
-import { HolidayCalendarFilterComponent } from './holiday-calendar-filter/holiday-calendar-filter.component';
 
 @NgModule({
-  declarations: [HolidaysComponent, HolidayTemplatesComponent, HolidayAssignComponent, HolidayCalendarFilterComponent],
+  declarations: [HolidaysComponent, HolidayTemplatesComponent, HolidayAssignComponent],
   imports: [SharedComponentsModule, HolidayRoutingModule]
 })
 export class HolidayModule {}

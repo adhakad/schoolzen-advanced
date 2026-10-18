@@ -104,7 +104,7 @@ Hairline border only (`1px solid var(--line)`), `border-radius:6px`, no box-shad
 ## Constants
 Control height 38px everywhere (search, pills, buttons, month-nav). Radius 6px (pills 20px, circular avatars 50%). Gap in layout-row/col-side: 16px.
 
-**Month filter (`.month-nav`) is one shared component with one global width token**: `--month-filter-w: 178px` (sized for the longest label, "September 2026"). The label is centred between the two chevrons, `flex:1; min-width:0; white-space:nowrap`, and never changes the filter width. Defined once in the global stylesheet and used by Attendance, Roster, Leave, Holiday and every future page; no page sets its own width for it.
+**Month filter (`.month-nav`) is one shared component with one global width token**: `--month-filter-w` = exactly one filter cell (`calc((100% - 40px) / 6)` on desktop where 6 filters share a row, `calc((100% - 8px) / 2)` on mobile where 2 share a row). Month names are always 3 letters ("Jan", "Feb" ... "Sep 2026") everywhere the month filter, its calendar title or any month label appears. The label is centred between the two chevrons, `flex:1; min-width:0; white-space:nowrap`, and never changes the filter width. Defined once in the global stylesheet and used by Attendance, Roster, Leave, Holiday and every future page; no page sets its own width for it.
 
 ## Responsive — plain CSS, width-based tiers, additive only
 

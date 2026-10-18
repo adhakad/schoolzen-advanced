@@ -94,7 +94,7 @@ describe('DataToolbarComponent', () => {
     expect(pill.tagName.toLowerCase()).toBe('div');
     expect(pill.querySelector('.sw-pill-date-input')).not.toBeNull();
     // Parsed off the string, so August is August regardless of the runner's timezone.
-    expect((pill.querySelector('.dd-label') as HTMLElement).textContent).toContain('August 2026');
+    expect((pill.querySelector('.dd-label') as HTMLElement).textContent).toContain('Aug 2026');
   });
 
   it('emits YYYY-MM for a month pick and YYYY-MM-DD for a day pick', () => {

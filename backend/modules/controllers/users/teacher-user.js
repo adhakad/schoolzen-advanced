@@ -1,6 +1,7 @@
 'use strict';
 const bcrypt = require('bcrypt');
 const tokenService = require('../../services/teacher-token');
+const jwt = require('jsonwebtoken');
 const AdminUserModel = require('../../models/users/admin-user');
 const TeacherUserModel = require('../../models/users/teacher-user');
 const TeacherModel = require('../../models/teacher');
@@ -89,9 +90,11 @@ let RefreshToken = async (req, res, next) => {
             res.send({ accessToken })
         }
         else {
-            res.status(403).send('Token unavailable!')
+            res.status(401).send('Token unavailable!')
         }
     } catch (err) {
+        // An expired or forged refresh token means the login is over -> 401, the client logs out.
+        if (err instanceof jwt.JsonWebTokenError) return res.status(401).json('Session expired!')
         res.status(500).json(err)
     }
 }

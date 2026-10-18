@@ -15,7 +15,11 @@ require('../modules/services/activity-log.service').logActivity = async () => {}
 require('../modules/helpers/with-transaction').withTransaction = async (work) => work(null);
 require('../modules/services/attendance-v2/publisher').publishReconciled = async () => {};
 require('../modules/services/attendance-v2/live-stats').recompute = async () => {};
-require('../modules/helpers/academic-session/session-resolver').getActiveSession = async () => ({ _id: 'session1' });
+const sessionResolver = require('../modules/helpers/academic-session/session-resolver');
+sessionResolver.getActiveSession = async () => ({ _id: 'session1' });
+// shared-fix1.md S2: request paths and reconcile resolve through these two, not the active flag.
+sessionResolver.resolveRequestSessionId = async () => 'session1';
+sessionResolver.findSessionIdForDate = async () => 'session1';
 
 const RosterV2Model = require('../modules/models/attendance/roster');
 const ShiftV2Model = require('../modules/models/attendance/shift');

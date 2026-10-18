@@ -1,9 +1,10 @@
 /* Roster reference styles that the global design system doesn't carry. */
 
-/* Row 2: a plain flex row of fixed ~150px pills — NOT Overview's grid. */
-/* Seven equal filters, 6 per row, the 7th wraps; 2 per row on mobile (global rule 12). */
-.toolbar-row2 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
-.roster-pill { min-width: 0; width: 100%; }
+/* Row 2 (roster.html): Roster's OWN shape — a flex-wrap row of fixed ~150px pills, NOT
+   Overview's 6-column grid. At most 5 pills, so never more than 6 per row; they wrap, all the
+   same width; 2 per row on mobile (global rule 12). */
+.toolbar-row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.roster-pill { flex: 0 0 var(--filter-pill-width); width: var(--filter-pill-width); min-width: 0; }
 .toolbar-row3 { display: flex; align-items: center; margin-top: 2px; }
 /* Toolbar buttons right of the search share one width (global rule 7). */
 .toolbar-btn-group > .sw-report-btn, .toolbar-btn-group > .sw-edit-btn, .toolbar-btn-group > .btn-danger-outline { width: 162px; padding: 0 10px; gap: 6px; justify-content: center; }
@@ -91,7 +92,7 @@
 .group-tag { display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 600; color: var(--slate); border: 1px solid var(--slate-soft); border-radius: 20px; padding: 1px 8px; vertical-align: middle; }
 
 @media (max-width: 640px) {
-  .toolbar-row2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbar-row2 > .roster-pill { flex: 0 0 calc((100% - 8px) / 2); width: calc((100% - 8px) / 2); }
   /* Wide table on a phone (global rule 13): narrower sticky checkbox + name, narrower days. */
   .rg-grid { min-width: calc(134px + 31 * 48px); }
   .rg-grid th.chk-col, .rg-grid td.chk-col { width: 30px; min-width: 30px; max-width: 30px; padding-left: 4px; padding-right: 4px; }

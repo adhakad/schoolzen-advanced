@@ -55,9 +55,20 @@
      and the calendar (month) filter's own constant width — never sized by its text. */
   --filter-pill-width: 150px;
   --search-width: 300px;
-  /* Sized for the longest label, "September 2026" (design-system.md, Constants). */
-  --month-filter-w: 178px;
+  /* The month filter is exactly ONE filter cell of its row (global rule 7, design-system.md
+     "Month filter"): 1/6 of the row on desktop, 1/2 on mobile (the 640px block below). The
+     % resolves against the row the filter sits in. */
+  --month-filter-w: calc((100% - 40px) / 6);
 }
+@media (max-width: 640px) {
+  :root { --month-filter-w: calc((100% - 8px) / 2); }
+}
+
+/* THE month filter width, for every page (no page sets its own). In a flex toolbar row the
+   flex-basis makes it one cell of that row; as a grid item (a 6-column filter grid) flex is
+   ignored and width:100% fills its own cell, which already is one filter cell. The 0,2,1
+   selector outranks the phone rule ".sz .toolbar-row2 > *" further down. */
+app-month-nav, .sz .toolbar-row2 > app-month-nav { display: block; flex: 0 0 var(--month-filter-w); width: 100%; min-width: 0; }
 
 /* --- root shell --------------------------------------------------------------------- */
 

@@ -8,7 +8,7 @@ const StudentProfileModel = require('../../models/student/student');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const { ValidationError, NotFoundError } = require('../../errors');
 const messages = require('../messages/leave.messages');
-const { findSessionId, getActiveSession } = require('../academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../academic-session/session-resolver');
 const { loadClassIndex, describePlacement } = require('../student/student.utils');
 const { escapeRegExp } = require('../staff/lookups');
 const { toDateKey } = require('../date-only');
@@ -27,15 +27,11 @@ const { ObjectId } = mongoose.Types;
 const todayKey = () => toDateKey(nowWallClock());
 const actorOf = (req) => String((req.user && (req.user.staffId || req.user.id)) || req.staffId || 'admin');
 
-/** The header's session label → its id, falling back to the active session. */
+/** The header's session label → its id (404 for an unknown label); the active session only when none is sent. */
 const resolveSessionId = async (adminId, label) => {
-    if (label) {
-        const id = await findSessionId(adminId, label);
-        if (id) return String(id);
-    }
-    const active = await getActiveSession(adminId);
-    if (!active) throw new ValidationError(messages.sessionMissing(), { module: MODULE, code: 'SESSION_MISSING' });
-    return String(active._id);
+    const id = await resolveRequestSessionId(adminId, label, MODULE);
+    if (!id) throw new ValidationError(messages.sessionMissing(), { module: MODULE, code: 'SESSION_MISSING' });
+    return id;
 };
 
 // ---- Leave Types (the module's one near-static cached list) -------------------------------

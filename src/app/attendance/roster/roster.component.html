@@ -17,7 +17,7 @@
         <div class="search">
           <i class="bi bi-search"></i>
           <input type="text" placeholder="Search by name or class" aria-label="Search by name or class"
-                 (input)="onSearchChange($any($event.target).value)" />
+            (input)="onSearchChange($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group">
           <button type="button" class="sw-report-btn" [disabled]="assignDisabled" (click)="openAssign()">
@@ -33,31 +33,31 @@
       </div>
       <div class="sel-warning" *ngIf="mixedSelection" role="status">
         <i class="bi bi-exclamation-triangle"></i>
-        Your selection mixes {{ personType === 'staff' ? 'staff' : 'classes' }} with an existing roster and ones with none. Select only one type at a time to Assign or Edit.
+        Your selection mixes {{ personType === 'staff' ? 'staff' : 'classes' }} with an existing roster and ones with
+        none. Select only one type at a time to Assign or Edit.
       </div>
       <div class="toolbar-row2">
-        <app-dd class="roster-pill" [options]="personTypeOptions" [value]="personType"
-                ariaLabel="Person type" (valueChange)="onPersonTypeChange($event)"></app-dd>
+        <app-dd class="roster-pill" [options]="personTypeOptions" [value]="personType" ariaLabel="Person type"
+          (valueChange)="onPersonTypeChange($event)"></app-dd>
         <!-- Dependent pills are always present, disabled until their parent is chosen, and keep
              their "All …" label while disabled (global rule 8). -->
         <ng-container *ngIf="personType === 'staff'; else studentFilters">
           <app-dd class="roster-pill" [options]="departmentOptions" [value]="departmentId"
-                  ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
-          <app-dd class="roster-pill" [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
-                  ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
+            ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
+          <app-dd class="roster-pill" [options]="designationOptions" [value]="designationId"
+            [disabled]="designationDisabled" ariaLabel="Filter by designation"
+            (valueChange)="onDesignationChange($event)"></app-dd>
         </ng-container>
         <ng-template #studentFilters>
-          <app-dd class="roster-pill" [options]="classOptions" [value]="classId"
-                  ariaLabel="Filter by class" (valueChange)="onClassChange($event)"></app-dd>
+          <app-dd class="roster-pill" [options]="classOptions" [value]="classId" ariaLabel="Filter by class"
+            (valueChange)="onClassChange($event)"></app-dd>
           <app-dd class="roster-pill" [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
-                  ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
+            ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
           <app-dd class="roster-pill" [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
-                  ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
+            ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
           <app-dd class="roster-pill" [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
-                  ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
+            ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
         </ng-template>
-      </div>
-      <div class="toolbar-row3">
         <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
       </div>
       <div class="fetch-error" *ngIf="lookupError" role="alert">
@@ -67,8 +67,8 @@
     </div>
 
     <div class="legend-strip" *ngIf="legend.shifts.length || legend.weekOff">
-      <span class="legend-chip" *ngFor="let shift of legend.shifts; trackBy: trackById"
-            [ngClass]="chipClass(shift._id)" [title]="shift.name + ' · ' + shiftTime(shift)">
+      <span class="legend-chip" *ngFor="let shift of legend.shifts; trackBy: trackById" [ngClass]="chipClass(shift._id)"
+        [title]="shift.name + ' · ' + shiftTime(shift)">
         {{ shift.code }} &mdash; {{ shift.name }}
       </span>
       <span class="legend-chip week-off" *ngIf="legend.weekOff" title="Weekly off">WO &mdash; Week Off</span>
@@ -90,7 +90,8 @@
         <table class="rg-grid">
           <thead>
             <tr>
-              <th class="chk-col"><input type="checkbox" aria-label="Select all" [checked]="allSelected" (change)="toggleAll()" /></th>
+              <th class="chk-col"><input type="checkbox" aria-label="Select all" [checked]="allSelected"
+                  (change)="toggleAll()" /></th>
               <th class="name-col">Name</th>
               <th class="day-cell" *ngFor="let col of days; trackBy: trackByDate" [class.today-col]="col.isToday">
                 {{ col.dow }}<span class="dow">{{ col.day }}</span>
@@ -99,13 +100,16 @@
           </thead>
           <tbody>
             <tr *ngFor="let row of staffRows; trackBy: trackById">
-              <td class="chk-col"><input type="checkbox" [attr.aria-label]="'Select ' + row.name" [checked]="selected.has(row._id)" (change)="toggleRow(row._id)" /></td>
-              <td class="name-cell"><div class="g-name">{{ row.name }}</div><div class="g-code">{{ row.empCode || row.designation || '' }}</div></td>
-              <td *ngFor="let col of days; trackBy: trackByDate"
-                  [class.today-col]="col.isToday"
-                  [class.locked]="isLocked(col)"
-                  [class.editable-cell]="!isLocked(col) && (cellShift(row, col) || isWeekOff(row, col))"
-                  [attr.title]="isLocked(col) ? 'Attendance already recorded — this day can\'t be reassigned.' : null">
+              <td class="chk-col"><input type="checkbox" [attr.aria-label]="'Select ' + row.name"
+                  [checked]="selected.has(row._id)" (change)="toggleRow(row._id)" /></td>
+              <td class="name-cell">
+                <div class="g-name">{{ row.name }}</div>
+                <div class="g-code">{{ row.empCode || row.designation || '' }}</div>
+              </td>
+              <td *ngFor="let col of days; trackBy: trackByDate" [class.today-col]="col.isToday"
+                [class.locked]="isLocked(col)"
+                [class.editable-cell]="!isLocked(col) && (cellShift(row, col) || isWeekOff(row, col))"
+                [attr.title]="isLocked(col) ? 'Attendance already recorded — this day can\'t be reassigned.' : null">
                 <ng-container *ngIf="cellShift(row, col) as shift; else notShift">
                   <span class="shift-chip" [ngClass]="chipClass(shift._id)" [title]="shift.name">{{ shift.code }}</span>
                 </ng-container>
@@ -114,14 +118,15 @@
                 </ng-template>
                 <ng-template #empty><span class="empty-cell">&ndash;</span></ng-template>
                 <span class="edit-pencil" *ngIf="!isLocked(col) && (cellShift(row, col) || isWeekOff(row, col))"
-                      role="button" [attr.aria-label]="'Edit ' + row.name + '\'s assignment'"
-                      (click)="openRow(row._id)"><i class="bi bi-pencil-fill"></i></span>
+                  role="button" [attr.aria-label]="'Edit ' + row.name + '\'s assignment'" (click)="openRow(row._id)"><i
+                    class="bi bi-pencil-fill"></i></span>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="tbl-empty" *ngIf="truncated">Showing the first 1,000 staff &mdash; narrow the filters to see the rest.</div>
+      <div class="tbl-empty" *ngIf="truncated">Showing the first 1,000 staff &mdash; narrow the filters to see the rest.
+      </div>
       <div class="tbl-empty" *ngIf="!staffRows.length && !loading && !loadError">
         {{ search || departmentId ? 'No staff match these filters.' : 'No active staff yet.' }}
       </div>
@@ -132,19 +137,24 @@
       <table class="cls-table">
         <thead>
           <tr>
-            <th class="chk-col"><input type="checkbox" aria-label="Select all classes" [checked]="allSelected" (change)="toggleAll()" /></th>
-            <th class="name-col">Class</th><th>Shift</th><th>Change</th>
+            <th class="chk-col"><input type="checkbox" aria-label="Select all classes" [checked]="allSelected"
+                (change)="toggleAll()" /></th>
+            <th class="name-col">Class</th>
+            <th>Shift</th>
+            <th>Change</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let row of visibleClassRows; trackBy: trackByKey">
             <td class="chk-col">
               <input type="checkbox" *ngIf="row.selectable" [attr.aria-label]="'Select ' + row.label"
-                     [checked]="selected.has(row.key)" (change)="toggleRow(row.key)" />
+                [checked]="selected.has(row.key)" (change)="toggleRow(row.key)" />
             </td>
             <td class="name-cell">
-              <span class="cls-name" [class.sub]="row.level === 1" [class.subsub]="row.level === 2">{{ row.label }}</span>
-              <span class="group-tag" *ngIf="groupLabelOf(row) as group" [attr.title]="'Stream Group: ' + group">{{ group }}</span>
+              <span class="cls-name" [class.sub]="row.level === 1" [class.subsub]="row.level === 2">{{ row.label
+                }}</span>
+              <span class="group-tag" *ngIf="groupLabelOf(row) as group" [attr.title]="'Stream Group: ' + group">{{
+                group }}</span>
             </td>
             <ng-container *ngIf="row.selectable; else heading">
               <td>
@@ -154,18 +164,22 @@
                 <ng-template #notSet><span class="not-set">Not assigned</span></ng-template>
               </td>
               <td>
-                <button type="button" class="icon-btn" [attr.aria-label]="(row.shiftId ? 'Change shift for ' : 'Assign shift to ') + row.label"
-                        (click)="openRow(row.key)">
+                <button type="button" class="icon-btn"
+                  [attr.aria-label]="(row.shiftId ? 'Change shift for ' : 'Assign shift to ') + row.label"
+                  (click)="openRow(row.key)">
                   <i class="bi" [ngClass]="row.shiftId ? 'bi-pencil' : 'bi-plus-lg'"></i>
                 </button>
               </td>
             </ng-container>
-            <ng-template #heading><td colspan="2"></td></ng-template>
+            <ng-template #heading>
+              <td colspan="2"></td>
+            </ng-template>
           </tr>
         </tbody>
       </table>
       <div class="tbl-empty" *ngIf="!visibleClassRows.length && !loading && !loadError">
-        {{ classRows.length ? 'No classes match these filters.' : 'No classes set up yet — add them in Academic Setup.' }}
+        {{ classRows.length ? 'No classes match these filters.' : 'No classes set up yet — add them in Academic Setup.'
+        }}
       </div>
     </ng-container>
 
@@ -177,28 +191,30 @@
 
   <div class="col-side">
     <div class="stats-card">
-      <div class="stats-card-head"><span class="stats-card-title">{{ personType === 'staff' ? 'This week' : 'Classes' }}</span></div>
+      <div class="stats-card-head"><span class="stats-card-title">{{ personType === 'staff' ? 'This week' : 'Classes'
+          }}</span></div>
       <div class="stat-row" *ngFor="let entry of stats.byShift; trackBy: trackByIndex">
         <span class="stat-label">On {{ entry.name }}</span><span class="stat-value">{{ entry.count }}</span>
       </div>
-      <div class="stat-row accent"><span class="stat-label">Unassigned</span><span class="stat-value">{{ stats.unassigned }}</span></div>
+      <div class="stat-row accent"><span class="stat-label">Unassigned</span><span class="stat-value">{{
+          stats.unassigned }}</span></div>
     </div>
     <app-good-to-know [tips]="tips"></app-good-to-know>
   </div>
 </div>
 
 <app-form-modal [open]="assignOpen" [title]="assignTitle" submitLabel="Assign" [width]="460"
-                [submitDisabled]="assignSubmitDisabled" [busy]="saving"
-                (submitted)="onAssignSubmit()" (cancelled)="onAssignCancel()">
+  [submitDisabled]="assignSubmitDisabled" [busy]="saving" (submitted)="onAssignSubmit()" (cancelled)="onAssignCancel()">
   <p class="modal-note">
     {{ personType === 'staff'
-      ? 'This shift will apply to everyone currently selected, across the dates and weekdays chosen below. Unticked days become their weekly off (WO).'
-      : 'Students in the selected classes follow this shift for the whole session.' }}
+    ? 'This shift will apply to everyone currently selected, across the dates and weekdays chosen below. Unticked days
+    become their weekly off (WO).'
+    : 'Students in the selected classes follow this shift for the whole session.' }}
   </p>
   <div class="m-field">
     <label for="assign-shift">Select shift <span class="req-star">*</span></label>
-    <app-dd id="assign-shift" [options]="shiftOptions" [value]="assignShiftId"
-            ariaLabel="Shift" (valueChange)="onAssignShift($event)"></app-dd>
+    <app-dd id="assign-shift" [options]="shiftOptions" [value]="assignShiftId" ariaLabel="Shift"
+      (valueChange)="onAssignShift($event)"></app-dd>
   </div>
 
   <!-- Students: the Stream Group follows the class — show-only, "General" for a class
@@ -206,7 +222,7 @@
   <div class="m-field" *ngIf="personType === 'student'">
     <label for="assign-group">Stream Group</label>
     <app-dd id="assign-group" [options]="assignGroupOptions" [value]="assignGroupValue" [disabled]="true"
-            ariaLabel="Stream group"></app-dd>
+      ariaLabel="Stream group"></app-dd>
     <div class="m-hint">Follows the selected class &mdash; the shift applies to every group in it.</div>
   </div>
 
@@ -215,22 +231,23 @@
       <label>Applies to <span class="req-star">*</span></label>
       <!-- roster.html "Applies to Month": the calendar stays hidden until the field is clicked. -->
       <app-date-range-picker [popover]="true" [start]="assignFrom" [end]="assignTo" [min]="today" noun="day"
-                             placeholder="Pick the first and last day" ariaLabel="Applies to dates"
-                             hint="Roster can only be set from today onward &mdash; earlier days are locked."
-                             (rangeChange)="onAssignRange($event)"></app-date-range-picker>
+        placeholder="Pick the first and last day" ariaLabel="Applies to dates"
+        hint="Roster can only be set from today onward &mdash; earlier days are locked."
+        (rangeChange)="onAssignRange($event)"></app-date-range-picker>
     </div>
 
     <div class="m-field">
       <label>Apply on these days</label>
       <div class="day-chip-row">
         <button type="button" class="day-chip" *ngFor="let day of weekdays; trackBy: trackByIndex"
-                [class.active]="assignWeekdays.has(day.value)" [attr.aria-pressed]="assignWeekdays.has(day.value)"
-                (click)="toggleWeekday(day.value)">{{ day.label }}</button>
+          [class.active]="assignWeekdays.has(day.value)" [attr.aria-pressed]="assignWeekdays.has(day.value)"
+          (click)="toggleWeekday(day.value)">{{ day.label }}</button>
       </div>
-      <div class="m-hint">Sunday is the weekly off by default. Click any day to switch it between working and weekly off (WO).</div>
+      <div class="m-hint">Sunday is the weekly off by default. Click any day to switch it between working and weekly off
+        (WO).</div>
     </div>
   </ng-container>
 </app-form-modal>
 
-<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig" [busy]="deleting"
-                   (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
+<app-confirm-modal [open]="confirmOpen" [config]="confirmConfig" [busy]="deleting" (confirmed)="onConfirmed()"
+  (cancelled)="onConfirmCancelled()"></app-confirm-modal>

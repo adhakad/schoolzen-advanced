@@ -8,7 +8,7 @@
 2. Pick a module from the table below, in dependency order.
 3. Run its prompt: `claude "$(cat prompts/<module>.md)"` — each prompt covers that module's schema, API, and frontend as one piece of work, and tells Claude Code which `.html`+`.md` pairs to read.
 4. Verify the built page against its `.html` reference side by side.
-5. If something doesn't match, write the correction as `prompts/fixes/<module>-vN.md` (see `prompts/fixes/README.md`) rather than a one-off unlogged fix.
+5. If something doesn't match, write the correction as `prompts/fixes/<module>/<module>-fixN.md` (see `prompts/fixes/README.md`) rather than a one-off unlogged fix.
 
 ## Module map — build order
 

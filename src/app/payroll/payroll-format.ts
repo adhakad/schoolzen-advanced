@@ -1,9 +1,8 @@
 /**
  * Payroll's display helpers — money as the references print it (₹26,000 / −₹3,000 / ₹58.6L),
- * the toolbar's month list (±3 months around the selected one), and "01 Apr 2026" dates.
+ * 3-letter month labels ("Sep 2026"), and "01 Apr 2026" dates.
  */
-import { MONTH_NAMES, currentMonthKey, shiftMonth } from 'src/app/shared/utils/attendance-time.util';
-import { DdOption } from 'src/app/shared/models/shared-components.model';
+import { MONTH_SHORT, currentMonthKey } from 'src/app/shared/utils/attendance-time.util';
 
 export const rupees = (value: number | null | undefined): string =>
   value === null || value === undefined ? '—' : '₹' + Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -30,17 +29,7 @@ export const splitMonth = (monthKey: string): { year: number; month: number } =>
 
 export const monthName = (monthKey: string): string => {
   const { year, month } = splitMonth(monthKey);
-  return MONTH_NAMES[month - 1] + ' ' + year;
-};
-
-/** The reference's month dropdown: three months either side of the selected one. */
-export const monthOptions = (monthKey: string): DdOption[] => {
-  const options: DdOption[] = [];
-  for (let delta = -3; delta <= 3; delta++) {
-    const key = shiftMonth(monthKey, delta);
-    options.push({ value: key, label: monthName(key) });
-  }
-  return options;
+  return MONTH_SHORT[month - 1] + ' ' + year;
 };
 
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

@@ -32,7 +32,7 @@ import { DepartmentsService } from 'src/app/shared/services/staff/departments.se
 import { DesignationsService } from 'src/app/shared/services/staff/designations.service';
 import { StudentOptionsService } from 'src/app/shared/services/student/student-options.service';
 import {
-  ArrivalRow, GridCell, GridRow, LiveCounts, MarkStatus, PersonType, PunchEventV2, RecentArrivals, ReconcileEventV2, SyncStatus
+  ArrivalRow, GridCell, GridQuery, GridResponse, GridRow, LiveCounts, MarkStatus, PersonType, PunchEventV2, RecentArrivals, ReconcileEventV2, SyncStatus
 } from 'src/app/shared/models/attendance/attendance.model';
 import { MonthColumn } from 'src/app/shared/models/attendance/roster.model';
 import { FilterClass, FilterGroup } from 'src/app/shared/models/student/student.model';
@@ -40,7 +40,10 @@ import { initialsOf } from 'src/app/shared/utils/avatar.util';
 import { errorMessageOf } from 'src/app/shared/utils/api-error.util';
 import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
 import { placeBelow } from 'src/app/shared/utils/overlay-position.util';
-import { currentMonthKey, monthLabel } from 'src/app/shared/utils/attendance-time.util';
+import { currentMonthKey, monthLabel, shiftMonth } from 'src/app/shared/utils/attendance-time.util';
+
+/** How long an idle-time prefetched month may be shown without a fresh request. */
+const PREFETCH_TTL_MS = 60000;
 
 const CHIP_CLASS: Record<string, string> = { P: 'present', L: 'late', HD: 'halfday', A: 'absent', LV: 'leave', H: 'holiday', WO: 'weekoff' };
 const EMPTY_COUNTS: LiveCounts = { Present: 0, Late: 0, HalfDay: 0, Absent: 0, Leave: 0, Holiday: 0, WeeklyOff: 0, live: 0 };
@@ -349,6 +352,67 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
 
   // --- grid ------------------------------------------------------------------------------
 
+  /** Grids fetched ahead in idle time, by query; each is used once, within PREFETCH_TTL_MS. */
+  private prefetched = new Map<string, { at: number; res: GridResponse }>();
+  private prefetchSub?: Subscription;
+
+  private gridQuery(month: string): GridQuery {
+    return {
+      personType: this.personType,
+      month,
+      session: this.isStaff ? '' : this.session,
+      departmentId: this.departmentId,
+      designationId: this.designationId,
+      classId: this.classId,
+      streamId: this.streamId,
+      groupId: this.groupId,
+      sectionId: this.sectionId,
+      search: this.search
+    };
+  }
+
+  private takePrefetched(query: GridQuery): GridResponse | null {
+    const key = JSON.stringify(query);
+    const hit = this.prefetched.get(key);
+    this.prefetched.delete(key);
+    return hit && Date.now() - hit.at < PREFETCH_TTL_MS ? hit.res : null;
+  }
+
+  private applyGrid(res: GridResponse, merge: boolean): void {
+    this.days = res.days || [];
+    this.today = res.today || this.today;
+    this.truncated = res.truncated;
+    this.canMark = Boolean(res.canMark);
+    if (merge) {
+      // A live refresh: same rows, merged through the one update path.
+      (res.rows || []).forEach((row) => this.applyPersonUpdate(row._id, row));
+    } else {
+      this.rows = res.rows || [];
+      const valid = new Set(this.rows.map((row) => row._id));
+      this.selected.forEach((id) => { if (!valid.has(id)) this.selected.delete(id); });
+      this.prefetchNextMonth();
+    }
+    this.loading = false;
+    this.cdr.markForCheck();
+    this.scrollToToday();
+  }
+
+  /** The month after this one, fetched when the browser is idle, so "›" is instant. */
+  private prefetchNextMonth(): void {
+    const query = this.gridQuery(shiftMonth(this.month, 1));
+    const key = JSON.stringify(query);
+    if (this.prefetched.has(key)) return;
+    this.prefetchSub?.unsubscribe();
+    const idle: (cb: () => void) => void = (window as any).requestIdleCallback
+      ? (cb) => (window as any).requestIdleCallback(cb, { timeout: 3000 })
+      : (cb) => setTimeout(cb, 1500);
+    idle(() => {
+      if (this.loading || key !== JSON.stringify(this.gridQuery(query.month))) return;
+      this.prefetchSub = this.api.getGrid(this.adminId, query).pipe(takeUntil(this.destroyed$))
+        .subscribe((res) => this.prefetched.set(key, { at: Date.now(), res }), () => undefined);
+    });
+  }
+
   private gridSeq = 0;
   /** The grid request in flight — cancelled (not just ignored) when a newer one starts. */
   private gridSub?: Subscription;
@@ -368,44 +432,27 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
+    const query = this.gridQuery(this.month);
+    // Only the latest request may land: a fast filter change must never be overwritten by
+    // the slower answer to the previous one — and the previous request is cancelled.
+    const seq = ++this.gridSeq;
+    this.gridSub?.unsubscribe();
+    // A month prefetched in idle time renders at once, with no request (attendance-fix3.md C).
+    const prefetched = merge ? null : this.takePrefetched(query);
+    if (prefetched) {
+      this.applyGrid(prefetched, false);
+      return;
+    }
     if (!merge) {
+      // The previous grid stays on screen, dimmed (.is-loading), until the new one lands.
       this.loading = true;
       this.loadError = '';
       this.closeMark();
       this.cdr.markForCheck();
     }
-    // Only the latest request may land: a fast filter change must never be overwritten by
-    // the slower answer to the previous one.
-    const seq = ++this.gridSeq;
-    this.gridSub?.unsubscribe();
-    this.gridSub = this.api.getGrid(this.adminId, {
-      personType: this.personType,
-      month: this.month,
-      session: this.isStaff ? '' : this.session,
-      departmentId: this.departmentId,
-      designationId: this.designationId,
-      classId: this.classId,
-      streamId: this.streamId,
-      groupId: this.groupId,
-      sectionId: this.sectionId,
-      search: this.search
-    }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+    this.gridSub = this.api.getGrid(this.adminId, query).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       if (seq !== this.gridSeq) return;
-      this.days = res.days || [];
-      this.today = res.today || this.today;
-      this.truncated = res.truncated;
-      this.canMark = Boolean(res.canMark);
-      if (merge) {
-        // A live refresh: same rows, merged through the one update path.
-        (res.rows || []).forEach((row) => this.applyPersonUpdate(row._id, row));
-      } else {
-        this.rows = res.rows || [];
-        const valid = new Set(this.rows.map((row) => row._id));
-        this.selected.forEach((id) => { if (!valid.has(id)) this.selected.delete(id); });
-      }
-      this.loading = false;
-      this.cdr.markForCheck();
-      this.scrollToToday();
+      this.applyGrid(res, merge);
     }, () => {
       if (seq !== this.gridSeq) return;
       if (!merge) {
@@ -491,15 +538,16 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
 
   cellTitle(row: GridRow, cell: GridCell, col: MonthColumn): string | null {
     if (cell.n) return 'No roster for this day';
-    if (cell.f) return 'Upcoming date';
+    // attendance-overview.html: a future holiday is "Upcoming date", a future roster cell "(from roster)".
+    if (cell.f) return cell.s === 'H' ? 'Upcoming date' : 'Upcoming date (from roster)';
     if (col.dateKey < this.today) return "Past dates can't be changed";
     if (!col.isToday) return null;
     if (cell.src === 'device') return 'Device punch recorded' + (cell.p ? ' at ' + cell.p : '');
     if (!['P', 'L', 'A'].includes(cell.s)) return null;
-    if (!this.canMark) return "You don't have permission to mark attendance";
+    if (!this.canMark) return 'You do not have permission to mark attendance';
     if (row.type === 'student' && !this.classId) return 'Select a class first';
     if (!row.mark) return 'No shift today';
-    if (!row.mark.open) return 'Attendance can be marked between ' + row.mark.from + ' and ' + row.mark.to;
+    if (!row.mark.open) return 'Attendance window is closed (' + row.mark.from + ' - ' + row.mark.to + ')';
     return 'Click to mark attendance';
   }
 
@@ -581,6 +629,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     this.api.mark(this.adminId, { personType: target.row.type, personId: target.row._id, status, ...context }, this.markKey)
       .pipe(takeUntil(this.destroyed$)).subscribe((res) => {
         this.marking = null;
+        this.prefetched.clear();
         this.applyPersonUpdate(target.row._id, { cells: { [target.col.dateKey]: res.cell } });
         this.closeMark();
         this.snackBar.open(res.message, 'Close', { duration: 2500 });
@@ -710,7 +759,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     }, () => { /* the card keeps its last numbers */ });
     this.arrivalsError = '';
-    this.api.getRecentArrivals(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+    this.api.getRecentArrivals(this.adminId, this.session).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.arrivals = res;
       this.cdr.markForCheck();
     }, () => {

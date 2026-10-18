@@ -159,9 +159,10 @@ export class DataToolbarComponent implements OnInit, OnChanges, OnDestroy {
 
   private formatDate(date: Date | null, type: ToolbarFilterType): string {
     if (!date || type === 'select') return '';
-    const month = MONTH_NAMES[date.getMonth()];
+    // 3-letter month names everywhere (global rule 7).
+    const month = MONTH_NAMES[date.getMonth()].slice(0, 3);
     return type === 'month'
       ? month + ' ' + date.getFullYear()
-      : date.getDate() + ' ' + month.slice(0, 3) + ' ' + date.getFullYear();
+      : date.getDate() + ' ' + month + ' ' + date.getFullYear();
   }
 }

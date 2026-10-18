@@ -26,7 +26,7 @@ claude "$(cat docs/schoolzen-planning/prompts/01-academic-setup.md)"
 
 ## When something doesn't match after building
 
-Don't write a one-off correction message and lose it — put it in `fixes/<module>-vN.md` (see `fixes/README.md`) so there's a record of what was wrong, and it can be re-run exactly:
+Don't write a one-off correction message and lose it — put it in `fixes/<module>/<module>-fixN.md` (see `fixes/README.md`) so there's a record of what was wrong, and it can be re-run exactly:
 
 ```bash
 claude "$(cat docs/schoolzen-planning/prompts/fixes/attendance-v1.md)"
