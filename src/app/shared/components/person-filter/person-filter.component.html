@@ -1,23 +1,24 @@
-<!-- One filter grid (rule 14): Person Type, then ONLY that type's filters (the other type's are
-     hidden, not disabled), then the page's own filters (projected; the month filter last). -->
+<!-- The shared filter grid (shared-fix3): Person Type, then EVERY filter, the ones that do not
+     apply yet shown disabled with their "All …" label; then the page's own filters (projected,
+     the month filter last). Only `hideByPersonType` (Roster) hides the other type's filters. -->
 <div class="toolbar-row2">
   <app-dd [options]="personTypeOptions" [value]="value.personType"
           ariaLabel="Person type" (valueChange)="onPersonTypeChange($event)"></app-dd>
-  <ng-container *ngIf="isStaff; else studentFilters">
-    <app-dd [options]="departmentOptions" [value]="value.departmentId" ariaLabel="Filter by department"
-            (valueChange)="onDepartmentChange($event)"></app-dd>
+  <ng-container *ngIf="showStaff">
+    <app-dd [options]="departmentOptions" [value]="value.departmentId" [disabled]="departmentDisabled"
+            ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
     <app-dd [options]="designationOptions" [value]="value.designationId" [disabled]="designationDisabled"
             ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
   </ng-container>
-  <ng-template #studentFilters>
-    <app-dd [options]="classOptions" [value]="value.classId" ariaLabel="Filter by class"
-            (valueChange)="onClassChange($event)"></app-dd>
+  <ng-container *ngIf="showStudent">
+    <app-dd [options]="classOptions" [value]="value.classId" [disabled]="classDisabled"
+            ariaLabel="Filter by class" (valueChange)="onClassChange($event)"></app-dd>
     <app-dd [options]="streamOptions" [value]="value.streamId" [disabled]="streamDisabled"
             ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
     <app-dd *ngIf="showGroup" [options]="groupOptions" [value]="value.groupId" [disabled]="groupDisabled"
             ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
     <app-dd [options]="sectionOptions" [value]="value.sectionId" [disabled]="sectionDisabled"
             ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
-  </ng-template>
+  </ng-container>
   <ng-content></ng-content>
 </div>

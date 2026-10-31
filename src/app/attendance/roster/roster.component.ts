@@ -28,6 +28,9 @@ import { RosterService } from 'src/app/shared/services/attendance/roster.service
 import { ShiftsService } from 'src/app/shared/services/attendance/shifts.service';
 import { DepartmentsService } from 'src/app/shared/services/staff/departments.service';
 import { DesignationsService } from 'src/app/shared/services/staff/designations.service';
+import {
+  EMPTY_FILTER_OPTIONS, EMPTY_PERSON_FILTER, PersonFilterOptions, PersonFilterValue
+} from 'src/app/shared/models/leave/person-filter.model';
 import { StudentOptionsService } from 'src/app/shared/services/student/student-options.service';
 import { Shift } from 'src/app/shared/models/attendance/shift.model';
 import {
@@ -78,12 +81,9 @@ export class RosterComponent implements OnInit, OnDestroy {
   streamId = '';
   groupId = '';
   sectionId = '';
-  readonly personTypeOptions: readonly DdOption[] = [
-    { value: 'staff', label: 'Staff' },
-    { value: 'student', label: 'Student' }
-  ];
-  departmentOptions: DdOption[] = [{ value: '', label: 'All departments' }];
-  private designations: { _id: string; title: string; departmentId: string | null }[] = [];
+  /** The shared filter row (app-person-filter, `hideByPersonType` on — Roster only). */
+  filterOptions: PersonFilterOptions = EMPTY_FILTER_OPTIONS;
+  filterValue: PersonFilterValue = EMPTY_PERSON_FILTER;
   classes: FilterClass[] = [];
   private groups: FilterGroup[] = [];
   lookupError = '';
@@ -189,57 +189,20 @@ export class RosterComponent implements OnInit, OnDestroy {
     }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.shifts = res.shifts.rows || [];
       this.shiftById = new Map(this.shifts.map((shift) => [shift._id, shift]));
-      this.departmentOptions = [{ value: '', label: 'All departments' },
-        ...(res.departments.rows || []).map((row: { _id: string; name: string }) => ({ value: row._id, label: row.name }))];
-      this.designations = (res.designations.rows || []) as { _id: string; title: string; departmentId: string | null }[];
       this.classes = res.classes.classes || [];
       this.groups = res.classes.groups || [];
+      this.filterOptions = {
+        departments: (res.departments.rows || []) as { _id: string; name: string }[],
+        designations: (res.designations.rows || []) as { _id: string; title: string; departmentId: string | null }[],
+        classes: this.classes,
+        groups: this.groups
+      };
       this.cdr.markForCheck();
     }, () => {
       this.lookupError = "Couldn't load shifts and filters.";
       this.cdr.markForCheck();
     });
   }
-
-  get designationOptions(): DdOption[] {
-    return [{ value: '', label: 'All designations' },
-      ...this.designations.filter((row) => row.departmentId === this.departmentId).map((row) => ({ value: row._id, label: row.title }))];
-  }
-
-  get classOptions(): DdOption[] {
-    return [{ value: '', label: 'All classes' }, ...this.classes.map((row) => ({ value: row._id, label: row.label }))];
-  }
-
-  private get selectedClass(): FilterClass | undefined {
-    return this.classes.find((row) => row._id === this.classId);
-  }
-
-  get streamOptions(): DdOption[] {
-    return [{ value: '', label: 'All streams' }, ...(this.selectedClass?.streams || [])
-      .map((stream) => ({ value: stream._id, label: stream.name.charAt(0).toUpperCase() + stream.name.slice(1) }))];
-  }
-
-  /** Stream Groups of the chosen class(+stream) — never the automatic "General" (show-only). */
-  get groupOptions(): DdOption[] {
-    const cls = this.selectedClass;
-    const ready = Boolean(cls) && (!cls?.hasStreams || Boolean(this.streamId));
-    const groups = ready
-      ? this.groups.filter((group) => !group.isSystemGroup && group.classId === cls?._id && (group.streamId || '') === this.streamId)
-      : [];
-    return [{ value: '', label: 'All stream groups' }, ...groups.map((group) => ({ value: group._id, label: group.name }))];
-  }
-
-  get sectionOptions(): DdOption[] {
-    const cls = this.selectedClass;
-    let sections = cls && !cls.hasStreams ? cls.sections : [];
-    if (cls && cls.hasStreams && this.streamId) sections = cls.streams.find((stream) => stream._id === this.streamId)?.sections || [];
-    return [{ value: '', label: 'All sections' }, ...sections.map((section) => ({ value: section._id, label: 'Section ' + section.name }))];
-  }
-
-  get streamDisabled(): boolean { return !this.selectedClass?.hasStreams; }
-  get groupDisabled(): boolean { return this.groupOptions.length < 2; }
-  get sectionDisabled(): boolean { return this.sectionOptions.length < 2; }
-  get designationDisabled(): boolean { return !this.departmentId; }
 
   /** "General" for a class without streams, else that stream's group names — the class rows' Stream Group. */
   groupLabelOf(row: ClassShiftRow): string {
@@ -281,52 +244,28 @@ export class RosterComponent implements OnInit, OnDestroy {
     this.streamId = '';
     this.groupId = '';
     this.sectionId = '';
+    this.filterValue = { ...EMPTY_PERSON_FILTER, personType: next };
     this.selected.clear();
     this.failures = [];
     this.fetch();
   }
 
-  onDepartmentChange(value: string): void {
-    this.departmentId = value;
-    this.designationId = '';
+  /**
+   * One change from the shared filter row. Staff filters refetch (the server filters staff);
+   * the student cascade (Class → Stream → Stream Group → Section) narrows the loaded class rows.
+   */
+  onPersonFilterChange(next: PersonFilterValue): void {
+    if (next.personType !== this.personType) {
+      this.onPersonTypeChange(next.personType);
+      return;
+    }
+    const staffChanged = next.departmentId !== this.departmentId || next.designationId !== this.designationId;
+    this.filterValue = next;
+    ({ departmentId: this.departmentId, designationId: this.designationId, classId: this.classId,
+      streamId: this.streamId, groupId: this.groupId, sectionId: this.sectionId } = next);
     this.selected.clear();
-    this.fetch();
-  }
-
-  onDesignationChange(value: string): void {
-    this.designationId = value;
-    this.selected.clear();
-    this.fetch();
-  }
-
-  /** Students: Class → Stream → Stream Group → Section, each change resetting what depends on it. */
-  onClassChange(value: string): void {
-    this.classId = value;
-    this.streamId = '';
-    this.groupId = '';
-    this.sectionId = '';
-    this.selected.clear();
-    this.cdr.markForCheck();
-  }
-
-  onStreamChange(value: string): void {
-    this.streamId = value;
-    this.groupId = '';
-    this.sectionId = '';
-    this.selected.clear();
-    this.cdr.markForCheck();
-  }
-
-  onGroupChange(value: string): void {
-    this.groupId = value;
-    this.selected.clear();
-    this.cdr.markForCheck();
-  }
-
-  onSectionChange(value: string): void {
-    this.sectionId = value;
-    this.selected.clear();
-    this.cdr.markForCheck();
+    if (staffChanged) this.fetch();
+    else this.cdr.markForCheck();
   }
 
   onSearchChange(value: string): void {

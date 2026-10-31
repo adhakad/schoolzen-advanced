@@ -70,7 +70,7 @@ export class LeaveRequestsComponent implements OnInit, OnDestroy {
   month = currentMonthKey();
   leaveTypes: LeaveType[] = [];
   readonly statusOptions: readonly DdOption[] = [
-    { value: '', label: 'Any status' },
+    { value: '', label: 'All statuses' },
     { value: 'Pending', label: 'Pending' },
     { value: 'Approved', label: 'Approved' },
     { value: 'Rejected', label: 'Rejected' }

@@ -4,8 +4,6 @@
 
 .table-scroll { min-width: 0; }
 
-/* 128px is a dimension, not a preference — every filter pill in the app is this wide. */
-.toolbar-pill { width: 128px; }
 
 .cls-cell { color: var(--ink-soft); font-weight: 500; }
 

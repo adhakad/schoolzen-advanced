@@ -140,44 +140,26 @@ describe('AttendanceOverviewComponent', () => {
     expect(component.cellClass(priya.cells['2026-08-10'], component.days[1], priya)).toBe('absent live-click closed');
   });
 
-  it('staff cascade: Department enables Designation; student filters stay disabled', () => {
-    expect(component.designationDisabled).toBeTrue();
-    expect(component.classDisabled).toBeTrue();
-    component.onDepartmentChange('d1');
-    expect(component.designationDisabled).toBeFalse();
-    expect(component.designationOptions.map((o) => o.label)).toContain('PRT');
-  });
+  // The cascade itself (options, disabled pills, resets) is covered by
+  // person-filter.component.spec.ts; here: the page applies each change from the shared row.
+  it('applies the shared filter row: staff filters and a Person Type switch that resets them', () => {
+    component.onPersonFilterChange({ ...component.filterValue, departmentId: 'd1' });
+    expect(api.getGrid).toHaveBeenCalledWith('a1', jasmine.objectContaining({ departmentId: 'd1' }));
 
-  it('student cascade: Class → Stream (11th/12th only) → Section, resetting what depends on it', () => {
-    component.onDepartmentChange('d1');
     component.onPersonTypeChange('student');
     expect(component.departmentId).toBe('');
-    expect(component.departmentDisabled).toBeTrue();
-    expect(component.classDisabled).toBeFalse();
+    expect(component.filterValue).toEqual(jasmine.objectContaining({ personType: 'student', departmentId: '' }));
 
-    component.onClassChange('c6');
-    expect(component.streamDisabled).toBeTrue();
-    expect(component.sectionOptions.map((o) => o.label)).toEqual(['All sections', 'Section A']);
-
-    // General-group class: the Stream Group pill is disabled and keeps "All stream groups".
-    expect(component.groupDisabled).toBeTrue();
-    expect(component.groupOptions[0].label).toBe('All stream groups');
-
-    component.onClassChange('c11');
-    expect(component.streamDisabled).toBeFalse();
-    expect(component.sectionDisabled).toBeTrue();
-    expect(component.groupDisabled).toBeTrue();
-    component.onStreamChange('sci');
-    expect(component.groupOptions.map((o) => o.label)).toEqual(['All stream groups', 'PCM', 'PCB']);
-    component.onGroupChange('pcm');
-    expect(api.getGrid).toHaveBeenCalledWith('a1', jasmine.objectContaining({ groupId: 'pcm' }));
-    expect(component.sectionOptions.length).toBe(3);
-    component.onSectionChange('sciA');
-    component.onClassChange('c6');
-    expect(component.streamId).toBe('');
-    expect(component.groupId).toBe('');
-    expect(component.sectionId).toBe('');
+    component.onPersonFilterChange({ ...component.filterValue, classId: 'c11', streamId: 'sci', groupId: 'pcm' });
+    expect(api.getGrid).toHaveBeenCalledWith('a1', jasmine.objectContaining({ classId: 'c11', groupId: 'pcm' }));
   });
+
+  it('keeps every filter visible: Person Type is not opted into hiding on Overview', () => {
+    const filter = fixture.nativeElement.querySelector('app-person-filter');
+    expect(filter).not.toBeNull();
+    expect(filter.getAttribute('ng-reflect-hide-by-person-type')).toBeNull();
+  });
+
   // --- attendance-fix2.md Part D ---------------------------------------------------------
 
   it('class-first: Student with no class sends no grid request and shows the empty state', () => {
@@ -188,7 +170,7 @@ describe('AttendanceOverviewComponent', () => {
     expect(component.rows.length).toBe(0);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.needs-class').textContent).toContain('Select a class to see students and mark attendance');
-    component.onClassChange('c6');
+    component.onPersonFilterChange({ ...component.filterValue, classId: 'c6' });
     expect(component.needsClass).toBeFalse();
     expect(api.getGrid).toHaveBeenCalledWith('a1', jasmine.objectContaining({ personType: 'student', classId: 'c6', session: '2026-2027' }));
   });

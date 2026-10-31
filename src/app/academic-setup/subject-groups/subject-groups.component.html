@@ -41,7 +41,7 @@
         <!-- Always present, merely disabled until a class is chosen: a pill that disappears
              changes the toolbar's shape. -->
         <app-dd class="toolbar-pill" [options]="streamFilterOptions" [value]="filterStreamId"
-                [disabled]="filterStreamDisabled" [disabledHint]="filterStreamHint"
+                [disabled]="filterStreamDisabled"
                 ariaLabel="Filter by stream" (valueChange)="onFilterStreamChange($event)"></app-dd>
       </div>
       <!-- A failed class/subject fetch is said out loud — never a silently empty dropdown. -->

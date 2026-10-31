@@ -1,6 +1,5 @@
 /* Marksheet Structure reference styles the global design system doesn't carry
    (docs/schoolzen-planning/v1/examination/marksheet-structure.html). */
-.sw-toolbar.single-row { flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 thead th.act, td.act { text-align: right; }
 .lm-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }

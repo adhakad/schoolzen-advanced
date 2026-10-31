@@ -11,12 +11,16 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar fr-toolbar">
-      <div class="search">
-        <i class="bi bi-search"></i>
-        <input type="text" placeholder="Search filters" aria-label="Search filters" [(ngModel)]="search" />
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search filters" aria-label="Search filters" [(ngModel)]="search" />
+        </div>
+        <div class="toolbar-btn-group" *ngIf="canEdit">
+          <button type="button" class="btn-primary" (click)="openCreate()"><i class="bi bi-plus-lg"></i> Create</button>
+        </div>
       </div>
-      <button type="button" class="btn-primary" *ngIf="canEdit" (click)="openCreate()"><i class="bi bi-plus-lg"></i> Create</button>
     </div>
 
     <table>

@@ -4,9 +4,7 @@
 
 :host { display: block; }
 
-/* 128px is a dimension, not a preference — every filter pill in the app is this wide, so
-   two toolbars on two pages line up. */
-.toolbar-pill { width: 128px; }
+/* Filter pills are cells of the global filter grid (.sz .toolbar-row2) — no width here. */
 
 /* The datepicker's real input, invisible, covering the pill so it stays the overlay's
    anchor while our own label is what the user reads. */

@@ -1,6 +1,5 @@
 /* Shared by the two Generate pages (generate-marksheet.html / generate-admit-card.html):
    their table, empty hint, preview modal and print layout — identical in both references. */
-.search { flex: 0 0 260px; width: 260px; }
 thead th.act, td.act { text-align: right; }
 th.chk, td.chk { width: 34px; text-align: center; }
 .table-inner.compact-760 { min-width: 760px; }
@@ -24,6 +23,3 @@ th.chk, td.chk { width: 34px; text-align: center; }
   .print-batch.two-up > *:last-child { page-break-after: auto; break-after: auto; }
 }
 
-@media (max-width: 767px) {
-  .search { flex: 1 1 auto; width: 100%; }
-}

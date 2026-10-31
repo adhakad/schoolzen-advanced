@@ -68,7 +68,7 @@ export class RequestsComponent implements OnInit, OnDestroy {
   lookupError = '';
 
   readonly applicantOptions: readonly DdOption[] = [
-    { value: '', label: 'All Applicants' },
+    { value: '', label: 'All applicants' },
     { value: 'staff', label: 'Staff' },
     { value: 'student', label: 'Student' }
   ];
@@ -77,7 +77,7 @@ export class RequestsComponent implements OnInit, OnDestroy {
     { value: 'leave', label: 'Leave' }
   ];
   readonly statusOptions: readonly DdOption[] = [
-    { value: '', label: 'Any status' },
+    { value: '', label: 'All statuses' },
     { value: 'pending', label: 'Pending' },
     { value: 'approved', label: 'Approved' },
     { value: 'rejected', label: 'Rejected' }
@@ -189,7 +189,7 @@ export class RequestsComponent implements OnInit, OnDestroy {
   }
 
   // The reference's cascade: Staff enables Department → Designation; Student enables Class
-  // → Stream (streamed classes) → Section; "All Applicants" disables all five.
+  // → Stream (streamed classes) → Section; "All applicants" disables all five.
   get departmentDisabled(): boolean { return this.personType !== 'staff'; }
   get designationDisabled(): boolean { return this.personType !== 'staff' || !this.departmentId; }
   get classDisabled(): boolean { return this.personType !== 'student'; }

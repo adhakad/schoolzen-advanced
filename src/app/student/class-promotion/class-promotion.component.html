@@ -20,9 +20,11 @@
           <input type="text" placeholder="Search by name or roll number" aria-label="Search students"
                  (input)="onSearchInput($any($event.target).value)" />
         </div>
-        <button type="button" class="btn-primary" [disabled]="jobRunning || previewing" (click)="onOpenConfirm()">
-          <i class="bi bi-check-lg"></i> {{ jobRunning ? 'Promotion running…' : (previewing ? 'Checking…' : 'Confirm Promotion') }}
-        </button>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-primary" [disabled]="jobRunning || previewing" (click)="onOpenConfirm()">
+            <i class="bi bi-check-lg"></i> {{ jobRunning ? 'Promotion running…' : (previewing ? 'Checking…' : 'Confirm Promotion') }}
+          </button>
+        </div>
       </div>
       <div class="toolbar-row2">
         <app-class-cascade-filter [options]="filterOptions" [value]="filter" [requireClass]="true"

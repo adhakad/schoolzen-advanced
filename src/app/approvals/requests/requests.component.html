@@ -24,20 +24,17 @@
       <div class="toolbar-row2">
         <app-dd [options]="applicantOptions" [value]="personType" ariaLabel="Filter by applicant"
                 (valueChange)="onApplicantChange($event)"></app-dd>
-        <ng-container *ngIf="personType === 'staff'">
-          <app-dd [options]="departmentOptions" [value]="departmentId" ariaLabel="Filter by department"
-                  (valueChange)="onDepartmentChange($event)"></app-dd>
-          <app-dd [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
-                  ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
-        </ng-container>
-        <ng-container *ngIf="personType === 'student'">
-          <app-dd [options]="classOptions" [value]="classId" ariaLabel="Filter by class"
-                  (valueChange)="onClassChange($event)"></app-dd>
-          <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
-                  ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
-          <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
-                  ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
-        </ng-container>
+        <!-- Every filter stays visible; the applicant type only enables its own (shared-fix3). -->
+        <app-dd [options]="departmentOptions" [value]="departmentId" [disabled]="departmentDisabled"
+                ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
+        <app-dd [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
+                ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
+        <app-dd [options]="classOptions" [value]="classId" [disabled]="classDisabled"
+                ariaLabel="Filter by class" (valueChange)="onClassChange($event)"></app-dd>
+        <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
+                ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
+        <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
+                ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
         <app-dd [options]="typeOptions" [value]="type" ariaLabel="Filter by type"
                 (valueChange)="onTypeChange($event)"></app-dd>
         <app-dd [options]="statusOptions" [value]="status" ariaLabel="Filter by status"

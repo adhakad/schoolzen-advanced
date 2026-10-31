@@ -90,7 +90,7 @@ export class RolesPermissionsComponent implements OnInit, OnDestroy {
   departmentOptions: DdOption[] = [{ value: '', label: 'All departments' }];
   private designationsByDept = new Map<string, string[]>();
   readonly assignedOptions: readonly DdOption[] = [
-    { value: '', label: 'Assigned + Unassigned' },
+    { value: '', label: 'All assignments' },
     { value: 'assigned', label: 'Assigned only' },
     { value: 'unassigned', label: 'Unassigned only' }
   ];

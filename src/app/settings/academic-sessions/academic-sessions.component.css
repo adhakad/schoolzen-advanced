@@ -1,6 +1,6 @@
 /* Only what this page's reference names beyond the global design system. */
 
-.sess-toolbar { justify-content: flex-end; }
+.sess-toolbar { align-items: flex-end; }
 .table-scroll { min-width: 0; overflow-x: auto; }
 
 .sess-label { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 14.5px; color: var(--ink); }

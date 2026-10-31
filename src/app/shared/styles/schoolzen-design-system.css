@@ -51,10 +51,9 @@
      Buttons — Width rule). The page's main button is never given this — it sizes to its
      own label. */
   --toolbar-btn-width: 130px;
-  /* Global rule 7 (global-fixes.md): one search width. Filter cells have no width token —
-     they are cells of the one filter grid (`.sz .toolbar-row2`, rule 14). */
-  --filter-pill-width: 150px;
-  --search-width: 300px;
+  /* One search width (shared-fix3: 340px, as attendance-overview.html). Filter cells have no
+     width token — they are cells of the one filter grid (`.sz .toolbar-row2`). */
+  --search-width: 340px;
   /* Rule 16: the LAST left sticky column of a wide table carries this light theme shadow. */
   --sticky-shadow: 6px 0 8px -6px rgba(140, 82, 255, .22), 1px 0 0 var(--line);
 }
@@ -507,7 +506,7 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
    row on phones (the 640px block at the foot). Cascades (class/staff filters) are
    `display: contents`, so their pills are cells of this same grid. */
 .sz .toolbar-row2 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
-.sz .toolbar-row2 > * { min-width: 0; width: 100%; }
+.sz .toolbar-row2 > * { min-width: 0; width: 100%; height: 38px; box-sizing: border-box; }
 .sz .toolbar-row2 > button { justify-content: center; }
 .sz .toolbar-btn-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 /* Rule 15: every toolbar button is 130 x 38, label centred, never wrapping; 2 per row on phones. */

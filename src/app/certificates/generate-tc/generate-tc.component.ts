@@ -48,7 +48,7 @@ export class GenerateTcComponent implements OnInit, OnDestroy {
   search = '';
   status: TcStatusFilter = '';
   readonly statusOptions: DdOption[] = [
-    { value: '', label: 'Any status' }, { value: 'issued', label: 'Issued' }, { value: 'notissued', label: 'Not Issued' }
+    { value: '', label: 'All statuses' }, { value: 'issued', label: 'Issued' }, { value: 'notissued', label: 'Not Issued' }
   ];
 
   rows: TcStudentRow[] = [];

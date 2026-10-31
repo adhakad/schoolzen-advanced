@@ -35,7 +35,9 @@ import {
   ArrivalRow, GridCell, GridQuery, GridResponse, GridRow, LiveCounts, MarkStatus, PersonType, PunchEventV2, RecentArrivals, ReconcileEventV2, SyncStatus
 } from 'src/app/shared/models/attendance/attendance.model';
 import { MonthColumn } from 'src/app/shared/models/attendance/roster.model';
-import { FilterClass, FilterGroup } from 'src/app/shared/models/student/student.model';
+import {
+  EMPTY_FILTER_OPTIONS, EMPTY_PERSON_FILTER, PersonFilterOptions, PersonFilterValue
+} from 'src/app/shared/models/leave/person-filter.model';
 import { initialsOf } from 'src/app/shared/utils/avatar.util';
 import { errorMessageOf } from 'src/app/shared/utils/api-error.util';
 import { newIdempotencyKey } from 'src/app/shared/utils/idempotency.util';
@@ -54,7 +56,6 @@ const MARK_OPTIONS: readonly { status: MarkStatus; code: string; label: string }
   { status: 'Absent', code: 'A', label: 'Mark Absent' }
 ];
 
-const titleCase = (text: string): string => (text || '').charAt(0).toUpperCase() + (text || '').slice(1);
 
 interface ReportRow {
   name: string;
@@ -100,14 +101,9 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   streamId = '';
   groupId = '';
   sectionId = '';
-  readonly personTypeOptions: readonly DdOption[] = [
-    { value: 'staff', label: 'Staff' },
-    { value: 'student', label: 'Student' }
-  ];
-  departmentOptions: DdOption[] = [{ value: '', label: 'All departments' }];
-  private designations: { _id: string; title: string; departmentId: string | null }[] = [];
-  classes: FilterClass[] = [];
-  private groups: FilterGroup[] = [];
+  /** The shared filter row (app-person-filter): its lookups and its value, one object per change. */
+  filterOptions: PersonFilterOptions = EMPTY_FILTER_OPTIONS;
+  filterValue: PersonFilterValue = EMPTY_PERSON_FILTER;
   lookupError = '';
 
   // --- grid ------------------------------------------------------------------------------
@@ -234,64 +230,17 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       classes: this.studentOptions.getFilterOptions(this.adminId).pipe(catchError(() => of(null)))
     }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       if (!res.departments || !res.designations || !res.classes) this.lookupError = "Couldn't load every filter.";
-      this.departmentOptions = [{ value: '', label: 'All departments' },
-        ...((res.departments?.rows || []) as { _id: string; name: string }[]).map((row) => ({ value: row._id, label: row.name }))];
-      this.designations = (res.designations?.rows || []) as { _id: string; title: string; departmentId: string | null }[];
-      this.classes = res.classes?.classes || [];
-      this.groups = res.classes?.groups || [];
+      this.filterOptions = {
+        departments: (res.departments?.rows || []) as { _id: string; name: string }[],
+        designations: (res.designations?.rows || []) as { _id: string; title: string; departmentId: string | null }[],
+        classes: res.classes?.classes || [],
+        groups: res.classes?.groups || []
+      };
       this.cdr.markForCheck();
     });
   }
 
   get isStaff(): boolean { return this.personType === 'staff'; }
-
-  get designationOptions(): DdOption[] {
-    return [{ value: '', label: 'All designations' },
-      ...this.designations.filter((row) => row.departmentId === this.departmentId).map((row) => ({ value: row._id, label: row.title }))];
-  }
-
-  get classOptions(): DdOption[] {
-    return [{ value: '', label: 'All classes' }, ...this.classes.map((row) => ({ value: row._id, label: row.label }))];
-  }
-
-  private get selectedClass(): FilterClass | undefined {
-    return this.classes.find((row) => row._id === this.classId);
-  }
-
-  get streamOptions(): DdOption[] {
-    const streams = this.selectedClass?.streams || [];
-    return [{ value: '', label: 'All streams' },
-      ...streams.map((stream) => ({ value: stream._id, label: titleCase(stream.name) }))];
-  }
-
-  /**
-   * Stream Groups of the chosen class (+stream). A non-streamed class's only group is its
-   * automatic "General" — nothing to narrow by, so the pill stays disabled ("All stream groups").
-   */
-  get groupOptions(): DdOption[] {
-    const cls = this.selectedClass;
-    const ready = Boolean(cls) && (!cls?.hasStreams || Boolean(this.streamId));
-    const groups = ready
-      ? this.groups.filter((group) => !group.isSystemGroup && group.classId === cls?._id && (group.streamId || '') === (this.streamId || ''))
-      : [];
-    return [{ value: '', label: 'All stream groups' }, ...groups.map((group) => ({ value: group._id, label: group.name }))];
-  }
-
-  /** Section options come live from whichever of Class / Stream is set. */
-  get sectionOptions(): DdOption[] {
-    const cls = this.selectedClass;
-    let sections = cls && !cls.hasStreams ? cls.sections : [];
-    if (cls && cls.hasStreams && this.streamId) sections = cls.streams.find((stream) => stream._id === this.streamId)?.sections || [];
-    return [{ value: '', label: 'All sections' }, ...sections.map((section) => ({ value: section._id, label: 'Section ' + section.name }))];
-  }
-
-  get departmentDisabled(): boolean { return !this.isStaff; }
-  get designationDisabled(): boolean { return !this.isStaff || !this.departmentId; }
-  get classDisabled(): boolean { return this.isStaff; }
-  /** Streams exist only on streamed classes (11th/12th). */
-  get streamDisabled(): boolean { return this.isStaff || !this.selectedClass?.hasStreams; }
-  get groupDisabled(): boolean { return this.isStaff || this.groupOptions.length < 2; }
-  get sectionDisabled(): boolean { return this.isStaff || this.sectionOptions.length < 2; }
 
   onPersonTypeChange(value: string): void {
     const next: PersonType = value === 'student' ? 'student' : 'staff';
@@ -303,42 +252,19 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     this.streamId = '';
     this.groupId = '';
     this.sectionId = '';
+    this.filterValue = { ...EMPTY_PERSON_FILTER, personType: next };
     this.onFiltersChanged();
   }
 
-  onDepartmentChange(value: string): void {
-    this.departmentId = value;
-    this.designationId = '';
-    this.onFiltersChanged();
-  }
-
-  onDesignationChange(value: string): void {
-    this.designationId = value;
-    this.onFiltersChanged();
-  }
-
-  onClassChange(value: string): void {
-    this.classId = value;
-    this.streamId = '';
-    this.groupId = '';
-    this.sectionId = '';
-    this.onFiltersChanged();
-  }
-
-  onStreamChange(value: string): void {
-    this.streamId = value;
-    this.groupId = '';
-    this.sectionId = '';
-    this.onFiltersChanged();
-  }
-
-  onGroupChange(value: string): void {
-    this.groupId = value;
-    this.onFiltersChanged();
-  }
-
-  onSectionChange(value: string): void {
-    this.sectionId = value;
+  /** One change from the shared filter row: a new Person Type resets everything below it. */
+  onPersonFilterChange(next: PersonFilterValue): void {
+    if (next.personType !== this.personType) {
+      this.onPersonTypeChange(next.personType);
+      return;
+    }
+    this.filterValue = next;
+    ({ departmentId: this.departmentId, designationId: this.designationId, classId: this.classId,
+      streamId: this.streamId, groupId: this.groupId, sectionId: this.sectionId } = next);
     this.onFiltersChanged();
   }
 

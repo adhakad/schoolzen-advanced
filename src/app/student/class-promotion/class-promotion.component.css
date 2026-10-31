@@ -1,8 +1,6 @@
 /* Class Promotion's own pieces, copied from its reference (class-promotion.html). The
    table, chips and toolbar are the shared design-system rules. */
 
-/* This page's own toolbar shape (class-promotion.html): 260px search, one row1 line. */
-@media (min-width: 768px) { .search { flex: 0 0 260px; width: 260px; } }
 
 
 .promote-strip {

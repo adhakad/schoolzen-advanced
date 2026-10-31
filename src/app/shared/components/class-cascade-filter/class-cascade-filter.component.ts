@@ -108,7 +108,7 @@ export class ClassCascadeFilterComponent implements OnChanges {
           group.classId === chosen?._id && (group.streamId || '') === (stream?._id || ''))
       : [];
     this.groupDisabled = groups.length === 0;
-    this.groupOptions = [{ value: '', label: 'All groups' }].concat(
+    this.groupOptions = [{ value: '', label: 'All stream groups' }].concat(
       groups.map((group) => ({ value: group._id, label: group.name }))
     );
 

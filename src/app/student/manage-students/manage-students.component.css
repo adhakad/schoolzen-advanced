@@ -10,7 +10,6 @@
    This file only keeps the row on one line and lets the group shrink instead of wrapping. */
 .toolbar-row1 { flex-wrap: nowrap; }
 .toolbar-btn-group { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; justify-content: flex-end; }
-@media (min-width: 768px) { .search { flex: 0 0 260px; width: 260px; } }
 /* Below 992px the buttons take their own full line under the search (the group could
    otherwise shrink to nothing beside it and push the buttons off the card). */
 @media (max-width: 991px) {

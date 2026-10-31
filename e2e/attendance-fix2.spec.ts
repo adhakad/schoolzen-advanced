@@ -209,8 +209,8 @@ test('Part D: Student shows no rows until a Class is chosen, then marks Present 
   await expect(page.locator('.att-grid tbody tr')).toHaveCount(0);
   expect(seen.filter((s) => s.path.endsWith('/grid') && s.query.get('personType') === 'student'), 'no student grid request without a class').toHaveLength(0);
 
-  // Rule 14: student view shows Person Type, Class, Stream, Stream Group, Section — Class is 2nd.
-  await page.locator('.toolbar-row2 app-dd').nth(1).locator('.dd-trigger').click();
+  // shared-fix3: every filter stays visible on Overview (staff ones disabled); pick Class by its label.
+  await page.locator('.toolbar-row2 .dd-trigger[aria-label="Filter by class"]').click();
   await page.locator('body > .dd-portal .dd-option', { hasText: '6th' }).click();
   await expect(page.locator('.att-grid tbody tr')).toHaveCount(1);
   const gridCall = seen.filter((s) => s.path.endsWith('/grid')).pop()!;

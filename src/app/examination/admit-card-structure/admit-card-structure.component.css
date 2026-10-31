@@ -1,6 +1,5 @@
 /* Admit Card Structure reference styles the global design system doesn't carry
    (docs/schoolzen-planning/v1/examination/admit-card-structure.html). */
-.search { flex: 0 0 260px; width: 260px; }
 thead th.act, td.act { text-align: right; }
 .lm-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
 .exam-count { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
@@ -62,6 +61,3 @@ thead th.act, td.act { text-align: right; }
 .btn-danger { height: 38px; padding: 0 16px; border-radius: var(--radius); border: none; background: var(--danger); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
 .btn-danger:disabled { background: var(--line-soft); color: var(--ink-faint); cursor: not-allowed; }
 
-@media (max-width: 767px) {
-  .search { flex: 1 1 auto; width: 100%; }
-}

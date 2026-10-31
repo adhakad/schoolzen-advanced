@@ -1,12 +1,14 @@
 /**
- * Leave's Person Type filter — the two toolbar rows Requests and Assign share
- * (leave-requests.md / leave-assign.md: "same shape/filters"):
- *   row 1: a 6-column grid — Person Type, Department, Designation, Class, Stream, Group
- *   row 2: Section, then whatever the page projects (Leave Type, Status, month…)
+ * THE Person Type filter row (shared-fix3), used by Attendance Overview, Roster, Leave and
+ * Holiday: Person Type, Department, Designation, Class, Stream, Stream Group, Section, then
+ * whatever the page projects (Leave Type, Status, the month filter last) — all cells of the
+ * one global filter grid.
  *
  * Staff mode enables Department → Designation; Student mode enables Class → Stream → Group →
  * Section. The other side stays visible but disabled (greyed, never hidden), and changing a
  * parent resets its children. Emits the whole value on every change.
+ *
+ * `hideByPersonType` (Roster ONLY) hides the other type's filters instead of disabling them.
  */
 import {
   ChangeDetectionStrategy, Component, EventEmitter, HostBinding, Input, OnChanges, Output
@@ -30,6 +32,8 @@ export class PersonFilterComponent implements OnChanges {
   @Input() value: PersonFilterValue = EMPTY_PERSON_FILTER;
   /** Leave Assign's student rows are classes: Group narrows nothing there. */
   @Input() showGroup = true;
+  /** Roster only: show just the chosen type's filters. Every other page keeps all visible. */
+  @Input() hideByPersonType = false;
   @Output() valueChange = new EventEmitter<PersonFilterValue>();
 
   @HostBinding('style.display') readonly display = 'contents';
@@ -45,7 +49,9 @@ export class PersonFilterComponent implements OnChanges {
   groupOptions: DdOption[] = [];
   sectionOptions: DdOption[] = [];
 
+  departmentDisabled = false;
   designationDisabled = true;
+  classDisabled = true;
   streamDisabled = true;
   groupDisabled = true;
   sectionDisabled = true;
@@ -58,13 +64,23 @@ export class PersonFilterComponent implements OnChanges {
     return this.value.personType === 'staff';
   }
 
+  get showStaff(): boolean {
+    return !this.hideByPersonType || this.isStaff;
+  }
+
+  get showStudent(): boolean {
+    return !this.hideByPersonType || !this.isStaff;
+  }
+
   private rebuild(): void {
     const o = this.options || EMPTY_FILTER_OPTIONS;
     const v = this.value;
     this.departmentOptions = [{ value: '', label: 'All departments' }, ...o.departments.map((row) => ({ value: row._id, label: row.name }))];
     this.designationOptions = [{ value: '', label: 'All designations' },
       ...o.designations.filter((row) => row.departmentId === v.departmentId).map((row) => ({ value: row._id, label: row.title }))];
+    this.departmentDisabled = !this.isStaff;
     this.designationDisabled = !this.isStaff || !v.departmentId;
+    this.classDisabled = this.isStaff;
 
     this.classOptions = [{ value: '', label: 'All classes' }, ...o.classes.map((row) => ({ value: row._id, label: row.label }))];
     const chosen: FilterClass | undefined = o.classes.find((row) => row._id === v.classId);

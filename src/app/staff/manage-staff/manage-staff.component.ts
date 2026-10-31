@@ -88,7 +88,7 @@ export class ManageStaffComponent implements OnInit, OnDestroy {
   filterDesignationId = '';
   filterStatus = '';
   readonly statusFilterOptions: readonly DdOption[] = [
-    { value: '', label: 'Any status' },
+    { value: '', label: 'All statuses' },
     { value: 'active', label: 'Active' },
     { value: 'inactive', label: 'Inactive' }
   ];

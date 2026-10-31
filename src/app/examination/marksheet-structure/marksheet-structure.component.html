@@ -11,9 +11,11 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar single-row">
-      <app-class-cascade-filter [options]="options" [value]="filter" [showGroup]="false" [showSection]="false"
-                                (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+    <div class="sw-toolbar">
+      <div class="toolbar-row2">
+        <app-class-cascade-filter [options]="options" [value]="filter" [showGroup]="false" [showSection]="false"
+                                  (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
+      </div>
       <div class="fetch-error" *ngIf="optionsError" role="alert">
         <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
         <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>

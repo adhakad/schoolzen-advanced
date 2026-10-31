@@ -28,7 +28,7 @@ export interface StaffCascadeValue {
     <app-dd class="sw-select-pill" [options]="departmentOptions" [value]="value.departmentId"
             ariaLabel="Filter by department" (valueChange)="onDepartment($event)"></app-dd>
     <app-dd class="sw-select-pill" [options]="designationOptions" [value]="value.designationId"
-            [disabled]="!value.departmentId" disabledHint="Select a department first"
+            [disabled]="!value.departmentId"
             ariaLabel="Filter by designation" (valueChange)="onDesignation($event)"></app-dd>
     <div class="fetch-error cascade-error" *ngIf="error" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ error }}

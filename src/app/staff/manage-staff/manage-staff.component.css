@@ -10,8 +10,6 @@
 
 .owner-tag { margin-left: 8px; font-size: 10.5px; }
 
-/* Filter pills: fixed width, per design-system.md. */
-.toolbar-pill { width: 180px; }
 
 .card-info {
   background: var(--paper);

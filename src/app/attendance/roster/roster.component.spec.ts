@@ -80,31 +80,20 @@ describe('RosterComponent', () => {
     expect(component.editDisabled).toBeTrue();
   });
 
-  it('cascades Department → Designation for staff; Class → Stream → Stream Group → Section for students', () => {
-    expect(component.designationDisabled).toBeTrue();
-    component.onDepartmentChange('d1');
-    expect(component.designationDisabled).toBeFalse();
-    expect(component.designationOptions.map((o) => o.label)).toContain('PRT');
+  // The cascade itself (options, disabled pills, resets, Roster-only hiding) is covered by
+  // person-filter.component.spec.ts; here: the page applies each change from the shared row.
+  it('applies the shared filter row: staff filters refetch, a Person Type switch resets everything', () => {
+    component.onPersonFilterChange({ ...component.filterValue, departmentId: 'd1' });
+    expect(component.departmentId).toBe('d1');
+    expect(component.filterOptions.departments.map((row) => row.name)).toContain('Teaching');
 
-    component.onPersonTypeChange('student');
+    component.onPersonFilterChange({ ...component.filterValue, personType: 'student' });
+    expect(component.personType).toBe('student');
     expect(component.departmentId).toBe('');
-    expect(component.classOptions.map((o) => o.label)).toContain('6th');
-    // A General-group class: nothing to pick — the disabled pill keeps its "All …" label.
-    component.onClassChange('c1');
-    expect(component.streamDisabled).toBeTrue();
-    expect(component.groupDisabled).toBeTrue();
-    expect(component.groupOptions[0].label).toBe('All stream groups');
-    expect(component.sectionOptions.map((o) => o.label)).toContain('Section A');
+    expect(component.filterValue).toEqual(jasmine.objectContaining({ personType: 'student', departmentId: '', classId: '' }));
 
-    component.onClassChange('c11');
-    expect(component.streamDisabled).toBeFalse();
-    expect(component.groupDisabled).toBeTrue();
-    component.onStreamChange('sci');
-    expect(component.groupOptions.map((o) => o.label)).toEqual(['All stream groups', 'PCM']);
-    component.onGroupChange('pcm');
-    component.onClassChange('c1');
-    expect(component.streamId).toBe('');
-    expect(component.groupId).toBe('');
+    component.onPersonFilterChange({ ...component.filterValue, classId: 'c11', streamId: 'sci', groupId: 'pcm' });
+    expect([component.classId, component.streamId, component.groupId]).toEqual(['c11', 'sci', 'pcm']);
   });
 
   it('a deleted row (shift only on locked past days) reads unassigned: Assign on, Edit off', () => {

@@ -48,7 +48,7 @@ Global means ALL built modules and ALL pages. Do in this order, in one run:
     sticky (narrower), hide secondary fixed columns (type, avatar) or move them under the name, and shrink day/data columns so real
     data is visible beside the sticky columns (about 4 columns at 390px). Page never scrolls horizontally; only the table wrapper does.
 
-14. **Filter system = Attendance Overview.** Every page's filter row copies the Overview grid: same cell width/height, same placement and spacing, 6 per row on desktop, 2 per row on mobile. Each page shows ONLY the filters its data needs, named for what they filter ("All departments", "All classes", ...). The calendar/month filter is the LAST cell of that same grid, never its own row. Where a page has Person Type (Staff/Student), choosing the type shows only that type's filters and hides the other type's (Staff: Department, Designation. Student: Class, Stream, Stream Group, Section), it does not show them disabled. Reference: `v1/attendance/attendance-overview.html`.
+14. **Filter system = Attendance Overview (final standard: `shared/shared-fix3.md`).** ONE shared filter grid in the global layer (`.sz .toolbar-row2`): `repeat(6, minmax(0,1fr))`, gap 8px, `repeat(2, minmax(0,1fr))` at <=640px; every cell fills its grid cell, height 38px; no per-page widths or copies. Each page shows ONLY the filters its data needs, named for what they filter ("All departments", "All classes", ...), in the Overview order (Person Type, Department, Designation, Class, Stream, Stream Group, Section, then page-specific ones). All of a page's filters are always visible together; one that does not apply yet is DISABLED with its "All …" label. Person Type NEVER hides or shows other filters, EXCEPT in Roster (opt-in `hideByPersonType`, Roster only: Staff shows Department, Designation; Student shows Class, Stream, Stream Group, Section). Every filter starts on "All …" and a parent change resets its children to "All …". The calendar/month filter is the LAST cell of that same grid, never its own row. Search 340 x 38 on the row above, buttons 130 x 38. Reference: `v1/attendance/attendance-overview.html`.
 15. **Bulk actions.** Buttons that act on checked rows are named "Bulk Assign", "Bulk Edit", "Bulk Delete" (never "Assign to Selected", "Delete Selected"). All toolbar buttons on a page are the same width and height (130px x 38px, label centred, no wrapping). On mobile they sit 2 per row, full width of their cell. Disabled until rows are checked.
 16. **Sticky (fixed) columns.** Sticky columns keep the white surface background. The LAST left sticky column gets a light theme shadow on its right edge: `--sticky-shadow: 6px 0 8px -6px rgba(140,82,255,.22), 1px 0 0 var(--line)`, defined once in the global stylesheet. On mobile the name column is the last sticky column and carries the shadow. Same on desktop and mobile.
 17. **No overflow.** At 390px nothing overflows the page horizontally: toolbars, button groups, filter rows, cards and modals wrap or shrink. Only a table wrapper scrolls sideways. Check every page of every module at 390px.
@@ -59,19 +59,19 @@ Global means ALL built modules and ALL pages. Do in this order, in one run:
 ## Status (Claude Code updates this after each module run)
 | Module | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15 | R16 | R17 | R18 | R19 | R20 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Attendance | partial | done | done | done | partial | done | done | done | partial | done | done | done | done | - | - | - | - | - | - | - |
-| Student | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Academic Setup | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Staff | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Leave | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Holiday | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Fees | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Certificates | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Approvals | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Settings | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
+| Attendance | partial | done | done | done | partial | done | done | done | partial | done | done | done | done | done | - | - | - | - | - | - |
+| Student | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
+| Academic Setup | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
+| Staff | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
+| Leave | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
+| Holiday | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
+| Fees | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
+| Certificates | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
+| Approvals | - | - | - | - | - | - | - | - | - | - | - | - | - | partial | - | - | - | - | - | - |
+| Settings | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
 | Dashboard | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Payroll | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
-| Examination | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - |
+| Payroll | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
+| Examination | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - |
 
 `-` = not checked yet. Add a short "Notes" list under the table for every partial / not done.
 
@@ -80,5 +80,8 @@ Global means ALL built modules and ALL pages. Do in this order, in one run:
 - R5 partial: live `GET /grid` measured at 1.9–3.5 s (staff, 3 people) and ~0.95 s (students) on the remote cluster. No optimisation done in this run, so there is no before/after.
 - R9 partial: ran unit/spec (Karma), backend pure tests, live real-DB tests (`test-attendance-mark-v2`, `test-working-day`) and browser tests (Playwright parity for Overview, Roster, Manage Shifts). There is no dedicated failure/rollback suite; refusal paths are covered inside the live tests.
 - Device punches: the pipeline code works, but zero punches reach v2. The terminal (GED7261701240) has sent nothing to WDMS since 2026-08-27, and its 2 enrolled codes belong to legacy `staffs` ids, not v2 Staff. v2 staff are never enrolled on WDMS. Needs a v2 Staff → WDMS enrolment (Staff module) plus re-enrolment on the device.
+### Notes — shared-fix3 (2026-10-31)
+- R14 done on every page with a filter row (audit table and measurements in `shared/shared-fix3.md`; `e2e/shared-fix3-filters.spec.ts` 35/35). Approvals partial: no Stream Group filter. Dashboard has no filter row. Other rule columns were not re-checked in this run.
+
 ### Rule 7 update (2026-10-18)
 Month filter is now exactly one filter cell wide (not 178px) and month names are 3 letters ("Sep 2026"). Superseded on 2026-10-19 by Rules 14 and 7: it is the last cell of the filter grid. Every module with a month filter must be re-checked: R7 = not done until fixed (Attendance Overview, Roster, Leave, Holiday, Payroll and any other).

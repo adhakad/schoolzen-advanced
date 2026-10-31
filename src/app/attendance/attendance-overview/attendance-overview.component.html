@@ -37,28 +37,11 @@
         <i class="bi bi-exclamation-circle"></i> {{ syncError }}
         <button type="button" class="link-btn" [disabled]="syncing" (click)="onSyncConfirmed()">Retry</button>
       </div>
-      <div class="toolbar-row2">
-        <app-dd [options]="personTypeOptions" [value]="personType" ariaLabel="Person type"
-          (valueChange)="onPersonTypeChange($event)"></app-dd>
-        <!-- Rule 14: only the chosen type's filters show — the other type's are hidden, not disabled. -->
-        <ng-container *ngIf="isStaff; else studentFilters">
-          <app-dd [options]="departmentOptions" [value]="departmentId" ariaLabel="Filter by department"
-            (valueChange)="onDepartmentChange($event)"></app-dd>
-          <app-dd [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
-            ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
-        </ng-container>
-        <ng-template #studentFilters>
-          <app-dd [options]="classOptions" [value]="classId" ariaLabel="Filter by class"
-            (valueChange)="onClassChange($event)"></app-dd>
-          <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled" ariaLabel="Filter by stream"
-            (valueChange)="onStreamChange($event)"></app-dd>
-          <app-dd [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
-            ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
-          <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
-            ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
-        </ng-template>
+      <!-- The shared filter grid: every filter stays visible, the ones that do not apply to the
+           chosen Person Type are disabled with their "All …" label; the month filter is the last cell. -->
+      <app-person-filter [options]="filterOptions" [value]="filterValue" (valueChange)="onPersonFilterChange($event)">
         <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
-      </div>
+      </app-person-filter>
       <div class="fetch-error" *ngIf="lookupError" role="alert">
         <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
         <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>

@@ -1,7 +1,7 @@
 <!-- Roster.
      Reference: docs/schoolzen-planning/v1/attendance/roster.html
      Toolbar: search + Bulk Assign / Bulk Edit / Bulk Delete; the global filter grid (rule 14)
-     with Person Type first, only that type's filters, and the month filter as the last cell. -->
+     with Person Type first, only that type's filters (Roster only), and the month filter as the last cell. -->
 
 <div class="page-head">
   <div>
@@ -36,30 +36,12 @@
         Your selection mixes {{ personType === 'staff' ? 'staff' : 'classes' }} with an existing roster and ones with
         none. Select only one type at a time to use Bulk Assign or Bulk Edit.
       </div>
-      <div class="toolbar-row2">
-        <app-dd [options]="personTypeOptions" [value]="personType" ariaLabel="Person type"
-          (valueChange)="onPersonTypeChange($event)"></app-dd>
-        <!-- Rule 14: only the chosen type's filters show (the other type's are hidden). Dependent
-             pills stay disabled until their parent is chosen, with their "All …" label (rule 8). -->
-        <ng-container *ngIf="personType === 'staff'; else studentFilters">
-          <app-dd [options]="departmentOptions" [value]="departmentId"
-            ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
-          <app-dd [options]="designationOptions" [value]="designationId"
-            [disabled]="designationDisabled" ariaLabel="Filter by designation"
-            (valueChange)="onDesignationChange($event)"></app-dd>
-        </ng-container>
-        <ng-template #studentFilters>
-          <app-dd [options]="classOptions" [value]="classId" ariaLabel="Filter by class"
-            (valueChange)="onClassChange($event)"></app-dd>
-          <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
-            ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
-          <app-dd [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
-            ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
-          <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
-            ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
-        </ng-template>
+      <!-- The shared filter grid. Roster ONLY: Person Type shows just that type's filters
+           (hideByPersonType); dependent pills stay disabled with their "All …" label. -->
+      <app-person-filter [options]="filterOptions" [value]="filterValue" [hideByPersonType]="true"
+        (valueChange)="onPersonFilterChange($event)">
         <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
-      </div>
+      </app-person-filter>
       <div class="fetch-error" *ngIf="lookupError" role="alert">
         <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
         <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>

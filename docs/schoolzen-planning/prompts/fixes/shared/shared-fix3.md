@@ -30,3 +30,48 @@ Read `prompts/fixes/global-fixes.md` first. Do not edit `shared-fix1.md` or `sha
 - Build passes. Print one line per page: PASS/FAIL with the measured numbers. Do not report PASS for a page you did not run.
 
 ## Notes (Claude Code fills the audit table here)
+
+### Audit (2026-10-31) — page | filters before | what was wrong | fixed
+Measured by `e2e/shared-fix3-filters.spec.ts` at 1366px and 390px (hermetic build + fixtures). Shared pieces: `.sz .toolbar-row2` grid (cells 38px), `--search-width: 340px`, `.toolbar-btn-group` (130 x 38), `app-person-filter` (`hideByPersonType`, Roster only), `app-class-cascade-filter`, `app-month-nav`.
+
+| Page | Filters before | What was wrong | Fixed |
+|---|---|---|---|
+| Academic Setup / Classes & Sections | none (search + 2 buttons) | search 300px | search 340, buttons 130x38 |
+| Academic Setup / Subjects | none | search 300px | yes |
+| Academic Setup / Subject Groups | Class, Stream | page `.toolbar-pill {128px}`; disabled Stream showed a hint instead of "All streams" | grid cells, "All …" kept |
+| Student / Manage Students | Class, Stream, Group, Section | page search 260px; cascade `app-dd {150px}`; "All groups" | search 340, grid cells, "All stream groups" |
+| Student / Admission | Class, Stream, Group, Section | page search 300px; cascade width | yes |
+| Student / Class Promotion | Class (required), Stream, Group, Section | page search 260px; button outside the button group (auto width) | yes (Class stays "Select class" by design) |
+| Staff / Manage Staff | Department, Designation, Status | page `.toolbar-pill {180px}`; Designation showed "Select a department first"; "Any status" | grid cells, "All designations", "All statuses" |
+| Staff / Departments | none | button outside group | yes |
+| Staff / Designations | Department | page `.toolbar-pill {180px}`; button outside group | yes |
+| Attendance / Overview | Person Type + 6 + month | type switch HID the other type's filters | all 8 cells always visible (other type disabled), via `app-person-filter` |
+| Attendance / Roster | Person Type + type filters + month | own copy of the filter markup | `app-person-filter [hideByPersonType]="true"` (the only page) |
+| Attendance / Manage Shifts | none | search 300px | yes |
+| Leave / Requests | Person Type + 6 + Leave Type, Status, month | person-filter HID the other type; "Any status" | all visible/disabled, "All statuses" |
+| Leave / Assign | Person Type + 6 | hid the other type | all visible/disabled |
+| Leave / Create | none | search 300px | yes |
+| Holiday / Holidays | month (Holiday Calendar) | — | last (only) cell |
+| Holiday / Templates | none | search 300px | yes |
+| Holiday / Assign | Person Type + 6 | hid the other type | all visible/disabled |
+| Payroll / Generate Payroll | Department, Designation, Status, month | Designation hint text | "All designations" |
+| Payroll / Salary Payouts | Department, Designation, Mode, Status, month | "Any mode", "Any status"; hint text | "All modes", "All statuses" |
+| Payroll / Assign Salary | Department, Designation | hint text | yes |
+| Payroll / Salary Groups | none | own `.sg-toolbar` flex row, search 300px, button outside group | standard toolbar |
+| Fees / Fees, Fee Structure | Class, Stream, Group | cascade width, "All groups" | yes |
+| Fees / Fee Reminder | none | own `.fr-toolbar`, search 300px | standard toolbar |
+| Examination / Admit Card Structure | Class, Stream, Group, Section | page search 260px, button outside group | yes |
+| Examination / Generate Admit Card | Class, Stream, Group, Section | search 260px, button outside group | yes |
+| Examination / Marksheet Structure | Class, Stream | own `.single-row` flex toolbar, no grid | grid row |
+| Examination / Generate Marksheet | Class, Stream, Term | search 260px, `.term-pill {150px}` | yes |
+| Certificates / Generate TC | Class, Stream, Section, Status | "Any status" | "All statuses" |
+| Approvals | Applicant + type filters + Type, Status | applicant switch HID the other type's filters; "Any status" | all 8 visible/disabled, "All statuses" |
+| Settings / Academic Sessions | none (1 button) | button outside group | yes |
+| Settings / Roles & Permissions | Department, Designation, Role, Assigned | hint text; "Assigned + Unassigned"; "Selected Delete (n)" outside group | "All assignments", "Bulk Delete" 130x38 |
+| Dashboard, Settings / Admission Form Fields, Marksheet Templates, Certificates / TC Structure | no filter row | — | not applicable |
+
+Not done / open:
+- Approvals has no Stream Group filter (its API has no group filter); not added.
+- Buttons hidden by permissions in the hermetic run (Payroll, Fees, Exam structure pages) were not measured.
+- Reset was not exercised where the fixture gave nothing to pick (Class Promotion, Admit Card Structure, Marksheet Structure, Subject Groups, Leave Assign).
+- Labels "Print Selected (n)", "Bulk Enter Marks (n)", "Generate for Selected" were not renamed (filters-only run).

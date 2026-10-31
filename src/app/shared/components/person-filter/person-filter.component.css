@@ -1,2 +1,1 @@
-/* The filters sit in the global filter grid (.sz .toolbar-row2, rule 14) — no copy here. */
-:host ::ng-deep .toolbar-row2 > * { min-width: 0; }
+/* The filters sit in the global filter grid (.sz .toolbar-row2) — no copy here. */

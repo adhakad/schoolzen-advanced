@@ -1,7 +1,5 @@
 /* Salary Groups reference styles the global design system doesn't carry
    (docs/schoolzen-planning/v1/payroll/salary-groups.html). */
-.sg-toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
-.sg-toolbar .search { flex: 0 0 300px; width: 300px; }
 .btn-primary .bi { color: #ae86ff; }
 th, td { white-space: nowrap; }
 td { padding: 14px 16px; vertical-align: middle; font-size: 13px; color: var(--ink-soft); }
@@ -29,6 +27,4 @@ td { padding: 14px 16px; vertical-align: middle; font-size: 13px; color: var(--i
 .btn-danger:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (max-width: 767px) {
-  .sg-toolbar { flex-direction: column; align-items: stretch; }
-  .sg-toolbar .search { flex: 1 1 auto; width: 100%; }
 }

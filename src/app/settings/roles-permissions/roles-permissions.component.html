@@ -94,19 +94,21 @@
             <input type="text" placeholder="Search staff" aria-label="Search staff"
                    [value]="search" (input)="onSearchChange($any($event.target).value)" />
           </div>
-          <button type="button" class="btn-secondary danger" [disabled]="!selectedCount || isBusy('bulk')" (click)="onBulkDelete()">
-            <i class="bi bi-trash"></i> Selected Delete ({{ selectedCount }})
-          </button>
+          <div class="toolbar-btn-group">
+            <button type="button" class="btn-secondary danger" [disabled]="!selectedCount || isBusy('bulk')" (click)="onBulkDelete()">
+              <i class="bi bi-trash"></i> Bulk Delete
+            </button>
+          </div>
         </div>
         <div class="toolbar-row2">
-          <app-dd [options]="departmentOptions" [value]="department" [fullWidth]="false" ariaLabel="Department"
+          <app-dd [options]="departmentOptions" [value]="department" ariaLabel="Department"
                   (valueChange)="onDepartmentChange($event)"></app-dd>
-          <app-dd [options]="designationOptions" [value]="designation" [fullWidth]="false" ariaLabel="Designation"
-                  [disabled]="!department" disabledHint="Pick a department first"
+          <app-dd [options]="designationOptions" [value]="designation" ariaLabel="Designation"
+                  [disabled]="!department"
                   (valueChange)="onDesignationChange($event)"></app-dd>
-          <app-dd [options]="roleOptions" [value]="roleFilter" [fullWidth]="false" ariaLabel="Role"
+          <app-dd [options]="roleOptions" [value]="roleFilter" ariaLabel="Role"
                   (valueChange)="onRoleFilterChange($event)"></app-dd>
-          <app-dd [options]="assignedOptions" [value]="assignedFilter" [fullWidth]="false" ariaLabel="Assigned status"
+          <app-dd [options]="assignedOptions" [value]="assignedFilter" ariaLabel="Assigned status"
                   (valueChange)="onAssignedFilterChange($event)"></app-dd>
         </div>
       </div>

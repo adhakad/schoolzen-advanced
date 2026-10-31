@@ -55,13 +55,13 @@ export class SalaryPayoutsComponent implements OnInit, OnDestroy {
   search = '';
 
   readonly modeOptions: DdOption[] = [
-    { value: '', label: 'Any mode' },
+    { value: '', label: 'All modes' },
     { value: 'bank', label: 'Bank Transfer' },
     { value: 'cash', label: 'Cash' },
     { value: 'upi', label: 'UPI' }
   ];
   readonly statusOptions: DdOption[] = [
-    { value: '', label: 'Any status' },
+    { value: '', label: 'All statuses' },
     { value: 'full', label: 'Fully Paid' },
     { value: 'partial', label: 'Partially Paid' },
     { value: 'unpaid', label: 'Unpaid' }

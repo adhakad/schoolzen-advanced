@@ -35,7 +35,7 @@
                 ariaLabel="Filter by department" (valueChange)="onDepartmentFilter($event)"></app-dd>
         <!-- Always present, disabled until a department is chosen. -->
         <app-dd class="toolbar-pill" [options]="designationFilterOptions" [value]="filterDesignationId"
-                [disabled]="designationFilterDisabled" disabledHint="Select a department first"
+                [disabled]="designationFilterDisabled"
                 ariaLabel="Filter by designation" (valueChange)="onDesignationFilter($event)"></app-dd>
         <app-dd class="toolbar-pill" [options]="statusFilterOptions" [value]="filterStatus"
                 ariaLabel="Filter by status" (valueChange)="onStatusFilter($event)"></app-dd>

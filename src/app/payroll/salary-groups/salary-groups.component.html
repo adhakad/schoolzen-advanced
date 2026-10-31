@@ -11,15 +11,19 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar sg-toolbar">
-      <div class="search">
-        <i class="bi bi-search"></i>
-        <input type="text" placeholder="Search salary groups" aria-label="Search salary groups"
-               (input)="onSearchChange($any($event.target).value)" />
+    <div class="sw-toolbar">
+      <div class="toolbar-row1">
+        <div class="search">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search salary groups" aria-label="Search salary groups"
+                 (input)="onSearchChange($any($event.target).value)" />
+        </div>
+        <div class="toolbar-btn-group" *ngIf="canEdit">
+          <button type="button" class="btn-primary" (click)="openAdd()">
+            <i class="bi bi-plus-lg"></i> Add Salary Group
+          </button>
+        </div>
       </div>
-      <button type="button" class="btn-primary" *ngIf="canEdit" (click)="openAdd()">
-        <i class="bi bi-plus-lg"></i> Add Salary Group
-      </button>
     </div>
 
     <div class="grid-scroll">

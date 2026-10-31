@@ -18,9 +18,11 @@
           <input type="text" placeholder="Search departments" aria-label="Search departments"
                  [value]="search" (input)="onSearchChange($any($event.target).value)" />
         </div>
-        <button type="button" class="btn-primary" (click)="onCreate()">
-          <i class="bi bi-plus-lg"></i> Create
-        </button>
+        <div class="toolbar-btn-group">
+          <button type="button" class="btn-primary" (click)="onCreate()">
+            <i class="bi bi-plus-lg"></i> Create
+          </button>
+        </div>
       </div>
     </div>
 
