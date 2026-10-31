@@ -104,7 +104,9 @@ Hairline border only (`1px solid var(--line)`), `border-radius:6px`, no box-shad
 ## Constants
 Control height 38px everywhere (search, pills, buttons, month-nav). Radius 6px (pills 20px, circular avatars 50%). Gap in layout-row/col-side: 16px.
 
-**Month filter (`.month-nav`) is one shared component with one global width token**: `--month-filter-w` = exactly one filter cell (`calc((100% - 40px) / 6)` on desktop where 6 filters share a row, `calc((100% - 8px) / 2)` on mobile where 2 share a row). Month names are always 3 letters ("Jan", "Feb" ... "Sep 2026") everywhere the month filter, its calendar title or any month label appears. The label is centred between the two chevrons, `flex:1; min-width:0; white-space:nowrap`, and never changes the filter width. Defined once in the global stylesheet and used by Attendance, Roster, Leave, Holiday and every future page; no page sets its own width for it.
+**Filters (global, Rules 7 and 14):** every page uses the Attendance Overview filter grid (`repeat(6, minmax(0,1fr))`, gap 8px, 2 columns on mobile). The month filter (`.month-nav`) is a normal cell of that grid, always the LAST one, so it is exactly one filter wide with no width token of its own. Month names are 3 letters everywhere ("Sep 2026"). Filters are named for what they filter and only the ones a page needs are shown; with Person Type, only the chosen type's filters show.
+**Bulk buttons (Rule 15):** "Bulk Assign", "Bulk Edit", "Bulk Delete"; all toolbar buttons 130px x 38px, 2 per row on mobile.
+**Sticky columns (Rule 16):** token `--sticky-shadow: 6px 0 8px -6px rgba(140,82,255,.22), 1px 0 0 var(--line)` on the last left sticky column (left sticky columns only; the Today column of day grids is not sticky). Background stays the white surface.
 
 ## Responsive — plain CSS, width-based tiers, additive only
 

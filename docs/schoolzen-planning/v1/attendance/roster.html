@@ -12,7 +12,7 @@
     --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
     --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
     --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
-    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px; --sticky-shadow:6px 0 8px -6px rgba(140,82,255,.22), 1px 0 0 var(--line);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
@@ -82,11 +82,16 @@
 
   .sw-toolbar{ display:flex; flex-direction:column; gap:14px; padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
   .toolbar-row1{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:nowrap;}
-  .toolbar-row2{display:flex; align-items:center; gap:8px;}
-  .toolbar-row2 .sw-select-pill{width:150px;}
+  .toolbar-row2{display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:8px; align-items:stretch;}
+  .toolbar-row2 .dd{display:flex; align-items:stretch; min-width:0; width:100%;}
+  .toolbar-row2 .f-student{display:none;} .toolbar-row2.is-student .f-student{display:flex;} .toolbar-row2.is-student .f-staff{display:none;}
+  #monthDD .month-nav{width:100%;} .month-nav span{flex:1; min-width:0; white-space:nowrap;}
+  @media (max-width:640px){ .toolbar-row2{grid-template-columns:repeat(2, minmax(0,1fr));} .toolbar-row1{flex-wrap:wrap;} .search{flex:1 1 100%; width:100%;} .toolbar-btn-group{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%;} }
+  .toolbar-row2 .sw-select-pill{width:100%; min-width:0;}
   .toolbar-row3{display:flex; align-items:center; margin-top:2px;}
-  .search{position:relative; flex:0 0 300px; width:300px;}
+  .search{position:relative; flex:1 1 340px; min-width:0; max-width:340px;}
   .toolbar-btn-group{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+  .toolbar-btn-group > button{width:130px; justify-content:center; white-space:nowrap; padding:0 8px;} @media (max-width:640px){ .toolbar-btn-group > button{width:100%;} }
   .search input{ width:100%; height:38px; padding:0 14px 0 34px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
   .search input:focus{border-color:var(--brand);}
   .search .bi-search{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-size:14px; }
@@ -129,10 +134,10 @@
   .rg-grid thead th{ color:var(--ink-faint); font-weight:700; font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; padding:4px 6px 8px; text-align:center; border-bottom:1px solid var(--line); }
   .rg-grid th .dow{display:block; font-size:9px; color:#CBC4DA; font-weight:600; text-transform:none; margin-top:2px;}
   .rg-grid th.chk-col{position:sticky; left:0; background:var(--surface); z-index:3; width:38px; text-align:center; box-shadow:1px 0 0 var(--line);}
-  .rg-grid th.name-col{text-align:left; position:sticky; left:38px; background:var(--surface); z-index:3; width:170px; padding-left:14px; box-shadow:1px 0 0 var(--line);}
+  .rg-grid th.name-col{text-align:left; position:sticky; left:38px; background:var(--surface); z-index:3; width:170px; padding-left:14px; box-shadow:var(--sticky-shadow);}
   .rg-grid td{padding:8px 6px; text-align:center; border-bottom:1px solid var(--line-soft);}
   .rg-grid td.chk-col{position:sticky; left:0; background:var(--surface); z-index:1; text-align:center; box-shadow:1px 0 0 var(--line-soft);}
-  .rg-grid td.name-cell{text-align:left; position:sticky; left:38px; background:var(--surface); z-index:1; padding-left:14px; box-shadow:1px 0 0 var(--line-soft);}
+  .rg-grid td.name-cell{text-align:left; position:sticky; left:38px; background:var(--surface); z-index:1; padding-left:14px; box-shadow:var(--sticky-shadow);}
   .rg-grid .day-cell{width:60px;}
   .rg-grid .day-cell.today-col, .rg-grid td.today-col{background:var(--paper);}
   .rg-grid th.today-col{color:var(--brand);}
@@ -337,9 +342,9 @@
           <div class="toolbar-row1">
             <div class="search"><i class="bi bi-search"></i><input type="text" placeholder="Search by name or class"></div>
             <div class="toolbar-btn-group">
-              <button class="sw-report-btn" id="assignBtn" disabled onclick="resetEditForm(); document.getElementById('assignModalTitle').textContent='Assign to Selected'; document.getElementById('assignModal').classList.add('open')"><i class="bi bi-people"></i> Assign to Selected</button>
-              <button class="sw-edit-btn" id="editBtn" disabled onclick="openEditFromToolbar()"><i class="bi bi-pencil"></i> Edit Assignment</button>
-              <button class="btn-danger-outline" id="deleteBtn" disabled onclick="document.getElementById('deleteModal').classList.add('open')"><i class="bi bi-trash"></i> Delete Selected</button>
+              <button class="sw-report-btn" id="assignBtn" disabled onclick="resetEditForm(); document.getElementById('assignModalTitle').textContent='Bulk Assign'; document.getElementById('assignModal').classList.add('open')"><i class="bi bi-people"></i> Bulk Assign</button>
+              <button class="sw-edit-btn" id="editBtn" disabled onclick="openEditFromToolbar()"><i class="bi bi-pencil"></i> Bulk Edit</button>
+              <button class="btn-danger-outline" id="deleteBtn" disabled onclick="document.getElementById('deleteModal').classList.add('open')"><i class="bi bi-trash"></i> Bulk Delete</button>
             </div>
           </div>
           <div class="sel-warning" id="selWarning">
@@ -356,7 +361,7 @@
                 <div class="dd-option" onclick="selectFilter(this,'ptypePill','student','Student')">Student</div>
               </div>
             </div>
-            <div class="dd sw-select-pill" id="deptPill" data-value="">
+            <div class="dd sw-select-pill f-staff" id="deptPill" data-value="">
               <div class="dd-trigger" onclick="toggleDD(event,'deptPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
                 <span class="dd-label">All departments</span><i class="bi bi-chevron-down chevron"></i>
               </div>
@@ -366,7 +371,7 @@
                 <div class="dd-option" onclick="selectFilter(this,'deptPill','admin','Admin')">Admin</div>
               </div>
             </div>
-            <div class="dd sw-select-pill disabled" id="desigPill" data-value="">
+            <div class="dd sw-select-pill disabled f-staff" id="desigPill" data-value="">
               <div class="dd-trigger" onclick="toggleDD(event,'desigPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
                 <span class="dd-label">All designations</span><i class="bi bi-chevron-down chevron"></i>
               </div>
@@ -374,18 +379,55 @@
                 <div class="dd-option selected" onclick="selectFilter(this,'desigPill','','All designations')">All designations</div>
               </div>
             </div>
-          </div>
-          <div class="toolbar-row3">
+            <div class="dd sw-select-pill f-student" id="classPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'classPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All classes</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'classPill','','All classes')">All classes</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','6','6th')">6th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','7','7th')">7th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','9','9th')">9th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','11','11th')">11th</div>
+                <div class="dd-option" onclick="selectFilter(this,'classPill','12','12th')">12th</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled f-student" id="streamPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'streamPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All streams</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'streamPill','','All streams')">All streams</div>
+                <div class="dd-option" onclick="selectFilter(this,'streamPill','science','Science')">Science</div>
+                <div class="dd-option" onclick="selectFilter(this,'streamPill','commerce','Commerce')">Commerce</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled f-student" id="groupPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'groupPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All stream groups</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'groupPill','','All stream groups')">All stream groups</div>
+              </div>
+            </div>
+            <div class="dd sw-select-pill disabled f-student" id="sectionPill" data-value="">
+              <div class="dd-trigger" onclick="toggleDD(event,'sectionPill')" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <span class="dd-label">All sections</span><i class="bi bi-chevron-down chevron"></i>
+              </div>
+              <div class="dd-menu full-width">
+                <div class="dd-option selected" onclick="selectFilter(this,'sectionPill','','All sections')">All sections</div>
+              </div>
+            </div>
             <div class="dd" id="monthDD">
               <div class="month-nav dd-trigger" onclick="toggleDD(event,'monthDD')">
                 <i class="bi bi-chevron-left" onclick="event.stopPropagation(); toolbarMonthShift(-1)"></i>
-                <span class="dd-label" id="toolbarMonthLabel">August 2026</span>
+                <span class="dd-label" id="toolbarMonthLabel">Aug 2026</span>
                 <i class="bi bi-chevron-right" onclick="event.stopPropagation(); toolbarMonthShift(1)"></i>
               </div>
               <div class="dd-menu align-left" style="padding:14px; width:260px;" onclick="event.stopPropagation();">
                 <div class="range-cal-head">
                   <button type="button" class="range-cal-nav" onclick="toolbarMonthShift(-1)"><i class="bi bi-chevron-left"></i></button>
-                  <span class="range-cal-title" id="toolbarMonthTitle">August 2026</span>
+                  <span class="range-cal-title" id="toolbarMonthTitle">Aug 2026</span>
                   <button type="button" class="range-cal-nav" onclick="toolbarMonthShift(1)"><i class="bi bi-chevron-right"></i></button>
                 </div>
                 <div class="range-cal">
@@ -397,6 +439,7 @@
               </div>
             </div>
           </div>
+          
         </div>
 
         <div class="legend-strip" id="legendStrip">
@@ -621,7 +664,7 @@
 <div class="modal-overlay" id="assignModal">
   <div class="modal-box">
     <div class="modal-head">
-      <span class="modal-title" id="assignModalTitle">Assign to Selected</span>
+      <span class="modal-title" id="assignModalTitle">Bulk Assign</span>
       <button class="modal-close" onclick="document.getElementById('assignModal').classList.remove('open')"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="modal-body">
@@ -644,7 +687,7 @@
         <label>Applies to Month</label>
         <button type="button" class="range-input-trigger" onclick="document.getElementById('monthPopup').classList.add('open')">
           <i class="bi bi-calendar3"></i>
-          <span id="assignMonthLabel">August 2026</span>
+          <span id="assignMonthLabel">Aug 2026</span>
           <i class="bi bi-chevron-right" style="margin-left:auto; font-size:11px; color:var(--ink-faint);"></i>
         </button>
         <div class="m-hint" id="assignMonthHint">Roster can only be set for the current month onward — earlier months are locked.</div>
@@ -680,7 +723,7 @@
     <div class="modal-body">
       <div class="range-cal-head">
         <button type="button" class="range-cal-nav" id="assignMonthPrev" onclick="assignMonthShift(-1)"><i class="bi bi-chevron-left"></i></button>
-        <span class="range-cal-title" id="assignMonthTitle">August 2026</span>
+        <span class="range-cal-title" id="assignMonthTitle">Aug 2026</span>
         <button type="button" class="range-cal-nav" onclick="assignMonthShift(1)"><i class="bi bi-chevron-right"></i></button>
       </div>
       <div class="range-cal">
@@ -776,8 +819,8 @@ function onPtypeChange(){
   const val = document.getElementById('ptypePill').dataset.value;
   document.getElementById('staffView').style.display = val === 'staff' ? 'block' : 'none';
   document.getElementById('studentView').style.display = val === 'student' ? 'block' : 'none';
+  document.querySelector('.toolbar-row2').classList.toggle('is-student', val === 'student');
   if (val === 'staff') enableDD('deptPill');
-  else { disableDD('deptPill', 'All departments'); disableDD('desigPill', 'All designations'); }
   document.querySelectorAll('.rowcb').forEach(cb => cb.checked = false);
   updateSel();
 }
@@ -872,10 +915,10 @@ function openEditFromToolbar(){
   document.getElementById('assignModal').classList.add('open');
 }
 
-/* ---------- Month preview (Assign to Selected) ---------- */
+/* ---------- Month preview (Bulk Assign) ---------- */
 const TODAY = new Date(2026, 7, 10); // fixed "today" = Aug 10 2026 for this demo
 const CURRENT_MONTH_KEY = TODAY.getFullYear() * 12 + TODAY.getMonth();
-const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const assignCal = { year: TODAY.getFullYear(), month: TODAY.getMonth() };
 
 function assignMonthShift(dir){
@@ -962,7 +1005,11 @@ function checkConfirm(){
 }
 
 const todayCell = document.querySelector('.rg-grid th.today-col');
-if (todayCell) todayCell.scrollIntoView({ inline: 'center', block: 'nearest' });
+if (todayCell) {
+  // scroll only the grid wrapper (never the page): Today sits at the right end of the visible area, earlier days to its left
+  const sc = todayCell.closest('.grid-scroll');
+  if (sc) { const goToday=()=>{ sc.scrollLeft += todayCell.getBoundingClientRect().right - sc.getBoundingClientRect().right + 12; }; goToday(); window.addEventListener('load', goToday); setTimeout(goToday, 150); }
+}
 </script>
 </body>
 </html>

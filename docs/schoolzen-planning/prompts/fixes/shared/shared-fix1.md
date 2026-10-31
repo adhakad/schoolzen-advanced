@@ -21,7 +21,7 @@ run the build and the tests you wrote; do not report PASS for anything you have 
 - Also report (do not change data): which session is flagged active for this school and whether that is correct for today's date. The owner will decide.
 
 ## S3. Month filter width in Holiday (and any other page)
-Holiday has its own month-filter width. Make every month filter use the shared `.month-nav` with `--month-filter-w` (one filter cell wide, 3-letter month names, see global-fixes Rule 7). Grep for any other per-page width override and remove it.
+Holiday has its own month-filter width. Make every month filter use the shared `.month-nav` with the shared month filter as the last cell of the filter grid (3-letter month names, global-fixes Rules 7 and 14). Grep for any other per-page width override and remove it.
 
 ## S4. Test setup
 The four older Playwright parity tests pass only with `--workers=1` (shared state in parallel). Make them independent (own test data / own page state) so they pass in parallel, or set `workers: 1` in the Playwright config for these specs and say so.

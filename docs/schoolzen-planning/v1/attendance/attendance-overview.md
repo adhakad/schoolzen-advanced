@@ -52,3 +52,7 @@ Reference: `attendance-overview.html`
 **Scale**: device polling is staggered per school via a `SYNC_WINDOW_MINUTES` offset (derived from `adminId`) so 2,000 schools' cron ticks don't all fire in the same second; worker concurrency is capped so one school's large sync can't starve others.
 
 **Redis's role here is intentionally narrow** (per `state-management.md`/master-plan's Redis-scope decision): it backs the BullMQ queue, and optionally holds today's live-status per person with a short TTL (30–60s) purely to make a page-refresh mid-day show the ring immediately without waiting on a socket reconnect — never a general cache, never the source of truth (`AttendanceRecord`/`PunchLog` in Mongo always are).
+
+## Update 2026-10-19
+- Month filter is the LAST cell of the filter grid (no separate row), 3-letter month. Day columns stay in date order; Today is a normal date column that scrolls with the others (not sticky, not raised) and the grid opens with Today at the right end of the visible area. The last left sticky column has the light theme shadow (`--sticky-shadow`).
+- Past dates with a roster: default Absent, editable (Mark Present/Late/Absent) only if roster exists, working day, no device punch, user has `attendance-edit-past`, inside the session. Backend-enforced, activity-logged with old/new status, `source:'manual'`, no time shown. After the roster ends and upcoming dates stay locked. Details: `prompts/fixes/attendance/attendance-fix4.md`.

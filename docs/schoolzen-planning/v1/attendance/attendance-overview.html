@@ -12,7 +12,7 @@
     --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
     --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
     --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
-    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px; --sticky-shadow:6px 0 8px -6px rgba(140,82,255,.22), 1px 0 0 var(--line);
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
@@ -122,14 +122,13 @@
   .range-day.today.chain-endpoint .range-day-num{background:var(--brand); color:#fff; border:none;}
   .month-nav .bi{cursor:pointer; color:var(--brand); font-size:13px;}
   .month-nav span{font-size:13.5px; font-weight:600; color:var(--ink); min-width:0; flex:1; text-align:center; white-space:nowrap;}
-  /* calendar filter: same width as one filter cell (6 per row desktop, 2 per row mobile); label uses 3-letter month ("Sep 2026") */
-  :root{--month-filter-w:calc((100% - 40px) / 6);}
-  @media (max-width:640px){ :root{--month-filter-w:calc((100% - 8px) / 2);} }
-  #monthDD{flex:0 0 var(--month-filter-w); width:var(--month-filter-w);} #monthDD .month-nav{width:100%;}
+  /* calendar filter: last cell of the filter row, same width as any filter; label uses 3-letter month ("Sep 2026") */
+  #monthDD{width:100%; min-width:0;} #monthDD .month-nav{width:100%;} /* month filter is the LAST cell of the filter grid, so it is always exactly one filter wide */
   .sw-gen-btn{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
   .sw-gen-btn:hover{background:#2A3242;}
   .sw-gen-btn .bi{color:#ae86ff;}
   .toolbar-btn-group{display:flex; align-items:center; gap:8px;}
+  .toolbar-btn-group > button{width:130px; justify-content:center; white-space:nowrap; padding:0 8px;} @media (max-width:640px){ .toolbar-btn-group > button{width:100%;} .toolbar-btn-group{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%;} }
   .sw-report-btn{ flex-shrink:0; height:38px; background:var(--surface); color:var(--brand); border:1px solid var(--brand); padding:0 16px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--radius); display:flex; align-items:center; gap:7px; box-sizing:border-box; }
   .sw-report-btn:hover:not(:disabled){background:var(--brand-soft);}
   .sw-report-btn:disabled{color:var(--ink-faint); border-color:var(--line); cursor:not-allowed;}
@@ -146,11 +145,11 @@
   .att-grid th .dow{display:block; font-size:9px; color:#CBC4DA; font-weight:600; text-transform:none; margin-top:2px;}
   .att-grid th.check-col{position:sticky; left:0; background:var(--surface); z-index:3; width:38px; text-align:center; box-shadow:1px 0 0 var(--line);}
   .att-grid th.name-col{text-align:left; position:sticky; left:38px; background:var(--surface); z-index:3; width:160px; padding-left:14px; box-shadow:1px 0 0 var(--line);}
-  .att-grid th.type-col{text-align:left; position:sticky; left:198px; background:var(--surface); z-index:3; width:90px; box-shadow:1px 0 0 var(--line);}
+  .att-grid th.type-col{text-align:left; position:sticky; left:198px; background:var(--surface); z-index:3; width:90px; box-shadow:var(--sticky-shadow);}
   .att-grid td{padding:8px 6px; text-align:center; border-bottom:1px solid var(--line-soft);}
   .att-grid td.check-cell{position:sticky; left:0; background:var(--surface); z-index:1; text-align:center; box-shadow:1px 0 0 var(--line-soft);}
   .att-grid td.name-cell{text-align:left; position:sticky; left:38px; background:var(--surface); z-index:1; padding-left:14px; box-shadow:1px 0 0 var(--line-soft);}
-  .att-grid td.type-cell{text-align:left; position:sticky; left:198px; background:var(--surface); z-index:1; box-shadow:1px 0 0 var(--line-soft);}
+  .att-grid td.type-cell{text-align:left; position:sticky; left:198px; background:var(--surface); z-index:1; box-shadow:var(--sticky-shadow);}
   .row-check, #selectAll{width:16px; height:16px; accent-color:var(--brand); cursor:pointer; vertical-align:middle;}
   .type-tag{display:inline-block; font-size:10px; font-weight:600; padding:3px 8px; border-radius:20px; border:1px solid;}
   .type-tag.brand{color:var(--brand); border-color:var(--brand-soft);}
@@ -389,8 +388,6 @@
                 <div class="dd-option selected" onclick="selectFilter(this,'sectionPill','','All sections')">All sections</div>
               </div>
             </div>
-          </div>
-          <div class="toolbar-row3">
             <div class="dd" id="monthDD">
               <div class="month-nav dd-trigger" onclick="toggleDD(event,'monthDD')">
                 <i class="bi bi-chevron-left" onclick="event.stopPropagation(); toolbarMonthShift(-1)"></i>
@@ -412,6 +409,7 @@
               </div>
             </div>
           </div>
+          
         </div>
         <div class="grid-scroll" id="gridScroll">
           <table class="att-grid">
@@ -1184,10 +1182,10 @@ function performSync(){
 cascadeFilters();
 const todayCell = document.querySelector('.att-grid th.today-col');
 if (todayCell) {
-  // scroll only the grid wrapper (never the page), keeping today just right of the sticky columns
+  // scroll only the grid wrapper (never the page), today at the right end of the visible area
   const sc = document.getElementById('gridScroll');
   const stickyW = Array.from(sc.querySelectorAll('thead th.check-col, thead th.name-col, thead th.type-col')).filter(t => t.offsetParent).reduce((a, t) => a + t.offsetWidth, 0);
-  sc.scrollLeft = Math.max(0, todayCell.offsetLeft - stickyW - 8);
+  const goToday=()=>{ sc.scrollLeft += todayCell.getBoundingClientRect().right - sc.getBoundingClientRect().right + 12; }; goToday(); window.addEventListener('load', goToday); setTimeout(goToday, 150); // today fully visible at the right end, earlier days to its left
 }
 function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle('open'); }
 </script>
@@ -1205,18 +1203,21 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
     .att-grid .check-col,.att-grid .check-cell{width:30px; min-width:30px; max-width:30px; padding-left:4px; padding-right:4px;}
     .att-grid th.name-col,.att-grid td.name-cell{left:30px; width:104px; min-width:104px; max-width:104px; padding-left:6px; padding-right:4px;}
     .att-grid .type-col,.att-grid .type-cell{display:none;}
+    .att-grid th.name-col,.att-grid td.name-cell{box-shadow:var(--sticky-shadow);}
     .att-grid .g-avatar{display:none;}
     .att-grid .g-name{white-space:normal; line-height:1.15;}
     .day-cell{width:54px; min-width:54px;}
   }
+  /* Today column is a normal date column: same position, same scrolling as the other days (not sticky, not raised) */
   .chip{width:45px; height:36px; padding:3px 6px; gap:2px;} /* 5:4 ratio (100:80) */
   .chip .s{font-size:10.5px;}
   .chip .t{font-size:7.5px; margin-top:0; white-space:nowrap;}
   .chip.locked-past{opacity:.85; cursor:not-allowed;}
+  .chip.past-edit{opacity:.85; cursor:pointer; border-color:var(--line);} .chip.past-edit:hover{border-color:var(--brand); opacity:1;}
   /* readability: darker status text/time, Present = white chip with the brand purple border */
   .chip .s{font-weight:800;} .chip .t{font-weight:600; opacity:1 !important;}
   .chip.present{background:#fff; border-color:var(--brand);} .chip.present .s,.chip.present .t{color:#176B3B;}
-  .chip.present.locked-past{border-color:var(--line);} /* past dates: always the plain gray border */
+  .chip.present.locked-past,.chip.present.past-edit{border-color:var(--line);} .chip.present.past-edit:hover{border-color:var(--brand);} /* past dates: always the plain gray border */
   .chip.late .s,.chip.late .t{color:#84580F;}
   .chip.absent .s{color:#A24A38;}
   .chip.holiday .s{color:#6B6480;}
@@ -1242,7 +1243,7 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
 <div id="apop"></div><div id="atip"></div>
 <script>
 (function(){
- var S={win:true,perm:true,WIN:"7:30 AM – 2:30 PM"};
+ var S={win:true,perm:true,permPast:true,WIN:"7:30 AM – 2:30 PM"};
  var tbl=document.querySelector('.att-grid'), ths=[].slice.call(tbl.querySelectorAll('thead th'));
  var ti=ths.findIndex(function(t){return t.classList.contains('today-col')});
  var rows=[].slice.call(tbl.querySelectorAll('tbody tr')), tip=document.getElementById('atip'), pop=document.getElementById('apop');
@@ -1260,7 +1261,11 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
     if(i<3)return;
     var chip=td.querySelector('.chip'), pulse=td.querySelector('.pulse-cell');
     if(chip){var t=chip.querySelector('.t'); if(t&&!/AM|PM/.test(t.textContent))t.textContent=ampm(t.textContent.trim());}
-    if(i<ti){ if(chip){chip.classList.add('locked-past');chip.dataset.m='Past dates can\'t be changed';} }
+    if(i<ti){
+      if(chip&&(chip.classList.contains('holiday')||chip.classList.contains('weekoff')||chip.classList.contains('leave'))){chip.classList.add('locked-past');chip.dataset.m='Holiday, leave or week off can\'t be changed here';}
+      else if(chip&&ri%5===2){chip.classList.add('locked-past');chip.dataset.m='Recorded by the device, can\'t be changed';}
+      else if(chip){chip.classList.add('past-edit');chip.dataset.r=ri;chip.dataset.past='1';chip.dataset.m='Past date, click to change';}
+    }
     else if(i>ti){
       if(chip&&chip.classList.contains('holiday')){chip.classList.add('future');chip.dataset.m='Upcoming date';}
       else if(ri%6===5){td.innerHTML='<span class="chip nocell" data-m="No roster for this day"><span class="s">—</span></span>';}
@@ -1280,16 +1285,21 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
    var ok=S.win&&S.perm; el.classList.toggle('closed',!ok);
    el.dataset.m=!S.perm?'You do not have permission to mark attendance':(!S.win?'Attendance window is closed ('+S.WIN+')':'');
   });
+  [].slice.call(tbl.querySelectorAll('.past-edit')).forEach(function(el){
+   el.classList.toggle('closed',!S.permPast);
+   el.dataset.m=S.permPast?'Past date, click to change':'You do not have permission to change past attendance';
+  });
  }
  function curStatus(el){return el.classList.contains('late')?'l':(el.classList.contains('absent')?'a':'p');}
  tbl.addEventListener('click',function(e){
   var el=e.target.closest('.chip'); if(!el)return;
-  if(!el.classList.contains('live-click')||el.classList.contains('closed')){if(el.dataset.m)showTip(el,el.dataset.m);return;}
+  if(!(el.classList.contains('live-click')||el.classList.contains('past-edit'))||el.classList.contains('closed')){if(el.dataset.m)showTip(el,el.dataset.m);return;}
   var row=rows[+el.dataset.r]; cur={el:el,row:row};
   var nm=row.querySelector('.g-name').textContent, c=curStatus(el), t=el.querySelector('.t');
-  pop.innerHTML='<h4>'+nm+'</h4><p>Today • '+(row.querySelector('.g-id').textContent)+'</p>'+
+  var isPast=!!el.dataset.past, dn=isPast?(ths[[].indexOf.call(row.children,el.parentNode)].textContent.replace(/(\D+)(\d+)/,'$1 $2')):'Today';
+  pop.innerHTML='<h4>'+nm+'</h4><p>'+dn+' • '+(row.querySelector('.g-id').textContent)+'</p>'+
    ['p|Present','l|Late','a|Absent'].map(function(x){var k=x.split('|');return '<button class="opt '+k[0]+(c===k[0]?' on':'')+'" data-k="'+k[0]+'"><span>Mark '+k[1]+'</span></button>';}).join('')+
-   '<div class="cap">'+(t?'Marked at '+t.textContent+'. ':'')+'Time comes from the server (AM/PM).</div>';
+   '<div class="cap">'+(isPast?'Past date. This change is saved in the activity log.':(t?'Marked at '+t.textContent+'. ':'')+'Time comes from the server (AM/PM).')+'</div>';
   var r=el.getBoundingClientRect(); pop.style.display='block'; pop.style.left=Math.min(r.left,innerWidth-250)+'px'; pop.style.top=Math.min(r.bottom+8,innerHeight-230)+'px';
   [].slice.call(pop.querySelectorAll('.opt')).forEach(function(b){b.onclick=function(){act(b,b.dataset.k)}});
   e.stopPropagation();
@@ -1299,8 +1309,9 @@ function toggleInfo(id) { document.getElementById(id + '-info').classList.toggle
   btn.innerHTML='<span class="spin"></span> Saving...';
   setTimeout(function(){
    var el=cur.el, cls=k==='p'?'present':(k==='l'?'late':'absent'), L=k==='p'?'P':(k==='l'?'L':'A');
-   el.className='chip '+cls+' live-click';
-   el.innerHTML='<span class="s">'+L+'</span>'+(k==='a'?'':'<span class="t">'+fmtNow()+'</span>');
+   var past=!!el.dataset.past;
+   el.className='chip '+cls+(past?' past-edit':' live-click');
+   el.innerHTML='<span class="s">'+L+'</span>'+((k==='a'||past)?'':'<span class="t">'+fmtNow()+'</span>');
    pop.style.display='none'; refresh();
   },600);
  }
