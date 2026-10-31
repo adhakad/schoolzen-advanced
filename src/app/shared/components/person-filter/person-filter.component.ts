@@ -78,7 +78,7 @@ export class PersonFilterComponent implements OnChanges {
       ? o.groups.filter((group) => !group.isSystemGroup && group.classId === chosen?._id && (group.streamId || '') === (stream?._id || ''))
       : [];
     this.groupDisabled = this.isStaff || !groups.length;
-    this.groupOptions = [{ value: '', label: 'All groups' }, ...groups.map((group) => ({ value: group._id, label: group.name }))];
+    this.groupOptions = [{ value: '', label: 'All stream groups' }, ...groups.map((group) => ({ value: group._id, label: group.name }))];
 
     const sections = ready ? (chosen?.hasStreams ? stream?.sections || [] : chosen?.sections || []) : [];
     this.sectionDisabled = this.isStaff || !sections.length;

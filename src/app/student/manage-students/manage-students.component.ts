@@ -864,7 +864,7 @@ export class ManageStudentsComponent implements OnInit, OnDestroy {
       pending.ids.forEach((id) => this.selected.delete(id));
       if (res.rows && res.rows.length) {
         // Per-row outcome — some of the selection could not be deleted; list which.
-        this.showBulkResult('Delete Selected', `${res.deleted} of ${pending.ids.length} deleted.`,
+        this.showBulkResult('Bulk Delete', `${res.deleted} of ${pending.ids.length} deleted.`,
           res.rows.map((row, index) => ({
             key: row.id || String(index), label: nameById.get(row.id || '') || row.id || 'Student', message: row.message
           })));

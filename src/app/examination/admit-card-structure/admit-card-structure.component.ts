@@ -398,7 +398,7 @@ export class AdmitCardStructureComponent implements OnInit, OnDestroy {
   }
 
   get calTitle(): string {
-    return `${MONTHS[this.calMonth]} ${this.calYear}`;
+    return `${MONTHS[this.calMonth].slice(0, 3)} ${this.calYear}`;
   }
 
   get calCells(): (CalendarCell | null)[] {

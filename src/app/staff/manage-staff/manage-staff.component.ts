@@ -3,7 +3,7 @@
  *
  * Reference: docs/schoolzen-planning/v1/staff/manage-staff.html
  *
- * Two toolbar rows: search + Delete Selected / Assign Card to Selected / Create, then the
+ * Two toolbar rows: search + Bulk Delete / Bulk Assign / Create, then the
  * Department → Designation → Status filters. The Designation filter and the form's
  * Designation dropdown are both disabled until a Department is picked, and both filter the
  * ONE already-fetched designation list client-side (staff/optimization.md).

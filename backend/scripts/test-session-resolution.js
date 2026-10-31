@@ -1,7 +1,8 @@
 'use strict';
-// shared-fix1.md S2, live (real DB, read-only): the client's session label wins; an unknown
-// label is a 404 SESSION_NOT_FOUND (never a silent switch); the active flag is only the
-// default when no label is sent; reconciliation picks the session that covers the day.
+// shared-fix1.md S2 + shared-fix2.md, live (real DB, read-only): the client's session (label
+// or id) wins; an unknown or other-school one is a 404 SESSION_NOT_FOUND (never a silent
+// switch); with nothing sent the default is the session covering today, else the latest —
+// never the active flag alone; reconciliation picks the session that covers the day.
 //
 // Run: node scripts/test-session-resolution.js [adminId]
 require('dotenv').config();
@@ -9,7 +10,7 @@ global.global_config = require('../config/config.js');
 const assert = require('assert');
 const mongoose = require('mongoose');
 const AcademicSessionV2Model = require('../modules/models/settings/academic-session');
-const { resolveRequestSessionId, findSessionIdForDate, getActiveSession } = require('../modules/helpers/academic-session/session-resolver');
+const { resolveRequestSessionId, findSessionIdForDate, getActiveSession, pickDefaultSession } = require('../modules/helpers/academic-session/session-resolver');
 
 (async () => {
     await mongoose.connect(process.env.DB_URL);
@@ -31,8 +32,27 @@ const { resolveRequestSessionId, findSessionIdForDate, getActiveSession } = requ
     await check('unknown label -> 404 SESSION_NOT_FOUND, no fall back', async () => {
         await assert.rejects(resolveRequestSessionId(adminId, '1990-1991', 'test'), (e) => e.code === 'SESSION_NOT_FOUND' && e.statusCode === 404);
     });
-    await check('no label -> active session', async () =>
-        assert.strictEqual(await resolveRequestSessionId(adminId, '', 'test'), active ? String(active._id) : null));
+    await check('selected session id resolves to itself', async () =>
+        assert.strictEqual(await resolveRequestSessionId(adminId, String(other._id), 'test'), String(other._id)));
+    await check('other-school session id -> 404', async () => {
+        const foreign = await AcademicSessionV2Model.findOne({ adminId: { $ne: adminId } }, '_id').lean();
+        const id = foreign ? String(foreign._id) : '0123456789abcdef01234567';
+        await assert.rejects(resolveRequestSessionId(adminId, id, 'test'), (e) => e.code === 'SESSION_NOT_FOUND' && e.statusCode === 404);
+    });
+    await check('no label -> the session covering today (else latest), not the active flag', async () => {
+        const rows = sessions.map((s) => ({ _id: String(s._id), startDate: s.startDate, endDate: s.endDate }));
+        assert.strictEqual(await resolveRequestSessionId(adminId, '', 'test'), pickDefaultSession(rows)._id);
+    });
+    await check('pickDefaultSession: covering beats latest; latest when none covers', async () => {
+        const rows = [
+            { _id: 'a', startDate: '2025-04-01', endDate: '2026-03-31' },
+            { _id: 'b', startDate: '2026-04-01', endDate: '2027-03-31' },
+            { _id: 'c', startDate: '2027-04-01', endDate: '2028-03-31' },
+        ];
+        assert.strictEqual(pickDefaultSession(rows, new Date('2026-10-21'))._id, 'b');
+        assert.strictEqual(pickDefaultSession(rows, new Date('2030-01-01'))._id, 'c');
+        assert.strictEqual(pickDefaultSession([], new Date()), null);
+    });
     await check('a day resolves to the session covering it', async () => {
         const day = new Date(other.startDate.getTime() + 86400000);
         assert.strictEqual(await findSessionIdForDate(adminId, day), String(other._id));

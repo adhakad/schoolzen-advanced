@@ -14,7 +14,7 @@ const { onSessionsChanged } = require('../../helpers/settings/cache-invalidation
 const { rethrowDuplicate, isDuplicateKey, sessionLabelDuplicate } = require('../../helpers/settings/duplicate-key');
 const { withTransaction } = require('../../helpers/with-transaction');
 const { labelFromDates, isValidSession } = require('../../helpers/academic-session-format');
-const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
+const { getActiveSession, getDefaultSession } = require('../../helpers/academic-session/session-resolver');
 const {
     copyForwardOptions, runCopyForward, partialWarning,
 } = require('../../helpers/settings/session-copy-forward');
@@ -140,17 +140,20 @@ let GetSessions = async (req, res) => {
 };
 
 /**
- * GET /academic-sessions/options — every session's label + status, for the shell header's
- * session selector. Auth + tenant only (not Settings' own permission): every person in the
- * school needs to know which year they're looking at.
+ * GET /academic-sessions/options — every v2 session (label, dates, status), newest first, for
+ * the shell header's session selector. Auth + tenant only (not Settings' own permission):
+ * every person in the school needs to know which year they're looking at. `defaultLabel` is
+ * the request default (the session covering today, else the latest — shared-fix2.md), which
+ * the header selects when the user has no remembered choice.
  */
 let GetSessionOptions = async (req, res) => {
     const adminId = req.query.adminId;
-    const active = await getActiveSession(adminId);
+    const [active, fallback] = await Promise.all([getActiveSession(adminId), getDefaultSession(adminId)]);
     const all = await loadSessionList(adminId);
     return res.status(200).json({
-        sessions: all.map((row) => ({ _id: row._id, label: row.label, status: row.status })),
+        sessions: all.map((row) => ({ _id: row._id, label: row.label, startDate: row.startDate, endDate: row.endDate, status: row.status })),
         activeLabel: active ? active.label : null,
+        defaultLabel: fallback ? fallback.label : null,
     });
 };
 

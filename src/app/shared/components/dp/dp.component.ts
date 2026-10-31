@@ -128,7 +128,7 @@ export class DpComponent implements OnChanges, OnDestroy {
   get monthLabel(): string {
     return this.mode === 'years'
       ? `${this.years[0]} – ${this.years[this.years.length - 1]}`
-      : `${MONTHS[this.viewMonth]} ${this.viewYear}`;
+      : `${MONTHS_SHORT[this.viewMonth]} ${this.viewYear}`;
   }
 
   toggle(event: Event): void {

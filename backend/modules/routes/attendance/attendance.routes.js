@@ -21,6 +21,8 @@ const base = [isAdminAuth, assertAdminScope(MODULE)];
 // Manual marking needs its own explicit grant, and an Idempotency-Key so a double click can
 // never write twice (attendance-fix1.md §3d).
 const markGuard = [...base, requirePermission('attendance-mark', 'edit'), idempotency(MODULE)];
+// Changing a PAST day is its own grant ('attendance-edit-past'), never implied by marking today.
+const markPastGuard = [...base, requirePermission('attendance-edit-past', 'edit'), idempotency(MODULE)];
 const body = (schema) => validateRequest(schema, MODULE);
 const query = (schema) => validateRequest(schema, MODULE, 'query');
 
@@ -47,5 +49,6 @@ router.get('/day-punches', ...base, query(v.dayPunchesSchema), overview.GetDayPu
 router.post('/sync', ...base, body(v.syncSchema), overview.SyncNow);
 router.get('/sync-status', ...base, query(v.dayQuerySchema), overview.GetSyncStatus);
 router.post('/mark', ...markGuard, body(v.markSchema), overview.MarkAttendance);
+router.post('/mark-past', ...markPastGuard, body(v.markPastSchema), overview.MarkPastAttendance);
 
 module.exports = router;

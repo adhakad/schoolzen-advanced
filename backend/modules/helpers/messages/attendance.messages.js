@@ -46,6 +46,13 @@ const markOutsideWindow = (from, to) => `Attendance can only be marked today bet
 const markDeviceRecorded = (at) => (at ? `Device punch recorded at ${at} — it can't be changed by hand.` : "A device punch is recorded for today — it can't be changed by hand.");
 const markClassRequired = () => 'Select a class first — student attendance is marked one class at a time.';
 const markNotEnrolled = () => "This student isn't in the selected class or section for this session.";
+// Past-date editing (attendance-fix4.md B2) — one clear reason per refusal.
+const markPastNotPast = () => 'Only a past date can be changed here — today is marked from its own chip.';
+const markPastNoRoster = () => "There is no roster for this day, so its attendance can't be changed.";
+const markPastDayOff = () => "Holiday, leave or week off can't be changed here.";
+const markPastDevice = () => "Recorded by the device, can't be changed.";
+const markPastOutsideSession = () => 'This date is outside the selected academic session.';
+const markedPast = (name, status, dateKey) => `${name} marked ${status} for ${dateKey}.`;
 const marked = (name, status) => (status === 'Absent' ? `${name} marked Absent.` : `${name} marked ${status}.`);
 
 module.exports = {
@@ -78,6 +85,12 @@ module.exports = {
     sessionMissing,
     markNotToday,
     markDayOff,
+    markPastNotPast,
+    markPastNoRoster,
+    markPastDayOff,
+    markPastDevice,
+    markPastOutsideSession,
+    markedPast,
     markNoShift,
     markOutsideWindow,
     markDeviceRecorded,

@@ -1,7 +1,7 @@
 <!-- Roster.
      Reference: docs/schoolzen-planning/v1/attendance/roster.html
-     THREE toolbar rows, this page's own shape: search + actions; a plain FLEX row of three
-     fixed-width .dd filters; the month navigator. Not Overview's 6-column grid. -->
+     Toolbar: search + Bulk Assign / Bulk Edit / Bulk Delete; the global filter grid (rule 14)
+     with Person Type first, only that type's filters, and the month filter as the last cell. -->
 
 <div class="page-head">
   <div>
@@ -21,41 +21,41 @@
         </div>
         <div class="toolbar-btn-group">
           <button type="button" class="sw-report-btn" [disabled]="assignDisabled" (click)="openAssign()">
-            <i class="bi bi-people"></i> Assign to Selected
+            <i class="bi bi-people"></i> Bulk Assign
           </button>
           <button type="button" class="sw-edit-btn" [disabled]="editDisabled" (click)="openEdit()">
-            <i class="bi bi-pencil"></i> Edit Assignment
+            <i class="bi bi-pencil"></i> Bulk Edit
           </button>
           <button type="button" class="btn-danger-outline" [disabled]="deleteDisabled" (click)="onDeleteSelected()">
-            <i class="bi bi-trash"></i> Delete Selected
+            <i class="bi bi-trash"></i> Bulk Delete
           </button>
         </div>
       </div>
       <div class="sel-warning" *ngIf="mixedSelection" role="status">
         <i class="bi bi-exclamation-triangle"></i>
         Your selection mixes {{ personType === 'staff' ? 'staff' : 'classes' }} with an existing roster and ones with
-        none. Select only one type at a time to Assign or Edit.
+        none. Select only one type at a time to use Bulk Assign or Bulk Edit.
       </div>
       <div class="toolbar-row2">
-        <app-dd class="roster-pill" [options]="personTypeOptions" [value]="personType" ariaLabel="Person type"
+        <app-dd [options]="personTypeOptions" [value]="personType" ariaLabel="Person type"
           (valueChange)="onPersonTypeChange($event)"></app-dd>
-        <!-- Dependent pills are always present, disabled until their parent is chosen, and keep
-             their "All …" label while disabled (global rule 8). -->
+        <!-- Rule 14: only the chosen type's filters show (the other type's are hidden). Dependent
+             pills stay disabled until their parent is chosen, with their "All …" label (rule 8). -->
         <ng-container *ngIf="personType === 'staff'; else studentFilters">
-          <app-dd class="roster-pill" [options]="departmentOptions" [value]="departmentId"
+          <app-dd [options]="departmentOptions" [value]="departmentId"
             ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
-          <app-dd class="roster-pill" [options]="designationOptions" [value]="designationId"
+          <app-dd [options]="designationOptions" [value]="designationId"
             [disabled]="designationDisabled" ariaLabel="Filter by designation"
             (valueChange)="onDesignationChange($event)"></app-dd>
         </ng-container>
         <ng-template #studentFilters>
-          <app-dd class="roster-pill" [options]="classOptions" [value]="classId" ariaLabel="Filter by class"
+          <app-dd [options]="classOptions" [value]="classId" ariaLabel="Filter by class"
             (valueChange)="onClassChange($event)"></app-dd>
-          <app-dd class="roster-pill" [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
+          <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
             ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
-          <app-dd class="roster-pill" [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
+          <app-dd [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
             ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
-          <app-dd class="roster-pill" [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
+          <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
             ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
         </ng-template>
         <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
@@ -107,9 +107,9 @@
                 <div class="g-code">{{ row.empCode || row.designation || '' }}</div>
               </td>
               <td *ngFor="let col of days; trackBy: trackByDate" [class.today-col]="col.isToday"
-                [class.locked]="isLocked(col)"
+                [class.locked]="isLocked(col) || isNoRoster(row, col)"
                 [class.editable-cell]="!isLocked(col) && (cellShift(row, col) || isWeekOff(row, col))"
-                [attr.title]="isLocked(col) ? 'Attendance already recorded — this day can\'t be reassigned.' : null">
+                [attr.title]="cellTitle(row, col)">
                 <ng-container *ngIf="cellShift(row, col) as shift; else notShift">
                   <span class="shift-chip" [ngClass]="chipClass(shift._id)" [title]="shift.name">{{ shift.code }}</span>
                 </ng-container>
@@ -230,9 +230,9 @@
     <div class="m-field">
       <label>Applies to <span class="req-star">*</span></label>
       <!-- roster.html "Applies to Month": the calendar stays hidden until the field is clicked. -->
-      <app-date-range-picker [popover]="true" [start]="assignFrom" [end]="assignTo" [min]="today" noun="day"
+      <app-date-range-picker [popover]="true" [start]="assignFrom" [end]="assignTo" [min]="assignMin" noun="day"
         placeholder="Pick the first and last day" ariaLabel="Applies to dates"
-        hint="Roster can only be set from today onward &mdash; earlier days are locked."
+        hint="Covers the whole month, past days included &mdash; earlier months are locked."
         (rangeChange)="onAssignRange($event)"></app-date-range-picker>
     </div>
 

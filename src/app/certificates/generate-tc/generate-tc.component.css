@@ -1,8 +1,5 @@
 /* Generate TC reference styles the global design system doesn't carry
    (docs/schoolzen-planning/v1/certificates/generate-tc.html). */
-.toolbar-row2.tc-cascade { display: flex; gap: 8px; }
-.toolbar-row3 { display: flex; align-items: center; gap: 8px; }
-.toolbar-row3 .status-pill { width: 180px; flex-shrink: 0; }
 
 thead th.act, td.act { text-align: right; }
 
@@ -28,7 +25,3 @@ thead th.act, td.act { text-align: right; }
 .m-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
 .btn-brand:disabled { opacity: .6; cursor: not-allowed; }
 
-@media (max-width: 767px) {
-  .toolbar-row2.tc-cascade { flex-wrap: wrap; }
-  .toolbar-row3 .status-pill { width: 100%; }
-}

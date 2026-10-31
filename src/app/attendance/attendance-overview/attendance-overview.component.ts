@@ -117,6 +117,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   rows: GridRow[] = [];
   truncated = false;
   canMark = false;
+  editPast: { allowed: boolean; from: string | null; to: string | null } = { allowed: false, from: null, to: null };
   /** Student view with no class chosen: no rows until a class is picked (class-first rule). */
   needsClass = false;
   page = 1;
@@ -128,11 +129,17 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
   arrivals: RecentArrivals = { dateKey: '', staff: [], student: [] };
   arrivalsError = '';
   expandedArrival = '';
+  /** The popover's date line: "Today", or the past day it changes ("Mon 5"). */
+  markDayLabel(target: MarkTarget): string {
+    return target.col.isToday ? 'Today' : target.col.dow.charAt(0) + target.col.dow.slice(1).toLowerCase() + ' ' + target.col.day;
+  }
+
   readonly tips: readonly string[] = [
     "Each row is one person; each column is a day of the month. Today's column is highlighted and the grid scrolls to it.",
     'To mark someone by hand, click their chip under today and choose Present, Late or Absent. It saves straight away.',
     'For students, choose a Class first (then Section if you like) — attendance is marked one class at a time.',
-    'Marking is only open today, between the time set in Manage Shifts (Early Punch before start) and the shift end. Past days are locked.',
+    'Marking is only open today, between the time set in Manage Shifts (Early Punch before start) and the shift end.',
+    'A past day with a roster can be changed by someone with "Edit past attendance": click the chip and choose. Holidays, leave, week offs and device punches stay locked.',
     'Anyone not marked and without a device punch counts as Absent. If the device has recorded a punch, it cannot be changed by hand.',
     'Faded dashed chips on future days show what the Roster expects: the shift letter, WO for a weekly off or H for a holiday. A dash means no roster.',
     'Press Sync now to pull the latest punches from the biometric device. "Last sync" shows when that last happened and how many punches arrived today.',
@@ -198,8 +205,11 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       distinctUntilChanged(),
       takeUntil(this.destroyed$)
     ).subscribe((session) => {
+      const switched = this.session !== '' && session !== this.session;
       this.session = session;
-      if (this.personType === 'student') this.fetchGrid();
+      // Students re-read on every session; staff only on a real header switch (the session's
+      // past-edit range) — the first value is the init load below, not a second request.
+      if (this.personType === 'student' || switched) this.fetchGrid();
     });
     this.fetchGrid();
     this.fetchSidePanel();
@@ -360,7 +370,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     return {
       personType: this.personType,
       month,
-      session: this.isStaff ? '' : this.session,
+      session: this.session,
       departmentId: this.departmentId,
       designationId: this.designationId,
       classId: this.classId,
@@ -383,6 +393,7 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     this.today = res.today || this.today;
     this.truncated = res.truncated;
     this.canMark = Boolean(res.canMark);
+    this.editPast = res.editPast || { allowed: false, from: null, to: null };
     if (merge) {
       // A live refresh: same rows, merged through the one update path.
       (res.rows || []).forEach((row) => this.applyPersonUpdate(row._id, row));
@@ -482,12 +493,9 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
       const host = this.gridScroll?.nativeElement;
       const cell = host?.querySelector('th.today-col') as HTMLElement | null;
       if (host && cell) {
-        // The reference's formula: today lands just right of the visible sticky columns.
-        // Only the wrapper scrolls, never the page.
-        const sticky = Array.from(host.querySelectorAll<HTMLElement>('thead th.check-col, thead th.name-col, thead th.type-col'))
-          .filter((th) => th.offsetParent)
-          .reduce((sum, th) => sum + th.offsetWidth, 0);
-        host.scrollLeft = Math.max(0, cell.offsetLeft - sticky - 8);
+        // Rule 19 (reference formula): Today is a normal column; the wrapper (never the page)
+        // scrolls so it sits fully visible at the right end, earlier days to its left.
+        host.scrollLeft += cell.getBoundingClientRect().right - host.getBoundingClientRect().right + 12;
         this.scrolledToToday = true;
       }
     });
@@ -516,7 +524,11 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     if (cell.n) return 'nocell';
     if (cell.f) return 'future';
     const classes = [CHIP_CLASS[cell.s] || 'absent'];
-    if (col.dateKey < this.today) classes.push('locked-past');
+    if (col.dateKey < this.today) {
+      if (this.isPastEditable(cell, col)) classes.push('past-edit');
+      else if (this.isPastCandidate(cell, col)) classes.push('past-edit', 'closed');
+      else classes.push('locked-past');
+    }
     else if (col.isToday && this.canOpenMark(row, cell, col)) classes.push('live-click');
     else if (col.isToday && ['P', 'L', 'A'].includes(cell.s)) classes.push('live-click', 'closed');
     if (cell.src === 'manual') classes.push('manual');
@@ -528,8 +540,25 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     return this.canMark && Boolean(row.mark?.open) && ['P', 'L', 'A'].includes(cell.s);
   }
 
+  /**
+   * A past rostered working day with no device punch, inside the selected session — the cells
+   * attendance-fix4.md B2 makes changeable (the server re-checks every condition).
+   */
+  isPastCandidate(cell: GridCell, col: MonthColumn): boolean {
+    if (col.dateKey >= this.today || cell.n || cell.f || cell.src === 'device') return false;
+    if (!['P', 'L', 'A'].includes(cell.s)) return false;
+    const { from, to } = this.editPast;
+    return Boolean(from && to && col.dateKey >= from && col.dateKey <= to);
+  }
+
+  /** …and the caller holds 'attendance-edit-past'. */
+  isPastEditable(cell: GridCell, col: MonthColumn): boolean {
+    return this.editPast.allowed && this.isPastCandidate(cell, col);
+  }
+
   /** Opens the popover: editable, or read-only when a device punch is recorded. */
   canOpenMark(row: GridRow, cell: GridCell, col: MonthColumn): boolean {
+    if (col.dateKey < this.today) return this.isPastEditable(cell, col) && (row.type !== 'student' || Boolean(this.classId));
     if (!col.isToday || !this.canMark || !row.mark || cell.n || cell.f) return false;
     if (row.type === 'student' && !this.classId) return false;
     if (cell.src === 'device') return true;
@@ -540,7 +569,13 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     if (cell.n) return 'No roster for this day';
     // attendance-overview.html: a future holiday is "Upcoming date", a future roster cell "(from roster)".
     if (cell.f) return cell.s === 'H' ? 'Upcoming date' : 'Upcoming date (from roster)';
-    if (col.dateKey < this.today) return "Past dates can't be changed";
+    if (col.dateKey < this.today) {
+      if (['H', 'LV', 'WO'].includes(cell.s)) return "Holiday, leave or week off can't be changed here";
+      if (cell.src === 'device') return "Recorded by the device, can't be changed";
+      if (!this.isPastCandidate(cell, col)) return "Past dates can't be changed";
+      if (!this.editPast.allowed) return 'You do not have permission to change past attendance';
+      return 'Past date, click to change';
+    }
     if (!col.isToday) return null;
     if (cell.src === 'device') return 'Device punch recorded' + (cell.p ? ' at ' + cell.p : '');
     if (!['P', 'L', 'A'].includes(cell.s)) return null;
@@ -620,13 +655,19 @@ export class AttendanceOverviewComponent implements OnInit, OnDestroy {
     // answers, and a refusal puts the previous cell back (Part B / Part D §4).
     const previousCell = target.row.cells[target.col.dateKey];
     const code = MARK_OPTIONS.find((option) => option.status === status)?.code || 'A';
-    this.applyPersonUpdate(target.row._id, { cells: { [target.col.dateKey]: { ...previousCell, s: code, src: status === 'Absent' ? undefined : 'manual' } } });
+    this.applyPersonUpdate(target.row._id, { cells: { [target.col.dateKey]: { ...previousCell, s: code, t: target.col.dateKey < this.today ? null : previousCell.t, src: status === 'Absent' ? undefined : 'manual' } } });
     this.cdr.markForCheck();
     // Students carry the grid's session + class context; the server checks the enrolment.
     const context = target.row.type === 'student'
       ? { session: this.session, classId: this.classId, streamId: this.streamId, groupId: this.groupId, sectionId: this.sectionId }
       : {};
-    this.api.mark(this.adminId, { personType: target.row.type, personId: target.row._id, status, ...context }, this.markKey)
+    const past = target.col.dateKey < this.today;
+    const body = { personType: target.row.type, personId: target.row._id, status, ...context };
+    // A past day carries its date and the header session (the server checks it is inside it).
+    const request$ = past
+      ? this.api.markPast(this.adminId, { ...body, date: target.col.dateKey, session: this.session }, this.markKey)
+      : this.api.mark(this.adminId, body, this.markKey);
+    request$
       .pipe(takeUntil(this.destroyed$)).subscribe((res) => {
         this.marking = null;
         this.prefetched.clear();

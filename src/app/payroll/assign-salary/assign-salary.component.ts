@@ -3,7 +3,7 @@
  *
  * Reference: docs/schoolzen-planning/v1/payroll/assign-salary.html
  *
- * Toolbar: search + "Assign to Selected" (bulk), then Department → Designation. A row shows
+ * Toolbar: search + "Bulk Assign" (bulk), then Department → Designation. A row shows
  * its group (+ mode tag, + "Has a personal override" when this person's figures deviate from
  * the group), Effective From, and Assign / Change. The single modal can carry per-field
  * overrides — blank keeps the group's value, 0 means none. A bulk assign never touches

@@ -1,9 +1,6 @@
 /* Attendance Overview reference styles the global design system doesn't carry. */
 
-/* Row 2: seven equal filters, 6 per row, the 7th wraps (global rule 12). */
-.toolbar-row2.ov-filter-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
-.ov-filter-row app-dd { min-width: 0; width: 100%; }
-.toolbar-row3 { display: flex; align-items: center; margin-top: 2px; }
+/* Row 2 is the global filter grid (.sz .toolbar-row2, rule 14) — no page copy here. */
 
 /* "Last sync: 9:05 AM / 42 punches today" — beside Sync now (attendance-fix1.md §3e). */
 .sync-row { display: flex; justify-content: flex-end; margin-top: -6px; }
@@ -14,8 +11,6 @@
 .sw-gen-btn .bi { color: #ae86ff; }
 .sw-gen-btn:disabled { opacity: .7; cursor: progress; }
 
-.toolbar-btn-group > .sw-report-btn { width: 162px; padding: 0 10px; justify-content: center; }
-.toolbar-row1 { flex-wrap: wrap; row-gap: 10px; }
 .sw-report-btn { flex-shrink: 0; height: 38px; background: var(--surface); color: var(--brand); border: 1px solid var(--brand); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; font-family: inherit; white-space: nowrap; }
 .sw-report-btn:hover:not(:disabled) { background: var(--brand-soft); }
 .sw-report-btn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
@@ -29,11 +24,11 @@
 .att-grid th .dow { display: block; font-size: 9px; color: #CBC4DA; font-weight: 600; text-transform: none; margin-top: 2px; }
 .att-grid th.check-col { position: sticky; left: 0; background: var(--surface); z-index: 3; width: 38px; text-align: center; box-shadow: 1px 0 0 var(--line); }
 .att-grid th.name-col { text-align: left; position: sticky; left: 38px; background: var(--surface); z-index: 3; width: 160px; min-width: 160px; padding-left: 14px; box-shadow: 1px 0 0 var(--line); }
-.att-grid th.type-col { text-align: left; position: sticky; left: 198px; background: var(--surface); z-index: 3; width: 90px; min-width: 90px; box-shadow: 1px 0 0 var(--line); }
+.att-grid th.type-col { text-align: left; position: sticky; left: 198px; background: var(--surface); z-index: 3; width: 90px; min-width: 90px; box-shadow: var(--sticky-shadow); }
 .att-grid td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line-soft); }
 .att-grid td.check-cell { position: sticky; left: 0; background: var(--surface); z-index: 1; text-align: center; box-shadow: 1px 0 0 var(--line-soft); }
 .att-grid td.name-cell { text-align: left; position: sticky; left: 38px; background: var(--surface); z-index: 1; padding-left: 14px; box-shadow: 1px 0 0 var(--line-soft); max-width: 160px; }
-.att-grid td.type-cell { text-align: left; position: sticky; left: 198px; background: var(--surface); z-index: 1; box-shadow: 1px 0 0 var(--line-soft); }
+.att-grid td.type-cell { text-align: left; position: sticky; left: 198px; background: var(--surface); z-index: 1; box-shadow: var(--sticky-shadow); }
 /* Fixed widths so the sticky columns never squeeze (attendance-fix1.md §3a). */
 .att-grid .check-col, .att-grid .check-cell { width: 38px; min-width: 38px; max-width: 38px; }
 .att-grid .name-col, .att-grid .name-cell { width: 160px; min-width: 160px; max-width: 160px; }
@@ -66,12 +61,16 @@
 .chip.closed { opacity: .6; cursor: not-allowed; border-color: var(--line); }
 /* §3c past / future / no-roster — the html's modifiers, existing tokens only. */
 .chip.locked-past { opacity: .85; cursor: not-allowed; }
+/* attendance-fix4.md B2: a past rostered working day the caller may change. */
+.chip.past-edit { opacity: .85; cursor: pointer; border-color: var(--line); }
+.chip.past-edit:hover:not(.closed), .chip.past-edit.open { border-color: var(--brand); opacity: 1; }
 .chip.future { opacity: .6; border: 1px dashed var(--ink-faint); background: transparent; cursor: not-allowed; }
 .chip.future .s { color: var(--ink-faint) !important; }
 .chip.nocell { opacity: .45; border: 1px dashed var(--ink-faint); background: transparent; cursor: not-allowed; }
 .chip.nocell .s { color: var(--ink-faint); }
 .chip.present { background: #fff; border-color: var(--brand); }
-.chip.present.locked-past { border-color: var(--line); } /* every past chip keeps the plain gray border */
+.chip.present.locked-past, .chip.present.past-edit { border-color: var(--line); }
+.chip.present.past-edit:hover:not(.closed) { border-color: var(--brand); } /* every past chip keeps the plain gray border */
 .chip.present .s, .chip.present .t { color: #176B3B; }
 .chip.late .s, .chip.late .t, .chip.halfday .s, .chip.halfday .t { color: #84580F; }
 .chip.present .t, .chip.late .t, .chip.halfday .t { opacity: 1; }
@@ -156,13 +155,11 @@
 
 /* Mobile (global rule 13): only checkbox + name stay sticky, Type and avatar hidden, narrower days. */
 @media (max-width: 640px) {
-  .toolbar-row2.ov-filter-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .toolbar-row1 .search { flex: 1 1 100%; width: 100%; }
-  .toolbar-row1 > .toolbar-btn-group { margin-left: auto; flex-wrap: wrap; }
   .sync-row { justify-content: flex-start; margin-top: 0; }
   .att-grid { min-width: calc(134px + 31 * 54px); }
   .att-grid .check-col, .att-grid .check-cell { width: 30px; min-width: 30px; max-width: 30px; padding-left: 4px; padding-right: 4px; }
-  .att-grid th.name-col, .att-grid td.name-cell { left: 30px; width: 104px; min-width: 104px; max-width: 104px; padding-left: 6px; padding-right: 4px; }
+  .att-grid th.name-col, .att-grid td.name-cell { left: 30px; width: 104px; min-width: 104px; max-width: 104px; padding-left: 6px; padding-right: 4px; box-shadow: var(--sticky-shadow); }
   .att-grid .type-col, .att-grid .type-cell { display: none; }
   .att-grid .g-avatar { display: none; }
   .att-grid .g-name { white-space: normal; line-height: 1.15; }

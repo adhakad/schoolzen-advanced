@@ -7,7 +7,7 @@ const StudentProfileModel = require('../../models/student/student');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const { ValidationError, ConflictError, NotFoundError, ExternalServiceError, PermissionError } = require('../../errors');
 const messages = require('../../helpers/messages/attendance.messages');
-const { toUtcMidnight } = require('../../helpers/date-only');
+const { toUtcMidnight, toDateKey } = require('../../helpers/date-only');
 const { atWallClock, nowWallClock } = require('../../helpers/attendance-time');
 const { chipTime, hhmmLabel } = require('../../helpers/attendance/status');
 const { loadClassIndex, describePlacement } = require('../../helpers/student/student.utils');
@@ -15,7 +15,7 @@ const {
     MODULE, todayKey, monthDays, monthColumns, resolveSessionId, queue, escapeRegExp,
 } = require('../../helpers/attendance/context');
 const { getSchoolTerminalSns } = require('../../services/attendance-v2/ingest');
-const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
+const { resolveRequestSessionId, sessionRangeOf } = require('../../helpers/academic-session/session-resolver');
 const {
     WEEK_OFF, shiftIndex, getStaffShiftIdsForDate, getStudentShiftIds, loadClassShiftResolver,
 } = require('../../services/attendance-v2/shift-lookup');
@@ -128,6 +128,16 @@ const canMarkOf = async (req) => {
     }
 };
 
+/** Can this caller change a PAST day? (Roles & Permissions 'attendance-edit-past' edit.) */
+const canEditPastOf = async (req) => {
+    try {
+        const staffId = await resolveStaffId(req);
+        return allows(await loadPermissions(req.adminId, staffId), 'attendance-edit-past', 'edit');
+    } catch (error) {
+        return false;
+    }
+};
+
 /** [start − Early Punch, end] of a shift on `dateKey`, as wall-clock instants. */
 const markWindowOf = (shift, dateKey) => {
     const day = toUtcMidnight(dateKey);
@@ -156,7 +166,7 @@ let GetGrid = async (req, res) => {
     // Class-first (attendance-fix2.md Part D): students are shown and marked one class at a
     // time — no class, no rows (and no school-wide student scan).
     if (personType === 'student' && !req.query.classId) {
-        return res.status(200).json({ month, personType, today, days: monthColumns(month), rows: [], truncated: false, canMark: false, needsClass: true });
+        return res.status(200).json({ month, personType, today, days: monthColumns(month), rows: [], truncated: false, canMark: false, needsClass: true, editPast: { allowed: false, from: null, to: null } });
     }
 
     // Speed (global rule 5, attendance-fix3.md C): ONE DB round trip on a cache hit. The
@@ -174,6 +184,11 @@ let GetGrid = async (req, res) => {
         .map((value) => value || '').join('|');
     const membersKey = cacheKeys.attendance.gridMembers(adminId, personType, filterKey);
     const sessionLookup = isStaff ? Promise.resolve(null) : resolveSessionId(adminId, q.session);
+    // Past-date editing is bounded by the header session, for staff too (attendance-fix4.md B2).
+    const editPastLookup = Promise.all([
+        canEditPastOf(req),
+        (isStaff ? resolveRequestSessionId(adminId, q.session, MODULE) : sessionLookup).then((id) => sessionRangeOf(adminId, id)),
+    ]);
 
     // Every per-person read for one member list, in parallel.
     const readMarks = (members, sessionId) => {
@@ -202,7 +217,7 @@ let GetGrid = async (req, res) => {
     };
 
     const hint = cacheService.get(membersKey);
-    const [shifts, canMark, sessionId, people, resolveClassShift, hintMembers, hinted] = await Promise.all([
+    const [shifts, canMark, sessionId, people, resolveClassShift, hintMembers, hinted, [canEditPast, sessionRange]] = await Promise.all([
         shiftIndex(adminId),
         canMarkOf(req),
         sessionLookup,
@@ -210,6 +225,7 @@ let GetGrid = async (req, res) => {
         isStaff ? null : sessionLookup.then((id) => loadClassShiftResolver(adminId, id)),
         hint,
         Promise.all([hint, sessionLookup]).then(([members, id]) => (Array.isArray(members) && members.length ? readMarks(members, id) : null)),
+        editPastLookup,
     ]);
     const truncated = people.length > MAX_PEOPLE;
     const rows = people.slice(0, MAX_PEOPLE);
@@ -264,7 +280,9 @@ let GetGrid = async (req, res) => {
             if (record) {
                 const timed = COUNTS_AS_PRESENT.includes(record.status);
                 const manual = record.source === 'manual';
-                const time = manual ? record.markedAt : record.inTime;
+                // A past-date edit (marked after its day) shows no time (attendance-fix4.md B2).
+                const markedLater = manual && record.markedAt && toDateKey(record.markedAt) > dateKey;
+                const time = manual ? (markedLater ? null : record.markedAt) : record.inTime;
                 cells[dateKey] = { s: CHIP[record.status] || 'A', t: timed && time ? chipTime(time) : null, src: manual ? 'manual' : (record.source === 'device' || (record.punches || []).length ? 'device' : undefined) };
                 return;
             }
@@ -303,7 +321,8 @@ let GetGrid = async (req, res) => {
         return out;
     });
 
-    return res.status(200).json({ month, personType, today, days: monthColumns(month), rows: result, truncated, canMark });
+    const editPast = { allowed: Boolean(canEditPast), from: sessionRange ? sessionRange.startKey : null, to: sessionRange ? sessionRange.endKey : null };
+    return res.status(200).json({ month, personType, today, days: monthColumns(month), rows: result, truncated, canMark, editPast });
 };
 
 let GetLiveStatus = async (req, res) => {
@@ -584,7 +603,109 @@ let MarkAttendance = async (req, res) => {
     });
 };
 
+/**
+ * Past-date editing (attendance-fix4.md B2). A PAST day may be changed by hand only when ALL
+ * hold, each enforced here (403 with its own message; the UI only mirrors them):
+ *   1. the date is before today;              2. it is inside the selected session;
+ *   3. a roster (shift) exists for that day;  4. it is a working day (no holiday, approved
+ *      leave or roster week-off);              5. no device punch exists for that person/day;
+ *   6. the caller holds 'attendance-edit-past' (route guard).
+ * Writes `source:'manual'` (no time shown) and an activity-log entry with the old and new
+ * status, user and time, in one transaction. Idempotency-Key as for today (route).
+ */
+let MarkPastAttendance = async (req, res) => {
+    const { adminId, personType, personId, status, date: dateKey } = req.body;
+    const today = todayKey();
+    const refuse = (code, message) => markError(PermissionError, code, message, { date: dateKey });
+    if (!(dateKey < today)) throw refuse('MARK_PAST_NOT_PAST', messages.markPastNotPast());
+    const { classId, streamId, groupId, sectionId } = req.body;
+    if (personType === 'student' && !classId) {
+        throw new ValidationError(messages.markClassRequired(), {
+            module: MODULE, code: 'MARK_CLASS_REQUIRED', fields: [{ field: 'classId', message: messages.markClassRequired() }],
+        });
+    }
+    const sessionId = await resolveRequestSessionId(adminId, req.body.session, MODULE);
+    const range = await sessionRangeOf(adminId, sessionId);
+    if (!range || dateKey < range.startKey || dateKey > range.endKey) throw refuse('MARK_PAST_OUTSIDE_SESSION', messages.markPastOutsideSession());
+
+    const date = toUtcMidnight(dateKey);
+    const people = [{ personType, personId }];
+    const studentLookup = async () => {
+        const match = { adminId, sessionId: new ObjectId(sessionId), studentId: new ObjectId(personId), classId: new ObjectId(classId) };
+        if (streamId) match.streamId = new ObjectId(streamId);
+        if (groupId) match.groupId = new ObjectId(groupId);
+        if (sectionId) match.sectionId = new ObjectId(sectionId);
+        const [enrollment, resolveClassShift, dayTypes] = await Promise.all([
+            StudentEnrollmentModel.findOne(match, { classId: 1, streamId: 1, sectionId: 1 }).lean(),
+            loadClassShiftResolver(adminId, sessionId),
+            resolveDays(adminId, { sessionId, people, fromKey: dateKey, toKey: dateKey }),
+        ]);
+        return { enrollment, shiftId: enrollment ? resolveClassShift(enrollment) || null : null, dayTypes };
+    };
+    const staffLookup = async () => {
+        const [shiftIds, dayTypes] = await Promise.all([
+            getStaffShiftIdsForDate(adminId, dateKey, [personId]),
+            resolveDays(adminId, { sessionId: null, people, fromKey: dateKey, toKey: dateKey }),
+        ]);
+        return { enrollment: null, shiftId: shiftIds.get(personId) || null, dayTypes };
+    };
+    const [person, lookup, punch, previous] = await Promise.all([
+        assertPerson(adminId, personType, personId),
+        personType === 'staff' ? staffLookup() : studentLookup(),
+        PunchLogV2Model.findOne({ adminId, personId, dateKey }, { _id: 1 }).lean(),
+        AttendanceRecordV2Model.findOne({ adminId, personType, personId, date }, { status: 1, source: 1, punches: 1, deletedAt: 1, isOverridden: 1, updatedBy: 1 }).lean(),
+    ]);
+    if (personType === 'student' && !lookup.enrollment) throw markError(PermissionError, 'MARK_NOT_ENROLLED', messages.markNotEnrolled());
+    const { shiftId, dayTypes } = lookup;
+    if (!shiftId) throw refuse('MARK_PAST_NO_ROSTER', messages.markPastNoRoster());
+    const dayType = (dayTypes.get(`${personType}|${personId}`) || new Map()).get(dateKey) || DAY_TYPE.WORKING;
+    const live = previous && !previous.deletedAt ? previous : null;
+    if (dayType !== DAY_TYPE.WORKING || shiftId === WEEK_OFF || (live && live.isOverridden && live.updatedBy === 'leave')) {
+        throw refuse('MARK_PAST_DAY_OFF', messages.markPastDayOff());
+    }
+    if (punch || (live && (live.source === 'device' || (live.punches || []).length))) throw refuse('MARK_PAST_DEVICE', messages.markPastDevice());
+
+    const actor = String(req.staffId || (req.user && req.user.id) || 'admin');
+    const now = nowWallClock();
+    const oldStatus = live ? live.status : 'Absent';
+    await withTransaction(async (dbSession) => {
+        if (status === 'Absent') {
+            if (live) {
+                await AttendanceRecordV2Model.updateOne(
+                    { _id: live._id },
+                    { $set: { status: 'Absent', source: 'system', markedAt: null, markedBy: actor, deletedAt: now, updatedBy: actor, updatedAt: new Date() } },
+                    { session: dbSession }
+                );
+            }
+        } else {
+            await AttendanceRecordV2Model.updateOne(
+                { adminId, personType, personId, date },
+                {
+                    $set: {
+                        dateKey, status, source: 'manual', markedAt: now, markedBy: actor, shiftId,
+                        inTime: null, outTime: null, punches: [], isOverridden: false, deletedAt: null, updatedBy: actor, updatedAt: new Date(),
+                    },
+                    $setOnInsert: { createdAt: new Date() },
+                },
+                { upsert: true, session: dbSession }
+            );
+        }
+        await logActivity(req, {
+            module: MODULE,
+            action: 'attendance.mark-past',
+            targetId: personId,
+            meta: { personType, name: person.name, date: dateKey, oldStatus, newStatus: status, by: actor, at: now.toISOString() },
+        }, dbSession);
+    });
+
+    return res.status(200).json({
+        message: messages.markedPast(person.name, status, dateKey),
+        cell: { s: CHIP[status], t: null, src: status === 'Absent' ? undefined : 'manual' },
+    });
+};
+
 module.exports = {
+    MarkPastAttendance,
     GetGrid,
     GetLiveStatus,
     GetRecentArrivals,

@@ -12,7 +12,7 @@ const FeePaymentModel = require('../../models/fees/fee-payment');
 const { ValidationError, ConflictError } = require('../../errors');
 const { getClassDisplayName } = require('../format-class-name');
 const { isValidSession, nextSessionLabel } = require('../academic-session-format');
-const { findSessionId } = require('../academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../academic-session/session-resolver');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
 const { imageUrl } = require('../../services/media/cloudinary.service');
@@ -365,10 +365,10 @@ const toListRow = (classIndex, sessionLabel) => (row) => {
  * filtered total, and label the rows — three queries total regardless of page size.
  */
 const listStudentRows = async ({ adminId, query, extraMatch = {} }) => {
-    // The header's label → this school's AcademicSession id. A label with no session yet has
-    // no enrollments against it, so the answer is simply an empty list.
+    // The header's session → this school's AcademicSession id (404 for an unknown one, the
+    // default session when none is sent).
     const [sessionId, studentIds] = await Promise.all([
-        findSessionId(adminId, query.session),
+        resolveRequestSessionId(adminId, query.session, 'student'),
         resolveSearchStudentIds(adminId, query.search),
     ]);
     const empty = { rows: [], nextCursor: null, total: 0 };

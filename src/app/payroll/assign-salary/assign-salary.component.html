@@ -1,6 +1,6 @@
 <!-- Assign Salary.
      Reference: docs/schoolzen-planning/v1/payroll/assign-salary.html
-     Toolbar: search + Assign to Selected; row 2 Department → Designation. -->
+     Toolbar: search + Bulk Assign; row 2 Department → Designation. -->
 
 <div class="page-head">
   <div>
@@ -20,7 +20,7 @@
         </div>
         <div class="toolbar-btn-group" *ngIf="canEdit">
           <button type="button" class="btn-assign" [disabled]="!selected.size" (click)="openBulk()">
-            <i class="bi bi-person-check"></i> Assign to Selected
+            <i class="bi bi-person-check"></i> Bulk Assign
           </button>
         </div>
       </div>

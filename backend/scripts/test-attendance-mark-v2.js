@@ -12,10 +12,18 @@
 require('dotenv').config();
 // The window tests build shifts around "now"; at night in the school's zone there is no room,
 // so the test clock moves to the first zone where it is daytime (the code reads SCHOOL_TIMEZONE).
+// "Today" must also be a real WORKING day: an unrostered Sunday is the weekly off (students
+// have no roster), so a zone whose date is a Sunday is skipped (attendance-fix4.md C) — the
+// suite then passes whichever weekday it runs on.
 {
     const { DateTime } = require('luxon');
-    const zones = [process.env.SCHOOL_TIMEZONE || 'Asia/Kolkata', 'UTC', 'America/New_York', 'Asia/Tokyo', 'Pacific/Auckland'];
-    process.env.SCHOOL_TIMEZONE = zones.find((zone) => { const h = DateTime.now().setZone(zone).hour; return h >= 2 && h <= 19; });
+    const zones = [process.env.SCHOOL_TIMEZONE || 'Asia/Kolkata', 'UTC', 'Europe/London', 'America/New_York', 'America/Los_Angeles',
+        'Asia/Tokyo', 'Pacific/Auckland', 'Pacific/Honolulu', 'Asia/Dubai'];
+    const fits = (zone, sundayOk) => {
+        const now = DateTime.now().setZone(zone);
+        return now.hour >= 2 && now.hour <= 19 && (sundayOk || now.weekday !== 7);
+    };
+    process.env.SCHOOL_TIMEZONE = zones.find((zone) => fits(zone, false)) || zones.find((zone) => fits(zone, true));
 }
 global.global_config = require('../config/config.js');
 const assert = require('assert');

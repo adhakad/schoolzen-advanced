@@ -6,7 +6,7 @@ const { NotFoundError } = require('../../errors');
 const messages = require('../../helpers/messages/settings.messages');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
-const { getActiveSession } = require('../../helpers/academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
 const { loadClassTree, indexTree, scopeLabel, resolveScope } = require('../../helpers/settings/class-options');
 const { classTemplateAlreadyAssigned, isDuplicateKey } = require('../../helpers/settings/duplicate-key');
 const { loadCatalog } = require('../../helpers/settings/marksheet-catalog-loader');
@@ -33,15 +33,16 @@ const findTemplate = async (ref) => {
     return template;
 };
 
-const activeSessionId = async (adminId) => {
-    const active = await getActiveSession(adminId);
-    return active ? toObjectId(active._id) : null;
+// The header's session through the shared resolver (shared-fix2.md) — never the active flag.
+const requestSessionId = async (adminId, session) => {
+    const id = await resolveRequestSessionId(adminId, session, 'settings');
+    return id ? toObjectId(id) : null;
 };
 
 /** GET /marksheet-templates — the gallery: every template + which of this school's classes use it. */
 let GetTemplates = async (req, res) => {
     const adminId = req.query.adminId;
-    const [catalog, sessionId, tree] = await Promise.all([loadCatalog(), activeSessionId(adminId), loadClassTree(adminId)]);
+    const [catalog, sessionId, tree] = await Promise.all([loadCatalog(), requestSessionId(adminId, req.query.session), loadClassTree(adminId)]);
     const structures = sessionId
         ? await MarksheetStructureV2Model.find({ adminId, sessionId }, 'classId streamId templateId').lean()
         : [];
@@ -59,10 +60,10 @@ let GetTemplates = async (req, res) => {
 };
 
 /** Everything "Use This Template" needs to say BEFORE the admin confirms. */
-const assignmentPreview = async (adminId, { templateId, classId, streamId }) => {
+const assignmentPreview = async (adminId, { templateId, classId, streamId, session }) => {
     const template = await findTemplate(templateId);
     const scope = await resolveScope(adminId, { classId, streamId }, { requireStream: true });
-    const sessionId = await activeSessionId(adminId);
+    const sessionId = await requestSessionId(adminId, session);
     const classObjectId = toObjectId(scope.classId);
     const streamObjectId = scope.streamId ? toObjectId(scope.streamId) : null;
 

@@ -1,6 +1,5 @@
 /* Assign Salary reference styles the global design system doesn't carry
    (docs/schoolzen-planning/v1/payroll/assign-salary.html). */
-.pr-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: center; }
 th, td { white-space: nowrap; }
 td { font-size: 13px; color: var(--ink-soft); }
 th.chk, td.chk { width: 34px; text-align: center; }
@@ -21,5 +20,3 @@ th.chk input, td.chk input { width: 16px; height: 16px; accent-color: var(--bran
 .override-note { font-size: 11px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 10px; }
 .override-note b { color: var(--ink); }
 
-@media (max-width: 991px) { .pr-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 767px) { .pr-grid { grid-template-columns: 1fr; } }

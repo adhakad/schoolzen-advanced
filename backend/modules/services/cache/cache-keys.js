@@ -24,6 +24,8 @@ const keys = {
     settings: {
         // label → id map (session-resolver) — rebuilt whenever any session changes.
         sessions: (adminId) => `${adminId}:settings:sessions`,
+        // id + dates of every session — the request default (covers today, else latest).
+        sessionsDates: (adminId) => `${adminId}:settings:academic-sessions:dates`,
         activeSession: (adminId) => `${adminId}:settings:academic-session:active`,
         sessionsList: (adminId) => `${adminId}:settings:academic-sessions:list`,
         sessionsPattern: (adminId) => `${adminId}:settings:academic-session*`,

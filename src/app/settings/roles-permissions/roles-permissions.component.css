@@ -60,7 +60,7 @@
 /* Step 2 */
 .staff-toolbar { display: flex; flex-direction: column; gap: 12px; }
 .staff-toolbar .toolbar-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.staff-toolbar .toolbar-row2 { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Row 2 is the global filter grid (rule 14). */
 .btn-secondary.danger { color: var(--danger); }
 .btn-secondary.danger:hover:not(:disabled) { border-color: var(--danger); background: var(--danger-soft); }
 
@@ -71,11 +71,11 @@
   padding: 0 14px 12px 0; border-bottom: 1px solid var(--line); white-space: nowrap;
 }
 .staff-role-table th.chk, .staff-role-table td.chk { width: 34px; }
-.staff-role-table th.staff-col-head { position: sticky; left: 0; background: var(--surface); z-index: 2; min-width: 210px; }
+.staff-role-table th.staff-col-head { position: sticky; left: 0; background: var(--surface); z-index: 2; min-width: 210px; box-shadow: var(--sticky-shadow); }
 .staff-role-table td { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
 .staff-role-table tr:last-child td { border-bottom: none; }
 .staff-role-table tr:hover td { background: #F7F4FC; }
-.staff-role-table td.staff-col { position: sticky; left: 0; background: var(--surface); min-width: 210px; }
+.staff-role-table td.staff-col { position: sticky; left: 0; background: var(--surface); min-width: 210px; box-shadow: var(--sticky-shadow); }
 .staff-role-table tr:hover td.staff-col { background: #F7F4FC; }
 .staff-col .st-avatar { width: 28px; height: 28px; font-size: 10px; margin-right: 9px; vertical-align: middle; }
 .staff-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }

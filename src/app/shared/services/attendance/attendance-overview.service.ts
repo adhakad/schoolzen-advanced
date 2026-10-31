@@ -52,4 +52,9 @@ export class AttendanceOverviewService {
   mark(adminId: string, body: MarkRequest, key: string): Observable<MarkResponse> {
     return this.http.post<MarkResponse>(`${this.url}/mark`, { adminId, ...body }, { headers: idempotencyHeaders(key) });
   }
+
+  /** Change a PAST rostered working day ('attendance-edit-past'); `body.date` is required. */
+  markPast(adminId: string, body: MarkRequest, key: string): Observable<MarkResponse> {
+    return this.http.post<MarkResponse>(`${this.url}/mark-past`, { adminId, ...body }, { headers: idempotencyHeaders(key) });
+  }
 }

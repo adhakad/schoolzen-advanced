@@ -111,9 +111,9 @@ test('Part A: every Overview control is a shared overlay below its trigger; equa
   const checked = await auditTriggers(page, page.locator('.sw-toolbar .dd-trigger, app-pagination-bar .dd-trigger'), 'overview');
   expect(checked).toBeGreaterThanOrEqual(4); // person type, department, month, rows per page
   // Pills: one width; disabled ones keep the "All …" text (global rules 7, 8).
-  const widths = await page.locator('.ov-filter-row app-dd').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().width)));
+  const widths = await page.locator('.toolbar-row2 app-dd').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().width)));
   expect(new Set(widths).size, 'equal filter widths ' + widths).toBe(1);
-  const disabledLabels = await page.locator('.ov-filter-row app-dd.disabled .dd-label').allTextContents();
+  const disabledLabels = await page.locator('.toolbar-row2 app-dd.disabled .dd-label').allTextContents();
   expect(disabledLabels.length).toBeGreaterThan(0);
   disabledLabels.forEach((text) => expect(text.trim()).toMatch(/^All /));
 });
@@ -139,17 +139,17 @@ test('Part A + C: Roster filters and month open below; Delete → re-assign, wit
   const checked = await auditTriggers(page, page.locator('.sw-toolbar .dd-trigger, app-pagination-bar .dd-trigger'), 'roster');
   expect(checked).toBeGreaterThanOrEqual(3);
 
-  // Delete Selected (type-to-confirm) → one clear call.
+  // Bulk Delete (type-to-confirm) → one clear call.
   const box = () => page.locator('.rg-grid tbody tr').first().locator('input[type=checkbox]');
   await box().check();
-  await page.getByRole('button', { name: /Delete Selected/ }).click();
+  await page.getByRole('button', { name: /Bulk Delete/ }).click();
   await page.locator('app-confirm-modal input').fill('DELETE');
   await page.locator('app-confirm-modal .confirm-delete').click();
   await expect.poll(() => seen.filter((s) => s.path.endsWith('/roster/staff/clear')).length).toBe(1);
 
   // Re-assign: the row is unrostered now; Assign opens the modal.
   await box().check();
-  await page.getByRole('button', { name: /Assign to Selected/ }).click();
+  await page.getByRole('button', { name: /Bulk Assign/ }).click();
   const shiftTrigger = page.locator('#assign-shift .dd-trigger');
   await shiftTrigger.click();
   await expectBelow(page, shiftTrigger, 'assign shift');
@@ -203,13 +203,14 @@ test('Part A: month filter is one filter cell wide on Overview and Roster, any m
 test('Part D: Student shows no rows until a Class is chosen, then marks Present with the class context', async ({ page }) => {
   const seen = await openApp(page, '/v2/attendance/overview');
   await page.locator('.att-grid tbody tr').first().waitFor();
-  await page.locator('.ov-filter-row app-dd').nth(0).locator('.dd-trigger').click();
+  await page.locator('.toolbar-row2 app-dd').nth(0).locator('.dd-trigger').click();
   await page.locator('body > .dd-portal .dd-option', { hasText: 'Student' }).click();
   await expect(page.locator('.needs-class')).toHaveText(/Select a class to see students and mark attendance/);
   await expect(page.locator('.att-grid tbody tr')).toHaveCount(0);
   expect(seen.filter((s) => s.path.endsWith('/grid') && s.query.get('personType') === 'student'), 'no student grid request without a class').toHaveLength(0);
 
-  await page.locator('.ov-filter-row app-dd').nth(3).locator('.dd-trigger').click();
+  // Rule 14: student view shows Person Type, Class, Stream, Stream Group, Section — Class is 2nd.
+  await page.locator('.toolbar-row2 app-dd').nth(1).locator('.dd-trigger').click();
   await page.locator('body > .dd-portal .dd-option', { hasText: '6th' }).click();
   await expect(page.locator('.att-grid tbody tr')).toHaveCount(1);
   const gridCall = seen.filter((s) => s.path.endsWith('/grid')).pop()!;

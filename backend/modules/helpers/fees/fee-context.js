@@ -6,7 +6,7 @@ const StudentFeeRecordModel = require('../../models/fees/student-fee-record');
 const FeePaymentModel = require('../../models/fees/fee-payment');
 const { NotFoundError } = require('../../errors');
 const messages = require('../messages/fees.messages');
-const { findSessionId, loadSessionMap } = require('../academic-session/session-resolver');
+const { resolveRequestSessionId, loadSessionMap } = require('../academic-session/session-resolver');
 const { loadClassIndex, describePlacement, titleCase } = require('../student/student.utils');
 const { allows } = require('../../middleware/require-permission');
 const { buildLedger } = require('./fee-ledger');
@@ -41,7 +41,7 @@ const sessionNotFound = (label) => new NotFoundError(messages.sessionNotFound(),
 
 /** The header's session label → its id; a label with no session yet is a 404. */
 const requireSessionId = async (adminId, label) => {
-    const id = await findSessionId(adminId, label);
+    const id = await resolveRequestSessionId(adminId, label, MODULE);
     if (!id) throw sessionNotFound(label);
     return id;
 };

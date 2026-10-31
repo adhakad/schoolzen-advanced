@@ -13,6 +13,8 @@ const previewQuerySchema = Joi.object({
     templateId: templateRef,
     classId: objectId.required(),
     streamId: objectId.allow('', null).empty('').default(null),
+    // The header's session (shared-fix2.md); omitted = the session covering today.
+    session: Joi.string().trim().allow('').optional(),
 });
 
 const assignSchema = Joi.object({
@@ -22,6 +24,7 @@ const assignSchema = Joi.object({
     streamId: objectId.allow('', null).empty('').default(null),
     // Explicit consent to replace a class's existing template (CLASS_TEMPLATE_ALREADY_ASSIGNED).
     replace: Joi.boolean().default(false),
+    session: Joi.string().trim().allow('').optional(),
 });
 
 module.exports = { previewQuerySchema, assignSchema };

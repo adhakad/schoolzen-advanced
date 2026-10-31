@@ -59,7 +59,7 @@ export interface ImportResult {
   rows: ImportRowError[];
 }
 
-/** "Delete Selected" — per-row outcome, never one pass/fail for the selection. */
+/** "Bulk Delete" — per-row outcome, never one pass/fail for the selection. */
 export interface BulkDeleteResponse {
   message: string;
   deleted: number;

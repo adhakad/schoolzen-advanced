@@ -1,15 +1,6 @@
 /* Roster reference styles that the global design system doesn't carry. */
 
-/* Row 2 (roster.html): Roster's OWN shape — a flex-wrap row of fixed ~150px pills, NOT
-   Overview's 6-column grid. At most 5 pills, so never more than 6 per row; they wrap, all the
-   same width; 2 per row on mobile (global rule 12). */
-.toolbar-row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.roster-pill { flex: 0 0 var(--filter-pill-width); width: var(--filter-pill-width); min-width: 0; }
-.toolbar-row3 { display: flex; align-items: center; margin-top: 2px; }
-/* Toolbar buttons right of the search share one width (global rule 7). */
-.toolbar-btn-group > .sw-report-btn, .toolbar-btn-group > .sw-edit-btn, .toolbar-btn-group > .btn-danger-outline { width: 162px; padding: 0 10px; gap: 6px; justify-content: center; }
-/* Never clip a button: a narrow card wraps the button group under the search instead. */
-.toolbar-row1 { flex-wrap: wrap; row-gap: 10px; }
+/* Row 2 is the global filter grid and the toolbar buttons the global 130 x 38 (rules 14, 15). */
 
 .sw-report-btn, .sw-edit-btn { flex-shrink: 0; height: 38px; background: var(--surface); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; font-family: inherit; white-space: nowrap; }
 .sw-report-btn { color: var(--brand); border: 1px solid var(--brand); }
@@ -40,10 +31,10 @@
 .rg-grid thead th { color: var(--ink-faint); font-weight: 700; font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; padding: 4px 6px 8px; text-align: center; border-bottom: 1px solid var(--line); }
 .rg-grid th .dow { display: block; font-size: 9px; color: #CBC4DA; font-weight: 600; text-transform: none; margin-top: 2px; }
 .rg-grid th.chk-col { position: sticky; left: 0; background: var(--surface); z-index: 3; width: 38px; text-align: center; box-shadow: 1px 0 0 var(--line); }
-.rg-grid th.name-col { text-align: left; position: sticky; left: 38px; background: var(--surface); z-index: 3; width: 170px; padding-left: 14px; box-shadow: 1px 0 0 var(--line); }
+.rg-grid th.name-col { text-align: left; position: sticky; left: 38px; background: var(--surface); z-index: 3; width: 170px; padding-left: 14px; box-shadow: var(--sticky-shadow); }
 .rg-grid td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line-soft); position: relative; }
 .rg-grid td.chk-col { position: sticky; left: 0; background: var(--surface); z-index: 1; text-align: center; box-shadow: 1px 0 0 var(--line-soft); }
-.rg-grid td.name-cell { text-align: left; position: sticky; left: 38px; background: var(--surface); z-index: 1; padding-left: 14px; box-shadow: 1px 0 0 var(--line-soft); }
+.rg-grid td.name-cell { text-align: left; position: sticky; left: 38px; background: var(--surface); z-index: 1; padding-left: 14px; box-shadow: var(--sticky-shadow); }
 .rg-grid .day-cell { width: 60px; }
 .rg-grid th.today-col, .rg-grid td.today-col { background: var(--paper); }
 /* `thead` keeps this above `.rg-grid thead th` once Angular adds its encapsulation attributes. */
@@ -92,14 +83,10 @@
 .group-tag { display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 600; color: var(--slate); border: 1px solid var(--slate-soft); border-radius: 20px; padding: 1px 8px; vertical-align: middle; }
 
 @media (max-width: 640px) {
-  .toolbar-row2 > .roster-pill { flex: 0 0 calc((100% - 8px) / 2); width: calc((100% - 8px) / 2); }
   /* Wide table on a phone (global rule 13): narrower sticky checkbox + name, narrower days. */
   .rg-grid { min-width: calc(134px + 31 * 48px); }
   .rg-grid th.chk-col, .rg-grid td.chk-col { width: 30px; min-width: 30px; max-width: 30px; padding-left: 4px; padding-right: 4px; }
   .rg-grid th.name-col, .rg-grid td.name-cell { left: 30px; width: 104px; min-width: 104px; max-width: 104px; padding-left: 6px; padding-right: 4px; }
   .rg-grid .g-name { white-space: normal; line-height: 1.15; }
   .rg-grid .day-cell { width: 48px; min-width: 48px; }
-}
-@media (max-width: 767px) {
-  .toolbar-btn-group > .sw-report-btn, .toolbar-btn-group > .sw-edit-btn, .toolbar-btn-group > .btn-danger-outline { width: auto; }
 }

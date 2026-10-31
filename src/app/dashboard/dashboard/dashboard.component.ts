@@ -340,7 +340,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get calendarTitle(): string {
     const [y, m] = this.calendarMonth.split('-').map(Number);
-    return `${MONTHS_LONG[m - 1]} ${y}`;
+    return `${MONTHS_LONG[m - 1].slice(0, 3)} ${y}`;
   }
 
   get todayLabel(): string {

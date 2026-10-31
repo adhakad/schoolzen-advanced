@@ -8,7 +8,7 @@ const { isValidSerial } = require('../../helpers/certificates/tc-rules');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, requireSessionId, ensureStructure, issuedCountOf,
 } = require('../../helpers/certificates/tc-context');
-const { findSessionId } = require('../../helpers/academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
 const { logActivity } = require('../../services/activity-log.service');
 
 // TC Structure (certificates/tc-structure.md) — one school-wide settings form. The 19 fields
@@ -29,7 +29,7 @@ const view = (structure, sessionId, req) => ({
 
 let GetTcStructure = async (req, res) => {
     const { adminId, session } = req.query;
-    const [structure, sessionId] = await Promise.all([ensureStructure(adminId), findSessionId(adminId, session)]);
+    const [structure, sessionId] = await Promise.all([ensureStructure(adminId), resolveRequestSessionId(adminId, session, MODULE)]);
     return res.status(200).json(view(structure, sessionId, req));
 };
 

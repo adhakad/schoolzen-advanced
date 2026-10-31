@@ -72,7 +72,7 @@ export class ClassesSectionsService {
   }
 
   /**
-   * "Delete Selected" — the whole selection in one request, never a delete call per checked
+   * "Bulk Delete" — the whole selection in one request, never a delete call per checked
    * row. POST rather than DELETE because the selection is a body.
    */
   bulkDelete(adminId: string, ids: string[], confirmed: boolean): Observable<BulkDeleteResponse> {

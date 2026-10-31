@@ -70,15 +70,14 @@ test('Roster grid and toolbar match roster.html', async ({ page, browser }) => {
   expect((await styles(page, '.rg-grid th.today-col', ['color', 'background-color'])))
     .toEqual(await styles(reference, '.rg-grid th.today-col', ['color', 'background-color']));
   expect((await styles(page, '.rg-grid th.today-col .dow', ['color']))['color']).toBe(brand);
-  // Filters (roster.html, attendance-fix3.md B): Roster's own flex-wrap row of equal ~150px pills,
-  // not the 6-column grid; 2 per row on a phone (global rule 12).
-  expect((await styles(page, '.toolbar-row2', ['display', 'flex-wrap']))).toEqual({ display: 'flex', 'flex-wrap': 'wrap' });
-  const pillWidths = () => page.locator('.toolbar-row2 > .roster-pill').evaluateAll((els) => els.map((el) => Math.round((el as HTMLElement).getBoundingClientRect().width)));
-  const refPill = Math.round(parseFloat((await styles(reference, '.toolbar-row2 .sw-select-pill', ['width']))['width']));
-  expect(new Set(await pillWidths())).toEqual(new Set([refPill]));
+  // Filters (roster.html 2026-10-19, rule 14): the Overview grid — 6 equal cells, 2 per row on a phone.
+  expect((await styles(page, '.toolbar-row2', ['display']))['display']).toBe('grid');
+  const cellWidths = () => page.locator('.toolbar-row2 > *').evaluateAll((els) => els.filter((el) => (el as HTMLElement).offsetParent).map((el) => Math.round((el as HTMLElement).getBoundingClientRect().width)));
+  const rowW1 = await page.locator('.toolbar-row2').evaluate((el) => (el as HTMLElement).clientWidth);
+  expect(new Set(await cellWidths())).toEqual(new Set([Math.round((rowW1 - 40) / 6)]));
   await page.setViewportSize({ width: 390, height: 800 });
   const rowW = await page.locator('.toolbar-row2').evaluate((el) => (el as HTMLElement).clientWidth);
-  expect(new Set(await pillWidths())).toEqual(new Set([Math.round((rowW - 8) / 2)]));
+  expect(new Set(await cellWidths())).toEqual(new Set([Math.round((rowW - 8) / 2)]));
   // Sticky columns take at most ~40% of a 390px phone (global rule 13); the page never scrolls sideways.
   const sticky = await page.evaluate(() => ['th.chk-col', 'th.name-col'].reduce((sum, s) => sum + (document.querySelector('.rg-grid ' + s) as HTMLElement).offsetWidth, 0));
   expect(sticky).toBeLessThanOrEqual(156);

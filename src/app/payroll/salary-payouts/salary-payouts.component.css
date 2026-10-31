@@ -1,6 +1,5 @@
 /* Salary Payouts reference styles the global design system doesn't carry
    (docs/schoolzen-planning/v1/payroll/salary-payouts.html). */
-.pr-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: center; }
 .table-inner { min-width: 1020px; }
 th, td { white-space: nowrap; }
 td { padding: 14px; vertical-align: middle; font-size: 13px; color: var(--ink-soft); }
@@ -30,5 +29,3 @@ td { padding: 14px; vertical-align: middle; font-size: 13px; color: var(--ink-so
 .slip-body { line-height: 2; }
 .btn-brand:disabled { opacity: .55; cursor: not-allowed; }
 
-@media (max-width: 991px) { .pr-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 767px) { .pr-grid { grid-template-columns: 1fr; } }

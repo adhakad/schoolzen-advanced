@@ -1,6 +1,5 @@
 /* Generate Payroll reference styles the global design system doesn't carry
    (docs/schoolzen-planning/v1/payroll/generate-payroll.html). */
-.pr-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: center; }
 .btn-gen { flex-shrink: 0; height: 38px; background: var(--surface); color: var(--brand); border: 1px solid var(--brand); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; }
 .btn-gen:hover:not(:disabled) { background: var(--brand-soft); }
 .btn-gen:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
@@ -39,5 +38,3 @@ th.chk input, td.chk input { width: 16px; height: 16px; accent-color: var(--bran
 .skip-code { color: var(--ink-faint); font-weight: 400; }
 .skip-reason { color: var(--ink-soft); text-align: right; }
 
-@media (max-width: 991px) { .pr-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 767px) { .pr-grid { grid-template-columns: 1fr; } }

@@ -12,7 +12,8 @@ import {
   ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit
 } from '@angular/core';
 import { Subject } from 'rxjs';
-import { switchMap, takeUntil } from 'rxjs/operators';
+import { distinctUntilChanged, map, switchMap, takeUntil } from 'rxjs/operators';
+import { ShellContextService } from 'src/app/shared/services/shell-context.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { DdOption } from 'src/app/shared/models/shared-components.model';
@@ -28,6 +29,7 @@ import { toApiError } from 'src/app/shared/utils/api-error.util';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MarksheetTemplatesComponent implements OnInit, OnDestroy {
+  session = '';
   adminId = '';
   loading = true;
   loadError = '';
@@ -57,7 +59,8 @@ export class MarksheetTemplatesComponent implements OnInit, OnDestroy {
     private templatesService: MarksheetTemplatesService,
     private adminAuthService: AdminAuthService,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private shellContext: ShellContextService
   ) {}
 
   ngOnInit(): void {
@@ -72,7 +75,7 @@ export class MarksheetTemplatesComponent implements OnInit, OnDestroy {
         this.previewLoading = true;
         this.previewError = '';
         this.cdr.markForCheck();
-        return this.templatesService.getAssignPreview(this.adminId, q.templateId, q.classId, q.streamId);
+        return this.templatesService.getAssignPreview(this.adminId, q.templateId, q.classId, q.streamId, this.session);
       }),
       takeUntil(this.destroyed$)
     ).subscribe((preview) => {
@@ -84,7 +87,12 @@ export class MarksheetTemplatesComponent implements OnInit, OnDestroy {
       this.previewError = "Couldn't check this class — try again.";
       this.cdr.markForCheck();
     });
-    this.fetchTemplates();
+    // The header session (shared-fix2.md): every switch re-reads which classes use which template.
+    this.shellContext.context.pipe(map((context) => context.activeSession), distinctUntilChanged(), takeUntil(this.destroyed$))
+      .subscribe((session) => {
+        this.session = session;
+        this.fetchTemplates();
+      });
   }
 
   ngOnDestroy(): void {
@@ -95,7 +103,7 @@ export class MarksheetTemplatesComponent implements OnInit, OnDestroy {
   fetchTemplates(): void {
     this.loading = true;
     this.loadError = '';
-    this.templatesService.getTemplates(this.adminId).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
+    this.templatesService.getTemplates(this.adminId, this.session).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.templates = res.templates || [];
       this.classes = res.classes || [];
       this.loading = false;
@@ -209,7 +217,8 @@ export class MarksheetTemplatesComponent implements OnInit, OnDestroy {
       templateId: template._id,
       classId: this.classId,
       streamId: this.streamId || null,
-      replace: !!this.preview?.existing && this.replaceConfirmed
+      replace: !!this.preview?.existing && this.replaceConfirmed,
+      session: this.session
     }).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.saving = false;
       this.assignOpen = false;

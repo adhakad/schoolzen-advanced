@@ -16,13 +16,14 @@ export class MarksheetTemplatesService {
 
   constructor(private http: HttpClient) {}
 
-  getTemplates(adminId: string): Observable<MarksheetTemplatesResponse> {
-    return this.http.get<MarksheetTemplatesResponse>(this.url, { params: { adminId } });
+  getTemplates(adminId: string, session = ''): Observable<MarksheetTemplatesResponse> {
+    return this.http.get<MarksheetTemplatesResponse>(this.url, { params: session ? { adminId, session } : { adminId } });
   }
 
   /** What "Use This Template" would do to this class — fetched before confirming. */
-  getAssignPreview(adminId: string, templateId: string, classId: string, streamId: string | null): Observable<AssignPreview> {
+  getAssignPreview(adminId: string, templateId: string, classId: string, streamId: string | null, session = ''): Observable<AssignPreview> {
     const params: Record<string, string> = { adminId, templateId, classId };
+    if (session) params['session'] = session;
     if (streamId) params['streamId'] = streamId;
     return this.http.get<AssignPreview>(`${this.url}/assign-preview`, { params });
   }

@@ -10,7 +10,7 @@ const { buildWorkbook, parseWorkbook } = require('../../services/excel/excel.ser
 const { destroyImages, imageUrl } = require('../../services/media/cloudinary.service');
 const { buildStudentSheetColumns, formatSheetDate } = require('../../helpers/student/student-excel');
 const { createStudentRecord, updateStudentRecord, invalidateClassStats } = require('../../helpers/student/student-write');
-const { findSessionId, ensureSessionId, labelOfSessionId } = require('../../helpers/academic-session/session-resolver');
+const { findSessionId, ensureSessionId, labelOfSessionId, resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
 const { maskStudent, maskValue, SENSITIVE_FIELDS } = require('../../helpers/student/student-mask');
 const { logActivity } = require('../../services/activity-log.service');
 const { loadLedgerData, ledgerFor } = require('../../helpers/fees/fee-context');
@@ -45,7 +45,7 @@ let ListStudents = async (req, res) => {
 // counts, never a scan.
 let GetOverview = async (req, res) => {
     const { adminId, session } = req.query;
-    const sessionId = await findSessionId(adminId, session);
+    const sessionId = await resolveRequestSessionId(adminId, session, MODULE);
     const [totalStudents, cardsAssigned] = await Promise.all([
         sessionId ? StudentEnrollmentModel.countDocuments({ adminId, sessionId }) : 0,
         StudentProfileModel.countDocuments({ adminId, cardNumber: { $type: 'string' } }),

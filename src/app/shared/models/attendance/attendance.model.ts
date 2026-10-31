@@ -62,12 +62,19 @@ export interface GridResponse {
   canMark: boolean;
   /** Student view with no class chosen — the server sends no rows (class-first rule). */
   needsClass?: boolean;
+  /**
+   * Past-date editing (attendance-fix4.md B2): the caller holds 'attendance-edit-past' and the
+   * selected session's range. The UI only mirrors it — the server re-checks every condition.
+   */
+  editPast?: { allowed: boolean; from: string | null; to: string | null };
 }
 
 export interface MarkRequest {
   personType: PersonType;
   personId: string;
   status: MarkStatus;
+  /** Past-date edits only: the day being changed ('YYYY-MM-DD'). */
+  date?: string;
   session?: string;
   classId?: string;
   streamId?: string;

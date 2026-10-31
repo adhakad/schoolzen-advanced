@@ -31,6 +31,7 @@ const StudentEnrollmentModel = require('../modules/models/student/student-enroll
 const HolidayV2Model = require('../modules/models/holiday/holiday');
 const HolidayTemplateV2Model = require('../modules/models/holiday/holiday-template');
 const LeaveRequestV2Model = require('../modules/models/leave/leave-request');
+const AcademicSessionV2Model = require('../modules/models/settings/academic-session');
 
 /** A chainable stand-in for a mongoose query that resolves to `rows`. */
 const query = (rows) => {
@@ -70,6 +71,11 @@ StaffV2Model.distinct = async () => [ADMIN];
 StudentEnrollmentModel.find = () => query([]);
 ClassShiftV2Model.find = () => query([]);
 ShiftV2Model.find = () => query([SHIFT]);
+// The grid reads the header session's range for past-date editing (attendance-fix4.md B2).
+const SESSION = { _id: new (require('mongoose').Types.ObjectId)(), label: '2026-2027', startDate: new Date('2026-04-01'), endDate: new Date('2027-03-31'), status: 'active' };
+AcademicSessionV2Model.find = () => query([SESSION]);
+AcademicSessionV2Model.findOne = () => query(SESSION);
+AcademicSessionV2Model.exists = async () => ({ _id: SESSION._id });
 ShiftV2Model.findOne = () => query(SHIFT);
 HolidayTemplateV2Model.findOne = () => query({ _id: TEMPLATE, holidayIds: [HOLIDAY] });
 // Wednesday 12 Aug 2026 is a dated holiday in Ravi's template.

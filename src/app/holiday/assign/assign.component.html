@@ -1,6 +1,6 @@
 <!-- Holiday Assign.
      Reference: docs/schoolzen-planning/v1/holiday/assign.html
-     Row 1: search + Assign to Selected + Edit Selected; mixed-selection warning; the shared
+     Row 1: search + Bulk Assign + Bulk Edit; mixed-selection warning; the shared
      Person Type filter rows. -->
 
 <div class="page-head">
@@ -21,10 +21,10 @@
         </div>
         <div class="toolbar-btn-group" *ngIf="canAssign">
           <button type="button" class="btn-assign" [disabled]="assignDisabled" (click)="onAssignSelected()">
-            <i class="bi bi-calendar-check"></i> Assign to Selected
+            <i class="bi bi-calendar-check"></i> Bulk Assign
           </button>
           <button type="button" class="btn-edit-sel" [disabled]="editDisabled" (click)="onEditSelected()">
-            <i class="bi bi-pencil"></i> Edit Selected
+            <i class="bi bi-pencil"></i> Bulk Edit
           </button>
         </div>
       </div>

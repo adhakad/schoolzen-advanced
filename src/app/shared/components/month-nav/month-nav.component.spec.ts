@@ -52,16 +52,13 @@ describe('MonthNavComponent', () => {
     expect(component.label).toBe('May 2026');
   });
 
-  // One filter cell: (row − 40px) / 6 in a flex row; its own cell in a 6-column grid. Karma's
-  // window may be under 640px, where the token is (row − 8px) / 2 — both are one cell.
-  it('is exactly one filter cell of its row, flex or grid, whatever the label', async () => {
+  // Rules 7 + 14: the month filter is a normal cell of the 6-column filter grid (no width token).
+  it('is exactly one filter cell of the filter grid, whatever the label', async () => {
     await TestBed.resetTestingModule().configureTestingModule({ declarations: [MonthNavComponent, HostComponent] }).compileComponents();
     const host = TestBed.createComponent(HostComponent);
     document.body.appendChild(host.nativeElement);
     host.detectChanges();
     const width = () => (host.nativeElement.querySelector('.month-nav') as HTMLElement).getBoundingClientRect().width;
-    const phone = window.matchMedia('(max-width: 640px)').matches;
-    expect(width()).toBeCloseTo(phone ? (1000 - 8) / 2 : (1000 - 40) / 6, 0);
     host.componentInstance.display = 'grid';
     host.detectChanges();
     expect(width()).toBeCloseTo((1000 - 5 * 8) / 6, 0);

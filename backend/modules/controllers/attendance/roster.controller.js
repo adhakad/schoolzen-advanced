@@ -17,8 +17,10 @@ const { withTransaction } = require('../../helpers/with-transaction');
 // Roster (roster.md) — which shift each staff member works on each day (v2-roster, monthly
 // snapshot), and which shift each class/stream/section follows (v2-class-shift).
 //
-// Past days are locked: attendance may already be recorded against them, so every write
-// touches today onward only (the reference's "earlier months are locked" rule).
+// An assignment covers the WHOLE month — day 1 to the last day, past days included
+// (attendance-fix4.md A4) — so Overview has an expected shift (and an Absent default) for
+// every day. Earlier months stay locked (the reference's "earlier months are locked" rule).
+// Delete still clears today onward only: what was expected on past days stays as it was.
 
 const MAX_PEOPLE = 1000;
 
@@ -27,6 +29,20 @@ const dateRangeInvalid = (message = messages.dateRangeInvalid()) => new Validati
     code: 'DATE_RANGE_INVALID',
     fields: [{ field: 'month', message, code: 'DATE_RANGE_INVALID' }],
 });
+
+/** The first day of the current month — nothing before it is ever written. */
+const monthFloor = () => `${todayKey().slice(0, 7)}-01`;
+
+/** The days an assignment writes: the whole month (from the current month on), optionally narrowed. */
+const assignableDays = (month, fromDate, toDate) => {
+    if (fromDate && toDate && fromDate > toDate) throw dateRangeInvalid();
+    const floor = monthFloor();
+    const days = monthDays(month).filter((key) => key >= floor
+        && (!fromDate || key >= fromDate)
+        && (!toDate || key <= toDate));
+    if (!days.length) throw dateRangeInvalid('Earlier months are locked — pick the current month or later.');
+    return days;
+};
 
 /** The editable days of a month: today onward, optionally narrowed by from/to. */
 const editableDays = (month, fromDate, toDate) => {
@@ -137,14 +153,14 @@ let GetStaffRoster = async (req, res) => {
 
 const MAX_ASSIGN_DAYS = 366;
 
-/** The editable days of a from..to range (may cross months): today onward only. */
+/** The days of a from..to range (may cross months), from the current month's first day on. */
 const editableRange = (fromDate, toDate) => {
     if (fromDate > toDate) throw dateRangeInvalid();
     const span = eachKey(fromDate, toDate);
     if (span.length > MAX_ASSIGN_DAYS) throw dateRangeInvalid('Pick a range of at most one year.');
-    const today = todayKey();
-    const days = span.filter((key) => key >= today);
-    if (!days.length) throw dateRangeInvalid('Past days are locked — pick today or a later date.');
+    const floor = monthFloor();
+    const days = span.filter((key) => key >= floor);
+    if (!days.length) throw dateRangeInvalid('Earlier months are locked — pick the current month or later.');
     return days;
 };
 
@@ -155,7 +171,7 @@ const editableRange = (fromDate, toDate) => {
  */
 let AssignStaffRoster = async (req, res) => {
     const { adminId, staffIds, shiftId, month, weekdays, fromDate, toDate } = req.body;
-    const days = fromDate ? editableRange(fromDate, toDate) : editableDays(month);
+    const days = fromDate ? editableRange(fromDate, toDate) : assignableDays(month);
     const [, { valid, failed }] = await Promise.all([assertAssignableShift(adminId, shiftId), partitionStaff(adminId, staffIds)]);
 
     const byMonth = new Map();
@@ -182,7 +198,7 @@ let AssignStaffRoster = async (req, res) => {
         }, dbSession);
     });
     // Best effort and never rejects (context.js) — the response doesn't wait on the queue.
-    if (days[0] === todayKey()) enqueueReconcile(adminId, days[0]);
+    if (days.includes(todayKey())) enqueueReconcile(adminId, todayKey());
 
     return res.status(200).json({
         message: messages.rosterAssigned(valid.length, days.length),

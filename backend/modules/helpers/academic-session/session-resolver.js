@@ -112,6 +112,7 @@ const ensureSessionId = async (adminId, label) => {
 
 const invalidateSessions = (adminId) => cacheService.del(
     cacheKeys.settings.sessions(adminId),
+    cacheKeys.settings.sessionsDates(adminId),
     cacheKeys.settings.sessionsList(adminId),
     cacheKeys.settings.activeSession(adminId)
 );
@@ -160,23 +161,80 @@ const getActiveSession = async (adminId) => {
     return read();
 };
 
-/**
- * THE session rule for request paths (shared-fix1.md S2): the session the user selected in
- * the header (sent by the client) wins, validated against this school's sessions. A label the
- * school has no session for is a 404 SESSION_NOT_FOUND — never a silent fall back to another
- * session. The active flag is only the default when the client sends no label at all.
- * Returns the id as a string, or null when nothing was sent and no session is active.
- */
-const resolveRequestSessionId = async (adminId, label, module) => {
-    if (label) {
-        const id = await findSessionId(adminId, label);
-        if (!id) {
-            throw new NotFoundError('This academic session does not exist yet.', { module, code: 'SESSION_NOT_FOUND', context: { label } });
-        }
-        return String(id);
+// Every session's id + dates, for the request default below. Same near-static lifetime as
+// the label map, invalidated with it.
+const loadSessionDates = (adminId) => cacheService.wrap(
+    cacheKeys.settings.sessionsDates(adminId),
+    cacheService.TTL.NEAR_STATIC_30,
+    async () => {
+        const sessions = await AcademicSessionV2Model.find({ adminId }, 'label startDate endDate').lean();
+        return sessions.map((session) => ({
+            _id: String(session._id),
+            label: session.label,
+            startDate: new Date(session.startDate).toISOString(),
+            endDate: new Date(session.endDate).toISOString(),
+        }));
     }
-    const active = await getActiveSession(adminId);
-    return active ? String(active._id) : null;
+);
+
+/**
+ * The default session when the client sends none (shared-fix2.md): the one whose dates cover
+ * `now`, else the latest by start date. Never the `active` flag alone — a stale flag on an
+ * older or later year must not decide which year a page shows. Pure, so it is unit-tested.
+ */
+const pickDefaultSession = (sessions, now = new Date()) => {
+    const time = now.getTime();
+    const list = sessions || [];
+    const covering = list.find((s) => new Date(s.startDate).getTime() <= time && time <= new Date(s.endDate).getTime());
+    if (covering) return covering;
+    return list.slice().sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0] || null;
+};
+
+const getDefaultSession = async (adminId, now = new Date()) => {
+    let sessions = await loadSessionDates(adminId);
+    if (!sessions.length) {
+        // First-ever visit: today's calendar session is created (as getActiveSession does).
+        await getActiveSession(adminId);
+        sessions = await loadSessionDates(adminId);
+    }
+    return pickDefaultSession(sessions, now);
+};
+
+/** { startKey, endKey } ('YYYY-MM-DD') of one of this school's sessions, or null. */
+const sessionRangeOf = async (adminId, sessionId) => {
+    if (!sessionId) return null;
+    const row = (await loadSessionDates(adminId)).find((s) => s._id === String(sessionId));
+    return row ? { startKey: row.startDate.slice(0, 10), endKey: row.endDate.slice(0, 10) } : null;
+};
+
+const OBJECT_ID = /^[a-f\d]{24}$/i;
+
+/**
+ * THE session rule for request paths (shared-fix1.md S2, shared-fix2.md): the session the
+ * user selected in the header (sent by the client, as its label or its id) wins, validated
+ * against this school's sessions. One the school has no session for is a 404
+ * SESSION_NOT_FOUND — never a silent fall back. With nothing sent, the default is the
+ * session covering today, else the latest one. Returns the id as a string, or null when the
+ * school has no session at all.
+ */
+const resolveRequestSessionId = async (adminId, value, module) => {
+    if (value) {
+        const sent = String(value).trim();
+        let id = null;
+        if (OBJECT_ID.test(sent)) {
+            const sessions = await loadSessionDates(adminId);
+            id = sessions.some((s) => s._id === sent) ? sent : null;
+        } else {
+            const found = await findSessionId(adminId, sent);
+            id = found ? String(found) : null;
+        }
+        if (!id) {
+            throw new NotFoundError('This academic session does not exist yet.', { module, code: 'SESSION_NOT_FOUND', context: { label: sent } });
+        }
+        return id;
+    }
+    const fallback = await getDefaultSession(adminId);
+    return fallback ? fallback._id : null;
 };
 
 /**
@@ -185,11 +243,8 @@ const resolveRequestSessionId = async (adminId, label, module) => {
  * covers the day.
  */
 const findSessionIdForDate = async (adminId, date) => {
-    const covering = await AcademicSessionV2Model
-        .findOne({ adminId, startDate: { $lte: date }, endDate: { $gte: date } }, '_id').lean();
-    if (covering) return String(covering._id);
-    const active = await getActiveSession(adminId);
-    return active ? String(active._id) : null;
+    const fallback = pickDefaultSession(await loadSessionDates(adminId), new Date(date));
+    return fallback ? fallback._id : null;
 };
 
 /** The label for a session id (for responses), or null. */
@@ -207,6 +262,9 @@ module.exports = {
     loadSessionMap,
     markSessionLocked,
     getActiveSession,
+    getDefaultSession,
+    pickDefaultSession,
+    sessionRangeOf,
     resolveRequestSessionId,
     findSessionIdForDate,
     currentSessionLabel,

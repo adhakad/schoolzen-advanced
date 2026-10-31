@@ -143,7 +143,7 @@ describe('DashboardComponent', () => {
     (card('calendar')!.querySelector('[aria-label="Next month"]') as HTMLElement).click();
     render();
     expect(api.getWidget).toHaveBeenCalledWith('adm', 'calendar', '2026-2027', '2026-10');
-    expect(card('calendar')!.querySelector('.card-title-row')!.textContent!.trim()).toBe('October 2026');
+    expect(card('calendar')!.querySelector('.card-title-row')!.textContent!.trim()).toBe('Oct 2026');
     expect(card('calendar')!.querySelector('.cal-day.today')).toBeNull();
   });
 

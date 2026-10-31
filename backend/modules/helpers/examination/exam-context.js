@@ -6,7 +6,7 @@ const AcademicSessionV2Model = require('../../models/settings/academic-session')
 const MarksheetStructureV2Model = require('../../models/examination/marksheet-structure');
 const { NotFoundError, ValidationError } = require('../../errors');
 const messages = require('../messages/examination.messages');
-const { findSessionId } = require('../academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../academic-session/session-resolver');
 const { loadCatalog } = require('../settings/marksheet-catalog-loader');
 const { allows } = require('../../middleware/require-permission');
 const { toDateKey } = require('../date-only');
@@ -41,7 +41,7 @@ const fieldErrors = (errors, message) => new ValidationError(message || errors[0
 });
 
 const requireSessionId = async (adminId, label) => {
-    const id = await findSessionId(adminId, label);
+    const id = await resolveRequestSessionId(adminId, label, MODULE);
     if (!id) throw new NotFoundError(messages.sessionNotFound(), { module: MODULE, code: 'SESSION_NOT_FOUND', context: { label } });
     return id;
 };

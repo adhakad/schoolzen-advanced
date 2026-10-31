@@ -9,7 +9,7 @@ const AttendanceRecordV2Model = require('../../models/attendance/attendance-reco
 const TcStructureModel = require('../../models/certificates/tc-structure');
 const { NotFoundError } = require('../../errors');
 const messages = require('../messages/certificates.messages');
-const { findSessionId } = require('../academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../academic-session/session-resolver');
 const { loadClassIndex, describePlacement } = require('../student/student.utils');
 const { getClassDisplayName } = require('../format-class-name');
 const { loadLedgerData, ledgerFor } = require('../fees/fee-context');
@@ -42,7 +42,7 @@ const toObjectId = (value) => (value ? new ObjectId(String(value)) : null);
 const notFound = (context) => new NotFoundError(messages.notFound(), { module: MODULE, code: 'NOT_FOUND', context });
 
 const requireSessionId = async (adminId, label) => {
-    const id = await findSessionId(adminId, label);
+    const id = await resolveRequestSessionId(adminId, label, MODULE);
     if (!id) throw new NotFoundError(messages.sessionNotFound(), { module: MODULE, code: 'SESSION_NOT_FOUND', context: { label } });
     return id;
 };

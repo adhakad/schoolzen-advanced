@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import {
   ActivateSessionResponse, CopyForwardOptionsResponse, CreateSessionPayload, CreateSessionResponse,
-  SessionListResponse
+  SessionListResponse, SessionOptionsResponse
 } from 'src/app/shared/models/settings/academic-session.model';
 import { idempotencyHeaders } from 'src/app/shared/utils/idempotency.util';
 
@@ -17,6 +17,11 @@ export class AcademicSessionsService {
   private url = `${environment.API_URL}/api/v2/settings/academic-sessions`;
 
   constructor(private http: HttpClient) {}
+
+  /** Every v2 session for the shell header (auth + tenant only, no Settings permission). */
+  getOptions(adminId: string): Observable<SessionOptionsResponse> {
+    return this.http.get<SessionOptionsResponse>(`${this.url}/options`, { params: { adminId } });
+  }
 
   getSessions(adminId: string, page = 1, limit = 10): Observable<SessionListResponse> {
     return this.http.get<SessionListResponse>(this.url, {

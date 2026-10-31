@@ -1,11 +1,7 @@
 /* Approval Requests reference styles the global design system doesn't carry
    (docs/schoolzen-planning/v1/approvals/approvals.html). */
 
-/* Row 2: the reference's 6-column grid; row 3: Type + Status at 180px each. */
-.toolbar-row2.ap-filter-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
-.ap-filter-grid app-dd { min-width: 0; }
-.toolbar-row3 { display: flex; align-items: center; gap: 8px; }
-.toolbar-row3 .row3-pill { width: 180px; flex-shrink: 0; }
+/* Filters: the global filter grid (.sz .toolbar-row2, rule 14) — no page copy. */
 
 .grid-scroll { overflow-x: auto; }
 td { padding: 16px; }
@@ -33,11 +29,3 @@ th.act, td.act { text-align: right; }
 .detail-row .dl { color: var(--ink-faint); }
 .detail-row .dv { color: var(--ink); font-weight: 600; }
 
-@media (max-width: 991px) {
-  .toolbar-row2.ap-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-@media (max-width: 767px) {
-  .toolbar-row2.ap-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .toolbar-row3 { flex-wrap: wrap; }
-  .toolbar-row3 .row3-pill { width: 100%; }
-}

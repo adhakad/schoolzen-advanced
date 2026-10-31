@@ -3,7 +3,7 @@
  *
  * Reference: docs/schoolzen-planning/v1/holiday/assign.html
  *
- * Row 1: search + Assign to Selected + Edit Selected; then the shared Person Type filter.
+ * Row 1: search + Bulk Assign + Bulk Edit; then the shared Person Type filter.
  * Assign is for people with no template yet, Edit for people who already have one. A
  * selection that mixes both shows a warning and disables BOTH buttons — the API rejects
  * such a batch too (HOLIDAY_ASSIGN_MIXED_SELECTION). Anyone "Not assigned" has no dated

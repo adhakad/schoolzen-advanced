@@ -3,7 +3,7 @@
  * which session, with which permissions".
  *
  * It composes what already exists — AdminAuthService / TeacherAuthService (the eight
- * legacy `<key>Permission.status` booleans), SchoolService, AcademicSessionService —
+ * legacy `<key>Permission.status` booleans), SchoolService, the v2 AcademicSessionsService —
  * into one ShellContext. No legacy service is modified.
  *
  * When R3 (unified roles & permissions) lands, this file is the only thing that
@@ -15,10 +15,10 @@ import { AdminAuthService } from 'src/app/services/auth/admin-auth.service';
 import { TeacherAuthService } from 'src/app/services/auth/teacher-auth.service';
 import { SchoolService } from 'src/app/services/school.service';
 import { TeacherService } from 'src/app/services/teacher.service';
-import { AcademicSessionService } from 'src/app/services/academic-session.service';
+import { AcademicSessionsService } from 'src/app/shared/services/settings/academic-sessions.service';
 import { RolesPermissionsService } from 'src/app/shared/services/settings/roles-permissions.service';
 // "2026-2027" — the fallback when the server has no academic-session document at all.
-import { currentSessionLabel } from 'src/app/shared/utils/academic-session.util';
+import { currentSessionLabel, pickHeaderSession } from 'src/app/shared/utils/academic-session.util';
 import {
   ShellContext,
   ShellPermissionKey,
@@ -71,13 +71,14 @@ const EMPTY_CONTEXT: ShellContext = {
 export class ShellContextService {
   private readonly context$ = new BehaviorSubject<ShellContext>(EMPTY_CONTEXT);
   private loaded = false;
+  private sessionStoreKey = '';
 
   constructor(
     private adminAuthService: AdminAuthService,
     private teacherAuthService: TeacherAuthService,
     private schoolService: SchoolService,
     private teacherService: TeacherService,
-    private academicSessionService: AcademicSessionService,
+    private academicSessionsService: AcademicSessionsService,
     private rolesPermissionsService: RolesPermissionsService
   ) {}
 
@@ -126,7 +127,7 @@ export class ShellContextService {
     });
 
     this.loadSchool(user?.adminId || user?.id);
-    this.loadSessions();
+    this.loadSessions(user?.adminId || user?.id, user?.id);
     if (role === 'teacher') this.loadTeacherPermissions(user);
     else this.loadV2Permissions(user?.id);
   }
@@ -136,8 +137,10 @@ export class ShellContextService {
     if (this.snapshot.role !== 'teacher') this.loadV2Permissions(this.adminAuthService.getLoggedInAdminInfo()?.id);
   }
 
+  /** The header switch: every page re-reads for it, and the choice is remembered per user. */
   setActiveSession(session: string): void {
     this.patch({ activeSession: session });
+    try { if (this.sessionStoreKey) localStorage.setItem(this.sessionStoreKey, session); } catch { /* not remembered */ }
   }
 
   logout(): void {
@@ -171,26 +174,24 @@ export class ShellContextService {
   }
 
   /**
-   * The header's session selector. It must always have something to show: it is how the
-   * user knows which year the numbers on screen belong to, so a database whose
-   * academic-session document is missing has to degrade to the current year rather than
-   * silently removing the control from every page.
+   * The header's session selector — ONLY the v2 academic-session collection (shared-fix2.md).
+   * Default: the user's remembered choice, else the session covering today, else the latest.
+   * It must always have something to show: a school with no session at all degrades to the
+   * current year rather than silently removing the control from every page.
    */
-  private loadSessions(): void {
+  private loadSessions(adminId: string | undefined, userId: string | undefined): void {
     const fallback = currentSessionLabel();
     this.patch({ sessions: [fallback], activeSession: fallback });
+    if (!adminId) return;
+    this.sessionStoreKey = `v2.session.${adminId}.${userId || adminId}`;
 
-    this.academicSessionService.getAcademicSession().subscribe((res: any) => {
-      if (!res) return;
-      const active: string = res.academicSession || '';
-      const sessions: string[] = Array.from(
-        new Set([...(res.allSession || []), active].filter(Boolean))
-      );
-      if (!sessions.length) return;
-      this.patch({
-        sessions,
-        activeSession: active || sessions[0]
-      });
+    this.academicSessionsService.getOptions(adminId).subscribe((res) => {
+      const rows = (res?.sessions || []).filter((row) => row.label);
+      if (!rows.length) return;
+      let remembered: string | null = null;
+      try { remembered = localStorage.getItem(this.sessionStoreKey); } catch { /* none */ }
+      const chosen = pickHeaderSession(rows, remembered) || res.defaultLabel || rows[0].label;
+      this.patch({ sessions: rows.map((row) => row.label), activeSession: chosen });
     }, () => { /* the fallback session above stays, rather than blanking the selector */ });
   }
 

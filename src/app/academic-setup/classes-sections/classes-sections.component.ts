@@ -269,7 +269,7 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroyed$))
       .subscribe((res) => {
         this.classes = res || [];
-        // A row that no longer exists must not stay selected and re-arm Delete Selected.
+        // A row that no longer exists must not stay selected and re-arm Bulk Delete.
         const live = new Set(this.classes.map((item) => item._id));
         this.selected.forEach((id) => {
           if (!live.has(id)) this.selected.delete(id);
@@ -834,7 +834,7 @@ export class ClassesSectionsComponent implements OnInit, OnDestroy {
     this.openDeleteConfirm([row._id]);
   }
 
-  /** "Delete Selected" — whatever is checked, in one request. */
+  /** "Bulk Delete" — whatever is checked, in one request. */
   onDeleteSelected(): void {
     if (!this.selected.size) return;
     this.openDeleteConfirm(Array.from(this.selected));

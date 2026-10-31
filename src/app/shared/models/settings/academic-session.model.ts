@@ -63,3 +63,19 @@ export interface ActivateSessionResponse {
   session: AcademicSessionRow;
   previousLabel: string | null;
 }
+
+/** GET /academic-sessions/options — the shell header's session selector (v2 sessions only). */
+export interface SessionOption {
+  _id: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
+
+export interface SessionOptionsResponse {
+  sessions: SessionOption[];
+  activeLabel: string | null;
+  /** The session covering today, else the latest — the default when nothing is remembered. */
+  defaultLabel: string | null;
+}

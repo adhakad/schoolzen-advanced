@@ -212,7 +212,7 @@ export class DateRangePickerComponent implements OnChanges, OnDestroy {
   private picked: string | null = null;
 
   get monthLabel(): string {
-    return MONTHS[Number(this.viewMonth.slice(5, 7)) - 1] + ' ' + this.viewMonth.slice(0, 4);
+    return MONTHS[Number(this.viewMonth.slice(5, 7)) - 1].slice(0, 3) + ' ' + this.viewMonth.slice(0, 4);
   }
 
   get prevDisabled(): boolean {

@@ -171,6 +171,10 @@ const markSchema = Joi.object({
     }),
 });
 
+// Past-date editing (attendance-fix4.md B2): the date IS sent here, and every condition on it
+// is re-checked server-side (roster, working day, no device punch, inside the session).
+const markPastSchema = markSchema.keys({ date: dateKey.required() });
+
 module.exports = {
     shiftSchema,
     shiftListSchema,
@@ -185,4 +189,5 @@ module.exports = {
     dayPunchesSchema,
     syncSchema,
     markSchema,
+    markPastSchema,
 };

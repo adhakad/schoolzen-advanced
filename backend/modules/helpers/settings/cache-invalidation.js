@@ -12,7 +12,8 @@ const onSessionsChanged = (adminId) => Promise.all([
     cacheService.del(
         cacheKeys.settings.activeSession(adminId),
         cacheKeys.settings.sessionsList(adminId),
-        cacheKeys.settings.sessions(adminId)
+        cacheKeys.settings.sessions(adminId),
+        cacheKeys.settings.sessionsDates(adminId)
     ),
     cacheService.delPattern(cacheKeys.settings.sessionsPattern(adminId)),
 ]);

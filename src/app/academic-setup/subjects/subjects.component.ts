@@ -82,7 +82,7 @@ export class SubjectsComponent implements OnInit, OnDestroy {
    *
    * A selection survives paging, because the list is server-paged and someone selecting
    * across two pages means it. Deleted ids are removed when the delete succeeds, so a
-   * stale id can never re-arm "Delete Selected".
+   * stale id can never re-arm "Bulk Delete".
    */
   selected = new Set<string>();
 

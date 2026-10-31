@@ -44,7 +44,7 @@ describe('DpComponent', () => {
     component.ngOnChanges();
     expect(component.label).toBe('12 Mar 2013');
     component.toggle(click);
-    expect(component.monthLabel).toBe('March 2013');
+    expect(component.monthLabel).toBe('Mar 2013');
     expect(component.cells.find((cell) => cell.selected)?.iso).toBe('2013-03-12');
   });
 

@@ -3,7 +3,7 @@
  *
  * Reference: docs/schoolzen-planning/v1/holiday/holidays.html
  *
- * Row 1: search + Delete Selected + Generate from Public Holidays + Add Holiday. Row 2: the
+ * Row 1: search + Bulk Delete + Generate from Public Holidays + Add Holiday. Row 2: the
  * shared month filter (app-month-nav) with this page's holiday bands, chips and "Show all months". A holiday does nothing on
  * its own until a Template includes it; deleting one detaches it from every template, and
  * the API reports how many.

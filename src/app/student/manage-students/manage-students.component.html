@@ -21,13 +21,13 @@
             (input)="onSearchInput($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group">
-          <button type="button" class="btn-warn" [disabled]="!selectedCount" title="Delete Selected"
+          <button type="button" class="btn-warn" [disabled]="!selectedCount" title="Bulk Delete"
             (click)="onDeleteSelected()">
-            <i class="bi bi-trash"></i> <span class="btn-label">Delete Selected</span>
+            <i class="bi bi-trash"></i> <span class="btn-label">Bulk Delete</span>
           </button>
-          <button type="button" class="btn-assign" [disabled]="!selectedCount" title="Assign Card to Selected"
+          <button type="button" class="btn-assign" [disabled]="!selectedCount" title="Bulk Assign"
             (click)="onAssignCardSelected()">
-            <i class="bi bi-credit-card"></i> <span class="btn-label">Assign Card to Selected</span>
+            <i class="bi bi-credit-card"></i> <span class="btn-label">Bulk Assign</span>
           </button>
           <!-- The one scope-gated action: disabled until a Class (+Stream for 11th/12th) is picked. -->
           <button type="button" class="btn-secondary excel-btn" [disabled]="!excelEnabled"

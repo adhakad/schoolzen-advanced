@@ -4,7 +4,7 @@ const SubjectGroupModel = require('../../models/academic-setup/subject-group');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const StudentProfileModel = require('../../models/student/student');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { findSessionId } = require('../../helpers/academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
 const { classOrderOf, byClassOrder } = require('../../helpers/academic-setup/class-order');
 const { planStructure, assertFlatSectionsRemovable, syncClassGroups, classHasStreams } = require('../../helpers/academic-setup/class-structure');
 const { NotFoundError, ConflictError, ValidationError } = require('../../errors');
@@ -58,7 +58,7 @@ const getStudentCounts = async (adminId, session) => {
     const byClass = new Map();
     const byStream = new Map();
 
-    const sessionId = session ? await findSessionId(adminId, session) : null;
+    const sessionId = await resolveRequestSessionId(adminId, session, 'academic-setup');
     if (!sessionId) return { byClass, byStream };
 
     const groups = await StudentEnrollmentModel.aggregate([

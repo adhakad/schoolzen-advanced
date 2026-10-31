@@ -4,12 +4,12 @@
  *
  * Reference: docs/schoolzen-planning/v1/attendance/roster.html
  *
- * THIS page's toolbar: row1 search + Assign/Edit/Delete Selected; row2 a plain FLEX row of
- * three fixed-width `.dd`s (Person Type → Department/Class → Designation/Section); row3 the
- * month navigator. Not Overview's 6-column grid.
+ * Toolbar: row1 search + Bulk Assign / Bulk Edit / Bulk Delete; row2 the global filter grid
+ * (rule 14): Person Type, only that type's filters, the month filter as the last cell.
  *
- * Past days are locked (attendance may already be recorded); every write is today onward.
- * Delete Selected needs typed DELETE.
+ * An assignment covers the WHOLE month, past days included (attendance-fix4.md A4); single
+ * past cells stay locked, and days with no roster are locked. Bulk Delete clears today onward
+ * and needs typed DELETE.
  *
  * "Has a roster" (what decides Assign vs Edit vs Delete) is judged on the EDITABLE days only
  * — today onward. Delete clears exactly those days and keeps the locked past, so a row that
@@ -88,11 +88,11 @@ export class RosterComponent implements OnInit, OnDestroy {
   private groups: FilterGroup[] = [];
   lookupError = '';
   readonly tips: readonly string[] = [
-    'Tick the staff (or classes) you want, then press Assign to Selected and choose a shift.',
-    'Click "Applies to" to open the calendar: click the first day, then the last day. Only today onward can be changed — past days are locked.',
+    'Tick the staff (or classes) you want, then press Bulk Assign and choose a shift.',
+    'A roster covers the whole month, day 1 to the last day — past days too. Click "Applies to" only if you want a shorter range. Earlier months are locked.',
     'All weekdays except Sunday are ticked. Click any day to switch it between a working day and a weekly off (WO).',
-    'To change an existing roster, tick those rows and press Edit Assignment — the form opens with their current shift and days.',
-    'Delete Selected removes the shift from today to the end of the month for the ticked rows; type DELETE to confirm. You can assign them again straight after.',
+    'To change an existing roster, tick those rows and press Bulk Edit — the form opens with their current shift and days.',
+    'Days without a roster show a dash and are locked. Bulk Delete removes the shift from today to the end of the month for the ticked rows; type DELETE to confirm. You can assign them again straight after.',
     'Switch Staff/Student above to set the shift for whole classes, streams or sections instead of individual people.',
     'The legend only lists shifts in use this month. A class heading with no checkbox has sections — assign at the section level.'
   ];
@@ -114,7 +114,7 @@ export class RosterComponent implements OnInit, OnDestroy {
 
   // --- assign / edit modal -------------------------------------------------------------
   assignOpen = false;
-  assignTitle = 'Assign to Selected';
+  assignTitle = 'Bulk Assign';
   assignShiftId = '';
   /** The days the assignment covers (today onward; may cross months). Unticked weekdays become WO. */
   assignFrom = '';
@@ -412,7 +412,8 @@ export class RosterComponent implements OnInit, OnDestroy {
       const cell = this.gridScroll?.nativeElement.querySelector('th.today-col') as HTMLElement | null;
       if (cell && this.gridScroll) {
         const host = this.gridScroll.nativeElement;
-        host.scrollLeft = Math.max(0, cell.offsetLeft - host.clientWidth / 2);
+        // Rule 19: Today is a normal column at the right end of the visible area (wrapper only).
+        host.scrollLeft += cell.getBoundingClientRect().right - host.getBoundingClientRect().right + 12;
         this.scrolledToToday = true;
       }
     });
@@ -441,6 +442,16 @@ export class RosterComponent implements OnInit, OnDestroy {
 
   isLocked(col: MonthColumn): boolean {
     return col.dateKey < this.today;
+  }
+
+  /** A day outside any roster: the "no roster" state, locked (attendance-fix4.md A5). */
+  isNoRoster(row: StaffRosterRow, col: MonthColumn): boolean {
+    return !row.days[col.dateKey];
+  }
+
+  cellTitle(row: StaffRosterRow, col: MonthColumn): string | null {
+    if (this.isNoRoster(row, col)) return 'No roster for this day';
+    return this.isLocked(col) ? "Attendance already recorded — this day can't be reassigned." : null;
   }
 
   cellShift(row: StaffRosterRow, col: MonthColumn): Shift | null {
@@ -534,6 +545,11 @@ export class RosterComponent implements OnInit, OnDestroy {
 
   // --- assign / edit -------------------------------------------------------------------
 
+  /** Earliest day an assignment may start: the current month's first day. */
+  get assignMin(): string {
+    return this.today.slice(0, 7) + '-01';
+  }
+
   get shiftOptions(): DdOption[] {
     return [{ value: '', label: '— Select —' }, ...this.shifts
       .filter((shift) => shift.status === 'active')
@@ -541,11 +557,11 @@ export class RosterComponent implements OnInit, OnDestroy {
   }
 
   openAssign(): void {
-    this.openAssignFor([...this.selected], 'Assign to Selected', false);
+    this.openAssignFor([...this.selected], 'Bulk Assign', false);
   }
 
   openEdit(): void {
-    this.openAssignFor([...this.selected], 'Edit Assignment', true);
+    this.openAssignFor([...this.selected], 'Bulk Edit', true);
   }
 
   /** The pencil on an editable cell / the Change column: edit that one row. */
@@ -559,10 +575,9 @@ export class RosterComponent implements OnInit, OnDestroy {
     this.assignTitle = title;
     this.assignShiftId = '';
     this.assignWeekdays = new Set(DEFAULT_WEEKDAYS);
-    // Defaults to the rest of the month on screen — today onward, never a locked day.
-    const first = this.month + '-01';
-    this.assignFrom = first < this.today ? this.today : first;
-    this.assignTo = this.month < this.today.slice(0, 7) ? this.assignFrom : monthEnd(this.month);
+    // Defaults to the WHOLE month on screen, day 1 to the last day (attendance-fix4.md A4).
+    this.assignFrom = this.month + '-01';
+    this.assignTo = monthEnd(this.month);
     if (prefill) this.prefill(keys);
     this.saving = false;
     this.assignOpen = true;

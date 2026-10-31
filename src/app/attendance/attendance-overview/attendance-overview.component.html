@@ -37,21 +37,26 @@
         <i class="bi bi-exclamation-circle"></i> {{ syncError }}
         <button type="button" class="link-btn" [disabled]="syncing" (click)="onSyncConfirmed()">Retry</button>
       </div>
-      <div class="toolbar-row2 ov-filter-row">
+      <div class="toolbar-row2">
         <app-dd [options]="personTypeOptions" [value]="personType" ariaLabel="Person type"
           (valueChange)="onPersonTypeChange($event)"></app-dd>
-        <app-dd [options]="departmentOptions" [value]="departmentId" [disabled]="departmentDisabled"
-          ariaLabel="Filter by department" (valueChange)="onDepartmentChange($event)"></app-dd>
-        <app-dd [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
-          ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
-        <app-dd [options]="classOptions" [value]="classId" [disabled]="classDisabled" ariaLabel="Filter by class"
-          (valueChange)="onClassChange($event)"></app-dd>
-        <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled" ariaLabel="Filter by stream"
-          (valueChange)="onStreamChange($event)"></app-dd>
-        <app-dd [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled" ariaLabel="Filter by stream group"
-          (valueChange)="onGroupChange($event)"></app-dd>
-        <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
-          ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
+        <!-- Rule 14: only the chosen type's filters show — the other type's are hidden, not disabled. -->
+        <ng-container *ngIf="isStaff; else studentFilters">
+          <app-dd [options]="departmentOptions" [value]="departmentId" ariaLabel="Filter by department"
+            (valueChange)="onDepartmentChange($event)"></app-dd>
+          <app-dd [options]="designationOptions" [value]="designationId" [disabled]="designationDisabled"
+            ariaLabel="Filter by designation" (valueChange)="onDesignationChange($event)"></app-dd>
+        </ng-container>
+        <ng-template #studentFilters>
+          <app-dd [options]="classOptions" [value]="classId" ariaLabel="Filter by class"
+            (valueChange)="onClassChange($event)"></app-dd>
+          <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled" ariaLabel="Filter by stream"
+            (valueChange)="onStreamChange($event)"></app-dd>
+          <app-dd [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
+            ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
+          <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
+            ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
+        </ng-template>
         <app-month-nav [month]="month" [today]="today" (monthChange)="onMonthChange($event)"></app-month-nav>
       </div>
       <div class="fetch-error" *ngIf="lookupError" role="alert">
@@ -106,7 +111,7 @@
                   <button type="button" class="chip" *ngIf="canOpenMark(row, cell, col); else plainChip"
                     [ngClass]="cellClass(cell, col, row)" [class.open]="markTarget?.row?._id === row._id"
                     [attr.title]="cellTitle(row, cell, col)" aria-haspopup="dialog"
-                    [attr.aria-label]="row.name + ', today: ' + cell.s + '. Change attendance'"
+                    [attr.aria-label]="row.name + ', ' + (col.isToday ? 'today' : col.dateKey) + ': ' + cell.s + '. Change attendance'"
                     (click)="openMark($event, row, col)">
                     <span class="s">{{ cell.s }}</span><span class="t" *ngIf="cell.t">{{ cell.t }}</span>
                   </button>
@@ -201,7 +206,7 @@
 <div #markPop class="mark-pop" role="dialog" aria-label="Mark attendance" (click)="$event.stopPropagation()">
   <ng-container *ngIf="markTarget as target">
     <h4>{{ target.row.name }}</h4>
-    <p class="mark-sub">Today &bull; {{ target.row.idLine }}</p>
+    <p class="mark-sub">{{ markDayLabel(target) }} &bull; {{ target.row.idLine }}</p>
     <div class="mark-note device" *ngIf="target.device">
       <i class="bi bi-fingerprint"></i>
       <span>Device punch recorded{{ target.cell.p ? ' at ' + target.cell.p : '' }}. It can't be changed by hand.</span>
@@ -214,11 +219,12 @@
           marking === option.status ? 'Saving...' : option.label }}</span>
         <i class="bi bi-check2" *ngIf="isCurrentMark(option.status)"></i>
       </button>
-      <div class="cap">
+      <div class="cap" *ngIf="target.col.isToday; else pastCap">
         <ng-container *ngIf="target.cell.src === 'manual' && target.cell.t">Marked at {{ target.cell.t }}.
         </ng-container>
         Time comes from the server (AM/PM).
       </div>
+      <ng-template #pastCap><div class="cap">Past date. This change is saved in the activity log.</div></ng-template>
     </ng-container>
     <div class="mark-error" *ngIf="markError" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ markError }}

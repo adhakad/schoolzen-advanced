@@ -39,6 +39,8 @@ export interface AssignPayload {
   classId: string;
   streamId: string | null;
   replace: boolean;
+  /** The header session (shared-fix2.md). */
+  session?: string;
 }
 
 export interface AssignResponse {

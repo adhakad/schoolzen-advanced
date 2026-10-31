@@ -6,7 +6,7 @@ const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/student.messages');
 const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
 const { createStudentRecord } = require('../../helpers/student/student-write');
-const { findSessionId, labelOfSessionId } = require('../../helpers/academic-session/session-resolver');
+const { findSessionId, labelOfSessionId, resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
 const { resolveFeeStructure } = require('../../helpers/fees/fee-structure-resolver');
 const { CONCESSION_REASON_THRESHOLD } = require('../../helpers/student/student.constants');
 const {
@@ -31,7 +31,7 @@ let ListAdmissions = async (req, res) => {
 // "This Session" side card — Admitted / Pending, one grouped aggregation.
 let GetAdmissionOverview = async (req, res) => {
     const { adminId, session } = req.query;
-    const sessionId = await findSessionId(adminId, session);
+    const sessionId = await resolveRequestSessionId(adminId, session, MODULE);
     if (!sessionId) return res.status(200).json({ admitted: 0, pending: 0 });
     const groups = await StudentEnrollmentModel.aggregate([
         { $match: { adminId, sessionId, entryType: 'admission' } },
