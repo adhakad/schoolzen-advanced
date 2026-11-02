@@ -21,8 +21,8 @@
                  (input)="onSearchChange($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group" *ngIf="canAssign">
-          <button type="button" class="btn-assign" [disabled]="!selectedCount || assignOpen" (click)="onAssignOpen()">
-            <i class="bi bi-calendar-check"></i> Set Leave Limit
+          <button type="button" class="btn-assign" [disabled]="!selectedCount || assignOpen" data-why="Select at least one row" (click)="onAssignOpen()">
+            <i class="bi bi-calendar-check"></i> <span class="btn-label">Set Leave Limit</span>
           </button>
         </div>
       </div>

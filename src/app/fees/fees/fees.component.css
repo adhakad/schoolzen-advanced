@@ -10,9 +10,6 @@
 .tag-arrears { color: var(--warning); border-color: #E9D6A0; }
 .tag-unpaid { color: var(--danger); border-color: #E0BDB4; }
 
-.sw-report-btn { flex-shrink: 0; height: 38px; background: var(--surface); color: var(--brand); border: 1px solid var(--brand); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; }
-.sw-report-btn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; background: var(--surface); }
-.sw-report-btn:not(:disabled):hover { background: var(--brand-soft); }
 .collect-btn { background: var(--ink); color: #fff; border: none; border-radius: var(--radius); padding: 7px 14px; font-size: 11.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
 .collect-btn:hover { background: #2A3242; }
 .collect-btn:disabled { opacity: .7; cursor: progress; }

@@ -18,7 +18,8 @@
           <input type="text" placeholder="Search filters" aria-label="Search filters" [(ngModel)]="search" />
         </div>
         <div class="toolbar-btn-group" *ngIf="canEdit">
-          <button type="button" class="btn-primary" (click)="openCreate()"><i class="bi bi-plus-lg"></i> Create</button>
+          <button type="button" class="btn-primary" (click)="openCreate()"><i class="bi bi-plus-lg"></i> <span class="btn-label">Create</span>
+          </button>
         </div>
       </div>
     </div>

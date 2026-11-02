@@ -1,14 +1,7 @@
 /* Roster reference styles that the global design system doesn't carry. */
 
-/* Row 2 is the global filter grid and the toolbar buttons the global 130 x 38 (rules 14, 15). */
+/* Row 2 is the global filter grid and the toolbar buttons the global Rule 21 toolbar (rules 14, 21). */
 
-.sw-report-btn, .sw-edit-btn { flex-shrink: 0; height: 38px; background: var(--surface); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; font-family: inherit; white-space: nowrap; }
-.sw-report-btn { color: var(--brand); border: 1px solid var(--brand); }
-.sw-report-btn:hover:not(:disabled) { background: var(--brand-soft); }
-.sw-edit-btn { color: var(--slate); border: 1px solid var(--slate); }
-.sw-edit-btn:hover:not(:disabled) { background: var(--slate-soft); }
-.sw-report-btn:disabled, .sw-edit-btn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
-.toolbar-btn-group > .btn-danger-outline { white-space: nowrap; }
 
 .sel-warning { display: flex; align-items: center; gap: 8px; background: var(--warning-soft); color: var(--warning); border: 1px solid #E9D6A0; border-radius: var(--radius); padding: 9px 14px; font-size: 12px; line-height: 1.4; }
 .sel-warning .bi { font-size: 14px; flex-shrink: 0; }

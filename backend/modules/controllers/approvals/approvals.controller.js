@@ -23,7 +23,7 @@ const MODULE = 'approvals';
 const requestNotFound = (context) => new NotFoundError(messages.requestNotFound(), { module: MODULE, code: 'REQUEST_NOT_FOUND', context });
 const requestNotPending = () => new ConflictError(messages.requestNotPending(), { module: MODULE, code: 'REQUEST_NOT_PENDING' });
 
-const hasPersonFilter = (q) => Boolean(q.search || q.departmentId || q.designationId || q.classId || q.streamId || q.sectionId);
+const hasPersonFilter = (q) => Boolean(q.search || q.departmentId || q.designationId || q.classId || q.streamId || q.groupId || q.sectionId);
 
 /**
  * The person ids a toolbar filter narrows to, per person type, or null when no person filter
@@ -38,6 +38,7 @@ const peopleFor = async (adminId, sessionId, q) => {
         designationId: q.designationId,
         classId: q.classId,
         streamId: q.streamId,
+        groupId: q.groupId,
         sectionId: q.sectionId,
         search: q.search,
     })));

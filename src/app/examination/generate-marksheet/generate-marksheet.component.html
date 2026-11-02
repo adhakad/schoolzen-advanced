@@ -1,6 +1,6 @@
 <!-- Generate Marksheet.
      Reference: docs/schoolzen-planning/v1/examination/generate-marksheet.html
-     Toolbar: row1 search + Bulk Enter Marks + Print Selected, row2 Class → Stream + Term. -->
+     Toolbar: row1 search + Bulk Enter Marks + Bulk Print, row2 Class → Stream + Term. -->
 
 <div class="page-head">
   <div>
@@ -20,11 +20,11 @@
         </div>
         <div class="toolbar-btn-group">
           <button type="button" class="btn-secondary" [disabled]="bulkDisabled" (click)="openBulk()"
-                  [title]="selectionSpansClasses ? 'Select students from one class only' : 'Enter Marks for Selected'">
-            <i class="bi bi-table"></i> Bulk Enter Marks ({{ selectedCount }})
+                  [attr.data-why]="selectionSpansClasses ? 'Select students from one class only' : (!term ? 'Pick a term first' : 'Select at least one row')">
+            <i class="bi bi-table"></i> <span class="btn-label">Bulk Enter Marks ({{ selectedCount }})</span>
           </button>
-          <button type="button" class="btn-assign" [disabled]="!selectedCount" (click)="openPrintMode()" title="Print Selected">
-            <i class="bi bi-printer"></i> Print Selected ({{ selectedCount }})
+          <button type="button" class="btn-assign" [disabled]="!selectedCount" data-why="Select at least one row" (click)="openPrintMode()">
+            <i class="bi bi-printer"></i> <span class="btn-label">Bulk Print ({{ selectedCount }})</span>
           </button>
         </div>
       </div>

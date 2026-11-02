@@ -99,7 +99,8 @@ const measure = (page: Page) => page.evaluate(() => {
   }));
   const search = Array.from(document.querySelectorAll('.sz .sw-toolbar .search, .sz .staff-toolbar .search')).filter(visible)
     .map((el) => Math.round(el.getBoundingClientRect().width));
-  const buttons = Array.from(document.querySelectorAll('.sz .toolbar-btn-group > button')).filter(visible)
+  // Rule 21 (shared-fix4): only the non-primary buttons are a fixed 130 x 38 and pair up on phones.
+  const buttons = Array.from(document.querySelectorAll('.sz .toolbar-btn-group > button:not(.btn-primary)')).filter(visible)
     .map((b) => { const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.top) }; });
   return { overflow: document.documentElement.scrollWidth - window.innerWidth, rows, search, buttons };
 });

@@ -4,7 +4,7 @@
  *
  * Reference: docs/schoolzen-planning/v1/payroll/generate-payroll.html
  *
- * Toolbar: row 1 search + "Generate for Selected" (disabled until rows are checked); row 2
+ * Toolbar: row 1 search + "Bulk Generate" (disabled until rows are checked); row 2
  * Department → Designation, Status (All/Locked/Draft/Pending), month. The action set is
  * decided by status — exactly one set per row, from the API's `actions`:
  *   pending → Generate (play)

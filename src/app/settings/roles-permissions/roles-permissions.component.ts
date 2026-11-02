@@ -485,7 +485,7 @@ export class RolesPermissionsComponent implements OnInit, OnDestroy {
     const owner = picked.some((row) => row.isOwner);
     this.confirmAction = 'bulk';
     this.confirmConfig = {
-      title: 'Selected Delete',
+      title: 'Bulk Delete',
       message: total
         ? "Removing every role currently held by " + picked.map((row) => row.name).join(', ') + " can't be undone."
         : 'The selected staff hold no roles.',

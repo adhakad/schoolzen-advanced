@@ -18,6 +18,7 @@ const listSchema = Joi.object({
     designationId: optionalId,
     classId: optionalId,
     streamId: optionalId,
+    groupId: optionalId,
     sectionId: optionalId,
     type: Joi.string().valid('', ...SOURCE_TYPES).default(''),
     status: Joi.string().valid('', ...INBOX_STATUSES).default(''),

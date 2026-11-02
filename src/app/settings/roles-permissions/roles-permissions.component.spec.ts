@@ -137,7 +137,7 @@ describe('RolesPermissionsComponent', () => {
     expect(component.scopeFormError).toBe('msg ROLE_SCOPE_ALREADY_ASSIGNED');
   });
 
-  it('Selected Delete removes every chip of the selected staff and lists what was refused', () => {
+  it('Bulk Delete removes every chip of the selected staff and lists what was refused', () => {
     api.bulkDeleteAssignments.and.returnValue(of({ message: 'ok', deletedCount: 1, results: [
       { id: 'a0', status: 'failed' as const, code: 'OWNER_ROLE_PROTECTED', message: "The account owner's Super Admin access can't be removed." },
       { id: 'a1', status: 'deleted' as const }

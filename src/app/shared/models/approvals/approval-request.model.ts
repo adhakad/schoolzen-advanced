@@ -46,6 +46,7 @@ export interface ApprovalFilters {
   designationId: string;
   classId: string;
   streamId: string;
+  groupId: string;
   sectionId: string;
   type: string;
   status: '' | ApprovalStatus;

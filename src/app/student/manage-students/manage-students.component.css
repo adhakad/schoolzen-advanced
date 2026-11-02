@@ -2,20 +2,7 @@
    row helpers (.st-avatar, .cls-tag, .card-tag, .not-set) and the toolbar buttons are the
    global design-system rules shared with Admission and Class Promotion. */
 
-/* This page's own toolbar shape (manage-students.html): ONE row1 line — the 260px search
-   on the left, the buttons beside it on the right, like Academic Setup's toolbars.
-
-   Button sizing is NOT set here: the design system's Width rule (global sheet) gives the
-   three secondary buttons one shared width and lets Create auto-width to its own label.
-   This file only keeps the row on one line and lets the group shrink instead of wrapping. */
-.toolbar-row1 { flex-wrap: nowrap; }
-.toolbar-btn-group { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; justify-content: flex-end; }
-/* Below 992px the buttons take their own full line under the search (the group could
-   otherwise shrink to nothing beside it and push the buttons off the card). */
-@media (max-width: 991px) {
-  .toolbar-row1 { flex-wrap: wrap; }
-  .toolbar-btn-group { flex: 1 1 100%; flex-wrap: wrap; justify-content: flex-start; }
-}
+/* Toolbar: the global Rule 21 toolbar — no page copy here. */
 
 
 .st-avatar img { width: 100%; height: 100%; object-fit: cover; }

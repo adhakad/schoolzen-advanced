@@ -36,7 +36,7 @@ const measure = (page: Page) => page.evaluate(() => {
   const visible = (el: Element) => (el as HTMLElement).offsetParent !== null;
   const rows = Array.from(document.querySelectorAll('.sz .toolbar-row2')).filter(visible)
     .map((row) => getComputedStyle(row).gridTemplateColumns.split(' ').length);
-  const buttons = Array.from(document.querySelectorAll('.sz .toolbar-btn-group > button')).filter(visible)
+  const buttons = Array.from(document.querySelectorAll('.sz .toolbar-btn-group > button:not(.btn-primary)')).filter(visible)
     .map((b) => { const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.top) }; });
   return { overflow: document.documentElement.scrollWidth - window.innerWidth, rows, buttons };
 });

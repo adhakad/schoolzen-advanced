@@ -20,11 +20,11 @@
                  (input)="onSearchChange($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group" *ngIf="canAssign">
-          <button type="button" class="btn-assign" [disabled]="assignDisabled" (click)="onAssignSelected()">
-            <i class="bi bi-calendar-check"></i> Bulk Assign
+          <button type="button" class="btn-assign" [disabled]="assignDisabled" data-why="Select rows that have no template yet" (click)="onAssignSelected()">
+            <i class="bi bi-calendar-check"></i> <span class="btn-label">Bulk Assign</span>
           </button>
-          <button type="button" class="btn-edit-sel" [disabled]="editDisabled" (click)="onEditSelected()">
-            <i class="bi bi-pencil"></i> Bulk Edit
+          <button type="button" class="btn-edit-outline" [disabled]="editDisabled" data-why="Select rows that already have a template" (click)="onEditSelected()">
+            <i class="bi bi-pencil"></i> <span class="btn-label">Bulk Edit</span>
           </button>
         </div>
       </div>

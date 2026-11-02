@@ -21,8 +21,8 @@
                  (input)="onSearchInput($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group">
-          <button type="button" class="btn-primary" [disabled]="jobRunning || previewing" (click)="onOpenConfirm()">
-            <i class="bi bi-check-lg"></i> {{ jobRunning ? 'Promotion running…' : (previewing ? 'Checking…' : 'Confirm Promotion') }}
+          <button type="button" class="btn-primary" [disabled]="jobRunning || previewing" data-why="Promotion is running" (click)="onOpenConfirm()">
+            <i class="bi bi-check-lg"></i> <span class="btn-label">{{ jobRunning ? 'Promotion running…' : (previewing ? 'Checking…' : 'Confirm Promotion') }}</span>
           </button>
         </div>
       </div>

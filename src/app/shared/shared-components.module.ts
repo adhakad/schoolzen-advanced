@@ -53,6 +53,8 @@ import { DateRangePickerComponent } from './components/date-range-picker/date-ra
 import { PrintModeChoiceComponent } from './components/print-mode-choice/print-mode-choice.component';
 import { GoodToKnowComponent } from './components/good-to-know/good-to-know.component';
 import { TextCasePipe } from './pipes/text-case.pipe';
+import { TipDirective } from './components/tip/tip.directive';
+import { ToolbarButtonsDirective } from './components/tip/toolbar-buttons.directive';
 
 const COMPONENTS = [
   PageShellComponent,
@@ -94,6 +96,9 @@ const COMPONENTS = [
   PrintModeChoiceComponent,
   // The "Good to know" side card — 2-3 plain-language steps, the rest behind "Read more".
   GoodToKnowComponent,
+  // Rule 21: the shared tooltip, and the toolbar-button group that applies it to every toolbar.
+  TipDirective,
+  ToolbarButtonsDirective,
   TextCasePipe
 ];
 

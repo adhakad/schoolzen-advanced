@@ -1,6 +1,6 @@
 <!-- Approval Requests.
      Reference: docs/schoolzen-planning/v1/approvals/approvals.html
-     Toolbar: search; the 6-column Applicant cascade; then Type + Status. Pending rows act
+     Toolbar: search; the Applicant → … → Stream Group → Section cascade; then Type + Status. Pending rows act
      straight from the row (after a confirm); decided rows are view-only (eye icon). -->
 
 <div class="page-head">
@@ -33,6 +33,8 @@
                 ariaLabel="Filter by class" (valueChange)="onClassChange($event)"></app-dd>
         <app-dd [options]="streamOptions" [value]="streamId" [disabled]="streamDisabled"
                 ariaLabel="Filter by stream" (valueChange)="onStreamChange($event)"></app-dd>
+        <app-dd [options]="groupOptions" [value]="groupId" [disabled]="groupDisabled"
+                ariaLabel="Filter by stream group" (valueChange)="onGroupChange($event)"></app-dd>
         <app-dd [options]="sectionOptions" [value]="sectionId" [disabled]="sectionDisabled"
                 ariaLabel="Filter by section" (valueChange)="onSectionChange($event)"></app-dd>
         <app-dd [options]="typeOptions" [value]="type" ariaLabel="Filter by type"

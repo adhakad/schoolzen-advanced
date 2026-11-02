@@ -95,8 +95,8 @@
                    [value]="search" (input)="onSearchChange($any($event.target).value)" />
           </div>
           <div class="toolbar-btn-group">
-            <button type="button" class="btn-secondary danger" [disabled]="!selectedCount || isBusy('bulk')" (click)="onBulkDelete()">
-              <i class="bi bi-trash"></i> Bulk Delete
+            <button type="button" class="btn-secondary danger" [disabled]="!selectedCount || isBusy('bulk')" data-why="Select at least one row" (click)="onBulkDelete()">
+              <i class="bi bi-trash"></i> <span class="btn-label">Bulk Delete</span>
             </button>
           </div>
         </div>
@@ -251,7 +251,7 @@
 <app-confirm-modal [open]="confirmOpen" [config]="confirmConfig"
                    (confirmed)="onConfirmed()" (cancelled)="onConfirmCancelled()"></app-confirm-modal>
 
-<app-form-modal [open]="bulkResultOpen" title="Selected Delete" [width]="420" [showSubmit]="false"
+<app-form-modal [open]="bulkResultOpen" title="Bulk Delete" [width]="420" [showSubmit]="false"
                 cancelLabel="Close" (cancelled)="closeBulkResult()">
   <p class="bulk-summary">{{ bulkResultSummary }}</p>
   <ul class="result-rows">

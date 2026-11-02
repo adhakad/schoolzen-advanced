@@ -1,6 +1,6 @@
 <!-- Generate Payroll.
      Reference: docs/schoolzen-planning/v1/payroll/generate-payroll.html
-     Row 1: search + Generate for Selected. Row 2: Department → Designation, Status, month.
+     Row 1: search + Bulk Generate. Row 2: Department → Designation, Status, month.
      The action set per row comes from its status (API `actions`) — never all at once. -->
 
 <div class="page-head">
@@ -20,9 +20,8 @@
                  (input)="onSearchChange($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group" *ngIf="canEdit">
-          <button type="button" class="btn-gen" [disabled]="!selected.size || bulkBusy" (click)="generateSelected()">
-            <i class="bi" [class.bi-play-fill]="!bulkBusy" [class.bi-arrow-repeat]="bulkBusy" [class.spinning]="bulkBusy"></i>
-            {{ bulkBusy ? 'Generating…' : 'Generate for Selected' }}
+          <button type="button" class="btn-assign" [disabled]="!selected.size || bulkBusy" [attr.data-why]="bulkBusy ? 'Generating…' : 'Select at least one row'" (click)="generateSelected()">
+            <i class="bi" [class.bi-play-fill]="!bulkBusy" [class.bi-arrow-repeat]="bulkBusy" [class.spinning]="bulkBusy"></i> <span class="btn-label">{{ bulkBusy ? 'Generating…' : 'Bulk Generate' }}</span>
           </button>
         </div>
       </div>
@@ -180,7 +179,7 @@
 <div class="sz-modal-overlay open" *ngIf="resultOpen" (click)="$event.target === $event.currentTarget && closeResult()">
   <div class="modal-box" style="width:460px;">
     <div class="modal-head">
-      <span class="modal-title">Generate for Selected</span>
+      <span class="modal-title">Bulk Generate</span>
       <button type="button" class="modal-close" aria-label="Close" (click)="closeResult()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="modal-body">

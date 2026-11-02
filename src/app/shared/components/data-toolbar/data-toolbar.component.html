@@ -14,8 +14,7 @@
     <div class="toolbar-btn-group" *ngIf="primaryAction">
       <button type="button" class="btn-primary"
               [disabled]="!!primaryAction.disabled" (click)="primaryActionClick.emit()">
-        <i class="bi bi-{{ primaryAction.icon }}" *ngIf="primaryAction.icon"></i>
-        {{ primaryAction.label }}
+        <i class="bi bi-{{ primaryAction.icon }}" *ngIf="primaryAction.icon"></i> <span class="btn-label">{{ primaryAction.label }}</span>
       </button>
     </div>
   </div>

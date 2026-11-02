@@ -6,14 +6,6 @@
 .sync-row { display: flex; justify-content: flex-end; margin-top: -6px; }
 .sync-line { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-faint); white-space: nowrap; }
 .sync-line .bi { color: var(--brand); }
-.sw-gen-btn { flex-shrink: 0; height: 38px; background: var(--ink); color: #fff; border: none; border-radius: var(--radius); padding: 0 18px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; box-sizing: border-box; font-family: inherit; white-space: nowrap; }
-.sw-gen-btn:hover:not(:disabled) { background: #2A3242; }
-.sw-gen-btn .bi { color: #ae86ff; }
-.sw-gen-btn:disabled { opacity: .7; cursor: progress; }
-
-.sw-report-btn { flex-shrink: 0; height: 38px; background: var(--surface); color: var(--brand); border: 1px solid var(--brand); padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius); display: flex; align-items: center; gap: 7px; box-sizing: border-box; font-family: inherit; white-space: nowrap; }
-.sw-report-btn:hover:not(:disabled) { background: var(--brand-soft); }
-.sw-report-btn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
 .spinning { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -155,7 +147,6 @@
 
 /* Mobile (global rule 13): only checkbox + name stay sticky, Type and avatar hidden, narrower days. */
 @media (max-width: 640px) {
-  .toolbar-row1 .search { flex: 1 1 100%; width: 100%; }
   .sync-row { justify-content: flex-start; margin-top: 0; }
   .att-grid { min-width: calc(134px + 31 * 54px); }
   .att-grid .check-col, .att-grid .check-cell { width: 30px; min-width: 30px; max-width: 30px; padding-left: 4px; padding-right: 4px; }

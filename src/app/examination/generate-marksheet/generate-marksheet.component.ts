@@ -5,7 +5,7 @@
  *
  * Reference: docs/schoolzen-planning/v1/examination/generate-marksheet.html (+ .md, errors.md)
  *
- * Toolbar: row1 search + "Bulk Enter Marks (N)" + "Print Selected (N)" (both disabled until
+ * Toolbar: row1 search + "Bulk Enter Marks (N)" + "Bulk Print (N)" (both disabled until
  * rows are checked; Bulk also needs them all in one class), row2 Class → Stream + Term.
  * Every score is re-validated by the API (MARKS_EXCEED_MAX etc.); a result saved since the
  * form loaded asks before overwriting (MARKS_ALREADY_ENTERED). Entering marks needs the

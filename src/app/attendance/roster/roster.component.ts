@@ -477,6 +477,21 @@ export class RosterComponent implements OnInit, OnDestroy {
     return this.selectionCounts.assigned === 0 || this.deleting || this.monthLocked;
   }
 
+  /** Why each bulk button is disabled — shown in its tooltip (Rule 21f). */
+  get assignWhy(): string {
+    if (this.monthLocked) return 'Past months are read-only';
+    return this.selectionCounts.total ? 'Select only rows with no shift yet' : 'Select at least one row';
+  }
+
+  get editWhy(): string {
+    if (this.monthLocked) return 'Past months are read-only';
+    return this.selectionCounts.total ? 'Select only rows that already have a shift' : 'Select at least one row';
+  }
+
+  get deleteWhy(): string {
+    return this.monthLocked ? 'Past months are read-only' : 'Select at least one row with a shift';
+  }
+
   /** A past month is read-only (staff view only; class shifts are session-wide). */
   get monthLocked(): boolean {
     return this.personType === 'staff' && this.month < this.today.slice(0, 7);

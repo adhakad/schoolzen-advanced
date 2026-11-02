@@ -21,11 +21,11 @@
             (input)="onSearchChange($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group">
-          <button type="button" class="sw-report-btn" [disabled]="!selected.size" (click)="generateReport()">
-            <i class="bi bi-file-earmark-text"></i> Generate Report
+          <button type="button" class="btn-assign" [disabled]="!selected.size" data-why="Select at least one row" (click)="generateReport()">
+            <i class="bi bi-file-earmark-text"></i> <span class="btn-label">Generate Report</span>
           </button>
-          <button type="button" class="sw-gen-btn" [disabled]="syncing" (click)="onSyncClick()">
-            <i class="bi bi-arrow-repeat" [class.spinning]="syncing"></i> Sync now
+          <button type="button" class="btn-primary" [disabled]="syncing" data-why="Sync is already running" (click)="onSyncClick()">
+            <i class="bi bi-arrow-repeat" [class.spinning]="syncing"></i> <span class="btn-label">Sync now</span>
           </button>
         </div>
       </div>

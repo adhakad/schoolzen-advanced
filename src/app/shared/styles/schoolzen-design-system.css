@@ -508,11 +508,28 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
 .sz .toolbar-row2 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
 .sz .toolbar-row2 > * { min-width: 0; width: 100%; height: 38px; box-sizing: border-box; }
 .sz .toolbar-row2 > button { justify-content: center; }
-.sz .toolbar-btn-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-/* Rule 15: every toolbar button is 130 x 38, label centred, never wrapping; 2 per row on phones. */
+/* Rule 21 — THE toolbar buttons (the one copy; pages never size or order their own).
+   Desktop: search, then the buttons right-aligned in the same row. Other buttons 130 x 38;
+   the black primary (.btn-primary, at most one) is always right-most, 38px high, width
+   from its label, 130-180px. Labels: 12.5px, one line, 8px side padding, icon + label;
+   a label that still does not fit ends in an ellipsis, and its full text is the button's
+   tooltip (ToolbarButtonsDirective sets `title` + the tap/long-press bubble). */
+.sz .toolbar-btn-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .sz .toolbar-btn-group > button {
-  flex: 0 0 var(--toolbar-btn-width); width: var(--toolbar-btn-width); height: 38px; min-width: 0;
-  padding: 0 8px; justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 0 0 var(--toolbar-btn-width); width: var(--toolbar-btn-width); height: 38px; min-width: 0; box-sizing: border-box;
+  padding: 0 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12.5px; white-space: nowrap; overflow: hidden; order: 1;
+}
+.sz .toolbar-btn-group > button.btn-primary {
+  order: 99; flex: 0 0 auto; width: auto; min-width: var(--toolbar-btn-width); max-width: 180px;
+}
+.sz .toolbar-btn-group > button .btn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sz .toolbar-btn-group > button .bi { flex-shrink: 0; }
+/* The shared tooltip bubble (tap / long-press on touch). */
+.sz-tip {
+  position: fixed; z-index: 1100; max-width: 260px; padding: 6px 10px; border-radius: 6px;
+  background: var(--ink, #1F2633); color: #fff; font-size: 12px; line-height: 1.35; pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
 }
 /* Rule 16: sticky columns keep the white surface; the last left one gets the theme shadow. */
 .sz .sticky-last { box-shadow: var(--sticky-shadow) !important; }
@@ -1126,25 +1143,7 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
 .sz .tag.tag-danger { color: var(--danger); border-color: #E0BDB4; }
 .sz .tag.fixed { min-width: 78px; justify-content: center; }
 
-.sz .toolbar-btn-group .btn-label { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Buttons — Width rule (design-system.md). Every secondary/utility button on a toolbar
-   shares ONE width, whatever its own label length; the page's single main (.btn-primary)
-   button is padding-based and auto-widths to its own label. Same basis AND same shrink
-   factor for every secondary, so when a row is tight they narrow together and stay
-   identical to each other — the label ellipsizes (the button's `title` holds the full
-   text) rather than any one button growing wider than its siblings. */
-.sz .toolbar-btn-group > .btn-secondary,
-.sz .toolbar-btn-group > .btn-assign,
-.sz .toolbar-btn-group > .btn-warn,
-.sz .toolbar-btn-group > .btn-danger-outline,
-.sz .toolbar-btn-group > .btn-primary {
-  flex: 0 0 var(--toolbar-btn-width);
-  width: var(--toolbar-btn-width);
-  min-width: 0;
-  padding: 0 8px;
-}
-.sz .toolbar-btn-group > button .btn-label { min-width: 0; }
-.sz .toolbar-btn-group > button .bi { flex-shrink: 0; }
+/* Toolbar button sizes: Rule 21, in the toolbar section above. */
 .sz .btn-secondary, .sz .btn-assign, .sz .btn-warn,
 .sz-modal-overlay .btn-secondary {
   flex-shrink: 0; height: 38px; background: var(--surface);
@@ -1161,6 +1160,11 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
 .sz .btn-warn { color: var(--danger); border: 1px solid var(--danger); }
 .sz .btn-warn:hover:not(:disabled) { background: var(--danger-soft); }
 .sz .btn-warn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
+/* Slate outline (Bulk Edit) — Roster, Holiday Assign. */
+.sz .btn-edit-outline { color: var(--slate); border: 1px solid var(--slate); background: var(--surface); border-radius: var(--radius); font-weight: 600; cursor: pointer; font-family: inherit; }
+.sz .btn-edit-outline:hover:not(:disabled) { background: var(--slate-soft); }
+.sz .btn-edit-outline:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
+.sz .btn-primary:disabled { opacity: .7; cursor: not-allowed; }
 
 .sz .sw-footer { padding-top: 14px; font-size: 12.5px; color: var(--ink-faint); display: flex; justify-content: space-between; }
 
@@ -1352,11 +1356,23 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
    nothing wider than the screen — only a table wrapper scrolls sideways. */
 @media (max-width: 640px) {
   .sz .toolbar-row2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sz .toolbar-row1 { flex-wrap: wrap; }
-  .sz .toolbar-btn-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; gap: 8px; }
-  .sz .toolbar-btn-group > button,
-  .sz .toolbar-btn-group > .btn-primary,
-  .sz .toolbar-btn-group > .btn-secondary,
-  .sz .toolbar-btn-group > .btn-danger-outline { width: 100%; flex: none; }
+  /* Rule 21 c-e. The button group dissolves (display: contents) so search, primary and the
+     other buttons are ordered as items of row 1: search full width; the primary alone and
+     right-aligned (the ::after line break keeps every other button off its row); the
+     others 2 per row, each exactly one filter cell wide ((100% - 8px) / 2). Rows are
+     spaced by margin-top, not row-gap, so the zero-height break adds no space.
+     `tb-solo` (primary is the only button): search shrinks left, primary on its right. */
+  .sz .toolbar-row1 { flex-wrap: wrap; justify-content: flex-start; column-gap: 8px; row-gap: 0; }
+  .sz .toolbar-row1::after { content: ''; order: 2; flex: 0 0 100%; height: 0; }
+  .sz .toolbar-row1 > .search { order: 1; flex: 1 1 100%; width: auto; min-width: 0; }
+  .sz .toolbar-btn-group { display: contents; }
+  .sz .toolbar-btn-group > button {
+    order: 3; flex: 0 0 calc((100% - 8px) / 2); width: auto; min-width: 0; max-width: none; margin-top: 8px;
+  }
+  .sz .toolbar-btn-group > button.btn-primary {
+    order: 2; flex: 0 0 auto; width: auto; min-width: var(--toolbar-btn-width); max-width: 180px; margin-left: auto;
+  }
+  .sz .toolbar-row1.tb-solo > .search { flex: 1 1 0; min-width: 140px; }
+  .sz .toolbar-row1.tb-solo > .toolbar-btn-group > button.btn-primary { min-width: 110px; margin-top: 0; }
   .sz .sw-card-main, .sz .stats-card, .sz .layout-row { min-width: 0; max-width: 100%; }
 }

@@ -59,8 +59,9 @@ test('Roster grid and toolbar match roster.html', async ({ page, browser }) => {
   await page.locator('.rg-grid tbody tr').first().waitFor();
 
   expect(await styles(page, '.search input', BOX)).toEqual(await styles(reference, '.search input', BOX));
-  expect(await styles(page, '.sw-report-btn', ['height', 'border-top-left-radius', 'font-size', 'font-weight']))
-    .toEqual(await styles(reference, '.sw-report-btn', ['height', 'border-top-left-radius', 'font-size', 'font-weight']));
+  // Toolbar buttons follow Rule 21 (12.5px labels), which wins over roster.html's 13px.
+  expect(await styles(page, '.toolbar-btn-group .btn-assign', ['height', 'border-top-left-radius', 'font-weight']))
+    .toEqual(await styles(reference, '.sw-report-btn', ['height', 'border-top-left-radius', 'font-weight']));
   const chip = ['width', 'height', 'border-top-left-radius', 'font-size', 'font-weight', 'color'];
   expect(await styles(page, '.shift-chip.c0', chip)).toEqual(await styles(reference, '.shift-chip.c0', chip));
   expect(await styles(page, '.legend-chip.c0', ['font-size', 'padding-left', 'border-top-color', 'color']))

@@ -19,8 +19,8 @@
                  (input)="onSearchChange($any($event.target).value)" />
         </div>
         <div class="toolbar-btn-group" *ngIf="canEdit">
-          <button type="button" class="btn-assign" [disabled]="!selected.size" (click)="openBulk()">
-            <i class="bi bi-person-check"></i> Bulk Assign
+          <button type="button" class="btn-assign" [disabled]="!selected.size" data-why="Select at least one row" (click)="openBulk()">
+            <i class="bi bi-person-check"></i> <span class="btn-label">Bulk Assign</span>
           </button>
         </div>
       </div>

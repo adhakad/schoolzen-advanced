@@ -5,8 +5,8 @@
  *
  * Reference: docs/schoolzen-planning/v1/examination/generate-admit-card.html (+ .md, errors.md)
  *
- * Toolbar: row1 search + "Print Selected (N)" (disabled until rows are checked), row2
- * Class → Stream → Group → Section. Print Selected asks One/Two per page through the shared
+ * Toolbar: row1 search + "Bulk Print (N)" (disabled until rows are checked), row2
+ * Class → Stream → Group → Section. Bulk Print asks One/Two per page through the shared
  * print-mode choice, then prints the combined preview with window.print(). Needs the
  * 'admit-card' view grant (enforced by the API).
  */

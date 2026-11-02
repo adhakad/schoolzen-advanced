@@ -9,14 +9,6 @@ th.chk input, td.chk input { width: 16px; height: 16px; accent-color: var(--bran
 .g-sub { font-size: 11px; color: var(--ink-faint); }
 .assigned-tpl { font-size: 12.5px; color: var(--ink); font-weight: 600; }
 
-.btn-edit-sel {
-  flex-shrink: 0; height: 38px; background: var(--surface); color: var(--slate); border: 1px solid var(--slate);
-  padding: 0 16px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: var(--radius);
-  display: flex; align-items: center; gap: 7px; box-sizing: border-box;
-}
-.btn-edit-sel:hover:not(:disabled) { background: var(--slate-soft); }
-.btn-edit-sel:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; }
-
 .sel-warning {
   display: flex; align-items: center; gap: 8px; background: var(--warning-soft); color: var(--warning);
   border: 1px solid #E9D6A0; border-radius: var(--radius); padding: 9px 14px; font-size: 12px; line-height: 1.4;
@@ -44,6 +36,3 @@ th.chk input, td.chk input { width: 16px; height: 16px; accent-color: var(--bran
 .confirm-gate input { width: 16px; height: 16px; accent-color: var(--warning); cursor: pointer; flex-shrink: 0; }
 .cal-view-btn { display: inline-flex; vertical-align: middle; margin-left: 6px; width: 28px; height: 28px; }
 
-@media (max-width: 767px) {
-  .toolbar-btn-group { flex-wrap: wrap; }
-}

@@ -5,8 +5,8 @@
  * Reference: docs/schoolzen-planning/v1/approvals/approvals.html (+ .md, errors.md,
  * optimization.md)
  *
- * Toolbar: row 1 search; row 2 the 6-column Applicant → Department → Designation | Class →
- * Stream → Section cascade; row 3 Type + Status. Every filter change goes back to page 1.
+ * Toolbar: row 1 search; row 2 the Applicant → Department → Designation | Class →
+ * Stream → Stream Group → Section cascade; row 3 Type + Status. Every filter change goes back to page 1.
  *
  * Pages are keyset cursors from the server (never an offset), so rows other admins clear
  * from the queue never shift what this admin has already paged past.
@@ -61,6 +61,7 @@ export class RequestsComponent implements OnInit, OnDestroy {
   designationId = '';
   classId = '';
   streamId = '';
+  groupId = '';
   sectionId = '';
   type = '';
   status: '' | ApprovalStatus = '';
@@ -177,6 +178,16 @@ export class RequestsComponent implements OnInit, OnDestroy {
     return [{ value: '', label: 'All streams' }, ...(this.chosenClass?.streams || []).map((row) => ({ value: row._id, label: titleCase(row.name) }))];
   }
 
+  /** A streamed class needs its stream first; a class's automatic "General" group filters nothing. */
+  get groupOptions(): DdOption[] {
+    const chosen = this.chosenClass;
+    const ready = chosen && (!chosen.hasStreams || this.streamId);
+    const groups = ready
+      ? this.filterOptions.groups.filter((row) => !row.isSystemGroup && row.classId === chosen!._id && (row.streamId || '') === this.streamId)
+      : [];
+    return [{ value: '', label: 'All stream groups' }, ...groups.map((row) => ({ value: row._id, label: row.name }))];
+  }
+
   private get sections(): { _id: string; name: string }[] {
     const chosen = this.chosenClass;
     if (!chosen) return [];
@@ -189,11 +200,12 @@ export class RequestsComponent implements OnInit, OnDestroy {
   }
 
   // The reference's cascade: Staff enables Department → Designation; Student enables Class
-  // → Stream (streamed classes) → Section; "All applicants" disables all five.
+  // → Stream (streamed classes) → Stream Group → Section; "All applicants" disables all six.
   get departmentDisabled(): boolean { return this.personType !== 'staff'; }
   get designationDisabled(): boolean { return this.personType !== 'staff' || !this.departmentId; }
   get classDisabled(): boolean { return this.personType !== 'student'; }
   get streamDisabled(): boolean { return this.personType !== 'student' || !this.chosenClass?.hasStreams; }
+  get groupDisabled(): boolean { return this.personType !== 'student' || this.groupOptions.length < 2; }
   get sectionDisabled(): boolean { return this.personType !== 'student' || !this.sections.length; }
 
   // --- filters -------------------------------------------------------------------------
@@ -210,6 +222,7 @@ export class RequestsComponent implements OnInit, OnDestroy {
     this.designationId = '';
     this.classId = '';
     this.streamId = '';
+    this.groupId = '';
     this.sectionId = '';
     this.refetch();
   }
@@ -228,13 +241,20 @@ export class RequestsComponent implements OnInit, OnDestroy {
   onClassChange(value: string): void {
     this.classId = value;
     this.streamId = '';
+    this.groupId = '';
     this.sectionId = '';
     this.refetch();
   }
 
   onStreamChange(value: string): void {
     this.streamId = value;
+    this.groupId = '';
     this.sectionId = '';
+    this.refetch();
+  }
+
+  onGroupChange(value: string): void {
+    this.groupId = value;
     this.refetch();
   }
 
@@ -292,6 +312,7 @@ export class RequestsComponent implements OnInit, OnDestroy {
       designationId: this.designationId,
       classId: this.classId,
       streamId: this.streamId,
+      groupId: this.groupId,
       sectionId: this.sectionId,
       type: this.type,
       status: this.status,
