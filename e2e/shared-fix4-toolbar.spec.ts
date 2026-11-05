@@ -124,7 +124,8 @@ for (const [route, kind] of PAGES) {
       expect(m.labelsClipped, `${width}: a clipped label has its full text in the tooltip`).toBe(0);
       const shape = m.primary && m.actions ? 'primary+actions' : m.primary ? 'primary-only' : m.actions ? 'actions-only' : 'search-only';
       expect(shape, `${width}: toolbar shape`).toBe(kind);
-      for (const b of [m.search, m.actions, m.primary]) if (b) expect(Math.round(b.h), `${width}: 38 high`).toBe(38);
+      // Rule 21b.6: 38px on desktop, 44px on a narrow (<= 640px) card.
+      for (const b of [m.search, m.actions, m.primary]) if (b) expect(Math.round(b.h), `${width}: height`).toBe(m.narrow ? 44 : 38);
       if (m.primary) expect(m.primary.w).toBeLessThanOrEqual(180.5);
       if (!m.narrow) {
         if (m.search) expect(Math.round(m.search.w), `${width}: search 280`).toBe(280);
@@ -320,4 +321,77 @@ test('Approvals: Stream Group sits between Stream and Section, enables on a stre
   await pick(page, STREAM, 'All streams');
   expect(await labelOf(page, GROUP), 'group reset on stream change').toBe('All stream groups');
   console.log(`MEASURED approvals-group: order=${order.join(' > ')}; groupId sent; reset ok`);
+});
+
+// --- Rule 21b / 22b: match the preview ---------------------------------------------------------
+test('R21b divider, Actions icon, filter columns (Manage Students)', async ({ browser }) => {
+  for (const width of [1920, 1366, 1100, 390]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await open(page, 'student/manage-students');
+    const r = await page.evaluate(() => {
+      const tb = document.querySelector('app-data-toolbar')!;
+      const card = tb.closest('.sw-card-main')!.getBoundingClientRect();
+      const cs = getComputedStyle(tb.closest('.sw-card-main')!);
+      const d = tb.querySelector('.tb-divider')!.getBoundingClientRect();
+      const row1 = tb.querySelector('.tb-row')!.getBoundingClientRect();
+      const grid = tb.querySelector('.toolbar-row2')!;
+      const btn = tb.querySelector('.tb-actions-btn')!;
+      return {
+        dl: d.left, dr: d.right, dh: d.height, dt: d.top, db: d.bottom, row1b: row1.bottom, gridT: grid.getBoundingClientRect().top,
+        cl: card.left + parseFloat(cs.borderLeftWidth), cr: card.right - parseFloat(cs.borderRightWidth), cw: card.width,
+        cols: getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+        order: Array.from(btn.children).map((c) => c.tagName.toLowerCase() + (c.classList.contains('bi-chevron-down') ? '.chev' : '')),
+        dots: btn.querySelectorAll('svg circle').length, dotsW: btn.querySelector('svg')!.getBoundingClientRect().width,
+        filterH: grid.querySelector("app-dd")!.getBoundingClientRect().height
+      };
+    });
+    expect(near(r.dl, r.cl) && near(r.dr, r.cr), `${width}: divider edge to edge`).toBe(true);
+    expect(Math.round(r.dh)).toBe(1);
+    const gap = r.cw <= 640 ? 10 : 14;
+    expect(near(r.dt - r.row1b, gap, 1.5) && near(r.gridT - r.db, gap, 1.5), `${width}: ${gap}px around divider`).toBe(true);
+    expect(r.order).toEqual(['svg', 'span', 'i.chev']);
+    expect(r.dots).toBe(3);
+    expect(Math.round(r.dotsW)).toBe(15);
+    expect(r.cols, `${width}: card ${r.cw.toFixed(0)} columns`).toBe(r.cw <= 640 ? 2 : r.cw < 820 ? 4 : 6);
+    expect(Math.round(r.filterH), 'filters stay 38').toBe(38);
+    await page.locator('.tb-actions-btn').click();
+    const open1 = await page.evaluate(() => {
+      const b = document.querySelector('.tb-actions-btn')!;
+      return { bg: getComputedStyle(b).backgroundColor, rot: getComputedStyle(b.querySelector('.tb-chevron')!).transform };
+    });
+    expect(open1.bg).toBe('rgb(242, 234, 255)');
+    expect(open1.rot).not.toBe('none');
+    console.log(`MEASURED 21b @${width}: card ${r.cw.toFixed(0)} divider ${r.dl.toFixed(0)}-${r.dr.toFixed(0)} cols=${r.cols}`);
+    await page.close();
+  }
+});
+
+test('R22b skeleton looks like the preview: checkbox, avatar, two bars, pill, shimmer, no blur', async ({ browser }) => {
+  for (const width of [1366, 390]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await open(page, 'student/manage-students', 3000);
+    await page.locator('tbody.sk-body .sk-row').first().waitFor({ timeout: 8000 });
+    const r = await page.evaluate(() => {
+      const row = document.querySelector('tbody.sk-body .sk-row')!;
+      const box = (s: string) => { const b = row.querySelector(s)!.getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; };
+      const bar1 = row.querySelector('.sk-bar1')!;
+      return {
+        check: !!row.querySelector('.sk-check'), avatar: box('.sk-avatar'), pill: box('.sk-pill'),
+        bar1H: box('.sk-bar1')[1], bar1Bg: getComputedStyle(bar1).backgroundColor, bar2: !!row.querySelector('.sk-person .sk-bar2'),
+        anim: getComputedStyle(bar1, '::after').animationDuration,
+        blur: Array.from(document.querySelectorAll('.sw-card-main *')).some((e) => getComputedStyle(e).filter.includes('blur')),
+        bar: !!document.querySelector('.sw-card-main mat-progress-bar, .sw-card-main [role="progressbar"]')
+      };
+    });
+    expect(r.check).toBe(true);
+    expect(r.avatar).toEqual([26, 26]);
+    expect(r.pill).toEqual([46, 16]);
+    expect(r.bar1H).toBe(7);
+    expect(r.bar1Bg).toBe('rgb(221, 214, 236)');
+    expect(r.bar2).toBe(true);
+    expect(r.anim).toBe('1.2s');
+    expect(r.blur || r.bar, 'no blur, no bar loader').toBe(false);
+    console.log(`MEASURED 22b @${width}: avatar ${r.avatar} pill ${r.pill} shimmer ${r.anim}`);
+    await page.close();
+  }
 });

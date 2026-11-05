@@ -17,7 +17,10 @@
         <button type="button" class="tb-actions-btn" #trigger
                 aria-haspopup="menu" [attr.aria-expanded]="menuOpen"
                 (click)="toggleMenu()" (keydown)="onTriggerKey($event)">
-          <span class="btn-label">Actions</span><i class="bi bi-chevron-down"></i>
+          <svg class="tb-dots" width="15" height="15" viewBox="0 0 15 15" aria-hidden="true" fill="currentColor">
+            <circle cx="3" cy="7.5" r="1.4"></circle><circle cx="7.5" cy="7.5" r="1.4"></circle><circle cx="12" cy="7.5" r="1.4"></circle>
+          </svg>
+          <span class="btn-label">Actions</span><i class="bi bi-chevron-down tb-chevron"></i>
         </button>
       </div>
       <button type="button" class="btn-primary tb-primary" *ngIf="primaryAction"
@@ -45,6 +48,10 @@
       </button>
     </ng-container>
   </div>
+
+  <!-- Rule 21b: full-width line between the toolbar row(s) and the filter grid; hidden when
+       nothing follows it (no filters) or there is no toolbar row. -->
+  <div class="tb-divider" *ngIf="showSearch || menu.length || primaryAction" aria-hidden="true"></div>
 
   <div class="toolbar-row2" *ngIf="views.length">
     <ng-container *ngFor="let filter of views; trackBy: trackByKey">

@@ -38,6 +38,24 @@ Reference: approved preview `toolbar-preview.html` (v5). Where an old reference 
 9. Do: build the component once, replace every page's old blur/spinner/loading text with it, remove old loading CSS. Add an R22 note per page in the audit table.
 10. Test (Playwright): slow the API; skeleton shows, goes away after load, no layout shift; one page per module.
 
+## Rule 21b — Match the preview exactly, per screen size (found on the Manage Students screenshots)
+Mismatches seen in the app: no full-width divider; Actions has no three-dots icon; skeleton is blurred bars only; mobile search too short; sizes not in the preview ratio.
+Reference numbers (from `toolbar-preview.html`, keep these ratios at every screen size):
+1. Divider: a 1px line `--line-soft` between the toolbar row(s) and the filter grid, running edge to edge of the card (negative margin = card padding: -16px desktop, -12px mobile), 14px space above and below (10px mobile). Hidden if the page has no toolbar.
+2. Actions button: icon order = three-dots icon (3 circles r=1.4, 15px) + text "Actions" + chevron (13px, rotates 180deg when open). Width 130px, height 38px, 12.5px/600 text, gap 7px. Open state: brand border + brand-soft background.
+3. Primary: height 38px, min 130px, max 180px, black, plus icon + text.
+4. Search: height 38px, left icon, 13.5px text, flex 1 1 200px, max 280px, gap to buttons 12px (row gap 8px).
+5. Filters: height 38px, 12.5px text, 8px gap, radius same as buttons. Columns by card width: >=820px 6 columns; 641-819px 4 columns; <=640px 2 columns. All columns equal; month filter last cell.
+6. Mobile (<=640px): search full width and 44px high (preview 38px is raised; icon/text 14px), Actions+primary row below it in 2 equal columns at 44px high, 8px gaps, filters stay 38px, space below buttons 8px. Single button = right aligned, min 110px.
+7. Small phones (<=320px card): same as mobile, no horizontal scroll, text ellipsis + tooltip.
+8. Never let the buttons share the search row on mobile.
+
+## Rule 22b — Skeleton must look like the preview (found in the app: only blurred bars)
+1. No blur filter and no linear bar loader on the table. Remove them.
+2. Skeleton row = checkbox placeholder + round avatar 26px (brand-soft) + two text bars (first 46% wide, 7px high, radius 4, colours #DDD6EC then #ECE8F4) + a status pill 46x16 radius 9 (#E8F3EC) on the right; rows 10px padding, 1px `--line-soft` between rows, 8-10 rows. On desktop add bars per real column at real widths.
+3. Shimmer 1.2s moves across the bars; header row and filters stay real and visible.
+4. Same component on every page; mobile uses the same row shape.
+
 ## Do
 1. Build/repair ONE shared toolbar component (search + actions menu + primary + needs logic). Do not copy it per page.
 2. Replace the toolbar of every page in every module with it. Convert existing secondary buttons into Actions items with the right `needs`. Remove old per-page toolbar CSS.
@@ -59,47 +77,3 @@ Reference: approved preview `toolbar-preview.html` (v5). Where an old reference 
 ## Audit table (Claude Code fills)
 | Module | Page | Search size ok | Actions menu | Primary | Mobile ok | Skeleton (R22) | Notes |
 |---|---|---|---|---|---|---|---|
-| Academic Setup | Classes & Sections | yes | Bulk Delete [sel] | Add Class | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); Add modal class list: lines |  |
-| Academic Setup | Subjects | yes | Bulk Delete [sel] | Add Subject | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Academic Setup | Subject Groups | yes | Bulk Delete [sel] | Add Group | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); modal subject list: lines |  |
-| Student | Manage Students | yes | Bulk Assign [sel], Import / Export [Class], Bulk Delete [sel] | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | Import / Export kept filter-gated (needs a Class) - the import is per class; default "Import/Export always enabled" not applied |
-| Student | Admission | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Student | Class Promotion | yes | - | Confirm Promotion (spinner while running) | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Staff | Manage Staff | yes | Bulk Assign [sel], Bulk Delete [sel] | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Staff | Departments | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Staff | Designations | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Attendance | Overview | yes | Bulk Report [sel] (was Generate Report) | Sync now (spinner while syncing) | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); table fade (.is-loading opacity) removed |  |
-| Attendance | Manage Shifts | yes | - | Create Shift | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Attendance | Roster | yes | Bulk Assign, Bulk Edit [sel + one person type], Bulk Delete [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) on staff grid and class table | extra page reasons shown after needs are met |
-| Leave | Requests | yes | - | Apply Leave | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Leave | Create | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Leave | Assign | yes (disabled for Student, business rule) | Bulk Set Limit [sel] (was Set Leave Limit) | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) on staff and class tables; expanded class: lines | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
-| Holiday | Holidays | yes | Generate from Public Holidays [], Bulk Delete [sel] | Add Holiday | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Holiday | Templates | yes | - | Add Template | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Holiday | Assign | yes | Bulk Assign, Bulk Edit [sel + template state] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | extra page reasons shown after needs are met; permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
-| Payroll | Generate Payroll | yes | Bulk Generate [sel] (spinner while running) | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
-| Payroll | Salary Groups | yes | - | Add Salary Group | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
-| Payroll | Assign Salary | yes | Bulk Assign [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
-| Payroll | Salary Payouts | yes | - | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Payroll | Payslip (document) | n/a | n/a | n/a | n/a | n/a - print document, no list load |  |
-| Fees | Fees | yes | Bulk Report [sel] (was Generate Report) | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Fees | Fee Structure | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
-| Fees | Fee Reminder | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); "Sending" note spinner left (background job status) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
-| Fees | Fee Statement | n/a (no toolbar) | n/a | n/a | n/a | cards skeleton (4 x 72px) |  |
-| Fees | Fee Receipt (document) | n/a | n/a | n/a | n/a | n/a - print document |  |
-| Examination | Admit Card Structure | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); modal subjects/view: lines | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
-| Examination | Generate Admit Card | yes | Bulk Print [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); preview: lines |  |
-| Examination | Generate Marksheet | yes | Bulk Enter Marks [Term, sel; one class], Bulk Print [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); modals: lines |  |
-| Examination | Marksheet Structure | n/a (no search on this page) | - | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); setup modal: lines |  |
-| Examination | Admit Card / Marksheet document | n/a | n/a | n/a | n/a | n/a - print documents |  |
-| Certificates | Generate TC | yes | - | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); preview: lines |  |
-| Certificates | TC Structure | n/a (no toolbar) | n/a | n/a | n/a | lines skeleton (6) |  |
-| Certificates | TC Certificate (document) | n/a | n/a | n/a | n/a | n/a - print document |  |
-| Approvals | Requests | yes | - | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); Stream Group filter present (Class > Stream > Stream Group > Section) |  |
-| Settings | Academic Sessions | n/a (no search on this page) | - | Create Session | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
-| Settings | Roles & Permissions | yes | Bulk Delete [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) on Step 2 matrix; Step 1 role pills: no skeleton (partial) |  |
-| Settings | Admission Form Fields | n/a (no toolbar) | n/a | n/a | n/a | lines skeleton (8); impact-check hint spinner in modal left |  |
-| Settings | Marksheet Templates | n/a (no toolbar) | n/a | n/a | n/a | cards skeleton (3 x 160px); preview hint spinner in modal left |  |
-| Dashboard | Dashboard | n/a (no toolbar) | n/a | n/a | n/a | lines skeleton per widget (partial: not tile-shaped) |  |
-
-`[sel]` = needs ticked rows, `[Class]` / `[Term]` = needs that filter, `[]` = always enabled. Search size ok = 280 x 38 at 1366/1920, full card width at 390 (measured, `e2e/shared-fix4-toolbar.spec.ts`). Every `Loading...` text, the Overview table fade and the old per-page toolbar markup are gone; the only spinners left are inside buttons, plus the three status hints named in the rows.

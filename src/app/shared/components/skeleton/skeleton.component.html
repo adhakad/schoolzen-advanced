@@ -1,11 +1,20 @@
 <ng-container *ngIf="visible">
   <ng-container *ngIf="!timedOut; else failed">
     <ng-container [ngSwitch]="mode">
+      <!-- Rule 22b: preview row = checkbox + round avatar + two bars, a bar per real column, status pill right. -->
       <ng-container *ngSwitchCase="'table'">
         <tr class="sk-row" *ngFor="let r of rowList" aria-hidden="true">
-          <td *ngFor="let c of colList">
-            <span class="sk sk-avatar" *ngIf="c === avatarCol"></span>
-            <span class="sk sk-bar" *ngIf="c !== avatarCol" [style.width.%]="width(r, c)"></span>
+          <td *ngFor="let c of colList" [ngSwitch]="colKinds[c]" [class.check-col]="colKinds[c] === 'check'">
+            <span class="sk sk-check" *ngSwitchCase="'check'"></span>
+            <span class="sk-person" *ngSwitchCase="'person'">
+              <span class="sk sk-avatar"></span>
+              <span class="sk-text">
+                <span class="sk sk-bar sk-bar1"></span>
+                <span class="sk sk-bar sk-bar2" [style.width.%]="width(r, c) - 25"></span>
+              </span>
+            </span>
+            <span class="sk sk-pill" *ngSwitchCase="'pill'"></span>
+            <span class="sk sk-bar sk-bar2" *ngSwitchDefault [style.width.%]="width(r, c)"></span>
           </td>
         </tr>
       </ng-container>
@@ -13,7 +22,16 @@
         <div class="sk sk-card" *ngFor="let i of cardList" [style.height.px]="height"></div>
       </div>
       <div class="sk-lines" *ngSwitchDefault aria-hidden="true">
-        <span class="sk sk-bar" *ngFor="let r of rowList" [style.width.%]="width(r, 1)"></span>
+        <div class="sk-line" *ngFor="let r of rowList">
+          <span class="sk-person">
+            <span class="sk sk-avatar"></span>
+            <span class="sk-text">
+              <span class="sk sk-bar sk-bar1"></span>
+              <span class="sk sk-bar sk-bar2" [style.width.%]="width(r, 1) - 25"></span>
+            </span>
+          </span>
+          <span class="sk sk-pill"></span>
+        </div>
       </div>
     </ng-container>
     <span class="sk-sr" role="status" *ngIf="!isBody">Loading</span>

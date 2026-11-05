@@ -185,6 +185,17 @@ export class DataToolbarComponent implements OnChanges, AfterViewInit, OnDestroy
     if (el.classList.contains('tb-narrow') !== this.narrow) {
       this.narrow ? this.renderer.addClass(el, 'tb-narrow') : this.renderer.removeClass(el, 'tb-narrow');
     }
+    // Divider bleed = distance from the toolbar to the card's inner edges (its padding), so the
+    // line runs edge to edge of the card (Rule 21b.1).
+    if (isCard) {
+      const card = target.getBoundingClientRect();
+      const own = el.getBoundingClientRect();
+      const style = getComputedStyle(target);
+      const left = Math.max(0, own.left - card.left - (parseFloat(style.borderLeftWidth) || 0));
+      const right = Math.max(0, card.right - own.right - (parseFloat(style.borderRightWidth) || 0));
+      el.style.setProperty('--tb-bleed-l', Math.round(left) + 'px');
+      el.style.setProperty('--tb-bleed-r', Math.round(right) + 'px');
+    }
     if (el.classList.contains('tb-mid') !== mid) {
       mid ? this.renderer.addClass(el, 'tb-mid') : this.renderer.removeClass(el, 'tb-mid');
     }

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed, fakeAsync, tick, discardPeriodicTasks } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
-import { SkeletonComponent } from './skeleton.component';
+import { SkeletonComponent, skeletonCols } from './skeleton.component';
 
 @Component({
   template: `
@@ -59,4 +59,12 @@ describe('SkeletonComponent (Rule 22)', () => {
     tick(10000);
     discardPeriodicTasks();
   }));
+});
+
+describe('skeletonCols (Rule 22b row shape)', () => {
+  it('checkbox first, avatar + bars in the first real column, pill last, bars between', () => {
+    expect(skeletonCols(5, [0])).toEqual(['check', 'person', 'bar', 'bar', 'pill']);
+    expect(skeletonCols(4, [])).toEqual(['person', 'bar', 'bar', 'pill']);
+    expect(skeletonCols(1, [])).toEqual(['person']);
+  });
 });

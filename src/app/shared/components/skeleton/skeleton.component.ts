@@ -18,6 +18,18 @@ import {
 } from '@angular/core';
 
 export type SkeletonKind = 'table' | 'cards' | 'lines';
+/** What one skeleton cell draws (Rule 22b). */
+export type SkeletonCol = 'check' | 'person' | 'pill' | 'bar';
+
+/** Pure: checkbox column(s) first, avatar + two bars in the first real column, pill last. */
+export const skeletonCols = (count: number, checkCols: readonly number[], avatarCol = -1): SkeletonCol[] => {
+  const kinds: SkeletonCol[] = Array.from({ length: Math.max(1, count) }, (_v, i) => (checkCols.includes(i) ? 'check' : 'bar'));
+  const person = avatarCol >= 0 && avatarCol < kinds.length ? avatarCol : kinds.indexOf('bar');
+  if (person >= 0) kinds[person] = 'person';
+  const last = kinds.length - 1;
+  if (last > person && kinds[last] === 'bar') kinds[last] = 'pill';
+  return kinds;
+};
 
 @Component({
   selector: 'app-skeleton, tbody[app-skeleton]',
@@ -32,7 +44,7 @@ export class SkeletonComponent implements OnInit, OnDestroy {
   @Input() rows = 8;
   /** Table columns; read from the table's header row when not given. */
   @Input() cols = 0;
-  /** 0-based column index that holds a round avatar (table kind). */
+  /** 0-based column index that holds the avatar + two bars (default: first non-checkbox column). */
   @Input() avatarCol = -1;
   /** Cards. */
   @Input() count = 4;
@@ -49,6 +61,7 @@ export class SkeletonComponent implements OnInit, OnDestroy {
   timedOut = false;
   rowList: number[] = [];
   colList: number[] = [];
+  colKinds: SkeletonCol[] = [];
   cardList: number[] = [];
 
   private timers: ReturnType<typeof setTimeout>[] = [];
@@ -68,7 +81,11 @@ export class SkeletonComponent implements OnInit, OnDestroy {
     const rows = Math.max(1, this.rows);
     this.rowList = Array.from({ length: rows }, (_v, i) => i);
     this.cardList = Array.from({ length: Math.max(1, this.count) }, (_v, i) => i);
-    this.colList = Array.from({ length: Math.max(1, this.cols || this.headerCols()) }, (_v, i) => i);
+    const head = this.headerCells();
+    const cols = Math.max(1, this.cols || head.length || 5);
+    this.colList = Array.from({ length: cols }, (_v, i) => i);
+    const checks = head.map((th, i) => (th && (th.classList.contains('check-col') || !!th.querySelector('input[type="checkbox"]')) ? i : -1)).filter((i) => i >= 0);
+    this.colKinds = skeletonCols(cols, checks, this.avatarCol);
     this.start();
   }
 
@@ -115,9 +132,16 @@ export class SkeletonComponent implements OnInit, OnDestroy {
     return this.tableEl;
   }
 
-  private headerCols(): number {
+  /** One entry per real column (a colspan header repeats; only its first slot is checked). */
+  private headerCells(): (HTMLTableCellElement | null)[] {
     const row = this.table()?.querySelector('thead tr:last-child');
-    if (!row) return 5;
-    return Array.from(row.children).reduce((n, th) => n + ((th as HTMLTableCellElement).colSpan || 1), 0);
+    if (!row) return [];
+    const cells: (HTMLTableCellElement | null)[] = [];
+    Array.from(row.children).forEach((th) => {
+      const cell = th as HTMLTableCellElement;
+      cells.push(cell);
+      for (let i = 1; i < (cell.colSpan || 1); i++) cells.push(null);
+    });
+    return cells;
   }
 }

@@ -1,24 +1,37 @@
-/* Rule 22 — the one skeleton: theme grey-purple, 1.2s shimmer. */
+/* Rule 22 / 22b — the one skeleton, shaped like the preview: checkbox, round 26px avatar,
+   two 7px bars (#DDD6EC, #ECE8F4), 46x16 status pill (#E8F3EC); a 1.2s shimmer sweeps across.
+   No blur, no bar loader. */
 :host { display: block; }
 :host(.sk-body) { display: table-row-group; }
 
-.sk {
-  display: block;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #EEEAF6 25%, #F7F4FC 50%, #EEEAF6 75%);
-  background-size: 200% 100%;
+.sk { display: block; position: relative; overflow: hidden; background: #ECE8F4; }
+.sk::after {
+  content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
   animation: sk-shimmer 1.2s ease-in-out infinite;
 }
-@keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
-@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+@keyframes sk-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .sk::after { animation: none; } }
 
-.sk-row td { vertical-align: middle; }
-.sk-bar { height: 12px; max-width: 100%; margin: 4px 0; }
-.sk-avatar { width: 32px; height: 32px; border-radius: 50%; }
+.sk-row td { vertical-align: middle; padding-top: 10px; padding-bottom: 10px; }
+.sk-row:not(:last-child) td { border-bottom: 1px solid var(--line-soft, #EEEAF6); }
+
+.sk-check { width: 14px; height: 14px; border-radius: 3px; margin: 0 auto; background: #ECE8F4; }
+.sk-person { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sk-avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; background: var(--brand-soft, #F2EAFF); }
+.sk-text { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.sk-bar { height: 7px; border-radius: 4px; max-width: 100%; }
+.sk-bar1 { width: 46%; background: #DDD6EC; }
+.sk-bar2 { background: #ECE8F4; }
+.sk-pill { width: 46px; height: 16px; border-radius: 9px; background: #E8F3EC; flex-shrink: 0; }
 
 .sk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-.sk-card { width: 100%; border-radius: var(--radius, 6px); }
-.sk-lines { display: flex; flex-direction: column; gap: 12px; padding: 8px 0; }
+.sk-card { width: 100%; border-radius: var(--radius, 6px); background: #ECE8F4; }
+
+.sk-lines { display: flex; flex-direction: column; }
+.sk-line { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.sk-line:not(:last-child) { border-bottom: 1px solid var(--line-soft, #EEEAF6); }
+.sk-line .sk-person { flex: 1 1 auto; }
 
 .sk-error {
   display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
