@@ -12,19 +12,8 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by name or ID" aria-label="Search by name or ID"
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-primary" [disabled]="rowActionsLocked" data-why="Finish the open action first" (click)="onApplyOpen()">
-            <i class="bi bi-plus-lg"></i> <span class="btn-label">Apply Leave</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by name or ID" (searchChange)="onSearchChange($event)"
+      [primaryAction]="{ label: 'Apply Leave', icon: 'plus-lg', disabled: rowActionsLocked, why: 'finish the open action first' }" (primaryActionClick)="onApplyOpen()">
       <app-person-filter [options]="filterOptions" [value]="filter" (valueChange)="onFilterChange($event)">
         <app-dd [options]="leaveTypeOptions" [value]="leaveTypeId" ariaLabel="Filter by leave type"
                 (valueChange)="onLeaveTypeChange($event)"></app-dd>
@@ -36,7 +25,7 @@
         <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
         <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <div class="grid-scroll">
       <table>
@@ -78,6 +67,7 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div>
 

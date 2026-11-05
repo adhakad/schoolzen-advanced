@@ -11,14 +11,7 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by name or admission no." aria-label="Search by name or admission no."
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by name or admission no." (searchChange)="onSearchChange($event)">
       <!-- Rule 14: one filter grid — the class cascade, then Status. -->
       <div class="toolbar-row2">
         <app-class-cascade-filter [options]="options" [value]="filter" [showGroup]="false"
@@ -30,7 +23,7 @@
         <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
         <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <div class="grid-scroll">
       <table>
@@ -64,9 +57,9 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div>
-    <div class="tbl-empty" *ngIf="loading">Loading students&hellip;</div>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>
@@ -175,7 +168,7 @@
       <button type="button" class="modal-close" aria-label="Close" (click)="closePreview()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="modal-body">
-      <div class="tbl-empty" *ngIf="previewLoading">Loading certificate&hellip;</div>
+      <app-skeleton *ngIf="previewLoading" [rows]="4"></app-skeleton>
       <p class="m-error" *ngIf="previewError" role="alert">{{ previewError }}</p>
       <app-tc-certificate [certificate]="certificate"></app-tc-certificate>
     </div>

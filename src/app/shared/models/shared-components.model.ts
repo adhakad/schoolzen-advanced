@@ -52,9 +52,34 @@ export interface ToolbarFilter {
 
 export interface ToolbarAction {
   label: string;
-  /** Tabler icon name without the `ti-` prefix. */
+  /** Bootstrap Icons name without the `bi-` prefix. */
   icon?: string;
   disabled?: boolean;
+  /** Why it is disabled — first words of the tooltip. */
+  why?: string;
+  /** In flight: the button shows its spinner (the only spinner Rule 22 allows). */
+  busy?: boolean;
+}
+
+/**
+ * One item of the toolbar's "Actions" menu (Rule 21). `needs` lists what must be true
+ * before it is enabled: 'sel' = ticked rows, any other word = that filter has a value
+ * (the page passes `chosen: { Class: !!classId }`). An unmet item stays visible, disabled,
+ * with the reason on its right and at the start of its tooltip.
+ */
+export interface ToolbarMenuItem {
+  key: string;
+  label: string;
+  icon?: string;
+  needs?: readonly string[];
+  /** Red, below a separator, last. */
+  danger?: boolean;
+  /** Page-specific extra condition, checked after `needs`; `why` is its reason. */
+  disabled?: boolean;
+  why?: string;
+  busy?: boolean;
+  /** Not offered at all (no permission). */
+  hidden?: boolean;
 }
 
 export interface ToolbarFilterChange {

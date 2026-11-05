@@ -547,8 +547,9 @@ describe('SubjectGroupsComponent', () => {
   it('renders THIS page`s two toolbar rows, not a sibling`s single row', () => {
     const host: HTMLElement = fixture.nativeElement;
 
-    expect(host.querySelector('.sw-toolbar .toolbar-row1')).toBeTruthy();
-    expect(host.querySelector('.sw-toolbar .toolbar-row2')).toBeTruthy();
+    // Rule 21: the shared toolbar, with this page's filter row projected into it.
+    expect(host.querySelector('app-data-toolbar')).toBeTruthy();
+    expect(host.querySelector('app-data-toolbar .toolbar-row2')).toBeTruthy();
     // Both filter pills are always present — the stream one is disabled, never removed.
     expect(host.querySelectorAll('.toolbar-row2 app-dd').length).toBe(2);
   });

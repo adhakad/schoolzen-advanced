@@ -98,7 +98,7 @@ describe('HolidayAssignComponent', () => {
 
   it('hides every assign control without the holiday-assign edit permission', async () => {
     await setup(grid(false));
-    expect(fixture.nativeElement.querySelector('.btn-assign')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.tb-actions-btn')).toBeNull();
     component.onRowAction(component.rows[1]);
     expect(component.modalOpen).toBeFalse();
   });

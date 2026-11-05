@@ -1,24 +1,66 @@
-/* `.sw-toolbar`, `.toolbar-row1`, `.toolbar-row2`, `.search`, `.btn-primary` and
-   `.sw-select-pill` all come from the global design-system sheet, so a page that writes
-   its own toolbar markup (the references do) renders identically to this component. */
+/* Rule 21 — the one toolbar's own CSS. `.sw-toolbar`, `.search input`, `.btn-primary` and the
+   filter grid (`.toolbar-row2`, 6 / 4 / 2 per row by card width) are in the design-system sheet. */
 
 :host { display: block; }
+.sw-toolbar { position: relative; }
 
-/* Filter pills are cells of the global filter grid (.sz .toolbar-row2) — no width here. */
+/* Row 1: search, then Actions + primary as one right-aligned group. */
+.tb-row { display: flex; align-items: center; gap: 16px; flex-wrap: nowrap; }
+.tb-row .search { flex: 1 1 280px; width: auto; min-width: 200px; max-width: 280px; }
+.tb-buttons { display: flex; align-items: center; gap: 10px; margin-left: auto; flex: 0 0 auto; min-width: 0; }
+.tb-actions { display: flex; min-width: 0; }
 
-/* The datepicker's real input, invisible, covering the pill so it stays the overlay's
-   anchor while our own label is what the user reads. */
-.sw-pill-date-input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  padding: 0;
+.tb-actions-btn, .tb-primary {
+  height: 38px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 0 12px; font-size: 12.5px; white-space: nowrap; overflow: hidden; min-width: 0;
 }
+.tb-actions-btn {
+  width: var(--toolbar-btn-width); background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--radius); font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.tb-actions-btn:hover, .tb-actions-btn[aria-expanded="true"] { border-color: var(--brand); color: var(--brand-deep); }
+.tb-actions-btn:focus-visible, .tb-menu-item:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.tb-actions-btn .bi { font-size: 11px; flex-shrink: 0; }
+.tb-primary { width: auto; min-width: var(--toolbar-btn-width); max-width: 180px; }
+.tb-primary:disabled { opacity: .55; cursor: not-allowed; }
+.btn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-primary .bi { flex-shrink: 0; }
+
+/* The menu: under the trigger, max-content wide, never wider than the card (set in TS). */
+.tb-menu {
+  position: absolute; z-index: 40; width: max-content; min-width: 200px; box-sizing: border-box;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgba(30, 23, 48, .14); padding: 6px;
+}
+.tb-menu-hint { font-size: 11px; color: var(--ink-faint); padding: 4px 8px 6px; white-space: normal; }
+.tb-menu-sep { height: 1px; background: var(--line-soft); margin: 6px 2px; }
+.tb-menu-item {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; box-sizing: border-box;
+  padding: 8px 10px; border: none; background: none; border-radius: 4px; cursor: pointer;
+  font: inherit; font-size: 13px; color: var(--ink); text-align: left;
+}
+.tb-menu-item:hover:not(.off), .tb-menu-item:focus:not(.off) { background: var(--brand-soft); }
+.tb-menu-item .bi { flex-shrink: 0; color: var(--slate); }
+.tb-item-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
+.tb-item-why { flex-shrink: 0; margin-left: 12px; font-size: 11px; color: var(--ink-faint); font-style: italic; }
+.tb-menu-item.off { color: var(--ink-faint); cursor: not-allowed; }
+.tb-menu-item.off .bi { color: #B7B0C9; }
+.tb-menu-item.danger, .tb-menu-item.danger .bi { color: var(--danger); }
+.tb-menu-item.danger.off, .tb-menu-item.danger.off .bi { color: #D2A79E; }
+.tb-menu-item.danger:hover:not(.off) { background: var(--danger-soft); }
+
+/* Card <= 640px: search alone; then Actions | primary in two equal columns; a lone button
+   sits on the right at its normal width. */
+:host(.tb-narrow) .tb-row { flex-wrap: wrap; row-gap: 10px; column-gap: 8px; }
+:host(.tb-narrow) .tb-row .search { flex: 1 1 100%; max-width: none; min-width: 0; }
+:host(.tb-narrow) .tb-buttons { flex: 1 1 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-left: 0; }
+:host(.tb-narrow) .tb-actions-btn, :host(.tb-narrow) .tb-primary { width: 100%; max-width: none; min-width: 0; }
+:host(.tb-narrow) .tb-one .tb-buttons { display: flex; justify-content: flex-end; }
+:host(.tb-narrow) .tb-one .tb-actions-btn { width: var(--toolbar-btn-width); min-width: 110px; }
+:host(.tb-narrow) .tb-one .tb-primary { width: auto; min-width: 110px; max-width: 180px; }
+
+/* legacy `filters` input: the datepicker's real input sits invisibly over the pill */
+.sw-pill-date-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: none; background: none; cursor: pointer; padding: 0; }
 .sw-select-pill.toolbar-pill { position: relative; }
 .sw-select-pill.disabled { pointer-events: none; }
 .sw-select-pill.disabled .dd-label, .sw-select-pill.disabled .chevron { color: #B7B0C9; }

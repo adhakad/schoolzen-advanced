@@ -4,7 +4,7 @@ import { showTip } from './tip.util';
 /**
  * [szTip] — the shared tooltip: sets `title` for the mouse and opens the same text in a
  * bubble on tap / long-press on touch screens (Rule 21f). Toolbar buttons get it through
- * `.toolbar-btn-group` (ToolbarButtonsDirective); use this one on any other control.
+ * the toolbar; use this one on any other control.
  */
 @Directive({ selector: '[szTip]' })
 export class TipDirective implements OnChanges {

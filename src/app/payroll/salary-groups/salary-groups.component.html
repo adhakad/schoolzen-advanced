@@ -11,20 +11,9 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search salary groups" aria-label="Search salary groups"
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group" *ngIf="canEdit">
-          <button type="button" class="btn-primary" (click)="openAdd()">
-            <i class="bi bi-plus-lg"></i> <span class="btn-label">Add Salary Group</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-data-toolbar searchPlaceholder="Search salary groups" (searchChange)="onSearchChange($event)"
+      [primaryAction]="canEdit || loading ? { label: 'Add Salary Group', icon: 'plus-lg', disabled: !canEdit, why: 'checking your access' } : null" (primaryActionClick)="openAdd()">
+    </app-data-toolbar>
 
     <div class="grid-scroll">
       <table>
@@ -53,9 +42,9 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div>
-    <div class="tbl-empty" *ngIf="loading">Loading salary groups&hellip;</div>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>

@@ -51,9 +51,9 @@
      Buttons — Width rule). The page's main button is never given this — it sizes to its
      own label. */
   --toolbar-btn-width: 130px;
-  /* One search width (shared-fix3: 340px, as attendance-overview.html). Filter cells have no
-     width token — they are cells of the one filter grid (`.sz .toolbar-row2`). */
-  --search-width: 340px;
+  /* Rule 21: one search size everywhere — flex, 200px min, 280px max, 38px high. Filter cells
+     have no width token — they are cells of the one filter grid (`.sz .toolbar-row2`). */
+  --search-width: 280px;
   /* Rule 16: the LAST left sticky column of a wide table carries this light theme shadow. */
   --sticky-shadow: 6px 0 8px -6px rgba(140, 82, 255, .22), 1px 0 0 var(--line);
 }
@@ -508,23 +508,13 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
 .sz .toolbar-row2 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
 .sz .toolbar-row2 > * { min-width: 0; width: 100%; height: 38px; box-sizing: border-box; }
 .sz .toolbar-row2 > button { justify-content: center; }
-/* Rule 21 — THE toolbar buttons (the one copy; pages never size or order their own).
-   Desktop: search, then the buttons right-aligned in the same row. Other buttons 130 x 38;
-   the black primary (.btn-primary, at most one) is always right-most, 38px high, width
-   from its label, 130-180px. Labels: 12.5px, one line, 8px side padding, icon + label;
-   a label that still does not fit ends in an ellipsis, and its full text is the button's
-   tooltip (ToolbarButtonsDirective sets `title` + the tap/long-press bubble). */
-.sz .toolbar-btn-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
-.sz .toolbar-btn-group > button {
-  flex: 0 0 var(--toolbar-btn-width); width: var(--toolbar-btn-width); height: 38px; min-width: 0; box-sizing: border-box;
-  padding: 0 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
-  font-size: 12.5px; white-space: nowrap; overflow: hidden; order: 1;
-}
-.sz .toolbar-btn-group > button.btn-primary {
-  order: 99; flex: 0 0 auto; width: auto; min-width: var(--toolbar-btn-width); max-width: 180px;
-}
-.sz .toolbar-btn-group > button .btn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sz .toolbar-btn-group > button .bi { flex-shrink: 0; }
+/* Rule 21 — the toolbar itself is ONE component (app-data-toolbar: search, Actions menu,
+   primary). It sets tb-mid / tb-narrow from the CARD width, which drives the filter grid:
+   6 per row, 4 per row at 641-819px, 2 per row at <= 640px. */
+.sz app-data-toolbar.tb-mid .toolbar-row2 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.sz app-data-toolbar.tb-narrow .toolbar-row2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Rule 22 — while the shared skeleton (app-skeleton) shows, the table's real rows step aside. */
+.sz table.sk-loading > tbody:not(.sk-body) { display: none; }
 /* The shared tooltip bubble (tap / long-press on touch). */
 .sz-tip {
   position: fixed; z-index: 1100; max-width: 260px; padding: 6px 10px; border-radius: 6px;
@@ -534,7 +524,7 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
 /* Rule 16: sticky columns keep the white surface; the last left one gets the theme shadow. */
 .sz .sticky-last { box-shadow: var(--sticky-shadow) !important; }
 
-.sz .search { position: relative; flex: 0 0 var(--search-width); width: var(--search-width); }
+.sz .search { position: relative; flex: 1 1 var(--search-width); min-width: 200px; max-width: var(--search-width); }
 .sz .search input {
   width: 100%;
   height: 38px;
@@ -1143,7 +1133,6 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
 .sz .tag.tag-danger { color: var(--danger); border-color: #E0BDB4; }
 .sz .tag.fixed { min-width: 78px; justify-content: center; }
 
-/* Toolbar button sizes: Rule 21, in the toolbar section above. */
 .sz .btn-secondary, .sz .btn-assign, .sz .btn-warn,
 .sz-modal-overlay .btn-secondary {
   flex-shrink: 0; height: 38px; background: var(--surface);
@@ -1269,8 +1258,6 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
   /* Icon-only in the header, to save width. */
   .sz .year-pill .dd-label, .sz .profile-name { display: none; }
 
-  .sz .toolbar-row1 { flex-wrap: wrap; }
-
   /* Columns keep their normal width and the table scrolls — never compress a column. */
   .sz .table-scroll { overflow-x: auto; }
   .sz .table-scroll table { min-width: 720px; }
@@ -1290,8 +1277,6 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
   .sz .topbar { padding: 12px 16px; }
   .sz .layout-row { gap: 12px; }
   .sz .col-side { gap: 12px; }
-
-  .sz .search { flex: 1 1 100%; width: 100%; }
 
   .sz-modal-overlay .modal-box { width: calc(100% - 32px); }
   .sz-modal-overlay .m-row { flex-direction: column; gap: 0; }
@@ -1352,27 +1337,9 @@ app-month-nav { display: block; width: 100%; min-width: 0; }
   animation: sz-spin .7s linear infinite;
 }
 
-/* Phones (rules 12, 15, 17): 2 filters per row, toolbar buttons 2 per row at full cell width,
-   nothing wider than the screen — only a table wrapper scrolls sideways. */
+/* Phones (rules 12, 15, 17): 2 filters per row, nothing wider than the screen — only a table
+   wrapper scrolls sideways. The toolbar's own phone layout lives in app-data-toolbar. */
 @media (max-width: 640px) {
   .sz .toolbar-row2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* Rule 21 c-e. The button group dissolves (display: contents) so search, primary and the
-     other buttons are ordered as items of row 1: search full width; the primary alone and
-     right-aligned (the ::after line break keeps every other button off its row); the
-     others 2 per row, each exactly one filter cell wide ((100% - 8px) / 2). Rows are
-     spaced by margin-top, not row-gap, so the zero-height break adds no space.
-     `tb-solo` (primary is the only button): search shrinks left, primary on its right. */
-  .sz .toolbar-row1 { flex-wrap: wrap; justify-content: flex-start; column-gap: 8px; row-gap: 0; }
-  .sz .toolbar-row1::after { content: ''; order: 2; flex: 0 0 100%; height: 0; }
-  .sz .toolbar-row1 > .search { order: 1; flex: 1 1 100%; width: auto; min-width: 0; }
-  .sz .toolbar-btn-group { display: contents; }
-  .sz .toolbar-btn-group > button {
-    order: 3; flex: 0 0 calc((100% - 8px) / 2); width: auto; min-width: 0; max-width: none; margin-top: 8px;
-  }
-  .sz .toolbar-btn-group > button.btn-primary {
-    order: 2; flex: 0 0 auto; width: auto; min-width: var(--toolbar-btn-width); max-width: 180px; margin-left: auto;
-  }
-  .sz .toolbar-row1.tb-solo > .search { flex: 1 1 0; min-width: 140px; }
-  .sz .toolbar-row1.tb-solo > .toolbar-btn-group > button.btn-primary { min-width: 110px; margin-top: 0; }
   .sz .sw-card-main, .sz .stats-card, .sz .layout-row { min-width: 0; max-width: 100%; }
 }

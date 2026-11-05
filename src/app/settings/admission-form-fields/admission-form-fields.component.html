@@ -45,7 +45,7 @@
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetchFields()">Retry</button>
     </div>
-    <div class="tbl-empty" *ngIf="loading && !fields.length">Loading fields…</div>
+    <app-skeleton *ngIf="loading && !fields.length" [rows]="8" (retry)="fetchFields()"></app-skeleton>
 
     <ng-container *ngIf="!loadError && fields.length">
       <div class="grp-title">Always Required — can't be hidden or made optional, but you can add extra rules on top of the default one</div>

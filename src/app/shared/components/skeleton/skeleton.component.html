@@ -1,0 +1,34 @@
+<ng-container *ngIf="visible">
+  <ng-container *ngIf="!timedOut; else failed">
+    <ng-container [ngSwitch]="mode">
+      <ng-container *ngSwitchCase="'table'">
+        <tr class="sk-row" *ngFor="let r of rowList" aria-hidden="true">
+          <td *ngFor="let c of colList">
+            <span class="sk sk-avatar" *ngIf="c === avatarCol"></span>
+            <span class="sk sk-bar" *ngIf="c !== avatarCol" [style.width.%]="width(r, c)"></span>
+          </td>
+        </tr>
+      </ng-container>
+      <div class="sk-cards" *ngSwitchCase="'cards'" aria-hidden="true">
+        <div class="sk sk-card" *ngFor="let i of cardList" [style.height.px]="height"></div>
+      </div>
+      <div class="sk-lines" *ngSwitchDefault aria-hidden="true">
+        <span class="sk sk-bar" *ngFor="let r of rowList" [style.width.%]="width(r, 1)"></span>
+      </div>
+    </ng-container>
+    <span class="sk-sr" role="status" *ngIf="!isBody">Loading</span>
+  </ng-container>
+</ng-container>
+
+<ng-template #failed>
+  <tr *ngIf="isBody"><td [attr.colspan]="colList.length">
+    <div class="sk-error" role="alert">
+      <i class="bi bi-exclamation-circle"></i> This is taking too long.
+      <button type="button" class="link-btn" *ngIf="hasRetry" (click)="onRetry()">Retry</button>
+    </div>
+  </td></tr>
+  <div class="sk-error" *ngIf="!isBody" role="alert">
+    <i class="bi bi-exclamation-circle"></i> This is taking too long.
+    <button type="button" class="link-btn" *ngIf="hasRetry" (click)="onRetry()">Retry</button>
+  </div>
+</ng-template>

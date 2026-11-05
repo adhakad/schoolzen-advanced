@@ -12,22 +12,11 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by name" aria-label="Search by name"
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group" *ngIf="canAssign">
-          <button type="button" class="btn-assign" [disabled]="assignDisabled" data-why="Select rows that have no template yet" (click)="onAssignSelected()">
-            <i class="bi bi-calendar-check"></i> <span class="btn-label">Bulk Assign</span>
-          </button>
-          <button type="button" class="btn-edit-outline" [disabled]="editDisabled" data-why="Select rows that already have a template" (click)="onEditSelected()">
-            <i class="bi bi-pencil"></i> <span class="btn-label">Bulk Edit</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by name" (searchChange)="onSearchChange($event)"
+      [actions]="[
+        { key: 'assign', label: 'Bulk Assign', icon: 'calendar-check', needs: ['sel'], hidden: !canAssign && !loading, disabled: assignDisabled, why: 'select rows with no template' },
+        { key: 'edit', label: 'Bulk Edit', icon: 'pencil', needs: ['sel'], hidden: !canAssign && !loading, disabled: editDisabled, why: 'select rows with a template' }]"
+      [selectedCount]="selectedCount" (actionClick)="$event === 'assign' ? onAssignSelected() : onEditSelected()">
       <div class="sel-warning" *ngIf="mixed" role="alert">
         <i class="bi bi-exclamation-triangle"></i>
         Your selection mixes people who already have a template with ones who don't. Select only one type at a time to Assign or Edit.
@@ -37,7 +26,7 @@
         <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
         <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <div class="sel-bar" *ngIf="selectedCount">
       <span><b>{{ selectedCount }}</b> selected</span>
@@ -78,6 +67,7 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div>
 

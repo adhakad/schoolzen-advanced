@@ -17,11 +17,11 @@ run the build and the tests you wrote; do not report PASS for anything you have 
 
 ## Global sweep run order (use when the prompt says "global sweep")
 Global means ALL built modules and ALL pages. Do in this order, in one run:
-1. Shared layer, built once (global stylesheet + shared components): Overview-style filter grid with the month filter as its last cell (R14), 3-letter month names (R20), bulk button naming and equal size, 2 per row on mobile (R15), sticky shadow token (R16), no overflow at 390px (R17), toolbar buttons per R21.
+1. Shared layer, built once (global stylesheet + shared components): Overview-style filter grid with the month filter as its last cell (R14), 3-letter month names (R20), bulk button naming and equal size, 2 per row on mobile (R15), sticky shadow token (R16), no overflow at 390px (R17), R21 toolbar, R22 skeleton.
 2. Session source (R18): do `shared/shared-fix2.md` fully, including its page-by-page audit table.
 3. Sweep every page of every module (Dashboard, Student, Academic Setup, Staff, Attendance, Leave, Holiday, Payroll, Fees, Examination, Certificates, Approvals, Settings): switch to the shared pieces, remove per-page copies, check at 390px and desktop. Do not change the date columns of calendar grids in tables.
 4. The module fix file named in the prompt (e.g. `attendance/attendance-fix4.md`, A, B, C). Today column is a normal date column that scrolls with the others, opened at the right end of the visible area (R19).
-5. Run the tests the files list. Fill the Status table (R1-R21, one row per module) and the Notes here and in shared-fix2.md.
+5. Run the tests the files list. Fill the Status table (R1-R22, one row per module) and the Notes here and in shared-fix2.md.
 
 ## Rules
 1. **Calendars/pickers:** all pages use the same picker as Roster's "Applies to Month" field (ranges especially); final
@@ -55,32 +55,43 @@ Global means ALL built modules and ALL pages. Do in this order, in one run:
 18. **Academic session (header + data).** The header session dropdown reads the `v2` academic-session collection (name/year/dates), never legacy. The selected session id is sent with every request and every page filters its data by it. Default selection = the session whose dates cover today (else the latest one), and the choice is remembered. Per-page audit and the fix are in `prompts/fixes/shared/shared-fix2.md`.
 19. **Today column (day-by-day grids).** Today is a NORMAL date column: same position, same size, same scrolling as every other day. Not sticky, not pinned, not raised (no extra z-index or shadow), only the light highlight it already has. Date columns are never moved or removed. On load the grid scrolls (the grid wrapper only, never the page) so Today sits at the right end of the visible area with earlier days to its left. Desktop and mobile. Applies to Attendance Overview, Roster and every future day grid.
 20. **Month names = 3 letters in every calendar filter/month label, in ALL modules and ALL pages** ("Jan", "Feb", "Mar" ... "Sep 2026"): filter label, its popup title, headings that show a month. Sweep every page. Table calendar grids (day columns) are not touched by this rule.
-21. **Toolbar buttons.** One shared toolbar component/CSS in the global layer; no page has its own button sizes or order.
- a. **Primary button** = the black filled button (Sync now, Add Staff, Generate, Save...). There is at most one per toolbar. It is always the RIGHT-most button, never with another button to its left in its row.
- b. **Desktop (>640px):** search box, then buttons right-aligned in the same row, primary last. Other buttons are 130px x 38px. Primary is 38px high, width follows its text, min 130px, max 180px.
- c. **Mobile (<=640px), toolbar has a primary AND other buttons:** row 1 search box (full width). Row 2 the primary button alone, right-aligned. Row 3+ the other buttons, 2 per row, each exactly as wide as one filter cell ((100% - 8px) / 2) and 38px high. Then the filter grid.
- d. **Mobile, toolbar has ONLY the primary button (no other buttons):** one row: the search box shrinks and sits on the LEFT, the primary button sits to its RIGHT. Primary width follows its text, min 110px, max 180px; the search box takes the remaining width (min 140px).
- e. **Mobile, toolbar has no primary (only outline buttons):** search row, then the buttons 2 per row as in (c).
- f. **Text:** button labels are never cut randomly or wrapped to a second line: 12.5px, one line, 8px side padding, icon + label. If a label still does not fit, it ends with an ellipsis and the FULL text is in the tooltip. Every button has a tooltip (`title` for mouse plus the shared tooltip directive that also opens on tap/long-press on touch) showing the full label, and a disabled button's tooltip also says why it is disabled ("Select at least one row").
- g. Names follow Rule 15: "Bulk Assign", "Bulk Edit", "Bulk Delete", and also "Bulk Print", "Bulk Enter Marks", "Bulk Generate" (never "... Selected"). A count may follow in brackets, "Bulk Print (3)".
- h. Applies to every page of every module, including modals' footers only for sizes (modal footers keep their own two-button layout).
+21. **Toolbar (shared-fix4).** ONE shared toolbar component (`app-data-toolbar`): search + Actions menu + primary button. No page writes its own toolbar or button CSS.
+ a. One row on desktop: search, then **Actions**, then the black **primary** button last (right-most). Filters are the rows below (Rule 14 grid).
+ b. Search: one size everywhere, flex, min 200px, max 280px, 38px high.
+ c. Primary = the black "Add .../Create/main" button: 38px high, width by text, min 130px, max 180px, ellipsis + full text in the tooltip.
+ d. Every non-primary button is an item of ONE button named exactly "Actions" (with chevron), even if there is only one. No loose secondary buttons, no "Bulk Actions". If there is no primary, Actions is the last item on the right.
+ e. Item names use bulk naming (Bulk Print, Bulk Enter Marks, Bulk Generate, Bulk Assign, Bulk Delete, Import, Export ...); never "... Selected". A count shows inside the item only when rows are ticked: "Bulk Delete (3)".
+ f. Each item declares `needs`: `[]` always enabled, `['sel']` needs ticked rows, `['Class','sel']` needs a filter value + rows. An unmet item stays visible but disabled, shows the reason on its right ("select rows", "choose a class"), and its tooltip starts with the reason. Recomputed live.
+ g. Danger item (Delete) is red, last, under a separator. Menu hint line: "Some actions unlock when you tick rows or choose a filter".
+ h. Menu opens under the button, `width: max-content`, never wider than the card (card - 36px), closes on outside click / Esc, keyboard usable.
+ i. Card width <= 640px: row 1 search alone (full width, no button); row 2 Actions (left) + primary (right) in two equal columns; if only one exists it sits on the right at its normal width (min 110px). Menu opens left-aligned inside the card.
+ j. Filter grid by card width: 6 per row, 4 per row at 641-819px, 2 per row at <= 640px. Month filter last.
+ k. No horizontal overflow at 390px; long text ellipsis + full text in the tooltip.
+ l. UI disabling is not security: data-changing actions keep their Roles & Permissions key and activity log on the backend.
+22. **Loading skeleton (shared-fix4).** ONE shared skeleton component (`app-skeleton`), theme grey-purple, 1.2s shimmer; no per-page skeleton CSS.
+ a. Every page, on tables, cards, dashboard tiles: first load and every filter/month change.
+ b. Real shape: tables keep the real columns (the skeleton is a second `<tbody>` of the same table) with 8-10 rows; cards use the card size; avatars round. No layout jump when data arrives.
+ c. Search, Actions, primary and filter boxes are shown at once and stay usable; only their data is skeleton.
+ d. Spinner only inside a button during save/delete/bulk action. No spinner, blur or fade on the page or table, no "Loading..." text.
+ e. Nothing for the first 150ms; after 10s an error with "Retry". Empty data after load shows "No records", never a stuck skeleton.
+ f. 390px: no overflow; wide tables keep the same skeleton shape (they scroll inside their wrapper).
 
 ## Status (Claude Code updates this after each module run)
-| Module | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15 | R16 | R17 | R18 | R19 | R20 | R21 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Attendance | partial | done | done | done | partial | done | done | done | partial | done | done | done | done | done | - | - | - | - | - | - | partial |
-| Student | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | partial |
-| Academic Setup | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done |
-| Staff | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | partial |
-| Leave | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done |
-| Holiday | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | partial |
-| Fees | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done |
-| Certificates | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | n/a |
-| Approvals | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | n/a |
-| Settings | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done |
-| Dashboard | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | n/a |
-| Payroll | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done |
-| Examination | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done |
+| Module | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15 | R16 | R17 | R18 | R19 | R20 | R21 | R22 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Attendance | partial | done | done | done | partial | done | done | done | partial | done | done | done | done | done | - | - | - | - | - | - | done | done |
+| Student | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Academic Setup | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Staff | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Leave | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Holiday | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Fees | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Certificates | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Approvals | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Settings | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | partial |
+| Dashboard | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | n/a | partial |
+| Payroll | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Examination | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
 
 `-` = not checked yet. Add a short "Notes" list under the table for every partial / not done.
 
@@ -97,6 +108,11 @@ Global means ALL built modules and ALL pages. Do in this order, in one run:
 - R21 partial (Student, Staff, Attendance, Holiday): Manage Students, Manage Staff, Roster and Holidays have 3-4 buttons; at 1366px they need 766-906px beside a 340px search but the card row is 736px, so the button row moves under the search (still right-aligned, primary last, 130 x 38). Mobile layout is to spec on all of them.
 - R21 n/a: Certificates (Generate TC), Approvals, Dashboard have no toolbar buttons (Payroll Salary Payouts and Exam Marksheet Structure neither; their modules have other pages that do).
 - R14 Approvals now done: Stream Group filter added (Class -> Stream -> Stream Group -> Section), sent to the API as `groupId`.
+
+### Notes — shared-fix4 v2: Rules 21 + 22 (2026-11-02)
+- R21: `app-data-toolbar` (search 200-280px, one "Actions" menu with `needs`, primary right-most) on all 32 toolbar pages; the old `.toolbar-btn-group` CSS and `ToolbarButtonsDirective` are removed. Layout follows the CARD width (ResizeObserver), not the viewport. Measured by `e2e/shared-fix4-toolbar.spec.ts` at 390/1366/1920; audit table in `shared/shared-fix4.md`.
+- R21 Dashboard n/a: no toolbar.
+- R22: `app-skeleton` replaces every page's "Loading..." text and Attendance Overview's table fade. Settings partial: Roles & Permissions Step 1 (role pills) has no skeleton (its own pill row, not a table). Dashboard partial: widgets use the lines skeleton, not a tile-shaped one. Filter dropdowns still load their options without a skeleton (the boxes are shown and usable at once). Modal-internal "Checking..." hints with a spinner (Admission Form Fields, Marksheet Templates, Fee Reminder "Sending" note) were left as they are.
 
 ### Rule 7 update (2026-10-18)
 Month filter is now exactly one filter cell wide (not 178px) and month names are 3 letters ("Sep 2026"). Superseded on 2026-10-19 by Rules 14 and 7: it is the last cell of the filter grid. Every module with a month filter must be re-checked: R7 = not done until fixed (Attendance Overview, Roster, Leave, Holiday, Payroll and any other).

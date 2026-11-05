@@ -1,27 +1,53 @@
-<!-- `.sw-toolbar` from the approved references. Row 1 is search + the primary action; row 2
-     only exists when the page actually has filters — design-system.md is explicit that the
-     toolbar's shape follows each page's OWN needs, and that forcing one page's row-split
-     onto another is a mistake that has already been made once. -->
-<div class="sw-toolbar">
-  <div class="toolbar-row1">
-    <div class="search">
+<!-- Rule 21: the ONE toolbar. Row 1 = search, Actions menu, black primary (right-most).
+     Everything the page projects (its filter grid `.toolbar-row2`, warnings, errors) follows
+     below in the same `.sw-toolbar`. Card <= 640px: search alone, then Actions | primary. -->
+<div class="sw-toolbar" #bar>
+  <div class="toolbar-row1 tb-row" *ngIf="showSearch || menu.length || primaryAction"
+       [class.tb-one]="(menu.length ? 1 : 0) + (primaryAction ? 1 : 0) === 1">
+    <div class="search" *ngIf="showSearch">
       <i class="bi bi-search"></i>
       <input type="text" [placeholder]="searchPlaceholder" [value]="searchValue"
+             [disabled]="searchDisabled"
              [attr.aria-label]="searchPlaceholder"
              (input)="onSearchInput($any($event.target).value)" />
     </div>
 
-    <div class="toolbar-btn-group" *ngIf="primaryAction">
-      <button type="button" class="btn-primary"
-              [disabled]="!!primaryAction.disabled" (click)="primaryActionClick.emit()">
-        <i class="bi bi-{{ primaryAction.icon }}" *ngIf="primaryAction.icon"></i> <span class="btn-label">{{ primaryAction.label }}</span>
+    <div class="tb-buttons" *ngIf="menu.length || primaryAction">
+      <div class="tb-actions" *ngIf="menu.length">
+        <button type="button" class="tb-actions-btn" #trigger
+                aria-haspopup="menu" [attr.aria-expanded]="menuOpen"
+                (click)="toggleMenu()" (keydown)="onTriggerKey($event)">
+          <span class="btn-label">Actions</span><i class="bi bi-chevron-down"></i>
+        </button>
+      </div>
+      <button type="button" class="btn-primary tb-primary" *ngIf="primaryAction"
+              [disabled]="!!primaryAction.disabled || !!primaryAction.busy"
+              [attr.title]="primaryTitle"
+              (click)="primaryActionClick.emit()">
+        <i class="bi" [ngClass]="primaryAction.busy ? 'bi-arrow-repeat spinning' : 'bi-' + (primaryAction.icon || 'plus-lg')"></i>
+        <span class="btn-label">{{ primaryAction.label }}</span>
       </button>
     </div>
   </div>
 
+  <div class="tb-menu" role="menu" aria-label="Actions" #menuEl *ngIf="menuOpen" (keydown)="onMenuKey($event)">
+    <div class="tb-menu-hint" *ngIf="hasNeeds">Some actions unlock when you tick rows or choose a filter</div>
+    <ng-container *ngFor="let item of menu; trackBy: trackByItemKey">
+      <div class="tb-menu-sep" *ngIf="item.sepBefore" role="separator"></div>
+      <button type="button" role="menuitem" class="tb-menu-item"
+              [class.danger]="item.danger" [class.off]="item.off"
+              [attr.aria-disabled]="item.off || null" [attr.title]="item.tip"
+              [attr.data-key]="item.key"
+              (click)="pick(item)">
+        <i class="bi" [ngClass]="item.busy ? 'bi-arrow-repeat spinning' : 'bi-' + (item.icon || 'dot')"></i>
+        <span class="tb-item-label">{{ item.text }}</span>
+        <span class="tb-item-why" *ngIf="item.off && item.reason">{{ item.reason }}</span>
+      </button>
+    </ng-container>
+  </div>
+
   <div class="toolbar-row2" *ngIf="views.length">
     <ng-container *ngFor="let filter of views; trackBy: trackByKey">
-      <!-- Dropdown: the `.dd` component, never a native select and never a mat-select. -->
       <app-dd *ngIf="filter.isSelect"
               class="toolbar-pill"
               [options]="filter.options"
@@ -29,12 +55,6 @@
               [disabled]="filter.disabled"
               [ariaLabel]="filter.key"
               (valueChange)="onFilterChange(filter.key, $event)"></app-dd>
-
-      <!-- Date / month. Material's datepicker stays — the design system bans native
-           selects, not calendars, and `.dd` has no date equivalent. The label is ours (a
-           month filter must read "August 2026", not a day), so the datepicker's own input
-           sits transparently over the pill: it stays the overlay's anchor and keeps the
-           picker's keyboard behaviour. -->
       <div class="sw-select-pill toolbar-pill" *ngIf="!filter.isSelect"
            [class.disabled]="filter.disabled">
         <i class="bi bi-{{ filter.icon }}" *ngIf="filter.icon"></i>
@@ -54,4 +74,6 @@
       </div>
     </ng-container>
   </div>
+
+  <ng-content></ng-content>
 </div>

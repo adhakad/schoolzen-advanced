@@ -22,24 +22,11 @@
 <div class="layout-row">
   <div class="sw-card-main">
     <!-- One toolbar row: this page has no filters. Search left, the two buttons right. -->
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search classes" aria-label="Search classes"
-                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-danger-outline"
-                  [disabled]="!selectedCount || deleting" data-why="Select at least one row" (click)="onDeleteSelected()">
-            <i class="bi bi-trash"></i> <span class="btn-label">Bulk Delete</span>
-          </button>
-          <button type="button" class="btn-primary" (click)="onAddClass()">
-            <i class="bi bi-plus-lg"></i> <span class="btn-label">Add Class</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-data-toolbar searchPlaceholder="Search classes" [searchValue]="search" (searchChange)="onSearchChange($event)"
+      [actions]="[{ key: 'delete', label: 'Bulk Delete', icon: 'trash', needs: ['sel'], danger: true, busy: deleting }]"
+      [selectedCount]="selectedCount" (actionClick)="onDeleteSelected()"
+      [primaryAction]="{ label: 'Add Class', icon: 'plus-lg' }" (primaryActionClick)="onAddClass()">
+    </app-data-toolbar>
 
     <div class="table-scroll">
       <table>
@@ -105,6 +92,7 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="retryList()"></tbody>
       </table>
     </div>
 
@@ -174,7 +162,7 @@
             [disabled]="!!form.id"
             (valueChange)="onClassSelected($event)"></app-dd>
     <!-- Options come from /class-options; a failed fetch is said, never a silently empty list. -->
-    <p class="m-hint" *ngIf="!form.id && classOptionsLoading">Loading classes&hellip;</p>
+    <app-skeleton *ngIf="!form.id && classOptionsLoading" [rows]="3"></app-skeleton>
     <p class="m-error" *ngIf="!form.id && classOptionsError" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ classOptionsError }}
       <button type="button" class="link-btn" (click)="retryClassOptions()">Retry</button>

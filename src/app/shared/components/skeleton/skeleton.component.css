@@ -1,0 +1,27 @@
+/* Rule 22 — the one skeleton: theme grey-purple, 1.2s shimmer. */
+:host { display: block; }
+:host(.sk-body) { display: table-row-group; }
+
+.sk {
+  display: block;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #EEEAF6 25%, #F7F4FC 50%, #EEEAF6 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes sk-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+.sk-row td { vertical-align: middle; }
+.sk-bar { height: 12px; max-width: 100%; margin: 4px 0; }
+.sk-avatar { width: 32px; height: 32px; border-radius: 50%; }
+
+.sk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.sk-card { width: 100%; border-radius: var(--radius, 6px); }
+.sk-lines { display: flex; flex-direction: column; gap: 12px; padding: 8px 0; }
+
+.sk-error {
+  display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
+  padding: 32px 16px; font-size: 12.5px; color: var(--danger, #B65C4A);
+}
+.sk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

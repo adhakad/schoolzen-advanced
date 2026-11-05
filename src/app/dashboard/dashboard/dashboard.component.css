@@ -84,7 +84,7 @@
 .ql-item.locked > .bi:first-child { color: var(--ink-faint); }
 .ql-item .lock { position: absolute; top: 6px; right: 6px; font-size: 10px; color: var(--ink-faint); }
 /* Per-card failed / loading / empty states (dashboard/errors.md). */
-.widget-error, .widget-loading { font-size: 12px; color: var(--ink-faint); padding: 8px 0; }
+.widget-error { font-size: 12px; color: var(--ink-faint); padding: 8px 0; }
 .widget-error { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .retry-link { display: inline; margin: 0; background: none; border: 0; padding: 0; font-family: inherit; }
 .empty-line { padding: 8px 4px; }

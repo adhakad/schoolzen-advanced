@@ -11,7 +11,7 @@
     <button type="button" class="view-all-link retry-link" (click)="reload(key)">Retry</button>
   </div>
 </ng-template>
-<ng-template #loading><div class="widget-loading">Loading…</div></ng-template>
+<ng-template #loading><app-skeleton [rows]="3"></app-skeleton></ng-template>
 
 <div class="hero">
   <div class="hero-row">

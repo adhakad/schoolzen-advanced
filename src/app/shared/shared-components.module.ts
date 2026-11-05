@@ -54,7 +54,7 @@ import { PrintModeChoiceComponent } from './components/print-mode-choice/print-m
 import { GoodToKnowComponent } from './components/good-to-know/good-to-know.component';
 import { TextCasePipe } from './pipes/text-case.pipe';
 import { TipDirective } from './components/tip/tip.directive';
-import { ToolbarButtonsDirective } from './components/tip/toolbar-buttons.directive';
+import { SkeletonComponent } from './components/skeleton/skeleton.component';
 
 const COMPONENTS = [
   PageShellComponent,
@@ -96,9 +96,10 @@ const COMPONENTS = [
   PrintModeChoiceComponent,
   // The "Good to know" side card — 2-3 plain-language steps, the rest behind "Read more".
   GoodToKnowComponent,
-  // Rule 21: the shared tooltip, and the toolbar-button group that applies it to every toolbar.
+  // The shared tooltip (any control; the toolbar sets its own titles).
   TipDirective,
-  ToolbarButtonsDirective,
+  // Rule 22: THE loading skeleton (tables, cards, tiles).
+  SkeletonComponent,
   TextCasePipe
 ];
 

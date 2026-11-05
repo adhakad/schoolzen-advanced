@@ -11,20 +11,9 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search departments" aria-label="Search departments"
-                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-primary" (click)="onCreate()">
-            <i class="bi bi-plus-lg"></i> <span class="btn-label">Create</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-data-toolbar searchPlaceholder="Search departments" [searchValue]="search" (searchChange)="onSearchChange($event)"
+      [primaryAction]="{ label: 'Create', icon: 'plus-lg' }" (primaryActionClick)="onCreate()">
+    </app-data-toolbar>
 
     <div class="table-scroll">
       <table>
@@ -53,6 +42,7 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div>
 

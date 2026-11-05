@@ -12,23 +12,10 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search name, employee ID or roll no"
-            aria-label="Search by name, employee ID or roll number"
-            (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-assign" [disabled]="!selected.size" data-why="Select at least one row" (click)="generateReport()">
-            <i class="bi bi-file-earmark-text"></i> <span class="btn-label">Generate Report</span>
-          </button>
-          <button type="button" class="btn-primary" [disabled]="syncing" data-why="Sync is already running" (click)="onSyncClick()">
-            <i class="bi bi-arrow-repeat" [class.spinning]="syncing"></i> <span class="btn-label">Sync now</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search name, employee ID or roll no" (searchChange)="onSearchChange($event)"
+      [actions]="[{ key: 'report', label: 'Bulk Report', icon: 'file-earmark-text', needs: ['sel'] }]"
+      [selectedCount]="selected.size" (actionClick)="generateReport()"
+      [primaryAction]="{ label: 'Sync now', icon: 'arrow-repeat', busy: syncing }" (primaryActionClick)="onSyncClick()">
       <!-- "Last sync" sits right under Sync now (attendance-fix1.md §3e). -->
       <div class="sync-row" *ngIf="syncLine">
         <span class="sync-line" role="status" aria-live="polite"><i class="bi bi-fingerprint"></i> {{ syncLine }}</span>
@@ -46,9 +33,9 @@
         <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
         <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
-    <div class="grid-scroll" #gridScroll [class.is-loading]="loading">
+    <div class="grid-scroll" #gridScroll>
       <table class="att-grid">
         <thead>
           <tr>
@@ -108,6 +95,7 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetchGrid()"></tbody>
       </table>
     </div>
 

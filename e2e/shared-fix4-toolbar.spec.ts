@@ -1,15 +1,11 @@
 import { test, expect, Page } from '@playwright/test';
 import { hermetic } from './hermetic';
 
-// shared-fix4.md, Rule 21: one toolbar on every page.
-//   1366px — other buttons 130 x 38, primary 38 high, 130-180 wide and right-most, search 340;
-//   390px  — primary + others: search row, primary alone right-aligned, others 2 per row at one
-//            filter cell wide (within 1px), 38 high; primary only: search left + primary right on
-//            one row, primary 110-180; no primary: search row, others 2 per row; no page overflow;
-//   text   — no label wraps; a truncated label has its full text in the tooltip; the longest
-//            label ("Bulk Enter Marks (12)") checked at 390px; tap opens the tooltip on touch.
-// Plus shared-fix4 step 4: select + parent → child reset on Admit Card Structure, Marksheet
-// Structure, Subject Groups and Leave Assign, with fixtures that give them something to pick.
+// shared-fix4.md - Rule 21 (one toolbar: search + Actions menu + primary) and Rule 22 (one
+// skeleton), measured on every toolbar page at 390 / 1366 / 1920; Actions `needs` logic; the menu
+// stays inside the card; slow API -> skeleton, then data, no layout shift (one page per module).
+// Plus step 4: select + parent -> child reset on Admit Card Structure, Marksheet Structure,
+// Subject Groups and Leave Assign, and the Approvals Stream Group filter (shared-fix3 pending item).
 // Hermetic: the built app, every API call answered here (nothing to clean up afterwards).
 
 const b64url = (value: object): string => Buffer.from(JSON.stringify(value)).toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -52,176 +48,223 @@ const fixtures: Record<string, object> = {
 // Edit grants on, so permission-gated buttons (Payroll, Fees, Exam, Holiday/Leave Assign) render.
 const DEFAULT_BODY = { rows: [], data: [], classes: [], groups: [], total: 0, sessions: [], canEdit: true, canAssign: true, canIssue: true };
 
-type Kind = 'primary+others' | 'primary-only' | 'others-only';
-// Every page with toolbar buttons, and the shape Rule 21 gives it.
-const PAGES: [string, Kind][] = [
-  ['academic-setup/classes-sections', 'primary+others'], ['academic-setup/subjects', 'primary+others'],
-  ['academic-setup/subject-groups', 'primary+others'],
-  ['student/manage-students', 'primary+others'], ['student/admission', 'primary-only'], ['student/class-promotion', 'primary-only'],
-  ['staff/manage-staff', 'primary+others'], ['staff/departments', 'primary-only'], ['staff/designations', 'primary-only'],
-  ['attendance/overview', 'primary+others'], ['attendance/shifts', 'primary-only'], ['attendance/roster', 'others-only'],
-  ['leave/requests', 'primary-only'], ['leave/create', 'primary-only'], ['leave/assign', 'others-only'],
-  ['holiday/holidays', 'primary+others'], ['holiday/templates', 'primary-only'], ['holiday/assign', 'others-only'],
-  ['payroll/generate-payroll', 'others-only'], ['payroll/salary-groups', 'primary-only'], ['payroll/assign-salary', 'others-only'],
-  ['fees/fees', 'others-only'], ['fees/fee-structure', 'primary-only'], ['fees/fee-reminder', 'primary-only'],
-  ['examination/admit-card-structure', 'primary-only'], ['examination/generate-admit-card', 'others-only'],
-  ['examination/generate-marksheet', 'others-only'],
-  ['settings/academic-sessions', 'primary-only'], ['settings/roles-permissions', 'others-only']
+// Rows for the Actions tests (Bulk Delete needs ticked rows).
+fixtures['/api/v2/academic-setup/classes'] = [
+  { _id: 'c6', adminId: 'a1', class: 6, order: 8, hasStreams: false, sections: [{ _id: 's6a', name: 'A' }], streams: [], studentCount: 0 },
+  { _id: 'c7', adminId: 'a1', class: 7, order: 9, hasStreams: false, sections: [{ _id: 's7a', name: 'A' }], streams: [], studentCount: 0 }
 ];
 
-const open = async (page: Page, route: string): Promise<void> => {
+type Kind = 'primary+actions' | 'primary-only' | 'actions-only' | 'search-only';
+// Every page with the shared toolbar, and its shape under Rule 21.
+const PAGES: [string, Kind][] = [
+  ['academic-setup/classes-sections', 'primary+actions'], ['academic-setup/subjects', 'primary+actions'],
+  ['academic-setup/subject-groups', 'primary+actions'],
+  ['student/manage-students', 'primary+actions'], ['student/admission', 'primary-only'], ['student/class-promotion', 'primary-only'],
+  ['staff/manage-staff', 'primary+actions'], ['staff/departments', 'primary-only'], ['staff/designations', 'primary-only'],
+  ['attendance/overview', 'primary+actions'], ['attendance/shifts', 'primary-only'], ['attendance/roster', 'actions-only'],
+  ['leave/requests', 'primary-only'], ['leave/create', 'primary-only'], ['leave/assign', 'actions-only'],
+  ['holiday/holidays', 'primary+actions'], ['holiday/templates', 'primary-only'], ['holiday/assign', 'actions-only'],
+  ['payroll/generate-payroll', 'actions-only'], ['payroll/salary-groups', 'primary-only'], ['payroll/assign-salary', 'actions-only'],
+  ['payroll/salary-payouts', 'search-only'],
+  ['fees/fees', 'actions-only'], ['fees/fee-structure', 'primary-only'], ['fees/fee-reminder', 'primary-only'],
+  ['examination/admit-card-structure', 'primary-only'], ['examination/generate-admit-card', 'actions-only'],
+  ['examination/generate-marksheet', 'actions-only'],
+  ['certificates/generate-tc', 'search-only'], ['approvals', 'search-only'],
+  ['settings/academic-sessions', 'primary-only'], ['settings/roles-permissions', 'actions-only']
+];
+
+const open = async (page: Page, route: string, delayMs = 0): Promise<void> => {
   await hermetic(page);
   await page.context().addCookies([{ name: 'adminAccessToken', value: fakeJwt, domain: 'localhost', path: '/' }]);
-  await page.route('http://localhost:3000/**', (r) => {
+  await page.route('http://localhost:3000/**', async (r) => {
     const body = fixtures[new URL(r.request().url()).pathname] ?? DEFAULT_BODY;
-    return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+    if (delayMs) await new Promise((res) => setTimeout(res, delayMs));
+    return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) }).catch(() => undefined);
   });
   await page.goto('/v2/' + route);
+  if (delayMs) return;
   await page.locator('.page-head, h1').first().waitFor({ timeout: 20000 });
   await page.waitForTimeout(500);
 };
 
 interface Box { x: number; y: number; w: number; h: number; r: number; b: number }
-interface Btn extends Box { primary: boolean; label: string; title: string; truncated: boolean; wrapped: boolean }
-
 const measure = (page: Page) => page.evaluate(() => {
-  const box = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom }; };
-  const visible = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
-  const group = Array.from(document.querySelectorAll('.sz .toolbar-btn-group')).find((g) => g.querySelector('button'));
-  const row1 = group?.closest('.toolbar-row1') || null;
-  const search = row1?.querySelector(':scope > .search') || null;
-  const buttons = group ? Array.from(group.querySelectorAll<HTMLButtonElement>(':scope > button')).filter(visible).map((b) => {
-    const label = b.querySelector('.btn-label') as HTMLElement | null;
-    const lh = label ? parseFloat(getComputedStyle(label).lineHeight) || 16 : 16;
-    return {
-      ...box(b), primary: b.classList.contains('btn-primary'),
-      label: (label?.textContent || b.textContent || '').trim(), title: b.title,
-      truncated: !!label && label.scrollWidth > label.clientWidth + 0.5,
-      wrapped: !label || label.getBoundingClientRect().height > lh * 1.5
-    };
-  }) : [];
-  // One filter cell: the first cell of the shared filter grid on this page (if any).
-  const items = (el: Element): Element[] => Array.from(el.children).flatMap((c) => getComputedStyle(c).display === 'contents' ? items(c) : [c]);
-  const grid = Array.from(document.querySelectorAll('.sz .toolbar-row2')).find(visible);
-  const cell = grid ? items(grid).find(visible) : null;
-  const rowBox = row1 ? box(row1) : null;
+  const box = (el: Element | null) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return r.width ? { x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom } : null;
+  };
+  const tb = document.querySelector('app-data-toolbar');
   return {
     overflow: document.documentElement.scrollWidth - window.innerWidth,
-    row1: rowBox, search: search && visible(search) ? box(search) : null, buttons,
-    cellW: cell ? cell.getBoundingClientRect().width : rowBox ? (rowBox.w - 8) / 2 : 0
+    narrow: !!tb?.classList.contains('tb-narrow'),
+    row: box(tb?.querySelector('.tb-row') || null),
+    search: box(tb?.querySelector('.tb-row > .search') || null),
+    actions: box(tb?.querySelector('.tb-actions-btn') || null),
+    primary: box(tb?.querySelector('.tb-primary') || null),
+    labelsClipped: Array.from(tb?.querySelectorAll('.tb-row .btn-label') || []).filter((l) => {
+      const b = l.closest('button') as HTMLElement;
+      return l.scrollWidth > l.clientWidth + 0.5 && !(b.title || '').includes((l.textContent || '').trim());
+    }).length
   };
 });
-
-const fmt = (b: Box) => `${b.w.toFixed(1)}x${Math.round(b.h)}`;
 const near = (a: number, b: number, tol = 1) => Math.abs(a - b) <= tol;
+const f = (b: Box | null) => (b ? `${b.w.toFixed(0)}x${b.h.toFixed(0)}` : '-');
 
 test.describe.configure({ mode: 'parallel' });
 
 for (const [route, kind] of PAGES) {
-  test(`toolbar ${route}`, async ({ browser }) => {
+  test(`R21 toolbar ${route}`, async ({ browser }) => {
     const notes: string[] = [];
-
-    // --- 1366px ---------------------------------------------------------------------
-    const desk = await browser.newPage({ viewport: { width: 1366, height: 900 } });
-    await open(desk, route);
-    const d = await measure(desk);
-    expect(d.buttons.length, 'toolbar buttons rendered').toBeGreaterThan(0);
-    expect(d.overflow, 'desktop overflow').toBeLessThanOrEqual(0);
-    const primaries = d.buttons.filter((b) => b.primary);
-    const others = d.buttons.filter((b) => !b.primary);
-    expect(primaries.length, 'at most one primary').toBeLessThanOrEqual(1);
-    expect(primaries.length ? (others.length ? 'primary+others' : 'primary-only') : 'others-only', 'toolbar shape').toBe(kind);
-    others.forEach((b) => { expect(Math.round(b.w), `130 wide (${b.label})`).toBe(130); expect(Math.round(b.h), `38 high (${b.label})`).toBe(38); });
-    for (const p of primaries) {
-      expect(Math.round(p.h), 'primary 38 high').toBe(38);
-      expect(p.w, 'primary >= 130').toBeGreaterThanOrEqual(129.5);
-      expect(p.w, 'primary <= 180').toBeLessThanOrEqual(180.5);
-      expect(p.r, 'primary is right-most').toBeGreaterThanOrEqual(Math.max(...d.buttons.map((b) => b.r)) - 0.5);
-    }
-    // Buttons share the search row when they fit beside it; when they cannot (3+ buttons
-    // next to a 340px search in a 736px card), they move as one right-aligned row below it.
-    let placement = '-';
-    if (d.search) {
-      expect(Math.round(d.search.w), 'search 340').toBe(340);
-      const need = d.search.w + 16 + d.buttons.reduce((sum, b) => sum + b.w, 0) + 10 * (d.buttons.length - 1);
-      const fits = need <= d.row1!.w + 0.5;
-      d.buttons.forEach((b) => expect(near(b.y, d.buttons[0].y), 'buttons in one row').toBe(true));
-      if (fits) d.buttons.forEach((b) => expect(near(b.y + b.h / 2, d.search!.y + d.search!.h / 2, 2), 'buttons on the search row').toBe(true));
-      placement = fits ? 'same row' : `next row (need ${Math.round(need)} > ${Math.round(d.row1!.w)})`;
-    }
-    expect(near(Math.max(...d.buttons.map((b) => b.r)), d.row1!.r), 'buttons right-aligned').toBe(true);
-    for (const b of d.buttons) {
-      expect(b.wrapped, `one line (${b.label})`).toBe(false);
-      expect(b.title, `tooltip has the full label (${b.label})`).toContain(b.label);
-    }
-    notes.push(`1366: search=${d.search ? Math.round(d.search.w) : '-'} buttons=${placement} others=${others.map(fmt).join(',') || '-'} primary=${primaries.map(fmt).join(',') || '-'}`);
-    await desk.close();
-
-    // --- 390px ----------------------------------------------------------------------
-    const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
-    await open(phone, route);
-    const m = await measure(phone);
-    expect(m.overflow, '390 overflow').toBeLessThanOrEqual(0);
-    const p = m.buttons.find((b) => b.primary);
-    const rest = m.buttons.filter((b) => !b.primary);
-    rest.forEach((b) => {
-      expect(near(b.w, m.cellW), `width = filter cell (${b.label}: ${b.w.toFixed(1)} vs ${m.cellW.toFixed(1)})`).toBe(true);
-      expect(Math.round(b.h), `38 high (${b.label})`).toBe(38);
-    });
-    for (let i = 0; i + 1 < rest.length; i += 2) expect(near(rest[i].y, rest[i + 1].y), 'others 2 per row').toBe(true);
-    if (kind === 'primary+others') {
-      expect(p!.y, 'primary below the search').toBeGreaterThan(m.search!.b - 0.5);
-      expect(rest.every((b) => !near(b.y, p!.y)), 'primary alone on its row').toBe(true);
-      expect(near(p!.r, m.row1!.r), 'primary right-aligned').toBe(true);
-      expect(rest.every((b) => b.y > p!.b - 0.5), 'others below the primary').toBe(true);
-    }
-    if (kind === 'primary-only') {
-      expect(p!.w, 'primary >= 110').toBeGreaterThanOrEqual(109.5);
-      expect(p!.w, 'primary <= 180').toBeLessThanOrEqual(180.5);
-      expect(near(p!.r, m.row1!.r), 'primary right-aligned').toBe(true);
-      if (m.search) {
-        expect(near(m.search.y + m.search.h / 2, p!.y + p!.h / 2, 2), 'search and primary on one row').toBe(true);
-        expect(m.search.r, 'search left of the primary').toBeLessThanOrEqual(p!.x);
+    for (const width of [1920, 1366, 390]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      await open(page, route);
+      const m = await measure(page);
+      expect(m.overflow, `${width}: no horizontal overflow`).toBeLessThanOrEqual(0);
+      expect(m.labelsClipped, `${width}: a clipped label has its full text in the tooltip`).toBe(0);
+      const shape = m.primary && m.actions ? 'primary+actions' : m.primary ? 'primary-only' : m.actions ? 'actions-only' : 'search-only';
+      expect(shape, `${width}: toolbar shape`).toBe(kind);
+      for (const b of [m.search, m.actions, m.primary]) if (b) expect(Math.round(b.h), `${width}: 38 high`).toBe(38);
+      if (m.primary) expect(m.primary.w).toBeLessThanOrEqual(180.5);
+      if (!m.narrow) {
+        if (m.search) expect(Math.round(m.search.w), `${width}: search 280`).toBe(280);
+        if (m.actions) expect(Math.round(m.actions.w), `${width}: Actions 130`).toBe(130);
+        if (m.primary) expect(m.primary.w, `${width}: primary >= 130`).toBeGreaterThanOrEqual(129.5);
+        if (m.primary && m.actions) expect(m.actions.r, 'Actions left of primary').toBeLessThanOrEqual(m.primary.x);
+        const last = m.primary || m.actions;
+        if (last) expect(near(last.r, m.row!.r), 'last button right-most').toBe(true);
+        if (m.search && last) expect(near(last.y, m.search.y, 2), 'one row').toBe(true);
+      } else {
+        // Card <= 640px: search alone on its row; Actions | primary in equal columns below.
+        if (m.search) {
+          expect(near(m.search.w, m.row!.w), `${width}: search full width`).toBe(true);
+          for (const b of [m.actions, m.primary]) if (b) expect(b.y, `${width}: no button in the search row`).toBeGreaterThan(m.search.b - 0.5);
+        }
+        if (m.actions && m.primary) {
+          expect(near(m.actions.w, m.primary.w), `${width}: equal widths (${f(m.actions)} vs ${f(m.primary)})`).toBe(true);
+          expect(near(m.actions.y, m.primary.y), `${width}: one row`).toBe(true);
+          expect(near(m.primary.r, m.row!.r), `${width}: primary right`).toBe(true);
+        } else if (m.actions || m.primary) {
+          const one = (m.actions || m.primary)!;
+          expect(near(one.r, m.row!.r), `${width}: lone button on the right`).toBe(true);
+          expect(one.w, `${width}: lone button >= 110`).toBeGreaterThanOrEqual(109.5);
+        }
       }
+      notes.push(`${width}${m.narrow ? 'n' : ''}: search=${f(m.search)} actions=${f(m.actions)} primary=${f(m.primary)} overflow=${m.overflow}`);
+      await page.close();
     }
-    if (kind === 'others-only' && m.search) expect(rest.every((b) => b.y > m.search!.b - 0.5), 'others below the search').toBe(true);
-    for (const b of m.buttons) {
-      expect(b.wrapped, `one line at 390 (${b.label})`).toBe(false);
-      if (b.truncated) expect(b.title, `truncated label in tooltip (${b.label})`).toContain(b.label);
-    }
-    notes.push(`390: overflow=${m.overflow} cell=${m.cellW.toFixed(1)} search=${m.search ? fmt(m.search) : '-'} primary=${p ? fmt(p) : '-'} others=${rest.map(fmt).join(',') || '-'}`);
-    await phone.close();
     console.log(`MEASURED ${route}: ${notes.join(' | ')}`);
   });
 }
 
-test('390px: longest label "Bulk Enter Marks (12)" stays on one line, full text in the tooltip', async ({ browser }) => {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await open(page, 'examination/generate-marksheet');
-  const button = page.locator('.toolbar-btn-group > button', { hasText: 'Bulk Enter Marks' });
-  await button.locator('.btn-label').evaluate((el) => { el.textContent = 'Bulk Enter Marks (12)'; });
-  await page.waitForTimeout(100);
-  const r = await button.evaluate((b) => {
-    const label = b.querySelector('.btn-label') as HTMLElement;
-    return { h: b.getBoundingClientRect().height, lh: label.getBoundingClientRect().height, truncated: label.scrollWidth > label.clientWidth, title: (b as HTMLElement).title };
-  });
-  expect(Math.round(r.h)).toBe(38);
-  expect(r.lh).toBeLessThan(24);
-  expect(r.title).toContain('Bulk Enter Marks (12)');
-  console.log(`MEASURED longest-label: h=${Math.round(r.h)} labelH=${r.lh.toFixed(1)} truncated=${r.truncated} title="${r.title}"`);
+const menuItem = (page: Page, label: string) => page.locator('.tb-menu .tb-menu-item', { hasText: label });
+
+test('R21 Actions: disabled with no rows, enabled after ticking rows (Classes & Sections)', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await open(page, 'academic-setup/classes-sections');
+  await page.locator('.tb-actions-btn').click();
+  const del = menuItem(page, 'Bulk Delete');
+  await expect(del).toHaveAttribute('aria-disabled', 'true');
+  await expect(del.locator('.tb-item-why')).toHaveText('select rows');
+  await expect(page.locator('.tb-menu-hint')).toHaveText('Some actions unlock when you tick rows or choose a filter');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.tb-menu')).toHaveCount(0);
+  await page.locator('.row-check').first().check();
+  await page.locator('.tb-actions-btn').click();
+  await expect(del).not.toHaveAttribute('aria-disabled', 'true');
+  await expect(del.locator('.tb-item-label')).toHaveText('Bulk Delete (1)');
+  console.log('MEASURED actions-sel: Bulk Delete disabled ("select rows") -> 1 row ticked -> enabled "Bulk Delete (1)"');
 });
 
-test('touch: tapping a disabled button opens the tooltip with the reason', async ({ browser }) => {
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  await open(page, 'academic-setup/classes-sections');
-  // A disabled button is not "actionable" for locator.tap(), so tap its centre directly.
-  const r = (await page.locator('.toolbar-btn-group > button', { hasText: 'Bulk Delete' }).boundingBox())!;
-  await page.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2);
-  const tip = page.locator('.sz-tip');
-  await expect(tip).toBeVisible();
-  await expect(tip).toHaveText('Bulk Delete — Select at least one row');
-  console.log(`MEASURED tap-tooltip: "${await tip.textContent()}"`);
+test('R21 Actions: filter-dependent item enabled only after choosing the filter (Manage Students)', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await open(page, 'student/manage-students');
+  await page.locator('.tb-actions-btn').click();
+  const imp = menuItem(page, 'Import / Export');
+  await expect(imp).toHaveAttribute('aria-disabled', 'true');
+  await expect(imp.locator('.tb-item-why')).toHaveText('choose a class');
+  await page.keyboard.press('Escape');
+  await pick(page, CLASS, '6th');
+  await page.locator('.tb-actions-btn').click();
+  await expect(imp).not.toHaveAttribute('aria-disabled', 'true');
+  console.log('MEASURED actions-filter: Import / Export disabled ("choose a class") -> Class 6th -> enabled');
 });
+
+// One page per module that has an Actions menu.
+const MENU_PAGES = ['academic-setup/classes-sections', 'student/manage-students', 'staff/manage-staff', 'attendance/roster',
+  'leave/assign', 'holiday/holidays', 'payroll/generate-payroll', 'fees/fees', 'examination/generate-marksheet', 'settings/roles-permissions'];
+for (const route of MENU_PAGES) {
+  test(`R21 menu stays inside the card: ${route}`, async ({ browser }) => {
+    const notes: string[] = [];
+    for (const width of [1366, 390]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      await open(page, route);
+      await page.locator('.tb-actions-btn').click();
+      const r = await page.evaluate(() => {
+        const box = (el: Element) => el.getBoundingClientRect();
+        const m = box(document.querySelector('.tb-menu')!);
+        const t = box(document.querySelector('.tb-actions-btn')!);
+        const c = box(document.querySelector('app-data-toolbar')!.closest('.sw-card-main')!);
+        return { ml: m.left, mr: m.right, mt: m.top, mw: m.width, tb: t.bottom, tl: t.left, cl: c.left, cr: c.right, cw: c.width,
+          overflow: document.documentElement.scrollWidth - window.innerWidth };
+      });
+      expect(r.ml, 'menu inside the card (left)').toBeGreaterThanOrEqual(r.cl);
+      expect(r.mr, 'menu inside the card (right)').toBeLessThanOrEqual(r.cr);
+      expect(r.mw, 'menu <= card - 36').toBeLessThanOrEqual(r.cw - 36 + 0.5);
+      expect(r.mt, 'menu under the button').toBeGreaterThanOrEqual(r.tb);
+      // Mobile: left-aligned with Actions; a lone Actions sits on the right, so there the menu is
+      // pulled left only as far as it must be to stay inside the card.
+      if (width === 390) expect(near(r.ml, r.tl) || near(r.mr, r.cr - 20, 2), 'mobile: left-aligned, or clamped to the card').toBe(true);
+      expect(r.overflow).toBeLessThanOrEqual(0);
+      await page.mouse.click(2, 450);
+      await expect(page.locator('.tb-menu'), 'closes on outside click').toHaveCount(0);
+      notes.push(`${width}: menu ${r.mw.toFixed(0)}w in card ${r.cw.toFixed(0)}w`);
+      await page.close();
+    }
+    console.log(`MEASURED menu ${route}: ${notes.join(' | ')}`);
+  });
+}
+
+// Rule 22 point 10: slow API -> skeleton shows, goes away after load, no layout shift. One page per module.
+const SKELETON_PAGES = ['academic-setup/classes-sections', 'student/manage-students', 'staff/departments', 'attendance/shifts',
+  'leave/create', 'holiday/templates', 'payroll/salary-groups', 'fees/fee-structure', 'examination/admit-card-structure',
+  'certificates/generate-tc', 'approvals', 'settings/academic-sessions'];
+for (const route of SKELETON_PAGES) {
+  test(`R22 skeleton ${route}`, async ({ browser }) => {
+    for (const width of [1366, 390]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      await open(page, route, 3000);
+      await page.locator('tbody.sk-body .sk-row').first().waitFor({ timeout: 8000 });
+      const during = await page.evaluate(() => {
+        const top = (s: string) => document.querySelector(s)?.getBoundingClientRect().top ?? -1;
+        const search = document.querySelector('app-data-toolbar .search input') as HTMLInputElement | null;
+        return {
+          head: top('.sw-card-main thead'), tb: top('app-data-toolbar .tb-row'),
+          rows: document.querySelectorAll('tbody.sk-body .sk-row').length,
+          searchEnabled: !search || !search.disabled,
+          faded: Array.from(document.querySelectorAll('.sw-card-main .grid-scroll, .sw-card-main .table-scroll, .sw-card-main table'))
+            .some((e) => { const cs = getComputedStyle(e); return cs.filter.includes('blur') || parseFloat(cs.opacity) < 0.95; }),
+          overflow: document.documentElement.scrollWidth - window.innerWidth
+        };
+      });
+      expect(during.rows, 'skeleton rows 8-10').toBeGreaterThanOrEqual(8);
+      expect(during.searchEnabled, 'search stays enabled').toBe(true);
+      expect(during.faded, 'no blur/fade on the table').toBe(false);
+      expect(during.overflow).toBeLessThanOrEqual(0);
+      await expect(page.locator('tbody.sk-body')).toHaveCount(0, { timeout: 15000 });
+      await page.waitForTimeout(200);
+      const after = await page.evaluate(() => {
+        const top = (s: string) => document.querySelector(s)?.getBoundingClientRect().top ?? -1;
+        return { head: top('.sw-card-main thead'), tb: top('app-data-toolbar .tb-row'), stuck: !!document.querySelector('table.sk-loading') };
+      });
+      expect(near(after.tb, during.tb), 'toolbar did not move').toBe(true);
+      if (during.head >= 0 && after.head >= 0) expect(near(after.head, during.head), 'table header did not move').toBe(true);
+      expect(after.stuck, 'no stuck skeleton').toBe(false);
+      console.log(`MEASURED skeleton ${route} @${width}: rows=${during.rows} headY ${during.head.toFixed(0)}->${after.head.toFixed(0)} toolbarY ${during.tb.toFixed(0)}->${after.tb.toFixed(0)}`);
+      await page.close();
+    }
+  });
+}
 
 // --- shared-fix4 step 4: select + parent → child reset on the four pages -------------------
 const pick = async (page: Page, aria: RegExp, option: string): Promise<void> => {

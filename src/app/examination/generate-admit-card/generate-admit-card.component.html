@@ -12,19 +12,9 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by name or roll number" aria-label="Search by name or roll number"
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-assign" [disabled]="!selectedCount" data-why="Select at least one row" (click)="openPrintMode()">
-            <i class="bi bi-printer"></i> <span class="btn-label">Bulk Print ({{ selectedCount }})</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by name or roll number" (searchChange)="onSearchChange($event)"
+      [actions]="[{ key: 'print', label: 'Bulk Print', icon: 'printer', needs: ['sel'] }]"
+      [selectedCount]="selectedCount" (actionClick)="openPrintMode()">
       <div class="toolbar-row2">
         <app-class-cascade-filter [options]="options" [value]="filter" (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
       </div>
@@ -32,9 +22,9 @@
         <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
         <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
-    <div class="grid-scroll" *ngIf="!loading && !loadError && rows.length"><div class="table-inner compact-760">
+    <div class="grid-scroll" *ngIf="loading || (!loadError && rows.length)"><div class="table-inner compact-760">
       <table>
         <thead>
           <tr>
@@ -61,9 +51,9 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div></div>
-    <div class="tbl-empty" *ngIf="loading">Loading students&hellip;</div>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>
@@ -71,7 +61,7 @@
     <div class="empty-hint" *ngIf="!loading && !loadError && !rows.length">
       {{ search || filter.classId ? 'No students match this filter.' : 'No students enrolled in this session yet.' }}
     </div>
-    <div class="sw-footer" *ngIf="!loading && !loadError && rows.length">
+    <div class="sw-footer" *ngIf="loading || (!loadError && rows.length)">
       <span>Showing {{ rows.length }} of {{ total }} students</span><span>{{ session }} session</span>
     </div>
     <app-pagination-bar *ngIf="total > limit" [page]="page" [limit]="limit" [total]="total"
@@ -103,7 +93,7 @@
       <button type="button" class="modal-close" aria-label="Close" (click)="closePreview()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="modal-body">
-      <div class="tbl-empty" *ngIf="previewLoading">Loading&hellip;</div>
+      <app-skeleton *ngIf="previewLoading" [rows]="4"></app-skeleton>
       <p class="m-error form-level" *ngIf="previewError" role="alert">{{ previewError }}</p>
       <p class="m-hint skipped" *ngIf="skipped">{{ skipped.message }}</p>
       <div class="print-target print-batch" [class.two-up]="printMode === 2">

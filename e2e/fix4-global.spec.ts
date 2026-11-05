@@ -81,9 +81,13 @@ test('Roster: filters by Person Type, month filter last cell, Bulk buttons 130 x
   const month = cells[cells.length - 1];
   expect(month.text).toMatch(/^Oct 2026|Oct 2026/);
   expect(Math.abs(month.w - cells[0].w)).toBeLessThanOrEqual(1);
-  const buttons = await box(page, '.toolbar-btn-group > button');
-  expect(buttons.map((b) => b.text)).toEqual(['Bulk Assign', 'Bulk Edit', 'Bulk Delete']);
-  buttons.forEach((b) => { expect(b.w).toBe(130); expect(b.h).toBe(38); });
+  // shared-fix4 Rule 21: the bulk buttons are items of the one Actions menu (130 x 38).
+  const actions = await box(page, '.tb-actions-btn');
+  expect(actions.length).toBe(1);
+  expect(actions[0].w).toBe(130); expect(actions[0].h).toBe(38);
+  await page.locator('.tb-actions-btn').click();
+  expect((await box(page, '.tb-menu-item .tb-item-label')).map((b) => b.text)).toEqual(['Bulk Assign', 'Bulk Edit', 'Bulk Delete']);
+  await page.keyboard.press('Escape');
   // Student: only the student filters.
   await page.locator('.toolbar-row2 > app-dd').first().click();
   await page.locator('.dd-option', { hasText: 'Student' }).first().click();
@@ -93,13 +97,14 @@ test('Roster: filters by Person Type, month filter last cell, Bulk buttons 130 x
   expect(student.some((t) => t.includes('All departments'))).toBe(false);
 });
 
-test('Roster at 390px: buttons 2 per row, filters 2 per row, no page overflow', async ({ browser }) => {
+test('Roster at 390px: Actions below the search on the right, filters 2 per row, no page overflow', async ({ browser }) => {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await openApp(page, '/v2/attendance/roster');
   await page.locator('.rg-grid tbody tr').first().waitFor();
-  const buttons = await box(page, '.toolbar-btn-group > button');
-  expect(buttons[0].y).toBe(buttons[1].y);
-  expect(buttons[2].y).toBeGreaterThan(buttons[0].y);
+  const [search] = await box(page, 'app-data-toolbar .search');
+  const [actions] = await box(page, '.tb-actions-btn');
+  expect(actions.y).toBeGreaterThan(search.y + search.h - 1);
+  expect(Math.abs(actions.x + actions.w - (search.x + search.w))).toBeLessThanOrEqual(1);
   const filters = await box(page, '.toolbar-row2 > *');
   expect(filters[0].y).toBe(filters[1].y);
   expect(filters[2].y).toBeGreaterThan(filters[0].y);

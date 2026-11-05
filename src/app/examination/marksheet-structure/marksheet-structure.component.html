@@ -11,7 +11,7 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
+    <app-data-toolbar [showSearch]="false">
       <div class="toolbar-row2">
         <app-class-cascade-filter [options]="options" [value]="filter" [showGroup]="false" [showSection]="false"
                                   (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
@@ -20,9 +20,9 @@
         <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
         <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
-    <table *ngIf="!loading && !loadError && visibleRows.length">
+    <table *ngIf="loading || (!loadError && visibleRows.length)">
       <thead><tr><th>Class</th><th>Stream</th><th>Template</th><th>Subjects Set</th><th class="act">Action</th></tr></thead>
       <tbody>
         <tr *ngFor="let row of visibleRows; trackBy: trackByRow">
@@ -51,8 +51,8 @@
           </td>
         </tr>
       </tbody>
+      <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
     </table>
-    <div class="tbl-empty" *ngIf="loading">Loading classes&hellip;</div>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>
@@ -84,7 +84,7 @@
       <button type="button" class="modal-close" aria-label="Close" (click)="closeSetup()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="modal-body">
-      <div class="tbl-empty" *ngIf="setupLoading">Loading&hellip;</div>
+      <app-skeleton *ngIf="setupLoading" [rows]="4"></app-skeleton>
       <p class="m-error form-level" *ngIf="setupError" role="alert">{{ setupError }}</p>
 
       <ng-container *ngIf="setup as s">

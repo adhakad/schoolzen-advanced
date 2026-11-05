@@ -41,7 +41,6 @@
 .g-shift { font-size: 9.5px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .g-id { font-size: 9.5px; color: var(--ink-soft); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.grid-scroll.is-loading { opacity: .6; transition: opacity .12s; }
 
 /* The reference chip at 45 x 36 (5:4) so "8:23 AM" fits — the html's own additions block. */
 .chip { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 3px 6px; border-radius: var(--radius); width: 45px; height: 36px; border: 1px solid var(--line); background: transparent; text-align: center; font-family: inherit; box-sizing: border-box; cursor: default; }

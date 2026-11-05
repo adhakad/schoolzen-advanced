@@ -12,25 +12,13 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by name or class" aria-label="Search by name or class"
-            (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-assign" [disabled]="assignDisabled" [attr.data-why]="assignWhy" (click)="openAssign()">
-            <i class="bi bi-people"></i> <span class="btn-label">Bulk Assign</span>
-          </button>
-          <button type="button" class="btn-edit-outline" [disabled]="editDisabled" [attr.data-why]="editWhy" (click)="openEdit()">
-            <i class="bi bi-pencil"></i> <span class="btn-label">Bulk Edit</span>
-          </button>
-          <button type="button" class="btn-danger-outline" [disabled]="deleteDisabled" [attr.data-why]="deleteWhy" (click)="onDeleteSelected()">
-            <i class="bi bi-trash"></i> <span class="btn-label">Bulk Delete</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by name or class" (searchChange)="onSearchChange($event)"
+      [actions]="[
+        { key: 'assign', label: 'Bulk Assign', icon: 'people', needs: ['sel'], disabled: assignDisabled, why: assignWhy },
+        { key: 'edit', label: 'Bulk Edit', icon: 'pencil', needs: ['sel'], disabled: editDisabled, why: editWhy },
+        { key: 'delete', label: 'Bulk Delete', icon: 'trash', needs: ['sel'], danger: true, disabled: deleteDisabled, why: deleteWhy }]"
+      [selectedCount]="selected.size"
+      (actionClick)="$event === 'assign' ? openAssign() : $event === 'edit' ? openEdit() : onDeleteSelected()">
       <div class="sel-warning" *ngIf="mixedSelection" role="status">
         <i class="bi bi-exclamation-triangle"></i>
         Your selection mixes {{ personType === 'staff' ? 'staff' : 'classes' }} with an existing roster and ones with
@@ -46,7 +34,7 @@
         <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
         <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <div class="legend-strip" *ngIf="legend.shifts.length || legend.weekOff">
       <span class="legend-chip" *ngFor="let shift of legend.shifts; trackBy: trackById" [ngClass]="chipClass(shift._id)"
@@ -105,6 +93,7 @@
               </td>
             </tr>
           </tbody>
+          <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
         </table>
       </div>
       <div class="tbl-empty" *ngIf="truncated">Showing the first 1,000 staff &mdash; narrow the filters to see the rest.
@@ -158,6 +147,7 @@
             </ng-template>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
       <div class="tbl-empty" *ngIf="!visibleClassRows.length && !loading && !loadError">
         {{ classRows.length ? 'No classes match these filters.' : 'No classes set up yet — add them in Academic Setup.'

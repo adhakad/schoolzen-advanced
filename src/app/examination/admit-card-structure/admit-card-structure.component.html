@@ -12,18 +12,8 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by exam name" aria-label="Search by exam name"
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-primary" *ngIf="canEdit" (click)="openCreate()"><i class="bi bi-plus-lg"></i> <span class="btn-label">Create</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by exam name" (searchChange)="onSearchChange($event)"
+      [primaryAction]="canEdit || loading ? { label: 'Create', icon: 'plus-lg', disabled: !canEdit, why: 'checking your access' } : null" (primaryActionClick)="openCreate()">
       <div class="toolbar-row2">
         <app-class-cascade-filter [options]="options" [value]="filter" (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
       </div>
@@ -31,9 +21,9 @@
         <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
         <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
-    <table *ngIf="!loading && !loadError && rows.length">
+    <table *ngIf="loading || (!loadError && rows.length)">
       <thead><tr><th>Exam Name</th><th>Class</th><th>Stream</th><th>Section</th><th class="act">Action</th></tr></thead>
       <tbody>
         <tr *ngFor="let row of rows; trackBy: trackByRow">
@@ -60,8 +50,8 @@
           </div></td>
         </tr>
       </tbody>
+      <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
     </table>
-    <div class="tbl-empty" *ngIf="loading">Loading structures&hellip;</div>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>
@@ -128,7 +118,7 @@
 
       <div class="group-title">Subject-wise Exam Schedule</div>
       <p class="m-error form-level" *ngIf="editing?.staleSubjects as stale" role="alert">{{ stale.message }}</p>
-      <div class="tbl-empty" *ngIf="formOptionsLoading">Loading subjects&hellip;</div>
+      <app-skeleton *ngIf="formOptionsLoading" [rows]="4"></app-skeleton>
       <table class="subj-table" *ngIf="!formOptionsLoading && slots.length">
         <thead><tr><th>Subject</th><th class="sched-col">Exam Date &amp; Timing</th></tr></thead>
         <tbody>
@@ -195,7 +185,7 @@
       <button type="button" class="modal-close" aria-label="Close" (click)="closeView()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="modal-body">
-      <div class="tbl-empty" *ngIf="viewLoading">Loading&hellip;</div>
+      <app-skeleton *ngIf="viewLoading" [rows]="4"></app-skeleton>
       <p class="m-error form-level" *ngIf="viewError" role="alert">{{ viewError }}</p>
       <ng-container *ngIf="viewDetail as d">
         <p class="m-error form-level" *ngIf="d.staleSubjects">{{ d.staleSubjects.message }}</p>

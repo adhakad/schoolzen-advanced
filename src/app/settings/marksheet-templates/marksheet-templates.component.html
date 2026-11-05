@@ -17,7 +17,7 @@
   <i class="bi bi-exclamation-circle"></i> {{ loadError }}
   <button type="button" class="link-btn" (click)="fetchTemplates()">Retry</button>
 </div>
-<div class="tbl-empty" *ngIf="loading && !templates.length">Loading templates…</div>
+<app-skeleton *ngIf="loading && !templates.length" kind="cards" [count]="3" [height]="160" (retry)="fetchTemplates()"></app-skeleton>
 <div class="tbl-empty" *ngIf="!loading && !loadError && !templates.length">No templates are available yet.</div>
 
 <div class="tpl-grid" *ngIf="templates.length">

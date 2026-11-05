@@ -11,19 +11,9 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by name or admission no." aria-label="Search by name or admission no."
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-assign" [disabled]="!selected.size" data-why="Select at least one row" (click)="openReport()">
-            <i class="bi bi-file-earmark-bar-graph"></i> <span class="btn-label">Generate Report</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by name or admission no." (searchChange)="onSearchChange($event)"
+      [actions]="[{ key: 'report', label: 'Bulk Report', icon: 'file-earmark-bar-graph', needs: ['sel'] }]"
+      [selectedCount]="selected.size" (actionClick)="openReport()">
       <div class="toolbar-row2">
         <app-class-cascade-filter [options]="options" [value]="filter" [showSection]="false"
                                   (valueChange)="onFilterChange($event)"></app-class-cascade-filter>
@@ -32,7 +22,7 @@
         <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
         <button type="button" class="link-btn" (click)="loadOptions()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <div class="grid-scroll">
       <div class="table-inner">
@@ -82,12 +72,12 @@
               <td><button type="button" class="icon-btn" title="Report" [attr.aria-label]="'Fee report for ' + row.name" [disabled]="!row.hasRecord" (click)="openStudentReport(row)"><i class="bi bi-file-earmark-text"></i></button></td>
             </tr>
           </tbody>
+          <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
         </table>
         <ng-template #na><span class="na">N/A</span></ng-template>
         <ng-template #noCollect><span class="na" style="font-style:normal;">—</span></ng-template>
       </div>
     </div>
-    <div class="tbl-empty" *ngIf="loading">Loading fees&hellip;</div>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>

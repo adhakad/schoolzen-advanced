@@ -338,8 +338,9 @@ describe('SubjectsComponent', () => {
   it('renders the reference`s single toolbar row — no filter row on this page', () => {
     const host: HTMLElement = fixture.nativeElement;
 
-    expect(host.querySelector('.sw-toolbar .toolbar-row1')).toBeTruthy();
-    expect(host.querySelector('.sw-toolbar .toolbar-row2')).toBeFalsy();
+    // Rule 21: the shared toolbar; this page projects no filter row into it.
+    expect(host.querySelector('app-data-toolbar')).toBeTruthy();
+    expect(host.querySelector('app-data-toolbar .toolbar-row2')).toBeFalsy();
   });
 
   it('renders a real table with the reference`s five columns plus the checkbox', () => {

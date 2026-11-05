@@ -10,7 +10,7 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="tbl-empty" *ngIf="loading">Loading TC structure&hellip;</div>
+    <app-skeleton *ngIf="loading" [rows]="6" (retry)="fetch()"></app-skeleton>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>

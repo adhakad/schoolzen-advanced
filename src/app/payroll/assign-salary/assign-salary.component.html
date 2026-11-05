@@ -11,23 +11,13 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by name or ID" aria-label="Search by name or ID"
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group" *ngIf="canEdit">
-          <button type="button" class="btn-assign" [disabled]="!selected.size" data-why="Select at least one row" (click)="openBulk()">
-            <i class="bi bi-person-check"></i> <span class="btn-label">Bulk Assign</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by name or ID" (searchChange)="onSearchChange($event)"
+      [actions]="[{ key: 'assign', label: 'Bulk Assign', icon: 'person-check', needs: ['sel'], hidden: !canEdit && !loading }]"
+      [selectedCount]="selected.size" (actionClick)="openBulk()">
       <div class="toolbar-row2 pr-grid">
         <app-staff-cascade-filter [adminId]="adminId" [value]="filter" (valueChange)="onFilterChange($event)"></app-staff-cascade-filter>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <div class="grid-scroll">
       <table>
@@ -65,9 +55,9 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div>
-    <div class="tbl-empty" *ngIf="loading">Loading staff&hellip;</div>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>

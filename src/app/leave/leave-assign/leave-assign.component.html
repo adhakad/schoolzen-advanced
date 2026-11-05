@@ -12,26 +12,15 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" [placeholder]="isStaff ? 'Search by name or ID' : 'Students are assigned by class'"
-                 aria-label="Search by name or ID" [disabled]="!isStaff"
-                 (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group" *ngIf="canAssign">
-          <button type="button" class="btn-assign" [disabled]="!selectedCount || assignOpen" data-why="Select at least one row" (click)="onAssignOpen()">
-            <i class="bi bi-calendar-check"></i> <span class="btn-label">Set Leave Limit</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar [searchPlaceholder]="isStaff ? 'Search by name or ID' : 'Students are assigned by class'" [searchDisabled]="!isStaff" (searchChange)="onSearchChange($event)"
+      [actions]="[{ key: 'assign', label: 'Bulk Set Limit', icon: 'calendar-check', needs: ['sel'], hidden: !canAssign && !loading, disabled: assignOpen, why: 'already open' }]"
+      [selectedCount]="selectedCount" (actionClick)="onAssignOpen()">
       <app-person-filter [options]="filterOptions" [value]="filter" (valueChange)="onFilterChange($event)"></app-person-filter>
       <div class="fetch-error" *ngIf="lookupError" role="alert">
         <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
         <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <!-- Staff: one row per person -->
     <div class="grid-scroll" *ngIf="isStaff">
@@ -61,6 +50,7 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div>
 
@@ -104,7 +94,7 @@
             </tr>
             <tr *ngIf="expandedKey === row.key" class="students-row">
               <td [attr.colspan]="3 + leaveTypes.length + (canAssign ? 1 : 0)">
-                <div class="tbl-empty" *ngIf="expandedLoading">Loading students&hellip;</div>
+                <app-skeleton *ngIf="expandedLoading" [rows]="4"></app-skeleton>
                 <div class="tbl-empty" *ngIf="!expandedLoading && !expandedStudents.length">No students in this class this session.</div>
                 <table class="student-table" *ngIf="!expandedLoading && expandedStudents.length">
                   <tbody>
@@ -128,6 +118,7 @@
             </tr>
           </ng-container>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
     </div>
 

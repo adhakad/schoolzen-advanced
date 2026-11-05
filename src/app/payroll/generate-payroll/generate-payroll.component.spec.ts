@@ -67,7 +67,7 @@ describe('GeneratePayrollComponent', () => {
 
   it('keeps only View slip without the payroll-generate edit grant', async () => {
     await setup(list(false));
-    expect(fixture.nativeElement.querySelector('.toolbar-btn-group')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.tb-actions-btn')).toBeNull();
     expect(icons('pending')).toEqual([]);
     expect(icons('draft')).toEqual([]);
     expect(icons('locked')).toEqual(['bi-box-arrow-up-right']);

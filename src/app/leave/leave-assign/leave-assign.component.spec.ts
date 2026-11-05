@@ -55,7 +55,7 @@ describe('LeaveAssignComponent', () => {
 
   it('hides every assign control without the leave-limit edit permission', async () => {
     await setup(grid([type('t1', 'Casual Leave')], false));
-    expect(fixture.nativeElement.querySelector('.btn-assign')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.tb-actions-btn')).toBeNull();
     expect(headers()).toEqual(['Name', 'Department', 'Casual Leave']);
     component.selected.add('p1');
     component.onAssignOpen();

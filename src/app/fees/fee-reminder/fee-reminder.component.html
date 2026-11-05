@@ -11,18 +11,9 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search filters" aria-label="Search filters" [(ngModel)]="search" />
-        </div>
-        <div class="toolbar-btn-group" *ngIf="canEdit">
-          <button type="button" class="btn-primary" (click)="openCreate()"><i class="bi bi-plus-lg"></i> <span class="btn-label">Create</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-data-toolbar searchPlaceholder="Search filters" [searchValue]="search" (searchChange)="search = $event"
+      [primaryAction]="canEdit || loading ? { label: 'Create', icon: 'plus-lg', disabled: !canEdit, why: 'checking your access' } : null" (primaryActionClick)="openCreate()">
+    </app-data-toolbar>
 
     <table>
       <thead>
@@ -38,9 +29,9 @@
           <td class="act" *ngIf="canEdit"><button type="button" class="icon-btn danger" title="Remove" [attr.aria-label]="'Remove filter for ' + row.className" (click)="openDelete(row)"><i class="bi bi-trash"></i></button></td>
         </tr>
       </tbody>
+      <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
     </table>
     <ng-template #noFilter><span class="na">No filter</span></ng-template>
-    <div class="tbl-empty" *ngIf="loading">Loading reminder filters&hellip;</div>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>

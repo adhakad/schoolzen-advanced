@@ -87,19 +87,9 @@
       <div class="sw-title">Step 2 — Who covers which class?</div>
       <div class="sw-sub">Every staff member as a row, every role as its own column — click a chip to edit its class, or the + to add one.</div>
 
-      <div class="staff-toolbar">
-        <div class="toolbar-row1">
-          <div class="search">
-            <i class="bi bi-search"></i>
-            <input type="text" placeholder="Search staff" aria-label="Search staff"
-                   [value]="search" (input)="onSearchChange($any($event.target).value)" />
-          </div>
-          <div class="toolbar-btn-group">
-            <button type="button" class="btn-secondary danger" [disabled]="!selectedCount || isBusy('bulk')" data-why="Select at least one row" (click)="onBulkDelete()">
-              <i class="bi bi-trash"></i> <span class="btn-label">Bulk Delete</span>
-            </button>
-          </div>
-        </div>
+      <app-data-toolbar class="staff-toolbar" searchPlaceholder="Search staff" [searchValue]="search" (searchChange)="onSearchChange($event)"
+      [actions]="[{ key: 'delete', label: 'Bulk Delete', icon: 'trash', needs: ['sel'], danger: true, busy: isBusy('bulk') }]"
+      [selectedCount]="selectedCount" (actionClick)="onBulkDelete()">
         <div class="toolbar-row2">
           <app-dd [options]="departmentOptions" [value]="department" ariaLabel="Department"
                   (valueChange)="onDepartmentChange($event)"></app-dd>
@@ -111,10 +101,10 @@
           <app-dd [options]="assignedOptions" [value]="assignedFilter" ariaLabel="Assigned status"
                   (valueChange)="onAssignedFilterChange($event)"></app-dd>
         </div>
-      </div>
+      </app-data-toolbar>
 
       <div class="role-col-scroll">
-        <table class="staff-role-table" *ngIf="rows.length">
+        <table class="staff-role-table" *ngIf="rows.length || matrixLoading">
           <thead>
             <tr>
               <th class="chk"><input type="checkbox" aria-label="Select all staff" [checked]="allSelected" (change)="toggleAll()" /></th>
@@ -160,6 +150,7 @@
               </td>
             </tr>
           </tbody>
+          <tbody app-skeleton *ngIf="matrixLoading" (retry)="fetchMatrix()"></tbody>
         </table>
       </div>
 

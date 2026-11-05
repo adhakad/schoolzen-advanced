@@ -73,7 +73,7 @@ describe('AssignSalaryComponent', () => {
 
   it('hides every assign control without the payroll-assign edit grant', async () => {
     await setup(grid(false));
-    expect(fixture.nativeElement.querySelector('.btn-assign')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.tb-actions-btn')).toBeNull();
     expect(fixture.nativeElement.querySelector('.row-action-btn')).toBeNull();
   });
 });

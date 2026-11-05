@@ -66,15 +66,13 @@ describe('ManageStudentsComponent', () => {
     expect(component.rows.length).toBe(1);
   });
 
-  it('keeps the Excel button disabled until a Class is picked', () => {
-    const button = (): HTMLButtonElement => fixture.nativeElement.querySelector('.excel-btn');
+  // The Actions item itself (needs: ['Class'], fed by excelEnabled) is covered by the
+  // toolbar spec and e2e/shared-fix4-toolbar.spec.ts.
+  it('keeps Excel Import / Export locked until a Class is picked', () => {
     expect(component.excelEnabled).toBe(false);
-    expect(button().disabled).toBe(true);
-
     component.onFilterChange({ classId: 'c8', streamId: '', groupId: '', sectionId: '' });
     fixture.detectChanges();
     expect(component.excelEnabled).toBe(true);
-    expect(button().disabled).toBe(false);
   });
 
   it('also needs the Stream before Excel opens for a streamed class', () => {

@@ -13,7 +13,7 @@
     <div class="tbl-empty" *ngIf="!studentId">
       Open a student's statement from the Statement icon on <a routerLink="/v2/fees/fees" class="link-btn">Fees</a>.
     </div>
-    <div class="tbl-empty" *ngIf="studentId && loading">Loading fee statement&hellip;</div>
+    <app-skeleton *ngIf="studentId && loading" kind="cards" [count]="4" [height]="72" (retry)="fetch()"></app-skeleton>
     <div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
       <i class="bi bi-exclamation-circle"></i> {{ loadError }}
       <button type="button" class="link-btn" (click)="fetch()">Retry</button>

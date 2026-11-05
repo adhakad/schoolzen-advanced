@@ -17,23 +17,10 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search subject groups" aria-label="Search subject groups"
-                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-danger-outline"
-                  [disabled]="!selectedCount || deleting" data-why="Select at least one row" (click)="onDeleteSelected()">
-            <i class="bi bi-trash"></i> <span class="btn-label">Bulk Delete</span>
-          </button>
-          <button type="button" class="btn-primary" (click)="onAddGroup()">
-            <i class="bi bi-plus-lg"></i> <span class="btn-label">Add Group</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search subject groups" [searchValue]="search" (searchChange)="onSearchChange($event)"
+      [actions]="[{ key: 'delete', label: 'Bulk Delete', icon: 'trash', needs: ['sel'], danger: true, busy: deleting }]"
+      [selectedCount]="selectedCount" (actionClick)="onDeleteSelected()"
+      [primaryAction]="{ label: 'Add Group', icon: 'plus-lg' }" (primaryActionClick)="onAddGroup()">
 
       <div class="toolbar-row2">
         <app-dd class="toolbar-pill" [options]="classFilterOptions" [value]="filterClassId"
@@ -49,7 +36,7 @@
         <i class="bi bi-exclamation-circle"></i> {{ optionsError }}
         <button type="button" class="link-btn" (click)="retryOptions()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <!-- Streams saved before groups became mandatory (classes-sections.md backfill): they
          have no row here, so they're named above the table until a group is added. -->
@@ -126,6 +113,7 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="retryList()"></tbody>
       </table>
     </div>
 
@@ -228,7 +216,7 @@
                (change)="toggleSubject(subject._id)" />
         <span>{{ subject.name }}</span>
       </label>
-      <p class="m-hint no-gap" *ngIf="optionsLoading && !subjectChecklist.length">Loading subjects&hellip;</p>
+      <app-skeleton *ngIf="optionsLoading && !subjectChecklist.length" [rows]="3"></app-skeleton>
       <p class="m-hint no-gap" *ngIf="!subjectChecklist.length && !optionsLoading && !optionsError">
         No active subjects yet &mdash; add them on the Subjects page first.
       </p>

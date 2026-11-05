@@ -11,25 +11,12 @@
 
 <div class="layout-row">
   <div class="sw-card-main">
-    <div class="sw-toolbar">
-      <div class="toolbar-row1">
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input type="text" placeholder="Search by name or employee code" aria-label="Search staff"
-                 [value]="search" (input)="onSearchChange($any($event.target).value)" />
-        </div>
-        <div class="toolbar-btn-group">
-          <button type="button" class="btn-warn" [disabled]="!selectedCount || deleting" data-why="Select at least one row" (click)="onDeleteSelected()">
-            <i class="bi bi-trash"></i> <span class="btn-label">Bulk Delete</span>
-          </button>
-          <button type="button" class="btn-assign" [disabled]="!selectedCount" data-why="Select at least one row" (click)="onAssignCardSelected()">
-            <i class="bi bi-credit-card"></i> <span class="btn-label">Bulk Assign</span>
-          </button>
-          <button type="button" class="btn-primary" (click)="onCreate()">
-            <i class="bi bi-plus-lg"></i> <span class="btn-label">Create</span>
-          </button>
-        </div>
-      </div>
+    <app-data-toolbar searchPlaceholder="Search by name or employee code" [searchValue]="search" (searchChange)="onSearchChange($event)"
+      [actions]="[
+        { key: 'assign', label: 'Bulk Assign', icon: 'credit-card', needs: ['sel'] },
+        { key: 'delete', label: 'Bulk Delete', icon: 'trash', needs: ['sel'], danger: true, busy: deleting }]"
+      [selectedCount]="selectedCount" (actionClick)="$event === 'assign' ? onAssignCardSelected() : onDeleteSelected()"
+      [primaryAction]="{ label: 'Create', icon: 'plus-lg' }" (primaryActionClick)="onCreate()">
       <div class="toolbar-row2">
         <app-dd class="toolbar-pill" [options]="departmentFilterOptions" [value]="filterDepartmentId"
                 ariaLabel="Filter by department" (valueChange)="onDepartmentFilter($event)"></app-dd>
@@ -44,7 +31,7 @@
         <i class="bi bi-exclamation-circle"></i> {{ lookupError }}
         <button type="button" class="link-btn" (click)="loadLookups()">Retry</button>
       </div>
-    </div>
+    </app-data-toolbar>
 
     <div class="table-scroll">
       <table>
@@ -108,6 +95,7 @@
             </td>
           </tr>
         </tbody>
+        <tbody app-skeleton *ngIf="loading" (retry)="fetch()"></tbody>
       </table>
       <ng-template #notSet><span class="not-set">Not set</span></ng-template>
     </div>

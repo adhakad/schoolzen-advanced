@@ -1,82 +1,105 @@
-# Shared fix 4 — toolbar buttons: global layout, sizes, names, tooltips (all modules, all pages)
+# shared-fix4 — one toolbar (Rule 21) + one loading skeleton (Rule 22) on EVERY page
 
-Read `prompts/fixes/global-fixes.md` first. Do not edit earlier fix files. One run, do everything.
+Applies to: ALL modules, ALL pages. Rule 21 = pages with a search box and/or buttons above the table. Rule 22 = every page that loads data.
+Reference: approved preview `toolbar-preview.html` (v5). Where an old reference html differs, THIS file wins.
 
-## Step 0 — add the rule to the permanent files
-1. In `prompts/fixes/global-fixes.md` add Rule 21 (text below), add column R21 to the Status table, and add a line to "Global sweep run order" step 1 ("toolbar buttons per R21").
-2. In `v1/_core/design-system.md`, in the Bulk buttons paragraph, add one line: "Toolbar button layout, sizes, names and tooltips follow Rule 21 (global-fixes.md)."
+## Step 0 — register the rule (do first)
+1. `prompts/fixes/global-fixes.md`: add Rules 21 and 22 (text below), add R21 and R22 columns to the Status table, add "R21 toolbar, R22 skeleton" to step 1 of "Global sweep run order".
+2. `v1/_core/design-system.md`: add one line: "Toolbar = search + Actions menu + primary button (Rule 21)".
 
-## Rule 21 — Toolbar buttons (text to paste into global-fixes.md)
-21. **Toolbar buttons.** One shared toolbar component/CSS in the global layer; no page has its own button sizes or order.
- a. **Primary button** = the black filled button (Sync now, Add Staff, Generate, Save...). There is at most one per toolbar. It is always the RIGHT-most button, never with another button to its left in its row.
- b. **Desktop (>640px):** search box, then buttons right-aligned in the same row, primary last. Other buttons are 130px x 38px. Primary is 38px high, width follows its text, min 130px, max 180px.
- c. **Mobile (<=640px), toolbar has a primary AND other buttons:** row 1 search box (full width). Row 2 the primary button alone, right-aligned. Row 3+ the other buttons, 2 per row, each exactly as wide as one filter cell ((100% - 8px) / 2) and 38px high. Then the filter grid.
- d. **Mobile, toolbar has ONLY the primary button (no other buttons):** one row: the search box shrinks and sits on the LEFT, the primary button sits to its RIGHT. Primary width follows its text, min 110px, max 180px; the search box takes the remaining width (min 140px).
- e. **Mobile, toolbar has no primary (only outline buttons):** search row, then the buttons 2 per row as in (c).
- f. **Text:** button labels are never cut randomly or wrapped to a second line: 12.5px, one line, 8px side padding, icon + label. If a label still does not fit, it ends with an ellipsis and the FULL text is in the tooltip. Every button has a tooltip (`title` for mouse plus the shared tooltip directive that also opens on tap/long-press on touch) showing the full label, and a disabled button's tooltip also says why it is disabled ("Select at least one row").
- g. Names follow Rule 15: "Bulk Assign", "Bulk Edit", "Bulk Delete", and also "Bulk Print", "Bulk Enter Marks", "Bulk Generate" (never "... Selected"). A count may follow in brackets, "Bulk Print (3)".
- h. Applies to every page of every module, including modals' footers only for sizes (modal footers keep their own two-button layout).
+## Rule 21 — Toolbar
+1. Order in one row (desktop): search, then Actions button, then primary button last (rightmost). Filters are in the rows below (Rule 14 grid).
+2. Search: one size everywhere, flex, min 200px, max 280px, height 38px.
+3. Primary button = the black "Add ..."/main create button. Height 38px, width by text, min 130px, max 180px, text ellipsis + full text in tooltip.
+4. Every non-primary button goes inside ONE button named exactly "Actions" (with chevron). No "Bulk Actions", no loose secondary buttons. Actions sits right after the search box, left of the primary button. If there is no primary, Actions is the last item on the right.
+5. Actions menu items: use bulk naming (Bulk Print, Bulk Enter Marks, Bulk Generate, Bulk Assign, Bulk Delete, Import, Export ...). No "Print Selected (n)", "Generate for Selected", "Assign to Selected", "Delete Selected". Show a count only inside the item if rows are ticked, e.g. "Bulk Delete (3)".
+6. Each item declares `needs`: `[]` always enabled, `['sel']` needs ticked rows, `['Class','sel']` needs a filter value + rows. Unmet item stays visible but disabled; its right side shows the reason ("select rows", "choose a class"); tooltip starts with the reason. Enabled/disabled recomputes live when rows are ticked or filters change.
+7. Danger item (Delete) is red and separated by a line at the bottom. Menu hint line: "Some actions unlock when you tick rows or choose a filter".
+8. If a page has only one non-primary button it still goes in Actions.
+9. Menu: opens under the button, `width:max-content`, never wider than the card (`max-width: card - 36px`), closes on outside click/Esc, keyboard usable.
+10. Mobile (card width <= 640px):
+   - Row 1: search alone, full width. NO button in the search row.
+   - Row 2: Actions (left) + primary (right), two equal columns. If only one of them exists, it sits on the right at its normal width (min 110px).
+   - If neither exists: search only, then filters.
+   - If only a primary exists and no search: primary alone on the right.
+   - Menu opens left-aligned, stays inside the card.
+11. Filter grid (Rule 14) by card width: 6 per row, 4 per row for 641–819px, 2 per row at <= 640px. Month filter is the last cell.
+12. No horizontal overflow at 390px, no clipped text; long text ellipsis + tooltip with the full text.
+
+## Rule 22 — Loading skeleton
+1. Where: every page, on the table, cards, dashboard tiles and the data of filters. On first load and when a filter or month changes.
+2. Shape = real shape: tables use the real column widths and 8-10 skeleton rows; cards use the card size; avatars are round. No layout jump when data arrives.
+3. One shared skeleton component, theme colour (light grey-purple), shimmer 1.2s. No per-page skeleton CSS.
+4. Search, Actions, primary button and filter boxes are shown at once and stay enabled; only their data is skeleton.
+5. Spinner only inside a button during save/delete/bulk action. No spinner or blur on the page or table.
+6. No flicker: if data arrives in under 150ms show no skeleton. After 10s show an error with "Retry".
+7. Empty data after load shows "No records", never a stuck skeleton.
+8. Mobile 390px: no overflow; wide tables keep the same skeleton shape.
+9. Do: build the component once, replace every page's old blur/spinner/loading text with it, remove old loading CSS. Add an R22 note per page in the audit table.
+10. Test (Playwright): slow the API; skeleton shows, goes away after load, no layout shift; one page per module.
 
 ## Do
-1. Build/repair the shared toolbar once (suggested CSS idea: `.toolbar-row1{display:flex;flex-wrap:wrap}`; on mobile the button group uses `display:contents` so search, primary and other buttons can be ordered: search `order:1; flex:1 1 100%`, primary `order:2; margin-left:auto`, others `order:3; flex:0 0 calc((100% - 8px)/2)`; add a modifier set by the component when the primary is the only button, then search `flex:1 1 0` and primary `order:2` stay on one row).
-2. Replace every page's own toolbar/button CSS with it. Rename the buttons per (g): "Print Selected (n)", "Bulk Enter Marks (n)", "Generate for Selected" and any other "... Selected" button.
-3. Pending from shared-fix3: Approvals has no Stream Group filter. Add it where Approvals has class filters (Class -> Stream -> Stream Group -> Section, all visible, All by default). Where Approvals has no class filters at all, write one line saying why and mark it not applicable.
-4. Pending from shared-fix3: Structure, Marksheet Structure, Subject Groups and Leave Assign were only checked for the filter being visible because the test data was empty. Create temporary fixtures (clean up after) and check selecting a value and the parent -> child reset on those four pages.
-5. Fill the audit table in Notes: page | buttons before | what was wrong | fixed.
+1. Build/repair ONE shared toolbar component (search + actions menu + primary + needs logic). Do not copy it per page.
+2. Replace the toolbar of every page in every module with it. Convert existing secondary buttons into Actions items with the right `needs`. Remove old per-page toolbar CSS.
+3. Approvals: add Stream Group filter (pending from shared-fix3).
+4. Test data: add fixtures for Structure, Marksheet Structure, Subject Groups, Leave Assign so their toolbars and filters can be tested.
+5. Backend: actions that change data keep their Roles & Permissions key and activity log. UI disabling is not security.
+6. Fill the audit table below, one row per page.
 
-## Tests (essential, one Playwright spec that loops all audited pages)
-- 390px, page with primary + others: search row, then the primary alone and right-aligned (no button to its left in that row), then the others 2 per row, each width equal to a filter cell (within 1px), height 38px. No horizontal page overflow.
-- 390px, page with only a primary: search left and primary right in the same row, primary width between 110 and 180px.
-- 1366px: others 130x38, primary <=180px and right-most, search 340px.
-- Text: no button label wraps to 2 lines; any label that is truncated has the full text in its tooltip. Check the longest label ("Bulk Enter Marks (12)") at 390px.
-- Build passes. One line per page: PASS/FAIL with the measured numbers. Do not report PASS for a page you did not run.
+## Tests (essential only, Playwright; Rule 22 tests are in Rule 22 point 10)
+- 390 / 1366 / 1920 widths: search and buttons sizes equal on all pages (measure), no overflow.
+- Mobile: search row has no button; Actions and primary are equal width in one row.
+- Actions: item disabled with no rows; enabled after ticking rows; filter-dependent item enabled only after choosing the filter.
+- One page per module opens the menu and it stays inside the card.
 
-## Note
-The reference html files (`attendance-overview.html`, `roster.html`) were not updated for this mobile toolbar layout. Rule 21 wins over them for the mobile toolbar. Do not change those html files.
+## Notes
+- Reference html files still show the old toolbar. Rule 21 wins; update html only if the owner sends them.
+- Open choices (default used): single secondary button goes in Actions; Import/Export always enabled; 4 filters per row at 641–819px; search max 280px (replaces 340px in shared-fix3).
 
-## Notes (Claude Code fills the audit table here)
+## Audit table (Claude Code fills)
+| Module | Page | Search size ok | Actions menu | Primary | Mobile ok | Skeleton (R22) | Notes |
+|---|---|---|---|---|---|---|---|
+| Academic Setup | Classes & Sections | yes | Bulk Delete [sel] | Add Class | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); Add modal class list: lines |  |
+| Academic Setup | Subjects | yes | Bulk Delete [sel] | Add Subject | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Academic Setup | Subject Groups | yes | Bulk Delete [sel] | Add Group | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); modal subject list: lines |  |
+| Student | Manage Students | yes | Bulk Assign [sel], Import / Export [Class], Bulk Delete [sel] | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | Import / Export kept filter-gated (needs a Class) - the import is per class; default "Import/Export always enabled" not applied |
+| Student | Admission | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Student | Class Promotion | yes | - | Confirm Promotion (spinner while running) | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Staff | Manage Staff | yes | Bulk Assign [sel], Bulk Delete [sel] | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Staff | Departments | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Staff | Designations | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Attendance | Overview | yes | Bulk Report [sel] (was Generate Report) | Sync now (spinner while syncing) | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); table fade (.is-loading opacity) removed |  |
+| Attendance | Manage Shifts | yes | - | Create Shift | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Attendance | Roster | yes | Bulk Assign, Bulk Edit [sel + one person type], Bulk Delete [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) on staff grid and class table | extra page reasons shown after needs are met |
+| Leave | Requests | yes | - | Apply Leave | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Leave | Create | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Leave | Assign | yes (disabled for Student, business rule) | Bulk Set Limit [sel] (was Set Leave Limit) | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) on staff and class tables; expanded class: lines | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
+| Holiday | Holidays | yes | Generate from Public Holidays [], Bulk Delete [sel] | Add Holiday | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Holiday | Templates | yes | - | Add Template | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Holiday | Assign | yes | Bulk Assign, Bulk Edit [sel + template state] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | extra page reasons shown after needs are met; permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
+| Payroll | Generate Payroll | yes | Bulk Generate [sel] (spinner while running) | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
+| Payroll | Salary Groups | yes | - | Add Salary Group | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
+| Payroll | Assign Salary | yes | Bulk Assign [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
+| Payroll | Salary Payouts | yes | - | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Payroll | Payslip (document) | n/a | n/a | n/a | n/a | n/a - print document, no list load |  |
+| Fees | Fees | yes | Bulk Report [sel] (was Generate Report) | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Fees | Fee Structure | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
+| Fees | Fee Reminder | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); "Sending" note spinner left (background job status) | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
+| Fees | Fee Statement | n/a (no toolbar) | n/a | n/a | n/a | cards skeleton (4 x 72px) |  |
+| Fees | Fee Receipt (document) | n/a | n/a | n/a | n/a | n/a - print document |  |
+| Examination | Admit Card Structure | yes | - | Create | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); modal subjects/view: lines | permission-gated button shown (disabled "checking your access") while loading, so no layout jump |
+| Examination | Generate Admit Card | yes | Bulk Print [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); preview: lines |  |
+| Examination | Generate Marksheet | yes | Bulk Enter Marks [Term, sel; one class], Bulk Print [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); modals: lines |  |
+| Examination | Marksheet Structure | n/a (no search on this page) | - | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); setup modal: lines |  |
+| Examination | Admit Card / Marksheet document | n/a | n/a | n/a | n/a | n/a - print documents |  |
+| Certificates | Generate TC | yes | - | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); preview: lines |  |
+| Certificates | TC Structure | n/a (no toolbar) | n/a | n/a | n/a | lines skeleton (6) |  |
+| Certificates | TC Certificate (document) | n/a | n/a | n/a | n/a | n/a - print document |  |
+| Approvals | Requests | yes | - | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows); Stream Group filter present (Class > Stream > Stream Group > Section) |  |
+| Settings | Academic Sessions | n/a (no search on this page) | - | Create Session | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) |  |
+| Settings | Roles & Permissions | yes | Bulk Delete [sel] | - | yes (390px measured) | table skeleton (tbody, real columns, 8 rows) on Step 2 matrix; Step 1 role pills: no skeleton (partial) |  |
+| Settings | Admission Form Fields | n/a (no toolbar) | n/a | n/a | n/a | lines skeleton (8); impact-check hint spinner in modal left |  |
+| Settings | Marksheet Templates | n/a (no toolbar) | n/a | n/a | n/a | cards skeleton (3 x 160px); preview hint spinner in modal left |  |
+| Dashboard | Dashboard | n/a (no toolbar) | n/a | n/a | n/a | lines skeleton per widget (partial: not tile-shaped) |  |
 
-### Audit (2026-10-31) — page | buttons before | what was wrong | fixed
-Shared pieces: global `.toolbar-btn-group` rules (Rule 21 desktop + the 640px `display:contents` ordering, `tb-solo` modifier), `ToolbarButtonsDirective` (selector `.toolbar-btn-group`: sets `title` = full label + `data-why` reason when disabled, sets `tb-solo`, tap/long-press bubble), `[szTip]` directive, `.sz-tip` bubble, `.btn-edit-outline`. Every label is `<span class="btn-label">` (12.5px, one line, ellipsis). Measured by `e2e/shared-fix4-toolbar.spec.ts` (36/36 at 1366 and 390).
-Common to every row before: 13px labels, bare text labels (no ellipsis possible), primary forced to 130px (not 130-180), on mobile the primary sat in the 2-per-row grid beside other buttons, no tooltips (or a few hand-written `title`s), no disabled reasons.
-
-| Page | Buttons before | What was wrong (beyond the common list) | Fixed |
-|---|---|---|---|
-| Academic Setup / Classes & Sections | Bulk Delete, Add Class | — | yes |
-| Academic Setup / Subjects | Bulk Delete, Add Subject | — | yes |
-| Academic Setup / Subject Groups | Bulk Delete, Add Group | — | yes |
-| Student / Manage Students | Bulk Delete, Bulk Assign, Excel Import/Export, Create | page CSS forced one nowrap row and shrank the group; `[title]` bindings | page CSS removed; desktop buttons move under the search (do not fit, see Status notes) |
-| Student / Admission | Create | — | yes (390: search 206 + Create 110 on one row) |
-| Student / Class Promotion | Confirm Promotion | label was bare interpolation | yes (144px) |
-| Staff / Manage Staff | Bulk Delete, Bulk Assign, Create | — | yes; desktop buttons under the search (do not fit) |
-| Staff / Departments, Designations | Create | — | yes |
-| Attendance / Overview | Generate Report, Sync now | own `.sw-gen-btn`/`.sw-report-btn` CSS (sizes, 16-18px padding); Sync now was not `.btn-primary` | `.btn-primary` + `.btn-assign`, page CSS removed |
-| Attendance / Manage Shifts | Create Shift | — | yes |
-| Attendance / Roster | Bulk Assign, Bulk Edit, Bulk Delete | own `.sw-report-btn`/`.sw-edit-btn` CSS, nowrap override | `.btn-assign`/`.btn-edit-outline`; reasons (past month, rows with/without shift); desktop under the search (do not fit) |
-| Leave / Requests | Apply Leave | — | yes |
-| Leave / Create | Create | — | yes |
-| Leave / Assign | Set Leave Limit | — | yes |
-| Holiday / Holidays | Bulk Delete, Generate from Public Holidays, Add Holiday | — | yes (long label ellipsizes, full text in tooltip); desktop under the search (do not fit) |
-| Holiday / Templates | Add Template | — | yes |
-| Holiday / Assign | Bulk Assign, Bulk Edit | own `.btn-edit-sel` CSS, 767px wrap override | `.btn-edit-outline`, page CSS removed |
-| Payroll / Generate Payroll | Generate for Selected | name; own `.btn-gen` CSS | "Bulk Generate", `.btn-assign` (modal title too) |
-| Payroll / Salary Groups | Add Salary Group | — | yes (135px) |
-| Payroll / Assign Salary | Bulk Assign | — | yes |
-| Payroll / Salary Payouts | none | — | n/a |
-| Fees / Fees | Generate Report | own `.sw-report-btn` CSS | `.btn-assign`, page CSS removed |
-| Fees / Fee Structure, Fee Reminder | Create | — | yes |
-| Examination / Admit Card Structure | Create | — | yes |
-| Examination / Generate Admit Card | Print Selected (n) | name | "Bulk Print (n)" |
-| Examination / Generate Marksheet | Bulk Enter Marks (n), Print Selected (n) | name; `[title]` binding | "Bulk Print (n)"; reasons (one class only / pick a term / select rows) |
-| Examination / Marksheet Structure | none | — | n/a |
-| Certificates / Generate TC | none | — | n/a |
-| Approvals | none | — | n/a (Stream Group filter added, step 3) |
-| Settings / Academic Sessions | Create Session | no `.toolbar-row1`; own `.sess-toolbar` alignment | wrapped in `.toolbar-row1`, right-aligned |
-| Settings / Roles & Permissions | Bulk Delete | own `.staff-toolbar .toolbar-row1` CSS; confirm modal title "Selected Delete" | page CSS removed; "Bulk Delete" |
-| Shared / app-data-toolbar | primary only | bare label | `.btn-label` (only used by the components gallery) |
-
-Step 3 — Approvals Stream Group: done. Approvals has class filters, so Stream Group sits between Stream and Section, "All stream groups" by default, enabled for Student on a class (+stream) that has non-General groups, reset by Applicant/Class/Stream changes, sent as `groupId` (validator + controller pass it to `findPeople`, which already filtered by `groupId`).
-
-Step 4 — reset on the four pages: the earlier skip was the fixture, not the pages — the generic empty body made Admit Card Structure / Marksheet Structure / Leave Assign throw on `summary` (and `my-permissions`) so the cascade never re-rendered. Fixtures (in-memory in the spec, nothing to clean up) now give real shapes. Results: Admit Card Structure 11th → Science → PCM, then 6th → "All streams", "All stream groups": PASS. Marksheet Structure 11th → Science, 6th → "All streams": PASS. Subject Groups same: PASS. Leave Assign (Student) 11th → Science → PCM, 6th → both reset: PASS.
-
-Not matched: at 1366px the 4 pages with 3-4 buttons cannot fit them beside the 340px search (row is 736px), so the buttons take their own right-aligned row under the search (Rule 21b says same row). Reference html files were not changed (as instructed).
+`[sel]` = needs ticked rows, `[Class]` / `[Term]` = needs that filter, `[]` = always enabled. Search size ok = 280 x 38 at 1366/1920, full card width at 390 (measured, `e2e/shared-fix4-toolbar.spec.ts`). Every `Loading...` text, the Overview table fade and the old per-page toolbar markup are gone; the only spinners left are inside buttons, plus the three status hints named in the rows.

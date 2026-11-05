@@ -85,6 +85,8 @@ const measure = (page: Page) => page.evaluate(() => {
     getComputedStyle(child).display === 'contents' ? items(child) : [child]);
   const rows = Array.from(document.querySelectorAll('.sz .toolbar-row2')).filter(visible).map((row) => ({
     cols: getComputedStyle(row).gridTemplateColumns.split(' ').length,
+    // shared-fix4 Rule 21.11: the grid follows the CARD width (6 / 4 at 641-819px / 2 at <= 640px).
+    cardW: (row.closest('.sw-card-main') || row).getBoundingClientRect().width,
     cells: items(row).filter((el) => visible(el) && !el.classList.contains('fetch-error')).map((el) => {
       const r = el.getBoundingClientRect();
       const trigger = el.querySelector('.dd-trigger');
@@ -142,7 +144,7 @@ for (const route of PAGES) {
     const d = await measure(desk);
     expect(d.overflow, 'desktop page overflow').toBeLessThanOrEqual(0);
     for (const row of d.rows) {
-      expect(row.cols, 'desktop grid columns').toBe(6);
+      expect(row.cols, 'desktop grid columns').toBe(row.cardW <= 640 ? 2 : row.cardW < 820 ? 4 : 6);
       const lines = new Map<number, Cell[]>();
       row.cells.forEach((cell) => lines.set(cell.y, [...(lines.get(cell.y) || []), cell]));
       for (const line of lines.values()) {
@@ -161,7 +163,7 @@ for (const route of PAGES) {
         .forEach((cell) => expect(cell.label, `"All …" on load (${cell.aria})`).toMatch(/^All /));
       notes.push(`${row.cells.length} cells, w=${row.cells.map((c) => c.w.toFixed(1)).join('/')}, h=${[...new Set(row.cells.map((c) => c.h))].join('/')}`);
     }
-    d.search.forEach((w) => expect(w, 'search width').toBe(340));
+    d.search.forEach((w) => expect(w, 'search width (shared-fix4: 280)').toBe(280));
     d.buttons.forEach((b) => { expect(b.w, 'button width').toBe(130); expect(b.h, 'button height').toBe(38); });
     notes.push(`search=${d.search.join('/') || '-'} buttons=${d.buttons.map((b) => b.w + 'x' + b.h).join(',') || '-'}`);
 
