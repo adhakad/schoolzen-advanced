@@ -60,6 +60,8 @@ const openApp = async (page: Page, route: string, keepStorage = false): Promise<
     const body = fixtures[url.pathname] ?? { rows: [], data: [], classes: [], groups: [], total: 0 };
     return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
+  // The fixtures are pinned to TODAY; pin the browser clock too (attendance-fix5 §5: date-proof).
+  await page.clock.setFixedTime(new Date(`${TODAY}T10:00:00`));
   if (!keepStorage) await page.addInitScript(() => { try { if (!sessionStorage.getItem('kept')) { localStorage.clear(); sessionStorage.setItem('kept', '1'); } } catch { /* */ } });
   await page.goto(route);
 };

@@ -16,14 +16,18 @@ require('dotenv').config();
 // have no roster), so a zone whose date is a Sunday is skipped (attendance-fix4.md C) — the
 // suite then passes whichever weekday it runs on.
 {
-    const { DateTime } = require('luxon');
+    const { DateTime, Settings } = require('luxon');
     const zones = [process.env.SCHOOL_TIMEZONE || 'Asia/Kolkata', 'UTC', 'Europe/London', 'America/New_York', 'America/Los_Angeles',
-        'Asia/Tokyo', 'Pacific/Auckland', 'Pacific/Honolulu', 'Asia/Dubai'];
+        'Asia/Tokyo', 'Pacific/Auckland', 'Pacific/Honolulu', 'Asia/Dubai', 'Pacific/Kiritimati', 'Pacific/Pago_Pago'];
     const fits = (zone, sundayOk) => {
         const now = DateTime.now().setZone(zone);
         return now.hour >= 2 && now.hour <= 19 && (sundayOk || now.weekday !== 7);
     };
     process.env.SCHOOL_TIMEZONE = zones.find((zone) => fits(zone, false)) || zones.find((zone) => fits(zone, true));
+    // Around UTC 08:00 on a Sunday it is Sunday (or late Saturday night) everywhere, so no zone
+    // helps: move the app's clock (luxon, which nowWallClock/todayKey read) one day on, to the
+    // Monday at the same hour (attendance-fix5.md §1).
+    if (DateTime.now().setZone(process.env.SCHOOL_TIMEZONE).weekday === 7) Settings.now = () => Date.now() + 86400000;
 }
 global.global_config = require('../config/config.js');
 const assert = require('assert');
@@ -97,6 +101,9 @@ const setup = async () => {
     const now = nowWallClock();
     const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
     if (minutes < 60 || minutes > 1260) throw new Error('Run between 01:00 and 21:00 school time — the window tests build shifts around "now".');
+    // attendance-fix5.md §1: "today" must be a real working day — never a Sunday (the students'
+    // fallback weekly off); the staff roster cells below are shifts, never 'WO'.
+    if (now.getUTCDay() === 0) throw new Error(`no daytime non-Sunday zone found (${process.env.SCHOOL_TIMEZONE})`);
     [shiftOpen, shiftClosed] = await ShiftV2Model.insertMany([
         { adminId: ADMIN, name: 'Open Now', startTime: hhmm(minutes - 30), endTime: hhmm(minutes + 90), earlyInMinutes: 10, graceMinutes: 5 },
         { adminId: ADMIN, name: 'Later', startTime: hhmm(minutes + 120), endTime: hhmm(minutes + 170), earlyInMinutes: 15, graceMinutes: 5 },

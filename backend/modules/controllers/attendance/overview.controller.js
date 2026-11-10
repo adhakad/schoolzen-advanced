@@ -694,7 +694,7 @@ let MarkPastAttendance = async (req, res) => {
             module: MODULE,
             action: 'attendance.mark-past',
             targetId: personId,
-            meta: { personType, name: person.name, date: dateKey, oldStatus, newStatus: status, by: actor, at: now.toISOString() },
+            meta: { personType, name: person.name, date: dateKey, oldStatus, newStatus: status, source: 'manual', by: actor, at: now.toISOString() },
         }, dbSession);
     });
 

@@ -91,9 +91,10 @@ const setup = async () => {
 };
 
 const tests = {
-    'auth: no token → 403; another school\'s adminId → 403 PermissionError (shaped)': async () => {
+    // A missing token is 401 (admin-auth.js: the only status the refresh interceptor acts on).
+    'auth: no token → 401; another school\'s adminId → 403 PermissionError (shaped)': async () => {
         const none = await api('GET', '/grid', { token: null, query: { adminId: ADMIN, personType: 'staff', month: todayKey().slice(0, 7) } });
-        assert.strictEqual(none.status, 403);
+        assert.strictEqual(none.status, 401);
         const other = await api('GET', '/grid', { query: { adminId: OTHER_ADMIN, personType: 'staff', month: todayKey().slice(0, 7) } });
         assert.strictEqual(other.status, 403);
         assert.strictEqual(other.body.error.category, 'PermissionError');

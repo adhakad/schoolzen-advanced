@@ -152,14 +152,24 @@ const tests = {
     // ---- B: roster WO --------------------------------------------------------------------
     'roster assign over a date range: unticked Saturday becomes WO for that person only': async () => {
         db.rosters = [];
-        // Sun–Fri ticked, Saturday is the weekly off; the range crosses a month boundary.
-        await call(AssignStaffRoster, { body: { adminId: ADMIN, staffIds: [RAVI], shiftId: SHIFT._id, weekdays: [0, 1, 2, 3, 4, 5], fromDate: '2026-10-26', toDate: '2026-11-08' } });
+        // Sun–Fri ticked, Saturday is the weekly off; the range crosses a month boundary. The
+        // boundary is picked dynamically (a future month whose last day is a Saturday), so the
+        // range never falls into an already-locked earlier month (attendance-fix5.md §1).
+        const day = (key, n) => new Date(Date.parse(`${key}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
+        const now = new Date();
+        let sat = null;
+        for (let i = 1; !sat; i += 1) {
+            const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i + 1, 0));
+            if (last.getUTCDay() === 6) sat = last.toISOString().slice(0, 10);
+        }
+        const sun = day(sat, 1);
+        const nextSat = day(sat, 7);
+        await call(AssignStaffRoster, { body: { adminId: ADMIN, staffIds: [RAVI], shiftId: SHIFT._id, weekdays: [0, 1, 2, 3, 4, 5], fromDate: day(sat, -5), toDate: day(sat, 8) } });
         assert.strictEqual(db.rosters.length, 2, 'one roster doc per month touched');
-        // 31 Oct and 7 Nov 2026 are Saturdays; 1 Nov is a Sunday.
-        assert.deepStrictEqual(await typesOf(RAVI, '2026-10-31', '2026-11-01'), [DAY_TYPE.WEEKLY_OFF, DAY_TYPE.WORKING]);
-        assert.deepStrictEqual(await typesOf(RAVI, '2026-11-07', '2026-11-07'), [DAY_TYPE.WEEKLY_OFF]);
+        assert.deepStrictEqual(await typesOf(RAVI, sat, sun), [DAY_TYPE.WEEKLY_OFF, DAY_TYPE.WORKING]);
+        assert.deepStrictEqual(await typesOf(RAVI, nextSat, nextSat), [DAY_TYPE.WEEKLY_OFF]);
         // Sita has no roster: Saturday is a working day, Sunday the fallback off.
-        assert.deepStrictEqual(await typesOf(SITA, '2026-10-31', '2026-11-01'), [DAY_TYPE.WORKING, DAY_TYPE.WEEKLY_OFF]);
+        assert.deepStrictEqual(await typesOf(SITA, sat, sun), [DAY_TYPE.WORKING, DAY_TYPE.WEEKLY_OFF]);
     },
 
     // ---- A acceptance: leave counting ----------------------------------------------------

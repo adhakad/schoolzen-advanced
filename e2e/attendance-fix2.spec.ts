@@ -64,6 +64,8 @@ const openApp = async (page: Page, route: string, override?: (path: string, meth
     const answer = fixtures[url.pathname] ?? { rows: [], data: [], classes: [], groups: [], total: 0 };
     return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(answer) });
   });
+  // The fixtures are pinned to TODAY; pin the browser clock too (attendance-fix5 §5: date-proof).
+  await page.clock.setFixedTime(new Date(`${TODAY}T10:00:00`));
   await page.goto(route);
   return seen;
 };
@@ -142,14 +144,18 @@ test('Part A + C: Roster filters and month open below; Delete → re-assign, wit
   // Bulk Delete (type-to-confirm) → one clear call.
   const box = () => page.locator('.rg-grid tbody tr').first().locator('input[type=checkbox]');
   await box().check();
-  await page.getByRole('button', { name: /Bulk Delete/ }).click();
+  // shared-fix4 Rule 21: bulk actions are items of the one Actions menu.
+  await page.locator('.tb-actions-btn').click();
+  await page.getByRole('menuitem', { name: /Bulk Delete/ }).click();
   await page.locator('app-confirm-modal input').fill('DELETE');
   await page.locator('app-confirm-modal .confirm-delete').click();
   await expect.poll(() => seen.filter((s) => s.path.endsWith('/roster/staff/clear')).length).toBe(1);
 
   // Re-assign: the row is unrostered now; Assign opens the modal.
   await box().check();
-  await page.getByRole('button', { name: /Bulk Assign/ }).click();
+  // shared-fix4 Rule 21: bulk actions are items of the one Actions menu.
+  await page.locator('.tb-actions-btn').click();
+  await page.getByRole('menuitem', { name: /Bulk Assign/ }).click();
   const shiftTrigger = page.locator('#assign-shift .dd-trigger');
   await shiftTrigger.click();
   await expectBelow(page, shiftTrigger, 'assign shift');
