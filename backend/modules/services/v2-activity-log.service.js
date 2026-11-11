@@ -1,6 +1,7 @@
 'use strict';
 const ActivityLogModel = require('../models/audit/activity-log');
 const StaffV2Model = require('../models/staff/staff');
+const { OWNER_DEFAULT_NAME } = require('../helpers/settings/v2-owner-bootstrap');
 
 // logActivityV2() — the one way any v2 controller writes to the audit trail.
 //
@@ -26,11 +27,17 @@ const actorOf = (req) => {
 const resolveActorName = async (req, adminId, fromToken) => {
     if (fromToken) return fromToken;
     if (req._actorName !== undefined) return req._actorName;
-    // Read-only: requirePermission (on every v2 route) already resolved req.staffId and created
-    // the owner row; logging never creates staff rows itself.
-    const filter = req.staffId ? { _id: req.staffId, adminId: String(adminId) } : { adminId: String(adminId), isOwner: true };
-    const staff = await StaffV2Model.findOne(filter, 'name').lean();
-    req._actorName = (staff && staff.name) || null;
+    if (req.staffId) {
+        const staff = await StaffV2Model.findOne({ _id: req.staffId, adminId: String(adminId) }, 'name').lean();
+        req._actorName = (staff && staff.name) || null;
+        return req._actorName;
+    }
+    // An admin login IS the owner. Routes without requirePermission (Academic Setup, Staff,
+    // Student) never bootstrap the owner row, so on a new school it may not exist yet and the
+    // entry used to store actorName: null. Read-only: fall back to the exact name
+    // ensureOwner() gives that row when it is created (the admin token carries no name).
+    const owner = await StaffV2Model.findOne({ adminId: String(adminId), isOwner: true }, 'name').lean();
+    req._actorName = (owner && owner.name) || OWNER_DEFAULT_NAME;
     return req._actorName;
 };
 

@@ -15,6 +15,10 @@ const { isDuplicateKey } = require('./duplicate-key');
 // school's first v2 Settings request instead, and is idempotent + race-safe: every write is
 // an upsert onto a unique index, so concurrent first requests converge on one copy.
 
+// Name of the owner Staff row when the admin account supplies none. The activity log uses
+// the same value for an owner whose row is not bootstrapped yet.
+const OWNER_DEFAULT_NAME = 'School Owner';
+
 const all = (canView, canEdit) => ({ canView, canEdit });
 const perms = (map) => Object.entries(map).map(([module, p]) => ({ module, ...p }));
 
@@ -80,7 +84,7 @@ const ensureOwner = async (adminId, adminUser = {}) => cacheService.wrap(
                 $setOnInsert: {
                     adminId,
                     isOwner: true,
-                    name: adminUser.name || 'School Owner',
+                    name: adminUser.name || OWNER_DEFAULT_NAME,
                     adminUserId: adminUser.id ? String(adminUser.id) : null,
                     designation: 'Owner',
                     department: 'Admin',
@@ -100,4 +104,4 @@ const ensureOwner = async (adminId, adminUser = {}) => cacheService.wrap(
     }
 );
 
-module.exports = { SEEDED_ROLES, ensureSeededRoles, ensureOwner };
+module.exports = { SEEDED_ROLES, OWNER_DEFAULT_NAME, ensureSeededRoles, ensureOwner };
