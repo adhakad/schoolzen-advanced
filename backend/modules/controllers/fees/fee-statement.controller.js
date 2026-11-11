@@ -3,11 +3,11 @@ const StudentEnrollmentModel = require('../../models/student/student-enrollment'
 const FeeStructureModel = require('../../models/fees/fee-structure');
 const { imageUrl } = require('../../services/media/cloudinary.service');
 const { STATUS_LABELS, money, buildLedger } = require('../../helpers/fees/fee-ledger');
-const { resolveFeeStructure } = require('../../helpers/fees/fee-structure-resolver');
+const { resolveFeeStructure } = require('../../helpers/fees/v2-fee-structure-resolver');
 const {
     isObjectId, studentNotFound, requireSessionId, shortSession, loadLedgerData, ledgerFor, loadProfiles,
     placementLabels,
-} = require('../../helpers/fees/fee-context');
+} = require('../../helpers/fees/v2-fee-context');
 const { loadRowContext } = require('./fees.controller');
 
 // Fee Statement (fees/fee-statement.md) — ONE read-composed view per student: profile,

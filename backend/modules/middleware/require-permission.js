@@ -5,7 +5,7 @@ const RoleAssignmentModel = require('../models/settings/role-assignment');
 const { PermissionError } = require('../errors');
 const cacheService = require('../services/cache/cache.service');
 const cacheKeys = require('../services/cache/cache-keys');
-const { ensureOwner } = require('../helpers/settings/owner-bootstrap');
+const { ensureOwner } = require('../helpers/settings/v2-owner-bootstrap');
 
 // THE authorization check for v2 routes (roles-permissions.md, settings/errors.md backend
 // requirements): `requirePermission(module, 'view'|'edit')`. It resolves the caller to a

@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 // THE audit trail — one collection every v2 module writes to through
-// services/activity-log.service.js, never a per-module `performedBy` shape
+// services/v2-activity-log.service.js, never a per-module `performedBy` shape
 // (_core/additional-technical-considerations.md, "Audit / activity log").
 //
 // Student is the first writer: a Full (unmasked) Excel export and each reveal of a masked
@@ -30,6 +30,6 @@ ActivityLogSchema.index({ adminId: 1, timestamp: -1 });                 // recen
 ActivityLogSchema.index({ adminId: 1, actorId: 1, timestamp: -1 });     // one person's trail
 ActivityLogSchema.index({ adminId: 1, module: 1, targetId: 1 });        // one record's history
 
-const ActivityLogModel = mongoose.model('activity-log', ActivityLogSchema);
+const ActivityLogV2Model = mongoose.model('v2-activity-log', ActivityLogSchema, 'v2-activity-logs');
 
-module.exports = ActivityLogModel;
+module.exports = ActivityLogV2Model;

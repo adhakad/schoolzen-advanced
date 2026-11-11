@@ -21,7 +21,7 @@ const StudentFeeRecordSchema = new mongoose.Schema({
     // Required when the concession is above the school's threshold share of totalFee — the
     // audit answer to "why was this student charged so little?".
     concessionReason: { type: String, trim: true, default: null },
-    // Populated by Class Promotion's carry-forward (helpers/fees/fee-promotion.js): one entry
+    // Populated by Class Promotion's carry-forward (helpers/fees/v2-fee-promotion.js): one entry
     // per earlier session still owing money at promotion time. `amount` is that moment's
     // SNAPSHOT — what is owed now is always derived live from FeePayment allocations
     // (helpers/fees/fee-ledger.js), so a later payment can never leave it stale.

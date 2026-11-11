@@ -5,14 +5,14 @@ const StudentEnrollmentModel = require('../../models/student/student-enrollment'
 const { ValidationError, ConflictError, NotFoundError } = require('../../errors');
 const messages = require('../../helpers/messages/leave.messages');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { loadClassIndex } = require('../../helpers/student/student.utils');
+const { loadClassIndex } = require('../../helpers/student/v2-student.utils');
 const { allows } = require('../../middleware/require-permission');
 const {
     MODULE, actorOf, resolveSessionId, loadLeaveTypes, loadTypesById, findPeople, describePeople, resolveEffectiveLimits, toObjectId,
-} = require('../../helpers/leave/context');
+} = require('../../helpers/leave/v2-context');
 const { classKey, isApplicable } = require('../../helpers/leave/leave-rules');
 const { buildHierarchy } = require('../attendance/roster.controller');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Leave Assign (leave-assign.md) — each person's yearly allowance per leave type.
 //
@@ -21,7 +21,7 @@ const { logActivity } = require('../../services/activity-log.service');
 // student. A class row expands to its students, where one student's limit can be overridden
 // (source:'override'). A class re-assign never touches an override unless the admin
 // confirms (`overwriteOverrides` + `confirmed`); a student admitted later inherits the
-// class default (helpers/leave/context.js resolveEffectiveLimits).
+// class default (helpers/leave/v2-context.js resolveEffectiveLimits).
 //
 // Every route here is gated on the 'leave-limit' permission (routes file), and every write
 // is in the activity log with who, what, and old → new.
@@ -108,7 +108,7 @@ let BulkAssignStaff = async (req, res) => {
     const result = await LeaveLimitV2Model.bulkWrite(ops, { ordered: false });
     const assigned = result.upsertedCount || 0;
     const skipped = ops.length - assigned;
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'leave.limit.staff.bulk',
         meta: { personIds: valid, items, assigned, skipped },
         changes: { before: null, after: { items } },
@@ -297,7 +297,7 @@ let AssignClasses = async (req, res) => {
             const overwritten = overrides
                 .filter((row) => row.leaveTypeId === item.leaveTypeId && studentIds.includes(row.personId))
                 .map((row) => ({ personId: row.personId, before: row.allocatedDays, after: item.days }));
-            await logActivity(req, {
+            await logActivityV2(req, {
                 module: MODULE,
                 action: overwritten.length ? 'leave.limit.class.assign-overwrite' : 'leave.limit.class.assign',
                 targetId: classKey(target),
@@ -340,7 +340,7 @@ let SetPersonLimit = async (req, res) => {
         if (error && error.code === 11000) throw new ValidationError(messages.limitBelowUsed(days), { module: MODULE, code: 'LEAVE_LIMIT_BELOW_USED' });
         throw error;
     });
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: personType === 'staff' ? 'leave.limit.staff.set' : 'leave.limit.student.override',
         targetId: personId,

@@ -20,13 +20,13 @@ const EnrollmentSchema = new mongoose.Schema({
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-student', required: true },
     // A REFERENCE to the school's AcademicSession, never a copied label string
     // (settings/academic-sessions.md). The API still takes the header's label and resolves
-    // it at the edge (helpers/academic-session/session-resolver.js).
+    // it at the edge (helpers/academic-session/v2-session-resolver.js).
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-session', required: true },
 
-    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'academic-class', required: true },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-class', required: true },
     class: { type: Number, required: true },
     streamId: { type: mongoose.Schema.Types.ObjectId, default: null },
-    groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'academic-subject-group', default: null },
+    groupId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-subject-group', default: null },
     sectionId: { type: mongoose.Schema.Types.ObjectId, default: null },
 
     // Cleared on promotion — assigned fresh in the new class via Manage Students.
@@ -80,6 +80,6 @@ EnrollmentSchema.index(
     { unique: true, partialFilterExpression: { rollNumber: { $type: 'number' } } }
 );
 
-const StudentEnrollmentModel = mongoose.model('student-enrollment', EnrollmentSchema);
+const StudentEnrollmentV2Model = mongoose.model('v2-student-enrollment', EnrollmentSchema, 'v2-student-enrollments');
 
-module.exports = StudentEnrollmentModel;
+module.exports = StudentEnrollmentV2Model;

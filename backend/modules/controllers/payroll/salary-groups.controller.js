@@ -5,11 +5,11 @@ const PayrollRunV2Model = require('../../models/payroll/payroll-run');
 const { NotFoundError, ConflictError, ValidationError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/payroll.messages');
-const { matcher, COLLATION } = require('../../helpers/staff/lookups');
+const { matcher, COLLATION } = require('../../helpers/staff/v2-lookups');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, isObjectId, toGroupRow, loadSalaryGroups, invalidateSalaryGroups, offsetPage,
-} = require('../../helpers/payroll/context');
-const { logActivity } = require('../../services/activity-log.service');
+} = require('../../helpers/payroll/v2-context');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Salary Groups (salary-groups.md) — the school's pay scales. A small list read from the
 // near-static cache; every single-record lookup, write and cascade query is scoped by
@@ -93,7 +93,7 @@ let CreateSalaryGroup = async (req, res) => {
         .create({ adminId, ...groupFields(req.body), createdBy: actor, updatedBy: actor })
         .catch(rethrowDuplicate);
     await invalidateSalaryGroups(adminId);
-    await logActivity(req, { module: MODULE, action: 'payroll.group.create', targetId: String(created._id), meta: groupFields(created) });
+    await logActivityV2(req, { module: MODULE, action: 'payroll.group.create', targetId: String(created._id), meta: groupFields(created) });
     return res.status(200).json({ message: success.created(ENTITY), salaryGroup: toGroupRow(created) });
 };
 
@@ -112,7 +112,7 @@ let UpdateSalaryGroup = async (req, res) => {
     Object.assign(group, groupFields(req.body), { updatedBy: actorOf(req), updatedAt: new Date() });
     await group.save().catch(rethrowDuplicate);
     await invalidateSalaryGroups(adminId);
-    await logActivity(req, { module: MODULE, action: 'payroll.group.update', targetId: String(group._id), changes: { before, after: groupFields(group) } });
+    await logActivityV2(req, { module: MODULE, action: 'payroll.group.update', targetId: String(group._id), changes: { before, after: groupFields(group) } });
     return res.status(200).json({ message: success.updated(ENTITY), salaryGroup: toGroupRow(group) });
 };
 
@@ -150,7 +150,7 @@ let DeleteSalaryGroup = async (req, res) => {
 
     await SalaryGroupV2Model.deleteOne({ _id: id, adminId });
     await invalidateSalaryGroups(adminId);
-    await logActivity(req, { module: MODULE, action: 'payroll.group.delete', targetId: id, meta: { name: group.name } });
+    await logActivityV2(req, { module: MODULE, action: 'payroll.group.delete', targetId: id, meta: { name: group.name } });
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };
 

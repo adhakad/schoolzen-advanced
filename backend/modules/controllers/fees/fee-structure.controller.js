@@ -5,15 +5,15 @@ const FeePaymentModel = require('../../models/fees/fee-payment');
 const { NotFoundError, ConflictError, ValidationError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/fees.messages');
-const { ensureSessionId } = require('../../helpers/academic-session/session-resolver');
-const { loadSubjectGroups } = require('../../helpers/student/student.utils');
+const { ensureSessionId } = require('../../helpers/academic-session/v2-session-resolver');
+const { loadSubjectGroups } = require('../../helpers/student/v2-student.utils');
 const { withTransaction } = require('../../helpers/with-transaction');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, isObjectId, toObjectId, requireSessionId, shortSession, loadSessionLabels,
     loadClassIndex, titleCase, offsetPage,
-} = require('../../helpers/fees/fee-context');
-const { syncRecordsForStructure } = require('../../helpers/fees/fee-record-sync');
-const { logActivity } = require('../../services/activity-log.service');
+} = require('../../helpers/fees/v2-fee-context');
+const { syncRecordsForStructure } = require('../../helpers/fees/v2-fee-record-sync');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
 const { onDashboardChanged } = require('../../helpers/dashboard/cache-invalidation');
@@ -171,7 +171,7 @@ let CreateFeeStructure = async (req, res) => {
     }).catch(rethrowDuplicate);
 
     await invalidate(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'fees.structure.create', targetId: String(structure._id),
         meta: { session, ...feeFields(structure), recordsCreated: sync.created, recordsUpdated: sync.updated },
     });
@@ -199,7 +199,7 @@ let UpdateFeeStructure = async (req, res) => {
     });
 
     await invalidate(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'fees.structure.update', targetId: String(structure._id),
         changes: { before, after: feeFields(structure) }, meta: { recordsCreated: sync.created, recordsUpdated: sync.updated },
     });
@@ -266,7 +266,7 @@ let DeleteFeeStructure = async (req, res) => {
     });
 
     await invalidate(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'fees.structure.delete', targetId: String(structure._id),
         meta: { ...feeFields(structure), removedRecords: structure.removedRecords },
     });

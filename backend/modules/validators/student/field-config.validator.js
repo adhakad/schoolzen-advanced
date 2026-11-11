@@ -60,7 +60,7 @@ const DEFAULT_STUDENT_FIELD_CONFIG = Object.freeze([
     f('rollNumber', 'Roll Number', 'admission', { type: 'number', integer: true, min: 1, max: 99999 }),
     // Required, default 'new' (student/errors.md): a blank value IS 'new', so older sheets
     // and API callers without the column still work. The write path applies its DOA/fee
-    // consequences (helpers/student/student-write.js).
+    // consequences (helpers/student/v2-student-write.js).
     f('admissionType', 'Admission Type', 'admission', { type: 'dropdown', options: OPTIONS.admissionType, default: 'new',
         errorMessages: { required: 'Admission type is required.' } }, { required: true }),
     f('doa', 'Date of Admission', 'admission', { type: 'date', notFuture: true, errorMessages: { required: 'Date of admission is required.' } }),
@@ -152,13 +152,13 @@ const getStudentFieldConfig = async (adminId) => {
     // Required lazily: this module is also loaded by scripts that have no Redis/cache setup.
     const cacheService = require('../../services/cache/cache.service');
     const cacheKeys = require('../../services/cache/cache-keys');
-    const SchoolModel = require('../../models/school');
+    const SchoolProfileV2Model = require('../../models/settings/school-profile');
     return cacheService.wrap(cacheKeys.student.fieldConfig(adminId), cacheService.TTL.NEAR_STATIC_30, async () => {
-        // The school record is legacy and only READ here, for its state.
+        // v2 school profile, READ for its state; not set yet → no state-specific fields.
         const FieldConfigModel = require('../../models/settings/field-config');
-        const { mergeFieldConfig } = require('../../helpers/settings/field-config.utils');
+        const { mergeFieldConfig } = require('../../helpers/settings/v2-field-config.utils');
         const [school, savedRows] = await Promise.all([
-            SchoolModel.findOne({ adminId }, 'state').lean(),
+            SchoolProfileV2Model.findOne({ adminId }, 'state').lean(),
             FieldConfigModel.find({ adminId }).lean(),
         ]);
         // Settings → Admission Form Fields' saved rows (overrides + custom fields) over the seed.

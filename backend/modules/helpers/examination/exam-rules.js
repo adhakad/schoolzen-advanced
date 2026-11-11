@@ -2,7 +2,7 @@
 const messages = require('../messages/examination.messages');
 
 // Examination's business rules as PURE functions — no DB, no Redis — so they're unit
-// tested directly (scripts/test-examination-v2.js) and the controllers stay thin.
+// tested directly (scripts/v2-test-examination.js) and the controllers stay thin.
 // Each validator returns a list of { field, code, message } (empty = valid).
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;

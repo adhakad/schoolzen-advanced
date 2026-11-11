@@ -3,13 +3,13 @@ const StudentProfileModel = require('../../models/student/student');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const { ValidationError, NotFoundError } = require('../../errors');
 const messages = require('../../helpers/messages/student.messages');
-const { findSessionId, ensureSessionId } = require('../../helpers/academic-session/session-resolver');
+const { findSessionId, ensureSessionId } = require('../../helpers/academic-session/v2-session-resolver');
 const { imageUrl } = require('../../services/media/cloudinary.service');
 const {
     MODULE, titleCase, getNextSession, loadClassIndex, resolvePlacement,
     buildEnrollmentMatch, promotionLookups, setPromotionLookup,
-} = require('../../helpers/student/student.utils');
-const { hasFeeStructure } = require('../../helpers/fees/fee-structure-resolver');
+} = require('../../helpers/student/v2-student.utils');
+const { hasFeeStructure } = require('../../helpers/fees/v2-fee-structure-resolver');
 
 // The v2 FeeStructure collection now exists (created ahead of the Fees module for
 // Admission), so the "no fee structure for the target class" warning checks the real thing
@@ -23,6 +23,7 @@ setPromotionLookup('hasFeeStructure', async (adminId, classId, sessionLabel) =>
 // Confirm is a background job (queues/student-queue.js → workers/student-worker.js): a
 // whole cohort can be thousands of students, processed in bounded per-chunk transactions.
 
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const queue = () => require('../../queues/student-queue');
 
 // A single class, however large, stays well under this; it bounds the roster read.
@@ -319,6 +320,11 @@ let ConfirmPromotion = async (req, res) => {
         toSessionId: String(toSessionId),
         classId: String(req.body.classId),
         items: plan.items,
+    });
+    await logActivityV2(req, {
+        module: MODULE,
+        action: 'student.promotion.confirm',
+        meta: { fromSession: req.body.session, toSession: plan.nextSession, classId: String(req.body.classId), summary: plan.summary, jobId },
     });
 
     return res.status(202).json({

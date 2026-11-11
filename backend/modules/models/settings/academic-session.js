@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 //
 // Every other v2 collection stores a session as a REFERENCE to this document (its _id), never
 // a copied label string — StudentEnrollment.sessionId first. A label is still what the shell
-// header shows and what the API accepts; helpers/academic-session/session-resolver.js turns it
+// header shows and what the API accepts; helpers/academic-session/v2-session-resolver.js turns it
 // into this document's id at the API edge.
 //
 // Settings → Academic Sessions (module 12) owns create / Set-as-Active / delete

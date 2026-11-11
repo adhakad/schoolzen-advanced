@@ -3,14 +3,14 @@ const { Worker } = require('bullmq');
 const { defaultWorkerOptions } = require('../queues/connection');
 const { QUEUE_NAME } = require('../queues/examination-queue');
 const AdmitCardStructureModel = require('../models/examination/admit-card-structure');
-const { generateAdmitCards } = require('../helpers/examination/admit-card-generation');
+const { generateAdmitCards } = require('../helpers/examination/v2-admit-card-generation');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 
 // Consumer for queues/examination-queue.js — runs only in the worker process (worker.js).
 //
 // admit-cards: (re)generates every card for one structure version (idempotent upserts, see
-// helpers/examination/admit-card-generation.js). On the final failed attempt the structure
+// helpers/examination/v2-admit-card-generation.js). On the final failed attempt the structure
 // is marked 'failed' so the page stops showing "generating" forever and the admin can save
 // again to retry.
 

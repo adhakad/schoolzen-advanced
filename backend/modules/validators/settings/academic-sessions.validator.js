@@ -1,6 +1,6 @@
 'use strict';
 const Joi = require('joi');
-const { COPY_FORWARD_KEYS } = require('../../helpers/settings/session-copy-forward');
+const { COPY_FORWARD_KEYS } = require('../../helpers/settings/v2-session-copy-forward');
 
 // Request SHAPES for Academic Sessions. The business rules with their own errors.md codes
 // (SESSION_DATE_RANGE_INVALID, SESSION_LABEL_FORMAT_INVALID, SESSION_CONFIRM_MISMATCH) are

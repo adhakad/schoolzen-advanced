@@ -36,6 +36,9 @@ const StaffSchema = new mongoose.Schema({
     archivedEmpCode: { type: String, default: null },
     cardNumber: { type: String, trim: true, default: null },
     verifyMode: { type: Number, enum: Object.values(VERIFY_MODES), default: VERIFY_MODES.CARD_ONLY },
+    // WDMS-side employee id from createWdmsEmployee, so a later sync PATCHes the same record.
+    // The WDMS emp code is this row's _id (attendance-v2/ingest.js resolves punches by it).
+    wdmsId: { type: String, select: false },
     // Holiday Assign (holiday/assign.md): the person's holiday calendar, by reference. null =
     // not assigned yet → the school's Default template applies.
     holidayTemplateId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-holiday-template', default: null },

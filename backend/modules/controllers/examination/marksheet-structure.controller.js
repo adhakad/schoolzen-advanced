@@ -6,14 +6,14 @@ const messages = require('../../helpers/messages/examination.messages');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { logActivity } = require('../../services/activity-log.service');
-const { loadClassTree, resolveScope } = require('../../helpers/settings/class-options');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
+const { loadClassTree, resolveScope } = require('../../helpers/settings/v2-class-options');
 const { validateMaxes } = require('../../helpers/examination/exam-rules');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, toObjectId, notFound, fieldErrors, requireSessionId,
     loadSubjectNames, loadScopeSubjectIds, classStreamRows, findTemplate, loadCatalog,
     loadMarksheetStructures, structureKey, isSetUp,
-} = require('../../helpers/examination/exam-context');
+} = require('../../helpers/examination/v2-exam-context');
 
 // Marksheet Structure (examination/marksheet-structure.md). EVERY Class(+Stream) is shown,
 // always — an existence-based grid, not a list of what's configured. The template is
@@ -146,7 +146,7 @@ let SaveSetup = async (req, res) => {
     if (!updated) throw new ConflictError(messages.structureChanged(), { module: MODULE, code: 'STRUCTURE_CHANGED' });
 
     await invalidate(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: 'examination.marksheet-structure.save',
         targetId: String(updated._id),
@@ -185,7 +185,7 @@ let RemoveSetup = async (req, res) => {
     });
 
     await invalidate(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: 'examination.marksheet-structure.remove',
         targetId: String(structure._id),

@@ -12,7 +12,7 @@ const mongoose = require('mongoose');
 //
 // The mongoose model name must differ from the legacy 'subject' — re-registering that name
 // throws OverwriteModelError.
-const SubjectModel = mongoose.model('academic-subject', {
+const SubjectV2Model = mongoose.model('v2-academic-subject', {
     adminId: {
         type: String,
         required: true,
@@ -47,7 +47,7 @@ const SubjectModel = mongoose.model('academic-subject', {
         type: Date,
         default: Date.now,
     },
-});
+}, 'v2-academic-subjects'); // Rule 23.8: renamed by scripts/migrate-v2-collection-names.js
 
 // A REAL unique index, not an app-level check: the UI implies one subject per name per
 // school, so the database enforces it (database-design-principles.md, "Uniqueness").
@@ -59,9 +59,9 @@ const SubjectModel = mongoose.model('academic-subject', {
 // requests the same collation, and a second plain { adminId, name } index cannot exist
 // alongside it (Mongo rejects two indexes sharing a key pattern) — nor should it, since a
 // name list that sorts "hindi" away from "Hindi" is wrong anyway.
-SubjectModel.schema.index(
+SubjectV2Model.schema.index(
     { adminId: 1, name: 1 },
     { unique: true, collation: { locale: 'en', strength: 2 } }
 );
 
-module.exports = SubjectModel;
+module.exports = SubjectV2Model;

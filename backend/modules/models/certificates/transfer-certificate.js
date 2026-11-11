@@ -15,7 +15,7 @@ const TransferCertificateSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-student', required: true },
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-session', required: true },
-    enrollmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'student-enrollment', required: true },
+    enrollmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-student-enrollment', required: true },
     serialNumber: { type: String, required: true, trim: true },
     dateOfLeaving: { type: Date, required: true },
     reasonForLeaving: { type: String, enum: REASONS, required: true },

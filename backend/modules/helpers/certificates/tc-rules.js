@@ -1,7 +1,7 @@
 'use strict';
 const { REASON_LABELS, CONDUCT_LABELS } = require('./tc-fields');
 
-// Transfer Certificate rules — pure functions, no database (scripts/test-certificates-v2.js).
+// Transfer Certificate rules — pure functions, no database (scripts/v2-test-certificates.js).
 
 const SERIAL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9/-]{0,28}\d$/;
 const MAX_WORKING_DAYS = 365;

@@ -6,10 +6,11 @@ const { NotFoundError } = require('../../errors');
 const messages = require('../../helpers/messages/settings.messages');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
-const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
-const { loadClassTree, indexTree, scopeLabel, resolveScope } = require('../../helpers/settings/class-options');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/v2-session-resolver');
+const { loadClassTree, indexTree, scopeLabel, resolveScope } = require('../../helpers/settings/v2-class-options');
 const { classTemplateAlreadyAssigned, isDuplicateKey } = require('../../helpers/settings/duplicate-key');
-const { loadCatalog } = require('../../helpers/settings/marksheet-catalog-loader');
+const { loadCatalog } = require('../../helpers/settings/v2-marksheet-catalog-loader');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 const MODULE = 'settings';
 
@@ -154,6 +155,12 @@ let AssignTemplate = async (req, res) => {
 
     // Cross-module invalidation (examination/optimization.md): the structure's template changed.
     await cacheService.delPattern(cacheKeys.examination.marksheetStructurePattern(adminId));
+    await logActivityV2(req, {
+        module: MODULE,
+        action: existing ? 'settings.marksheet-template.reassign' : 'settings.marksheet-template.assign',
+        meta: { sessionId: String(sessionId), classId: String(classObjectId), streamId: streamObjectId ? String(streamObjectId) : null, template: template.code },
+        ...(existing ? { changes: { before: { templateId: String(existing.templateId) }, after: { templateId: String(template._id) } } } : {}),
+    });
 
     return res.status(existing ? 200 : 201).json({
         message: `${template.code} assigned.`,

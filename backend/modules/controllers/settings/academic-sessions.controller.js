@@ -13,11 +13,12 @@ const cacheKeys = require('../../services/cache/cache-keys');
 const { onSessionsChanged } = require('../../helpers/settings/cache-invalidation');
 const { rethrowDuplicate, isDuplicateKey, sessionLabelDuplicate } = require('../../helpers/settings/duplicate-key');
 const { withTransaction } = require('../../helpers/with-transaction');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { labelFromDates, isValidSession } = require('../../helpers/academic-session-format');
-const { getActiveSession, getDefaultSession } = require('../../helpers/academic-session/session-resolver');
+const { getActiveSession, getDefaultSession } = require('../../helpers/academic-session/v2-session-resolver');
 const {
     copyForwardOptions, runCopyForward, partialWarning,
-} = require('../../helpers/settings/session-copy-forward');
+} = require('../../helpers/settings/v2-session-copy-forward');
 
 const MODULE = 'settings';
 const ENTITY = 'Academic session';
@@ -240,6 +241,12 @@ let CreateSession = async (req, res) => {
     });
 
     await onSessionsChanged(adminId);
+    await logActivityV2(req, {
+        module: MODULE,
+        action: 'settings.session.create',
+        targetId: created._id,
+        meta: { label, copyForward: copyForward || [], copyForwardResults: outcome.results },
+    });
 
     const warning = partialWarning(outcome);
     const body = {
@@ -338,6 +345,12 @@ let ActivateSession = async (req, res) => {
 
     // Same request as the commit: the highest-blast-radius cache key in the app.
     await onSessionsChanged(adminId);
+    await logActivityV2(req, {
+        module: MODULE,
+        action: 'settings.session.activate',
+        targetId: target._id,
+        meta: { label: target.label, previousLabel: seenActive ? seenActive.label : null },
+    });
 
     return res.status(200).json({
         message: `${target.label} is now the active session.`,
@@ -389,6 +402,7 @@ let DeleteSession = async (req, res) => {
     }
 
     await onSessionsChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'settings.session.delete', targetId: session._id, meta: { label: session.label } });
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };
 

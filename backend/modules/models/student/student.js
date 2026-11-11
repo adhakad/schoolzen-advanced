@@ -11,7 +11,7 @@ const mongoose = require('mongoose');
 //
 // NOT models/student.js. That legacy collection is flat (class/stream/rollNumber on the
 // profile) and stays exactly as it is for the old admin pages; this is its v2 successor and
-// is filled either by the v2 pages or by scripts/migrate-students-v2.js, which only ever
+// is filled either by the v2 pages or by scripts/v2-migrate-students.js, which only ever
 // READS the legacy one. The mongoose name has to differ — re-registering 'student' throws
 // OverwriteModelError.
 const StudentSchema = new mongoose.Schema({
@@ -36,7 +36,7 @@ const StudentSchema = new mongoose.Schema({
     medium: { type: String, trim: true },
     // "First Enrolled Class" — the Academic Setup class id (student-fix4.md A), the same
     // reference an enrollment's classId is, so the two can never disagree.
-    admissionClass: { type: mongoose.Schema.Types.ObjectId, ref: 'academic-class', default: null },
+    admissionClass: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-class', default: null },
     doa: { type: Date, default: null },                // date of admission
     // 'new' = admitted from today; 'old' = already studying here before the school moved to
     // this system (student/errors.md, admissionType).
@@ -68,13 +68,13 @@ const StudentSchema = new mongoose.Schema({
     familyAnnualIncome: { type: Number, default: null },
     parentsContact: { type: String, trim: true },
 
-    // Biometric identity. The device-side record lives in BiometricMapping (shared with
-    // Attendance's punch ingest); these two are the profile's own copy so the list can show
-    // the Card column without a join.
+    // Biometric identity. The WDMS emp code is this row's _id (attendance-v2/ingest.js
+    // resolves punches by it); `wdmsId` is the WDMS-side employee id so a later sync PATCHes.
     cardNumber: { type: String, trim: true, default: null },
     // 4 = Card only, 10 = Card + Fingerprint — the terminal codes, see
-    // helpers/student/student.utils.js VERIFY_MODES.
+    // helpers/student/v2-student.utils.js VERIFY_MODES.
     verifyMode: { type: Number, default: 4 },
+    wdmsId: { type: String, select: false },
 
     // Outbound notifications resolve their language from this, never from a request
     // (additional-technical-considerations.md, Notifications).
@@ -84,7 +84,7 @@ const StudentSchema = new mongoose.Schema({
     // FieldConfig.fieldKey.
     extraFields: { type: Map, of: mongoose.Schema.Types.Mixed, default: undefined },
 
-    // Set only by scripts/migrate-students-v2.js — the upsert key that makes re-running it
+    // Set only by scripts/v2-migrate-students.js — the upsert key that makes re-running it
     // a no-op.
     legacyStudentId: { type: String, default: undefined },
 

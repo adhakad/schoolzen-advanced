@@ -5,16 +5,15 @@ const { QUEUE_NAME } = require('../queues/student-queue');
 const StudentProfileModel = require('../models/student/student');
 const StudentEnrollmentModel = require('../models/student/student-enrollment');
 const SubjectGroupModel = require('../models/academic-setup/subject-group');
-const BiometricMappingModel = require('../models/biometric-mapping');
 const { createWdmsEmployee, updateWdmsEmployee, resyncWdmsDevices } = require('../services/wdms-employee');
 const { getStudentFieldConfig, validateStudentRecord } = require('../validators/student/field-config.validator');
 const {
     loadClassIndex, toObjectId, withTransaction, runPromotionSteps, DUPLICATE_RULES,
-} = require('../helpers/student/student.utils');
+} = require('../helpers/student/v2-student.utils');
 // Registers the Fees module's promotion step (arrears carry-forward) in this process.
-require('../helpers/fees/fee-promotion');
+require('../helpers/fees/v2-fee-promotion');
 const studentMessages = require('../helpers/messages/student.messages');
-const { invalidateClassStats } = require('../helpers/student/student-write');
+const { invalidateClassStats } = require('../helpers/student/v2-student-write');
 const { keepStoredForMasks } = require('../helpers/student/student-mask');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
@@ -467,18 +466,21 @@ const DEVICE_PEOPLE = {
     staff: () => require('../models/staff/staff'),
 };
 
-/** reason 'remove': blank the card on WDMS, then drop the mapping (Staff's Remove Card). */
+/** reason 'remove': blank the card on WDMS (Staff's Remove Card). The v2 row keeps its
+ * wdmsId so a later re-assign PATCHes the same WDMS employee instead of creating one. */
 const removeDeviceCards = async (adminId, personType, personIds) => {
     const failed = [];
     let synced = 0;
-    const mappings = await BiometricMappingModel.find({ adminId, personType, personId: { $in: personIds } }).lean();
-    for (const mapping of mappings) {
+    const people = await DEVICE_PEOPLE[personType]()
+        .find({ adminId, _id: { $in: personIds }, wdmsId: { $type: 'string' } }, 'wdmsId verifyMode')
+        .lean();
+    for (const person of people) {
+        const personId = String(person._id);
         try {
-            if (mapping.wdmsId) await updateWdmsEmployee(mapping.wdmsId, { empCode: mapping.wdmsEmpCode, name: mapping.wdmsEmpCode, cardNo: null, verifyMode: mapping.verifyMode });
-            await BiometricMappingModel.deleteOne({ _id: mapping._id });
+            await updateWdmsEmployee(person.wdmsId, { empCode: personId, name: personId, cardNo: null, verifyMode: person.verifyMode });
             synced += 1;
         } catch (error) {
-            failed.push({ personId: mapping.personId, reason: error.message });
+            failed.push({ personId, reason: error.message });
         }
     }
     const pushed = synced > 0 ? await resyncWdmsDevices() : true;
@@ -492,7 +494,7 @@ const processDeviceSync = async (job) => {
     if (reason === 'remove') return removeDeviceCards(adminId, personType, personIds);
 
     const people = await DEVICE_PEOPLE[personType]()
-        .find({ adminId, _id: { $in: personIds }, cardNumber: { $type: 'string' } }, 'name cardNumber verifyMode')
+        .find({ adminId, _id: { $in: personIds }, cardNumber: { $type: 'string' } }, 'name cardNumber verifyMode wdmsId')
         .lean();
 
     const failed = [];
@@ -503,29 +505,20 @@ const processDeviceSync = async (job) => {
     for (const person of people) {
         const personId = String(person._id);
         try {
-            // Same convention as controllers/biometric-mapping.js: the Schoolzen person id
-            // IS the WDMS emp code, so punch ingest resolves it back without a lookup table.
-            const mapping = await BiometricMappingModel.findOneAndUpdate(
-                { adminId, personType, personId },
-                {
-                    $set: { cardNo: person.cardNumber, verifyMode: person.verifyMode, wdmsEmpCode: personId },
-                    $setOnInsert: { adminId, personType, personId, createdAt: new Date() },
-                },
-                { upsert: true, new: true }
-            );
-
+            // The Schoolzen person id IS the WDMS emp code, so v2 punch ingest resolves it
+            // back without a lookup table; the WDMS id lives on the v2 row (Rule 23.7).
             const payload = {
-                empCode: mapping.wdmsEmpCode,
+                empCode: personId,
                 name: person.name,
                 cardNo: person.cardNumber,
                 verifyMode: person.verifyMode,
             };
-            if (mapping.wdmsId) {
-                await updateWdmsEmployee(mapping.wdmsId, payload);
+            if (person.wdmsId) {
+                await updateWdmsEmployee(person.wdmsId, payload);
             } else {
                 const created = await createWdmsEmployee(payload);
                 if (created && created.id != null) {
-                    await BiometricMappingModel.updateOne({ _id: mapping._id }, { $set: { wdmsId: String(created.id) } });
+                    await DEVICE_PEOPLE[personType]().updateOne({ _id: person._id, adminId }, { $set: { wdmsId: String(created.id) } });
                 }
             }
             synced += 1;
@@ -603,7 +596,7 @@ const processPromotion = async (job) => {
             if (docs.length) {
                 await StudentEnrollmentModel.insertMany(docs, { session: dbSession });
                 // Fee arrears carry-forward, LeaveLimit reset, … — whatever the modules that
-                // own them have registered (helpers/student/student.utils.js). Same
+                // own them have registered (helpers/student/v2-student.utils.js). Same
                 // transaction: a student is never half-promoted.
                 await runPromotionSteps({ dbSession, adminId, fromSession, toSession, enrollments: docs });
             }

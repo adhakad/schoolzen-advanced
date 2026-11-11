@@ -11,14 +11,14 @@ const { nextSerial, attendanceInRange, feesGate, buildSnapshot } = require('../.
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, isObjectId, toObjectId, notFound, requireSessionId, ensureStructure,
     issuedCountOf, loadStudentContext,
-} = require('../../helpers/certificates/tc-context');
+} = require('../../helpers/certificates/v2-tc-context');
 const {
     buildEnrollmentMatch, resolveSearchStudentIds, loadClassIndex, describePlacement,
-} = require('../../helpers/student/student.utils');
+} = require('../../helpers/student/v2-student.utils');
 const { toDateKey, toUtcMidnight } = require('../../helpers/date-only');
 const { nowWallClock } = require('../../helpers/attendance-time');
-const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
-const { logActivity } = require('../../services/activity-log.service');
+const { buildLetterheadDocument } = require('../../services/pdf/v2-letterhead.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Generate TC (certificates/generate-tc.md). Every student of the session, filters only
 // narrow. Issuing snapshots the student AT ISSUE TIME with the serial taken from the
@@ -242,7 +242,7 @@ let IssueTc = async (req, res) => {
         throw error;
     });
 
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'certificates.tc.issue', targetId: String(tc._id),
         meta: {
             studentId: String(studentId), session, serialNumber: tc.serialNumber,
@@ -292,7 +292,7 @@ let CancelTc = async (req, res) => {
         );
         return cancelled;
     });
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'certificates.tc.cancel', targetId: String(tc._id),
         meta: { studentId: String(tc.studentId), serialNumber: tc.serialNumber, reason },
     });

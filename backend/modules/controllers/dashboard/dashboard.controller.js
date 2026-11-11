@@ -1,16 +1,16 @@
 'use strict';
 const { NotFoundError, PermissionError } = require('../../errors');
-const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/v2-session-resolver');
 const { toDateKey } = require('../../helpers/date-only');
 const { nowWallClock } = require('../../helpers/attendance-time');
 const { allows } = require('../../middleware/require-permission');
 const cacheService = require('../../services/cache/cache.service');
-const { WIDGETS, widgetFor, canSee } = require('../../helpers/dashboard/widgets');
+const { WIDGETS, widgetFor, canSee } = require('../../helpers/dashboard/v2-widgets');
 const { buildSlices, buildSlice } = require('../../helpers/dashboard/build-slices');
 const { monthOf } = require('../../helpers/dashboard/dashboard-rules');
 
 // Dashboard (dashboard.md) — no model of its own, read-only. Every card is a registry entry
-// (helpers/dashboard/widgets.js); this file only resolves the request context, filters the
+// (helpers/dashboard/v2-widgets.js); this file only resolves the request context, filters the
 // registry down to what THIS viewer's Roles & Permissions allow, and builds the slices.
 //
 // A widget the viewer can't see is OMITTED from the response — never sent empty, never

@@ -6,12 +6,12 @@ const { NotFoundError, ConflictError, ValidationError } = require('../../errors'
 const messages = require('../../helpers/messages/payroll.messages');
 const {
     MODULE, PERMISSIONS, todayKey, actorOf, canEditOf, runNotFound, isObjectId, findStaff, describeStaff, keysetPage,
-} = require('../../helpers/payroll/context');
-const { generatePayroll } = require('../../helpers/payroll/generate');
+} = require('../../helpers/payroll/v2-context');
+const { generatePayroll } = require('../../helpers/payroll/v2-generate');
 const { actionsForStatus, money } = require('../../helpers/payroll/payroll-rules');
-const { summarizeStaffMonth } = require('../../services/payroll/payroll-attendance');
+const { summarizeStaffMonth } = require('../../services/payroll/v2-payroll-attendance');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const logger = require('../../helpers/logger');
 
 // Generate Payroll (generate-payroll.md). PayrollRun status is NEVER cached
@@ -130,7 +130,7 @@ let GenerateRun = async (req, res) => {
     }
     const [run] = result.runs;
     const person = (await describeStaff(adminId, [staffId])).get(staffId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'payroll.generate', targetId: String(run._id),
         meta: { staffId, year, month, regenerated: Boolean(before) },
         changes: { before: before ? { net: before.net } : null, after: { net: run.net } },
@@ -152,12 +152,12 @@ let BulkGenerate = async (req, res) => {
     const queueModule = staffIds.length > INLINE_LIMIT ? queue() : null;
     if (queueModule) {
         const jobId = await queueModule.addGenerateJob(data);
-        await logActivity(req, { module: MODULE, action: 'payroll.generate.bulk', targetId: jobId, meta: { year, month, staffCount: staffIds.length, queued: true } });
+        await logActivityV2(req, { module: MODULE, action: 'payroll.generate.bulk', targetId: jobId, meta: { year, month, staffCount: staffIds.length, queued: true } });
         return res.status(202).json({ message: messages.queued(), jobId });
     }
 
     const result = await generatePayroll(data);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'payroll.generate.bulk', targetId: null,
         meta: { year, month, staffCount: staffIds.length, generated: result.runs.length, skipped: result.skipped.length },
     });
@@ -189,7 +189,7 @@ let LockRun = async (req, res) => {
         throw new ConflictError(messages.runAlreadyLocked(), { module: MODULE, code: 'PAYROLL_RUN_ALREADY_LOCKED' });
     }
     const person = (await describeStaff(adminId, [run.staffId])).get(run.staffId);
-    await logActivity(req, { module: MODULE, action: 'payroll.lock', targetId: String(run._id), meta: { staffId: run.staffId, year: run.year, month: run.month, net: run.net } });
+    await logActivityV2(req, { module: MODULE, action: 'payroll.lock', targetId: String(run._id), meta: { staffId: run.staffId, year: run.year, month: run.month, net: run.net } });
     return res.status(200).json({ message: messages.locked(), row: toRunRow(person, run) });
 };
 
@@ -223,7 +223,7 @@ let UnlockRun = async (req, res) => {
         return updated;
     });
     const person = (await describeStaff(adminId, [run.staffId])).get(run.staffId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'payroll.unlock', targetId: String(run._id),
         meta: { staffId: run.staffId, year: run.year, month: run.month, net: run.net, unlockedBy: actor, unlockedAt: run.unlockedAt },
         changes: { before: { status: 'locked' }, after: { status: 'draft' } },

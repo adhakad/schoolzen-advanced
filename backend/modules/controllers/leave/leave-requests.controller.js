@@ -8,18 +8,18 @@ const { ValidationError, NotFoundError, ConflictError } = require('../../errors'
 const messages = require('../../helpers/messages/leave.messages');
 const { withTransaction } = require('../../helpers/with-transaction');
 const { toUtcMidnight } = require('../../helpers/date-only');
-const { registerStudentDeleteStep } = require('../../helpers/student/student.utils');
+const { registerStudentDeleteStep } = require('../../helpers/student/v2-student.utils');
 const {
     MODULE, todayKey, actorOf, resolveSessionId, loadLeaveTypes, typeNotFound, findPeople, describePeople, resolveEffectiveLimits,
-} = require('../../helpers/leave/context');
+} = require('../../helpers/leave/v2-context');
 const {
     MAX_RANGE_DAYS, eachDayKey, actionsForStatus, isApplicable, effectiveLimit, remainingOf, exceedsBalance,
 } = require('../../helpers/leave/leave-rules');
-const liveStats = require('../../services/attendance-v2/live-stats');
+const liveStats = require('../../services/attendance-v2/v2-live-stats');
 const { hintWidget } = require('../../services/dashboard/hint-publisher');
-const { workingDayKeys } = require('../../services/calendar/working-day');
-const { enqueueReconcile } = require('../../helpers/attendance/context');
-const { logActivity } = require('../../services/activity-log.service');
+const { workingDayKeys } = require('../../services/calendar/v2-working-day');
+const { enqueueReconcile } = require('../../helpers/attendance/v2-context');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const logger = require('../../helpers/logger');
 
 // Leave Requests (leave-requests.md) — every request across staff and students.
@@ -234,7 +234,7 @@ let CreateRequest = async (req, res) => {
         fromDateKey: fromDate, toDateKey: toDate, days: dateKeys.length, reason: reason || null,
         createdBy: actorOf(req),
     });
-    await logActivity(req, { module: MODULE, action: 'leave.request.create', targetId: String(created._id), meta: { personType, personId, leaveTypeId, fromDate, toDate, days: dateKeys.length } });
+    await logActivityV2(req, { module: MODULE, action: 'leave.request.create', targetId: String(created._id), meta: { personType, personId, leaveTypeId, fromDate, toDate, days: dateKeys.length } });
     // The pending queue grew — the Dashboard's Pending approvals card (throttled hint).
     await hintWidget(adminId, 'approvals');
     const [row] = await decorate(adminId, sessionId, [created.toObject()]);
@@ -347,7 +347,7 @@ const approveLeaveRequest = async (req, { adminId, id, forceApprove }) => {
 
     await refreshLiveStats(adminId, result.dateKeys);
     await hintWidget(adminId, 'approvals');
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'leave.request.approve', targetId: id,
         meta: { days: result.dateKeys.length, forceApprove: Boolean(forceApprove) },
         changes: { before: { status: 'Pending', usedDays: result.charged.usedDays - result.dateKeys.length }, after: { status: 'Approved', usedDays: result.charged.usedDays } },
@@ -372,7 +372,7 @@ const rejectLeaveRequest = async (req, { adminId, id }) => {
     ).lean();
     if (!request) await explainNoMatch(adminId, id, 'Rejected');
     await hintWidget(adminId, 'approvals');
-    await logActivity(req, { module: MODULE, action: 'leave.request.reject', targetId: id, changes: { before: { status: 'Pending' }, after: { status: 'Rejected' } } });
+    await logActivityV2(req, { module: MODULE, action: 'leave.request.reject', targetId: id, changes: { before: { status: 'Pending' }, after: { status: 'Rejected' } } });
     const [row] = await decorate(adminId, request.sessionId, [request]);
     return { message: messages.rejected(), request: row };
 };
@@ -418,7 +418,7 @@ let CancelRequest = async (req, res) => {
     await refreshLiveStats(adminId, result.request.attendanceDateKeys);
     // Today is no longer Leave for this person — let the worker decide it from the punches.
     if ((result.request.dateKeys || result.request.attendanceDateKeys || []).includes(todayKey())) await enqueueReconcile(adminId, todayKey());
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'leave.request.cancel', targetId: id, meta: { reason: reason || null, days: result.request.chargedDays },
         changes: { before: { status: 'Approved' }, after: { status: 'Cancelled', usedDays: result.limit ? result.limit.usedDays : null } },
     });
@@ -436,12 +436,12 @@ let DeleteRequest = async (req, res) => {
         if (!current) throw requestNotFound(id);
         throw fail(ValidationError, messages.onlyRejectedDeletable(), 'LEAVE_NOT_DELETABLE');
     }
-    await logActivity(req, { module: MODULE, action: 'leave.request.delete', targetId: id, meta: { personType: deleted.personType, personId: deleted.personId } });
+    await logActivityV2(req, { module: MODULE, action: 'leave.request.delete', targetId: id, meta: { personType: deleted.personType, personId: deleted.personId } });
     return res.status(200).json({ message: messages.deleted() });
 };
 
 // A deleted student's leave history and limits go with them, inside Student's own delete
-// transaction (student.utils.js cascade hook).
+// transaction (v2-student.utils.js cascade hook).
 registerStudentDeleteStep('leave', async ({ dbSession, adminId, studentIds }) => {
     const ids = studentIds.map(String);
     await LeaveRequestV2Model.deleteMany({ adminId, personType: 'student', personId: { $in: ids } }, { session: dbSession });

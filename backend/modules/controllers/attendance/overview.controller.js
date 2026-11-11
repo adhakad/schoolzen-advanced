@@ -10,18 +10,18 @@ const messages = require('../../helpers/messages/attendance.messages');
 const { toUtcMidnight, toDateKey } = require('../../helpers/date-only');
 const { atWallClock, nowWallClock } = require('../../helpers/attendance-time');
 const { chipTime, hhmmLabel } = require('../../helpers/attendance/status');
-const { loadClassIndex, describePlacement } = require('../../helpers/student/student.utils');
+const { loadClassIndex, describePlacement } = require('../../helpers/student/v2-student.utils');
 const {
     MODULE, todayKey, monthDays, monthColumns, resolveSessionId, queue, escapeRegExp,
-} = require('../../helpers/attendance/context');
-const { getSchoolTerminalSns } = require('../../services/attendance-v2/ingest');
-const { resolveRequestSessionId, sessionRangeOf } = require('../../helpers/academic-session/session-resolver');
+} = require('../../helpers/attendance/v2-context');
+const { getSchoolTerminalSns } = require('../../services/attendance-v2/v2-ingest');
+const { resolveRequestSessionId, sessionRangeOf } = require('../../helpers/academic-session/v2-session-resolver');
 const {
     WEEK_OFF, shiftIndex, getStaffShiftIdsForDate, getStudentShiftIds, loadClassShiftResolver,
-} = require('../../services/attendance-v2/shift-lookup');
-const liveStats = require('../../services/attendance-v2/live-stats');
-const { DAY_TYPE, resolveDays, loadRosterCells } = require('../../services/calendar/working-day');
-const { logActivity } = require('../../services/activity-log.service');
+} = require('../../services/attendance-v2/v2-shift-lookup');
+const liveStats = require('../../services/attendance-v2/v2-live-stats');
+const { DAY_TYPE, resolveDays, loadRosterCells } = require('../../services/calendar/v2-working-day');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { withTransaction } = require('../../helpers/with-transaction');
 const { loadPermissions, allows, resolveStaffId } = require('../../middleware/require-permission');
 const cacheService = require('../../services/cache/cache.service');
@@ -445,7 +445,7 @@ let SyncNow = async (req, res) => {
     }
     const [jobId] = await Promise.all([
         q.addSyncJob({ adminId, dateKey }),
-        logActivity(req, { module: MODULE, action: 'attendance.sync', meta: { dateKey, terminals: terminals.length } }),
+        logActivityV2(req, { module: MODULE, action: 'attendance.sync', meta: { dateKey, terminals: terminals.length } }),
     ]);
     return res.status(202).json({ message: messages.syncQueued(), jobId, dateKey });
 };
@@ -579,7 +579,7 @@ let MarkAttendance = async (req, res) => {
                 { upsert: true, session: dbSession }
             );
         }
-        await logActivity(req, {
+        await logActivityV2(req, {
             module: MODULE,
             action: 'attendance.mark',
             targetId: personId,
@@ -690,7 +690,7 @@ let MarkPastAttendance = async (req, res) => {
                 { upsert: true, session: dbSession }
             );
         }
-        await logActivity(req, {
+        await logActivityV2(req, {
             module: MODULE,
             action: 'attendance.mark-past',
             targetId: personId,

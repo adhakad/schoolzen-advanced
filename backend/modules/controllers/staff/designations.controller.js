@@ -7,10 +7,10 @@ const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/staff.messages');
 const cacheInvalidation = require('../../helpers/staff/cache-invalidation');
 const { designationDuplicate, rethrowDuplicate } = require('../../helpers/staff/duplicate-key');
-const { designationCounts } = require('../../helpers/staff/dependents');
-const { COLLATION, loadDesignations, matcher, paginate } = require('../../helpers/staff/lookups');
+const { designationCountsV2 } = require('../../helpers/staff/v2-dependents');
+const { COLLATION, loadDesignations, matcher, paginate } = require('../../helpers/staff/v2-lookups');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 const MODULE = 'staff';
 const ENTITY = 'Designation';
@@ -32,7 +32,7 @@ let GetDesignations = async (req, res) => {
         return matches(row.title);
     });
     const result = paginate(filtered, page, limit);
-    const counts = await designationCounts(adminId, result.rows.map((row) => row._id));
+    const counts = await designationCountsV2(adminId, result.rows.map((row) => row._id));
     result.rows = result.rows.map((row) => ({ ...row, staffCount: counts.get(row._id) || 0 }));
     result.summary = { total: all.length, active: all.filter((row) => row.status === 'active').length };
     return res.status(200).json(result);
@@ -74,6 +74,7 @@ let CreateDesignation = async (req, res) => {
         .create({ adminId, title, departmentId: departmentId || null, status, createdBy: actor, updatedBy: actor })
         .catch((error) => rethrowDuplicate(error, designationDuplicate));
     await cacheInvalidation.onDesignationsChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'staff.designation.create', targetId: designation._id, meta: { title, departmentId: departmentId || null } });
     return res.status(200).json({ message: success.created(ENTITY), designation });
 };
 
@@ -92,7 +93,7 @@ let UpdateDesignation = async (req, res) => {
     // Moving a held designation to another department would leave its holders with a
     // department/designation pair that no longer matches.
     if (moved) {
-        const held = (await designationCounts(adminId, [id])).get(id) || 0;
+        const held = (await designationCountsV2(adminId, [id])).get(id) || 0;
         if (held) {
             throw new ConflictError(messages.designationInUse(held), {
                 module: MODULE,
@@ -116,7 +117,7 @@ let UpdateDesignation = async (req, res) => {
     });
     await cacheInvalidation.onDesignationsChanged(adminId);
     if (before.title !== title || moved) {
-        await logActivity(req, { module: MODULE, action: 'staff.designation.update', targetId: id, changes: { before, after: { title, departmentId: departmentId || null } } });
+        await logActivityV2(req, { module: MODULE, action: 'staff.designation.update', targetId: id, changes: { before, after: { title, departmentId: departmentId || null } } });
     }
 
     return res.status(200).json({ message: success.updated(ENTITY), designation });
@@ -129,7 +130,7 @@ let DeleteDesignation = async (req, res) => {
     if (!designation) throw notFound(req.params.id);
     const id = String(designation._id);
 
-    const held = (await designationCounts(adminId, [id])).get(id) || 0;
+    const held = (await designationCountsV2(adminId, [id])).get(id) || 0;
     if (held && !confirmed) {
         throw new ConflictError(messages.designationInUse(held), {
             module: MODULE,
@@ -147,7 +148,7 @@ let DeleteDesignation = async (req, res) => {
         );
     });
     await cacheInvalidation.onDesignationsChanged(adminId);
-    await logActivity(req, { module: MODULE, action: 'staff.designation.delete', targetId: id, meta: { title: designation.title, staffCount: held } });
+    await logActivityV2(req, { module: MODULE, action: 'staff.designation.delete', targetId: id, meta: { title: designation.title, staffCount: held } });
 
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };

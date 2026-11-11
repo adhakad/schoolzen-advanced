@@ -6,12 +6,12 @@ const LeaveRequestV2Model = require('../../models/leave/leave-request');
 const { NotFoundError, ConflictError, ValidationError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/leave.messages');
-const { matcher, paginate, COLLATION } = require('../../helpers/staff/lookups');
-const { MODULE, actorOf, toTypeRow, loadLeaveTypes, loadApplicableTypes } = require('../../helpers/leave/context');
+const { matcher, paginate, COLLATION } = require('../../helpers/staff/v2-lookups');
+const { MODULE, actorOf, toTypeRow, loadLeaveTypes, loadApplicableTypes } = require('../../helpers/leave/v2-context');
 const { isApplicable } = require('../../helpers/leave/leave-rules');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Leave Create (leave-create.md) — the school's leave types. A small CRUD list read from
 // the near-static cache; every single-record lookup is scoped by adminId (errors.md,
@@ -85,7 +85,7 @@ let CreateLeaveType = async (req, res) => {
         .create({ adminId, ...typeFields(req.body), createdBy: actor, updatedBy: actor })
         .catch(rethrowDuplicate);
     await invalidate(adminId);
-    await logActivity(req, { module: MODULE, action: 'leave.type.create', targetId: String(created._id), meta: typeFields(created) });
+    await logActivityV2(req, { module: MODULE, action: 'leave.type.create', targetId: String(created._id), meta: typeFields(created) });
     return res.status(200).json({ message: success.created(ENTITY), leaveType: toTypeRow(created) });
 };
 
@@ -114,7 +114,7 @@ let UpdateLeaveType = async (req, res) => {
     Object.assign(leaveType, typeFields(req.body), { updatedBy: actorOf(req), updatedAt: new Date() });
     await leaveType.save().catch(rethrowDuplicate);
     await invalidate(adminId);
-    await logActivity(req, { module: MODULE, action: 'leave.type.update', targetId: String(leaveType._id), changes: { before, after: typeFields(leaveType) } });
+    await logActivityV2(req, { module: MODULE, action: 'leave.type.update', targetId: String(leaveType._id), changes: { before, after: typeFields(leaveType) } });
     return res.status(200).json({ message: success.updated(ENTITY), leaveType: toTypeRow(leaveType) });
 };
 
@@ -140,7 +140,7 @@ let DeleteLeaveType = async (req, res) => {
 
     await LeaveTypeV2Model.deleteOne({ _id: id, adminId });
     await invalidate(adminId);
-    await logActivity(req, { module: MODULE, action: 'leave.type.delete', targetId: id, meta: { name: leaveType.name } });
+    await logActivityV2(req, { module: MODULE, action: 'leave.type.delete', targetId: id, meta: { name: leaveType.name } });
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };
 

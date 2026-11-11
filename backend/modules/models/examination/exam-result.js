@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 // changes a result already handed to a family (errors.md, retroactive-change note).
 //
 // `isAnnual` marks the template's LAST term (e.g. "Final Exam") — Certificates' "Last
-// Annual Exam & Result" reads it through helpers/examination/result-lookup.js.
+// Annual Exam & Result" reads it through helpers/examination/v2-result-lookup.js.
 const ExamResultSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-session', required: true },

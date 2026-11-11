@@ -6,15 +6,15 @@ const { ValidationError, NotFoundError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/holiday.messages');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { matcher, paginate } = require('../../helpers/staff/lookups');
+const { matcher, paginate } = require('../../helpers/staff/v2-lookups');
 const {
     MODULE, actorOf, notFound, isDuplicateKey, conflictOn, toHolidayRow, loadHolidays, invalidateHolidays,
-} = require('../../helpers/holiday/context');
+} = require('../../helpers/holiday/v2-context');
 const { MAX_HOLIDAY_DAYS, holidayDays, dedupePublic } = require('../../helpers/holiday/holiday-rules');
-const { enqueueReconcileToday } = require('../../services/holiday/holiday-calendar');
+const { enqueueReconcileToday } = require('../../services/holiday/v2-holiday-calendar');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Holidays (holiday/holidays.md) — the school's master list of dated holidays. Every
 // single-record lookup is scoped by adminId (errors.md, "Critical — tenant isolation"):
@@ -77,7 +77,7 @@ let CreateHoliday = async (req, res) => {
         .create({ adminId, ...fieldsOf(req.body), source: 'manual', createdBy: actor, updatedBy: actor })
         .catch(rethrowDuplicate);
     await invalidateHolidays(adminId);
-    await logActivity(req, { module: MODULE, action: 'holiday.create', targetId: String(created._id), meta: fieldsOf(req.body) });
+    await logActivityV2(req, { module: MODULE, action: 'holiday.create', targetId: String(created._id), meta: fieldsOf(req.body) });
     return res.status(200).json({ message: success.created(ENTITY), holiday: toHolidayRow(created) });
 };
 
@@ -91,7 +91,7 @@ let UpdateHoliday = async (req, res) => {
     await holiday.save().catch(rethrowDuplicate);
     await invalidateHolidays(adminId);
     await enqueueReconcileToday(adminId, [before, holiday]);
-    await logActivity(req, { module: MODULE, action: 'holiday.update', targetId: String(holiday._id), changes: { before, after: fieldsOf(req.body) } });
+    await logActivityV2(req, { module: MODULE, action: 'holiday.update', targetId: String(holiday._id), changes: { before, after: fieldsOf(req.body) } });
     return res.status(200).json({ message: success.updated(ENTITY), holiday: toHolidayRow(holiday) });
 };
 
@@ -116,7 +116,7 @@ let DeleteHoliday = async (req, res) => {
 
     await invalidateHolidays(adminId);
     await enqueueReconcileToday(adminId, [holiday]);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'holiday.delete', targetId: String(holiday._id),
         meta: { name: holiday.name, startDateKey: holiday.startDateKey, endDateKey: holiday.endDateKey, templatesTouched },
     });
@@ -190,7 +190,7 @@ let GenerateFromPublic = async (req, res) => {
     const totalSkipped = skipped + (fresh.length - inserted);
 
     await invalidateHolidays(adminId);
-    await logActivity(req, { module: MODULE, action: 'holiday.generate', meta: { state, year, inserted, skipped: totalSkipped } });
+    await logActivityV2(req, { module: MODULE, action: 'holiday.generate', meta: { state, year, inserted, skipped: totalSkipped } });
     return res.status(200).json({ message: messages.generated(inserted, totalSkipped), inserted, skipped: totalSkipped });
 };
 

@@ -2,7 +2,7 @@
 const { Worker } = require('bullmq');
 const { defaultWorkerOptions } = require('../queues/connection');
 const { QUEUE_NAME } = require('../queues/payroll-queue');
-const { generatePayroll } = require('../helpers/payroll/generate');
+const { generatePayroll } = require('../helpers/payroll/v2-generate');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 

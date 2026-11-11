@@ -6,12 +6,12 @@ const { ValidationError } = require('../../errors');
 const messages = require('../../helpers/messages/attendance.messages');
 const { parseDateKey } = require('../../helpers/date-only');
 const { eachKey } = require('../../helpers/calendar/working-day-rules');
-const { loadClassIndex, titleCase } = require('../../helpers/student/student.utils');
+const { loadClassIndex, titleCase } = require('../../helpers/student/v2-student.utils');
 const {
     MODULE, todayKey, monthDays, monthColumns, resolveSessionId, assertAssignableShift, enqueueReconcile, escapeRegExp,
-} = require('../../helpers/attendance/context');
-const { WEEK_OFF, loadShifts } = require('../../services/attendance-v2/shift-lookup');
-const { logActivity } = require('../../services/activity-log.service');
+} = require('../../helpers/attendance/v2-context');
+const { WEEK_OFF, loadShifts } = require('../../services/attendance-v2/v2-shift-lookup');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { withTransaction } = require('../../helpers/with-transaction');
 
 // Roster (roster.md) — which shift each staff member works on each day (v2-roster, monthly
@@ -192,7 +192,7 @@ let AssignStaffRoster = async (req, res) => {
                 upsert: true,
             },
         }))), { ordered: true, session: dbSession });
-        await logActivity(req, {
+        await logActivityV2(req, {
             module: MODULE, action: 'attendance.roster.assign',
             meta: { shiftId, month, fromDate, toDate, weekdays, people: valid.length, days: days.length },
         }, dbSession);
@@ -222,7 +222,7 @@ let ClearStaffRoster = async (req, res) => {
             [{ $unset: days.map((key) => `days.${key}`) }, SHIFT_IDS_STAGE],
             { session: dbSession }
         );
-        await logActivity(req, { module: MODULE, action: 'attendance.roster.clear', meta: { month, people: valid.length } }, dbSession);
+        await logActivityV2(req, { module: MODULE, action: 'attendance.roster.clear', meta: { month, people: valid.length } }, dbSession);
     });
     // Best effort and never rejects (context.js) — the response doesn't wait on the queue.
     if (days[0] === todayKey()) enqueueReconcile(adminId, days[0]);
@@ -320,7 +320,7 @@ let AssignClassShifts = async (req, res) => {
                 upsert: true,
             },
         })), { ordered: true, session: dbSession });
-        await logActivity(req, { module: MODULE, action: 'attendance.class-shift.assign', meta: { shiftId, classes: valid.length } }, dbSession);
+        await logActivityV2(req, { module: MODULE, action: 'attendance.class-shift.assign', meta: { shiftId, classes: valid.length } }, dbSession);
     });
     // Best effort and never rejects (context.js) — the response doesn't wait on the queue.
     enqueueReconcile(adminId, todayKey());
@@ -341,7 +341,7 @@ let ClearClassShifts = async (req, res) => {
             sessionId,
             $or: valid.map((target) => ({ classId: target.classId, streamId: target.streamId || null, sectionId: target.sectionId || null })),
         }, { session: dbSession });
-        await logActivity(req, { module: MODULE, action: 'attendance.class-shift.clear', meta: { classes: valid.length } }, dbSession);
+        await logActivityV2(req, { module: MODULE, action: 'attendance.class-shift.clear', meta: { classes: valid.length } }, dbSession);
     });
     // Best effort and never rejects (context.js) — the response doesn't wait on the queue.
     enqueueReconcile(adminId, todayKey());

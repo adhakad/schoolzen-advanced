@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 // never kept as a recipient list. null on a threshold = "No filter".
 const FeeReminderFilterSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },
-    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'academic-class', required: true },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-class', required: true },
     paidBelowPercent: { type: Number, min: 0, max: 100, default: null },
     noPaymentSinceDays: { type: Number, min: 0, default: null },
     gapSinceLastReminderDays: { type: Number, min: 0, default: null },

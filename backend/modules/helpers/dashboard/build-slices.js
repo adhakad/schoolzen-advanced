@@ -1,6 +1,6 @@
 'use strict';
 const cacheKeys = require('../../services/cache/cache-keys');
-const { TTL } = require('./widgets');
+const { TTL } = require('./v2-widgets');
 const logger = require('../logger');
 
 // Turns registry entries into response slices. Two rules from dashboard/errors.md live here:

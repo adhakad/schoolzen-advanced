@@ -1,18 +1,19 @@
 'use strict';
 const FieldConfigModel = require('../../models/settings/field-config');
-const SchoolModel = require('../../models/school');
+const SchoolProfileV2Model = require('../../models/settings/school-profile');
 const { ValidationError, NotFoundError, ConflictError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/settings.messages');
 const { onFieldConfigChanged } = require('../../helpers/settings/cache-invalidation');
 const { rethrowDuplicate, isDuplicateKey, fieldKeyDuplicate } = require('../../helpers/settings/duplicate-key');
 const { withTransaction } = require('../../helpers/with-transaction');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { STATES, canonicalState } = require('../../helpers/settings/states');
 const {
     DISPLAY_GROUPS, CUSTOM_GROUPS, FIXED_FIELDS, EDITABLE_RULE_KEYS, CUSTOM_FIELD_TYPES,
     displayGroupOf, mergeFieldConfig, deriveFieldKey, sanitizeRule, ruleProblems,
     isLossyTypeChange, removedOptions, countFieldData, countWithValue, countWithValues,
-} = require('../../helpers/settings/field-config.utils');
+} = require('../../helpers/settings/v2-field-config.utils');
 const { DEFAULT_STUDENT_FIELD_CONFIG } = require('../../validators/student/field-config.validator');
 
 const MODULE = 'settings';
@@ -63,7 +64,7 @@ let GetFieldConfig = async (req, res) => {
     const adminId = req.query.adminId;
     const [{ merged }, school] = await Promise.all([
         loadMerged(adminId),
-        SchoolModel.findOne({ adminId }, 'state').lean(),
+        SchoolProfileV2Model.findOne({ adminId }, 'state').lean(),
     ]);
     const counts = await countFieldData(adminId, merged);
     return res.status(200).json({
@@ -152,6 +153,7 @@ let CreateField = async (req, res) => {
     }
 
     await onFieldConfigChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'settings.form-field.create', targetId: created.fieldKey, meta: { label, type, group: fieldGroup, required, visible, stateSpecific: state } });
     return res.status(201).json({ message: success.created(ENTITY), fieldKey: created.fieldKey });
 };
 
@@ -290,6 +292,18 @@ let SaveFieldChanges = async (req, res) => {
     }
 
     await onFieldConfigChanged(adminId);
+    const saved = plans.filter(({ set }) => Object.keys(set).length);
+    if (saved.length) {
+        await logActivityV2(req, {
+            module: MODULE,
+            action: 'settings.form-fields.save',
+            meta: { fields: saved.map(({ field }) => field.fieldKey) },
+            changes: {
+                before: Object.fromEntries(saved.map(({ field, set }) => [field.fieldKey, Object.fromEntries(Object.keys(set).map((key) => [key, field[key] === undefined ? null : field[key]]))])),
+                after: Object.fromEntries(saved.map(({ field, set }) => [field.fieldKey, set])),
+            },
+        });
+    }
     return res.status(200).json({ message: success.updated('Admission form fields'), saved: plans.length });
 };
 
@@ -318,6 +332,7 @@ let DeleteField = async (req, res) => {
 
     await FieldConfigModel.deleteOne({ _id: row._id, adminId });
     await onFieldConfigChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'settings.form-field.delete', targetId: row.fieldKey, meta: { label: row.label } });
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };
 

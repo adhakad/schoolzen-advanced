@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 // The SEEDED, fixed marksheet-template catalog (settings-marksheet-templates.md) — not
 // admin-created, identical for every school, so no adminId. Seeded idempotently by
-// scripts/seed-marksheet-templates.js (helpers/settings/marksheet-catalog.js holds the data).
+// scripts/v2-seed-marksheet-templates.js (helpers/settings/marksheet-catalog.js holds the data).
 //
 // NOT models/marksheet-template.js ('marksheet-template' — legacy per-class ASSIGNMENT rows)
 // nor models/marksheet-template-structure.js (legacy seed). v2 never reads either (§0).

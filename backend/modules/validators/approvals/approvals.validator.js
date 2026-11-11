@@ -1,6 +1,6 @@
 'use strict';
 const Joi = require('joi');
-const { SOURCE_TYPES } = require('../../helpers/approvals/sources');
+const { SOURCE_TYPES } = require('../../helpers/approvals/v2-sources');
 const { INBOX_STATUSES } = require('../../helpers/approvals/approval-rules');
 
 // Validation for the Approvals inbox — field shapes only; existence and state are the

@@ -2,7 +2,7 @@
 const { toUtcMidnight, toDateKey } = require('../date-only');
 
 // THE "is this a working day" rule — pure, so the resolver service, Leave, Attendance, the
-// reconcile worker and scripts/test-working-day.js all share one definition.
+// reconcile worker and scripts/v2-test-working-day.js all share one definition.
 //
 // Precedence for one person on one day:
 //   1. Holiday   — a dated holiday from the person's assigned Holiday template

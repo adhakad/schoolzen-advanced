@@ -7,13 +7,13 @@ const { NotFoundError, ConflictError, ValidationError } = require('../../errors'
 const messages = require('../../helpers/messages/payroll.messages');
 const {
     MODULE, PERMISSIONS, actorOf, actorNameOf, canEditOf, runNotFound, isObjectId, findStaff, describeStaff, keysetPage,
-} = require('../../helpers/payroll/context');
+} = require('../../helpers/payroll/v2-context');
 const {
     paymentTotals, payoutStatus, remainingDue, effectiveConfirmation, money,
 } = require('../../helpers/payroll/payroll-rules');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
-const { logActivity } = require('../../services/activity-log.service');
+const { buildLetterheadDocument } = require('../../services/pdf/v2-letterhead.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Salary Payouts (salary-payouts.md). ONLY `locked` runs exist here — every query carries
 // `status: 'locked'`, so a draft run can never appear, be paid, or be slipped. Paid / due /
@@ -160,7 +160,7 @@ let RecordPayment = async (req, res) => {
         return { run: current, payment: created.toObject() };
     });
 
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'payroll.payment.record', targetId: String(payment._id),
         meta: { payrollRunId: String(run._id), staffId: run.staffId, amountPaid: payment.amountPaid, mode, year: run.year, month: run.month },
     });
@@ -213,14 +213,14 @@ let ConfirmPayment = async (req, res) => {
         confirmedAt: new Date(),
         confirmedByDeviceInfo: { ...(req.body.deviceInfo || {}), ip: req.ip || null, userAgent: (req.get && req.get('user-agent')) || null },
     });
-    await logActivity(req, { module: MODULE, action: 'payroll.payment.confirm', targetId: String(updated._id), meta: { payrollRunId: updated.payrollRunId } });
+    await logActivityV2(req, { module: MODULE, action: 'payroll.payment.confirm', targetId: String(updated._id), meta: { payrollRunId: updated.payrollRunId } });
     return res.status(200).json({ message: messages.paymentConfirmed(), payment: toPaymentRow(updated, new Date()) });
 };
 
 let DisputePayment = async (req, res) => {
     const payment = await loadOwnPayment(req);
     const updated = await actionPayment(payment, { confirmationStatus: 'disputed', disputeReason: req.body.disputeReason });
-    await logActivity(req, { module: MODULE, action: 'payroll.payment.dispute', targetId: String(updated._id), meta: { payrollRunId: updated.payrollRunId } });
+    await logActivityV2(req, { module: MODULE, action: 'payroll.payment.dispute', targetId: String(updated._id), meta: { payrollRunId: updated.payrollRunId } });
     return res.status(200).json({ message: messages.paymentDisputed(), payment: toPaymentRow(updated, new Date()) });
 };
 
@@ -298,7 +298,7 @@ let GenerateSlip = async (req, res) => {
                     slipNumber: await slipNumberFor(adminId, run.year, run.month, attempt), generatedBy: actorOf(req),
                 });
                 slip = created.toObject();
-                await logActivity(req, { module: MODULE, action: 'payroll.slip.generate', targetId: String(slip._id), meta: { payrollRunId: String(run._id), slipNumber: slip.slipNumber } });
+                await logActivityV2(req, { module: MODULE, action: 'payroll.slip.generate', targetId: String(slip._id), meta: { payrollRunId: String(run._id), slipNumber: slip.slipNumber } });
             } catch (error) {
                 if (!(error && error.code === 11000)) throw error;
                 slip = await SalarySlipV2Model.findOne({ adminId, payrollRunId: String(run._id) }).lean();

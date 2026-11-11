@@ -7,9 +7,9 @@ const { TC_FIELDS } = require('../../helpers/certificates/tc-fields');
 const { isValidSerial } = require('../../helpers/certificates/tc-rules');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, requireSessionId, ensureStructure, issuedCountOf,
-} = require('../../helpers/certificates/tc-context');
-const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
-const { logActivity } = require('../../services/activity-log.service');
+} = require('../../helpers/certificates/v2-tc-context');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/v2-session-resolver');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // TC Structure (certificates/tc-structure.md) — one school-wide settings form. The 19 fields
 // are the code constant; only the next serial number is editable, and only with the explicit
@@ -55,7 +55,7 @@ let UpdateTcStructure = async (req, res) => {
     if (!updated) throw new ConflictError(messages.serialChanged(), { module: MODULE, code: 'TC_SERIAL_CHANGED' });
 
     if (expected !== serial) {
-        await logActivity(req, {
+        await logActivityV2(req, {
             module: MODULE, action: 'certificates.tc-structure.update', targetId: String(updated._id),
             changes: { before: { nextSerialNumber: expected }, after: { nextSerialNumber: serial } },
         });

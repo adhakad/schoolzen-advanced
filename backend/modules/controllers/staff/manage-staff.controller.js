@@ -9,10 +9,10 @@ const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/staff.messages');
 const settingsCache = require('../../helpers/settings/cache-invalidation');
 const { empCodeDuplicate, cardDuplicate, rethrowDuplicate } = require('../../helpers/staff/duplicate-key');
-const { staffCounts } = require('../../helpers/staff/dependents');
-const { escapeRegExp } = require('../../helpers/staff/lookups');
+const { staffCountsV2 } = require('../../helpers/staff/v2-dependents');
+const { escapeRegExp } = require('../../helpers/staff/v2-lookups');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { onDashboardChanged } = require('../../helpers/dashboard/cache-invalidation');
 
 const MODULE = 'staff';
@@ -126,12 +126,21 @@ let CreateStaff = async (req, res) => {
     }).catch((error) => rethrowDuplicate(error, empCodeDuplicate));
     // The Dashboard's Staff count is active staff — every status change busts it.
     await onDashboardChanged(adminId, ['staff']);
+    await logActivityV2(req, { module: MODULE, action: 'staff.create', targetId: staff._id, meta: { name: staff.name, empCode: staff.empCode || null } });
 
     return res.status(200).json({ message: success.created(ENTITY), staff: toRow(staff) });
 };
 
-// Fields whose change ripples into payroll categorisation / payslip labels — audited.
-const AUDITED = ['empCode', 'departmentId', 'designationId', 'department', 'designation'];
+// Every editable field is audited (additional-technical-considerations.md: every Update is
+// logged, with only the changed fields in before/after).
+const AUDITED = ['name', 'empCode', 'departmentId', 'designationId', 'department', 'designation', 'joiningDate', 'education', 'status'];
+// Comparable form of a field value: Dates and sub-documents compare by content, not identity.
+const auditValue = (value) => {
+    if (value == null || value === '') return null;
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'object') return JSON.stringify(value.toObject ? value.toObject() : value);
+    return value;
+};
 
 let UpdateStaff = async (req, res) => {
     const { adminId, name, empCode, departmentId, designationId, joiningDate, education, status } = req.body;
@@ -147,7 +156,7 @@ let UpdateStaff = async (req, res) => {
     await assertEmpCodeFree(adminId, empCode, staff._id);
 
     const before = {};
-    AUDITED.forEach((field) => { before[field] = staff[field] || null; });
+    AUDITED.forEach((field) => { before[field] = auditValue(staff[field]); });
 
     Object.assign(staff, { name, empCode, departmentId, designationId, joiningDate, education, status, ...names });
     staff.updatedBy = actorOf(req);
@@ -155,10 +164,12 @@ let UpdateStaff = async (req, res) => {
     await staff.save().catch((error) => rethrowDuplicate(error, empCodeDuplicate));
     await onDashboardChanged(adminId, ['staff']);
 
-    const changed = AUDITED.filter((field) => (staff[field] || null) !== before[field]);
+    const after = {};
+    AUDITED.forEach((field) => { after[field] = auditValue(staff[field]); });
+    const changed = AUDITED.filter((field) => after[field] !== before[field]);
     if (changed.length) {
-        const pick = (source) => Object.fromEntries(changed.map((field) => [field, source[field] || null]));
-        await logActivity(req, { module: MODULE, action: 'staff.update', targetId: staff._id, changes: { before: pick(before), after: pick(staff) } });
+        const pick = (source) => Object.fromEntries(changed.map((field) => [field, source[field]]));
+        await logActivityV2(req, { module: MODULE, action: 'staff.update', targetId: staff._id, changes: { before: pick(before), after: pick(after) } });
     }
 
     return res.status(200).json({ message: success.updated(ENTITY), staff: toRow(staff) });
@@ -171,11 +182,15 @@ let ChangeStatus = async (req, res) => {
     if (!staff) throw notFound(req.params.id);
     if (staff.isOwner && status !== 'active') throw fieldError('STAFF_OWNER_PROTECTED', 'status', messages.ownerProtected());
 
+    const previous = staff.status;
     staff.status = status;
     staff.updatedBy = actorOf(req);
     staff.updatedAt = new Date();
     await staff.save();
     await onDashboardChanged(adminId, ['staff']);
+    if (previous !== status) {
+        await logActivityV2(req, { module: MODULE, action: 'staff.status', targetId: staff._id, changes: { before: { status: previous }, after: { status } } });
+    }
     return res.status(200).json({ message: messages.statusChanged(status), status });
 };
 
@@ -211,7 +226,7 @@ const terminateOne = async (req, adminId, id) => {
     if (staff.isOwner) return { id, status: 'blocked', code: 'STAFF_OWNER_PROTECTED', message: messages.ownerProtected() };
 
     const staffId = String(staff._id);
-    const counts = await staffCounts(adminId, staffId);
+    const counts = await staffCountsV2(adminId, staffId);
     const code = blockedCode(counts);
     if (code) return { id, status: 'blocked', code, message: messages.staffInUse(counts), counts };
 
@@ -234,13 +249,13 @@ const terminateOne = async (req, adminId, id) => {
     });
     await settingsCache.onAssignmentChanged(adminId, staffId);
     await onDashboardChanged(adminId, ['staff']);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: 'staff.access.revoke',
         targetId: staffId,
         meta: { revokedBy: actor, revokedAt: now, reason: 'terminated', ...revoked },
     });
-    await logActivity(req, { module: MODULE, action: 'staff.terminate', targetId: staffId, meta: { name: staff.name } });
+    await logActivityV2(req, { module: MODULE, action: 'staff.terminate', targetId: staffId, meta: { name: staff.name } });
     return { id, status: 'deleted', accessRevoked: true, ...revoked };
 };
 
@@ -330,6 +345,8 @@ let AssignCards = async (req, res) => {
     }
 
     const jobId = await syncJob(adminId, writable.map((item) => item.staffId), 'assign');
+    // Who got a card, never the card numbers themselves.
+    await logActivityV2(req, { module: MODULE, action: 'staff.cards.assign', meta: { staffIds: writable.map((item) => String(item.staffId)), verifyMode, jobId } });
     return res.status(202).json({
         message: messages.cardsQueued(writable.length),
         jobId,
@@ -348,6 +365,7 @@ let RemoveCard = async (req, res) => {
     staff.updatedAt = new Date();
     await staff.save();
     const jobId = await syncJob(adminId, [staff._id], 'remove');
+    await logActivityV2(req, { module: MODULE, action: 'staff.card.remove', targetId: staff._id, meta: { jobId } });
     return res.status(202).json({ message: messages.cardRemoved(), jobId });
 };
 
@@ -357,6 +375,7 @@ let ResyncCard = async (req, res) => {
     if (!staff) throw notFound(req.params.id);
     if (!staff.cardNumber) throw fieldError('NO_CARD', 'cardNumber', messages.noCardToResync());
     const jobId = await syncJob(adminId, [staff._id], 'resync');
+    await logActivityV2(req, { module: MODULE, action: 'staff.card.resync', targetId: staff._id, meta: { jobId } });
     return res.status(202).json({ message: messages.resyncQueued(), jobId });
 };
 

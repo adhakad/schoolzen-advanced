@@ -5,11 +5,11 @@ const StaffV2Model = require('../../models/staff/staff');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const { ValidationError, ConflictError, NotFoundError } = require('../../errors');
 const messages = require('../../helpers/messages/holiday.messages');
-const { findPeople } = require('../../helpers/leave/context');
-const { MODULE, findSession, loadTemplates } = require('../../helpers/holiday/context');
+const { findPeople } = require('../../helpers/leave/v2-context');
+const { MODULE, findSession, loadTemplates } = require('../../helpers/holiday/v2-context');
 const { classifySelection } = require('../../helpers/holiday/holiday-rules');
-const { assignedTemplates, enqueueReconcileToday } = require('../../services/holiday/holiday-calendar');
-const { logActivity } = require('../../services/activity-log.service');
+const { assignedTemplates, enqueueReconcileToday } = require('../../services/holiday/v2-holiday-calendar');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { allows } = require('../../middleware/require-permission');
 
 // Holiday Assign (holiday/assign.md) — which template each person follows. The assignment is
@@ -104,7 +104,7 @@ let AssignTemplate = async (req, res) => {
     }
 
     await enqueueReconcileToday(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: mode === 'assign' ? 'holiday.assign' : 'holiday.reassign',
         targetId: String(template._id),
@@ -127,7 +127,7 @@ let UnassignTemplate = async (req, res) => {
     const result = await Model.updateMany({ ...filter, holidayTemplateId: { $ne: null } }, { $set: { holidayTemplateId: null, updatedAt: new Date() } });
 
     await enqueueReconcileToday(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'holiday.unassign',
         meta: { personType, count: result.modifiedCount, sessionId },
         changes: { before: Object.fromEntries(before.map((row) => [row.personId, row.templateId])), after: { templateId: null } },

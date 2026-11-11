@@ -1,7 +1,7 @@
 'use strict';
 const { toUtcMidnight, toDateKey } = require('../date-only');
 
-// The Holiday module's pure rules — no DB, so scripts/test-holiday-v2.js checks them directly.
+// The Holiday module's pure rules — no DB, so scripts/v2-test-holiday.js checks them directly.
 
 const DAY_MS = 86400000;
 const MAX_HOLIDAY_DAYS = 31;

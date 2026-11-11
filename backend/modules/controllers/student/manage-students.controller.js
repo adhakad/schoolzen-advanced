@@ -9,16 +9,16 @@ const { getStudentFieldConfig, optionsFor } = require('../../validators/student/
 const { buildWorkbook, parseWorkbook } = require('../../services/excel/excel.service');
 const { destroyImages, imageUrl } = require('../../services/media/cloudinary.service');
 const { buildStudentSheetColumns, formatSheetDate } = require('../../helpers/student/student-excel');
-const { createStudentRecord, updateStudentRecord, invalidateClassStats } = require('../../helpers/student/student-write');
-const { findSessionId, ensureSessionId, labelOfSessionId, resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
+const { createStudentRecord, updateStudentRecord, invalidateClassStats } = require('../../helpers/student/v2-student-write');
+const { findSessionId, ensureSessionId, labelOfSessionId, resolveRequestSessionId } = require('../../helpers/academic-session/v2-session-resolver');
 const { maskStudent, maskValue, SENSITIVE_FIELDS } = require('../../helpers/student/student-mask');
-const { logActivity } = require('../../services/activity-log.service');
-const { loadLedgerData, ledgerFor } = require('../../helpers/fees/fee-context');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
+const { loadLedgerData, ledgerFor } = require('../../helpers/fees/v2-fee-context');
 const { byClassOrder } = require('../../helpers/academic-setup/class-order');
 const {
     MODULE, toObjectId, loadClassIndex, loadSubjectGroups, describePlacement, buildEnrollmentMatch,
     listStudentRows, runStudentDeleteCascade, withTransaction,
-} = require('../../helpers/student/student.utils');
+} = require('../../helpers/student/v2-student.utils');
 
 // Manage Students — every student in the session, filters only narrow (manage-students.md).
 //
@@ -141,7 +141,7 @@ let RevealStudentField = async (req, res) => {
     const student = await StudentProfileModel.findOne({ _id: req.params.id, adminId }, field).lean();
     if (!student) throw new NotFoundError(messages.studentNotFound(), { module: MODULE, context: { id: req.params.id } });
     const value = student[field] == null ? null : String(student[field]);
-    await logActivity(req, { module: MODULE, action: 'student.field.reveal', targetId: req.params.id, meta: { field } });
+    await logActivityV2(req, { module: MODULE, action: 'student.field.reveal', targetId: req.params.id, meta: { field } });
     return res.status(200).json({ field, value });
 };
 
@@ -214,6 +214,7 @@ let CreateStudent = async (req, res) => {
         file: req.file,
         entryType: 'manual',
     });
+    await logActivityV2(req, { module: MODULE, action: 'student.create', targetId: id, meta: { entryType: 'manual' } });
     return res.status(200).json({ message: success.created('Student'), id, student: row, warnings, warning: warnings[0] || null });
 };
 
@@ -224,6 +225,8 @@ let UpdateStudent = async (req, res) => {
         body: req.body,
         file: req.file,
     });
+    // Which fields were sent, never their values (some are masked/sensitive).
+    await logActivityV2(req, { module: MODULE, action: 'student.update', targetId: req.params.id, meta: { fields: Object.keys(req.body || {}).filter((key) => key !== 'adminId') } });
     return res.status(200).json({ message: success.updated('Student'), id: req.params.id, student: row, warnings, warning: warnings[0] || null });
 };
 
@@ -272,6 +275,7 @@ let DeleteStudent = async (req, res) => {
     requireConfirmation(confirmed, 1);
     const { deleted } = await deleteStudents(req.adminId, [req.params.id]);
     if (!deleted) throw new NotFoundError(messages.studentNotFound(), { module: MODULE, code: 'STUDENT_NOT_FOUND' });
+    await logActivityV2(req, { module: MODULE, action: 'student.delete', targetId: req.params.id });
     return res.status(200).json({ message: success.deleted('Student') });
 };
 
@@ -287,6 +291,8 @@ let BulkDeleteStudents = async (req, res) => {
     if (!deleted) {
         throw new NotFoundError(messages.studentsNotFound(missing.length), { module: MODULE, code: 'STUDENT_NOT_FOUND' });
     }
+    const missingSet = new Set(missing.map(String));
+    await logActivityV2(req, { module: MODULE, action: 'student.delete.bulk', meta: { deleted, ids: ids.map(String).filter((id) => !missingSet.has(id)) } });
     return res.status(200).json({
         message: success.bulkProcessed(deleted, 'student'),
         deleted,
@@ -373,6 +379,8 @@ let AssignCards = async (req, res) => {
         studentIds: writable.map((item) => item.studentId),
         reason: 'assign',
     });
+    // Who got a card, never the card numbers themselves.
+    await logActivityV2(req, { module: MODULE, action: 'student.cards.assign', meta: { studentIds: writable.map((item) => String(item.studentId)), verifyMode, jobId } });
     // `cards` is the write-back: each saved card, masked the way the table shows it, so the
     // page updates those rows from this response rather than re-GETting the list.
     return res.status(202).json({
@@ -394,6 +402,7 @@ let ResyncCard = async (req, res) => {
     }
 
     const jobId = await queue().addDeviceSyncJob({ adminId, studentIds: [String(student._id)], reason: 'resync' });
+    await logActivityV2(req, { module: MODULE, action: 'student.card.resync', targetId: student._id, meta: { jobId } });
     return res.status(202).json({ message: messages.resyncQueued(), jobId });
 };
 
@@ -468,7 +477,7 @@ let ExportExcel = async (req, res) => {
 
     const stream = streamId ? entry.streams.get(String(streamId)) : null;
     if (full) {
-        await logActivity(req, {
+        await logActivityV2(req, {
             module: MODULE,
             action: 'student.export.full',
             meta: { session, classId, className: entry.label, streamId: streamId || null, streamName: stream ? stream.name : null, rows: rows.length },
@@ -532,6 +541,7 @@ let ImportExcel = async (req, res) => {
         placement: { classId: String(classId), class: entry.doc.class, streamId: streamId ? String(streamId) : null },
         rows,
     }, req.file.buffer);
+    await logActivityV2(req, { module: MODULE, action: 'student.import', meta: { session, classId: String(classId), rows: rows.length, jobId } });
 
     // Headers matching no field are ignored — and said so ONCE for the file, not per row.
     const warning = parsed.unrecognizedHeaders.length

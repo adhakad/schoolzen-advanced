@@ -2,8 +2,8 @@
 const { Worker } = require('bullmq');
 const { defaultWorkerOptions } = require('../queues/connection');
 const { QUEUE_NAME, addReconcileJob } = require('../queues/attendance-v2-queue');
-const { ingestDay } = require('../services/attendance-v2/ingest');
-const { reconcileDay } = require('../services/attendance-v2/reconcile');
+const { ingestDay } = require('../services/attendance-v2/v2-ingest');
+const { reconcileDay } = require('../services/attendance-v2/v2-reconcile');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
 

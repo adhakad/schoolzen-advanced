@@ -8,9 +8,9 @@ const messages = require('../../helpers/messages/attendance.messages');
 const cacheInvalidation = require('../../helpers/attendance/cache-invalidation');
 const { shiftDuplicate, rethrowShiftDuplicate } = require('../../helpers/attendance/duplicate-key');
 const { isTimeRangeValid } = require('../../helpers/attendance/status');
-const { COLLATION, matcher, paginate } = require('../../helpers/staff/lookups');
-const { loadShifts } = require('../../services/attendance-v2/shift-lookup');
-const { logActivity } = require('../../services/activity-log.service');
+const { COLLATION, matcher, paginate } = require('../../helpers/staff/v2-lookups');
+const { loadShifts } = require('../../services/attendance-v2/v2-shift-lookup');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { withTransaction } = require('../../helpers/with-transaction');
 
 const MODULE = 'attendance';
@@ -112,6 +112,7 @@ let CreateShift = async (req, res) => {
         .create({ adminId, ...shiftFields(req.body), createdBy: actor, updatedBy: actor })
         .catch(rethrowShiftDuplicate);
     await cacheInvalidation.onShiftsChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'attendance.shift.create', targetId: String(shift._id), meta: shiftFields(shift) });
     return res.status(200).json({ message: success.created(ENTITY), shift });
 };
 
@@ -132,7 +133,7 @@ let UpdateShift = async (req, res) => {
     // The change and its log entry commit together; the cache is cleared once it has.
     await withTransaction(async (dbSession) => {
         await shift.save({ session: dbSession }).catch(rethrowShiftDuplicate);
-        await logActivity(req, { module: MODULE, action: 'attendance.shift.update', targetId: String(shift._id), changes: { before, after: shiftFields(shift) } }, dbSession);
+        await logActivityV2(req, { module: MODULE, action: 'attendance.shift.update', targetId: String(shift._id), changes: { before, after: shiftFields(shift) } }, dbSession);
     });
     await cacheInvalidation.onShiftsChanged(adminId);
     return res.status(200).json({ message: success.updated(ENTITY), shift });
@@ -160,7 +161,7 @@ let DeleteShift = async (req, res) => {
 
     await withTransaction(async (dbSession) => {
         await ShiftV2Model.deleteOne({ _id: id, adminId }, { session: dbSession });
-        await logActivity(req, { module: MODULE, action: 'attendance.shift.delete', targetId: id, meta: { name: shift.name } }, dbSession);
+        await logActivityV2(req, { module: MODULE, action: 'attendance.shift.delete', targetId: id, meta: { name: shift.name } }, dbSession);
     });
     await cacheInvalidation.onShiftsChanged(adminId);
     return res.status(200).json({ message: success.deleted(ENTITY) });

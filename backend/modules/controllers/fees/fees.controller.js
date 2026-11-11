@@ -7,19 +7,19 @@ const FeeReceiptCounterModel = require('../../models/fees/fee-receipt-counter');
 const { NotFoundError, ConflictError, ValidationError } = require('../../errors');
 const messages = require('../../helpers/messages/fees.messages');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { buildEnrollmentMatch, resolveSearchStudentIds, loadSubjectGroups } = require('../../helpers/student/student.utils');
+const { buildEnrollmentMatch, resolveSearchStudentIds, loadSubjectGroups } = require('../../helpers/student/v2-student.utils');
 const {
     MODULE, PERMISSIONS, actorOf, actorNameOf, canEditOf, isObjectId, toObjectId, studentNotFound, requireSessionId,
     loadSessionLabels, shortSession, loadLedgerData, ledgerFor, loadProfiles, loadEnrollmentsBySession, placementLabels,
     loadClassIndex,
-} = require('../../helpers/fees/fee-context');
+} = require('../../helpers/fees/v2-fee-context');
 const {
     STATUS, STATUS_LABELS, money, grossOf, buildLedger, allocateOldestFirst, rupeesInWords,
 } = require('../../helpers/fees/fee-ledger');
-const { ensureRecords } = require('../../helpers/fees/fee-record-sync');
-const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
+const { ensureRecords } = require('../../helpers/fees/v2-fee-record-sync');
+const { buildLetterheadDocument } = require('../../services/pdf/v2-letterhead.service');
 const { feesConfirmationMessage } = require('../../services/send-whatsapp-message');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { onDashboardChanged } = require('../../helpers/dashboard/cache-invalidation');
 const logger = require('../../helpers/logger');
 
@@ -252,7 +252,7 @@ let CollectFee = async (req, res) => {
         throw error;
     });
 
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'fees.payment.collect', targetId: String(payment._id),
         meta: {
             studentId, session, amount: payment.amount, mode, receiptNo: payment.receiptNo,
@@ -307,7 +307,7 @@ let UpdateConcession = async (req, res) => {
         };
     });
 
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'fees.concession.update', targetId: String(studentId),
         meta: { session }, changes: { before, after },
     });

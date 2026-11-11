@@ -13,7 +13,7 @@ const mongoose = require('mongoose');
 //
 // `subjectIds` likewise REFERENCES academic-subject and never copies a subject's name in
 // (database-design-principles.md, "Embed vs. reference").
-const SubjectGroupModel = mongoose.model('academic-subject-group', {
+const SubjectGroupV2Model = mongoose.model('v2-academic-subject-group', {
     adminId: {
         type: String,
         required: true,
@@ -21,7 +21,7 @@ const SubjectGroupModel = mongoose.model('academic-subject-group', {
     },
     classId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'academic-class',
+        ref: 'v2-academic-class',
         required: true,
     },
     streamId: {
@@ -38,7 +38,7 @@ const SubjectGroupModel = mongoose.model('academic-subject-group', {
     },
     subjectIds: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'academic-subject',
+        ref: 'v2-academic-subject',
     }],
     isSystemGroup: {
         // true ONLY for the automatic "General" group every non-streamed class gets on save
@@ -53,12 +53,12 @@ const SubjectGroupModel = mongoose.model('academic-subject-group', {
         type: Date,
         default: Date.now,
     },
-});
+}, 'v2-academic-subject-groups'); // Rule 23.8: renamed by scripts/migrate-v2-collection-names.js
 
 // One group name per class+stream. A real unique index, not an app-level check, for the
 // same reason as Subject's — and case-insensitive, so "General Group" and "general group"
 // are the same name.
-SubjectGroupModel.schema.index(
+SubjectGroupV2Model.schema.index(
     { adminId: 1, classId: 1, streamId: 1, name: 1 },
     { unique: true, collation: { locale: 'en', strength: 2 } }
 );
@@ -67,10 +67,10 @@ SubjectGroupModel.schema.index(
 // equality filters first, then the sort key. A separate index from the unique one above
 // because that one is collated, and a collated index can only serve a query that asks for
 // the same collation — which the list query does not.
-SubjectGroupModel.schema.index({ adminId: 1, classId: 1, streamId: 1, createdAt: -1 });
+SubjectGroupV2Model.schema.index({ adminId: 1, classId: 1, streamId: 1, createdAt: -1 });
 
 // Lets "which groups use this subject?" — the delete guard on the Subjects page — be one
 // indexed query rather than a collection scan.
-SubjectGroupModel.schema.index({ adminId: 1, subjectIds: 1 });
+SubjectGroupV2Model.schema.index({ adminId: 1, subjectIds: 1 });
 
-module.exports = SubjectGroupModel;
+module.exports = SubjectGroupV2Model;

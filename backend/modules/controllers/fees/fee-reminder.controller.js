@@ -8,9 +8,9 @@ const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/fees.messages');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, isObjectId, toObjectId, requireSessionId, loadClassIndex,
-} = require('../../helpers/fees/fee-context');
-const { resolveRecipients } = require('../../helpers/fees/fee-reminder');
-const { logActivity } = require('../../services/activity-log.service');
+} = require('../../helpers/fees/v2-fee-context');
+const { resolveRecipients } = require('../../helpers/fees/v2-fee-reminder');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
 
@@ -80,7 +80,7 @@ const saveFilter = async (req) => {
     const classIndex = await assertClass(adminId, req.body.classId);
     const created = await FeeReminderFilterModel.create({ adminId, ...filterFields(req.body), createdBy: actorOf(req) });
     await cacheService.delPattern(cacheKeys.fees.reminderFiltersPattern(adminId));
-    await logActivity(req, { module: MODULE, action: 'fees.reminder-filter.create', targetId: String(created._id), meta: filterFields(req.body) });
+    await logActivityV2(req, { module: MODULE, action: 'fees.reminder-filter.create', targetId: String(created._id), meta: filterFields(req.body) });
     return toFilterRow(created.toObject(), classIndex);
 };
 
@@ -98,7 +98,7 @@ let DeleteReminderFilter = async (req, res) => {
     ).lean();
     if (!filter) throw notFound(req.params.id);
     await cacheService.delPattern(cacheKeys.fees.reminderFiltersPattern(adminId));
-    await logActivity(req, { module: MODULE, action: 'fees.reminder-filter.delete', targetId: String(filter._id) });
+    await logActivityV2(req, { module: MODULE, action: 'fees.reminder-filter.delete', targetId: String(filter._id) });
     return res.status(200).json({ message: messages.filterDeleted() });
 };
 
@@ -146,7 +146,7 @@ const enqueueSend = async (req, { filterId, classId, sessionId, studentIds }) =>
     const jobId = await queue().addReminderJob({
         adminId, jobKey, filterId: filterId ? String(filterId) : null, sessionId: String(sessionId), studentIds: recipients,
     });
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'fees.reminder.send', targetId: filterId ? String(filterId) : null,
         meta: { jobId, classId: String(classId), recipients: recipients.length, skippedNotInClass: studentIds.length - recipients.length },
     });

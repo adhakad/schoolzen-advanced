@@ -12,7 +12,7 @@ const dashboard = require('../../controllers/dashboard/dashboard.controller');
 // Mounted at /api/v2/dashboard — wiring only, no logic and no Mongoose calls.
 //
 // The page itself needs no grant of its own: every WIDGET is gated by its source module's
-// View (helpers/dashboard/widgets.js), enforced here on the backend — a slice the viewer
+// View (helpers/dashboard/v2-widgets.js), enforced here on the backend — a slice the viewer
 // can't see is never computed into their response. So this route only resolves the caller's
 // effective permissions (the same cached lookup requirePermission uses) onto req.
 const MODULE = 'dashboard';

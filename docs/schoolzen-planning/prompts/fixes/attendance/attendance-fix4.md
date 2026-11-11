@@ -17,7 +17,7 @@ Read `prompts/fixes/global-fixes.md` first (Rules 14-19). Source of truth: `v1/a
 5. Add `attendance-edit-past` to Roles & Permissions (seed + UI) next to `attendance-mark`.
 
 ## C. Tests (essential)
-- Fix `test-attendance-mark-v2`: its 4 failures come from using a Sunday (day off) as test data. Pick a real working day (not a roster week-off) dynamically so the suite passes on any weekday.
+- Fix `v2-test-attendance-mark`: its 4 failures come from using a Sunday (day off) as test data. Pick a real working day (not a roster week-off) dynamically so the suite passes on any weekday.
 - Backend: past edit allowed in the allowed case; refused (403) for no roster, holiday/leave/week-off, device punch, no permission, other session; log written.
 - Live DB: whole-month roster creation incl. past days; past Absent default; edit then read back; clean up.
 - Browser (Playwright, parallel): Roster filters by type, bulk buttons 2 per row at 390px with no overflow, Overview Today column last, past chip popover.

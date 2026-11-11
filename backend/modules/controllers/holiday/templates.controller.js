@@ -4,12 +4,12 @@ const HolidayTemplateV2Model = require('../../models/holiday/holiday-template');
 const { ConflictError, NotFoundError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/holiday.messages');
-const { matcher, paginate } = require('../../helpers/staff/lookups');
+const { matcher, paginate } = require('../../helpers/staff/v2-lookups');
 const {
     MODULE, actorOf, notFound, isDuplicateKey, conflictOn, toTemplateRow, loadTemplates, invalidateTemplates,
-} = require('../../helpers/holiday/context');
-const { countAssigned, enqueueReconcileToday } = require('../../services/holiday/holiday-calendar');
-const { logActivity } = require('../../services/activity-log.service');
+} = require('../../helpers/holiday/v2-context');
+const { countAssigned, enqueueReconcileToday } = require('../../services/holiday/v2-holiday-calendar');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Templates (holiday/templates.md) — named bundles of Holiday ids (dated holidays only).
 // Assignment is by reference, so an edit here IS an edit to every assigned person's
@@ -60,7 +60,7 @@ let CreateTemplate = async (req, res) => {
         .create({ adminId, ...fieldsOf(req.body), createdBy: actor, updatedBy: actor })
         .catch(rethrowDuplicate);
     await invalidateTemplates(adminId);
-    await logActivity(req, { module: MODULE, action: 'holiday.template.create', targetId: String(created._id), meta: fieldsOf(req.body) });
+    await logActivityV2(req, { module: MODULE, action: 'holiday.template.create', targetId: String(created._id), meta: fieldsOf(req.body) });
     return res.status(200).json({ message: success.created(ENTITY), template: toTemplateRow(created) });
 };
 
@@ -74,7 +74,7 @@ let UpdateTemplate = async (req, res) => {
     await template.save().catch(rethrowDuplicate);
     await invalidateTemplates(adminId);
     await enqueueReconcileToday(adminId);
-    await logActivity(req, { module: MODULE, action: 'holiday.template.update', targetId: String(template._id), changes: { before, after: fieldsOf(req.body) } });
+    await logActivityV2(req, { module: MODULE, action: 'holiday.template.update', targetId: String(template._id), changes: { before, after: fieldsOf(req.body) } });
     return res.status(200).json({ message: success.updated(ENTITY), template: toTemplateRow(template) });
 };
 
@@ -93,7 +93,7 @@ let DeleteTemplate = async (req, res) => {
     }
     await HolidayTemplateV2Model.deleteOne({ _id: id, adminId });
     await invalidateTemplates(adminId);
-    await logActivity(req, { module: MODULE, action: 'holiday.template.delete', targetId: id, meta: { name: template.name } });
+    await logActivityV2(req, { module: MODULE, action: 'holiday.template.delete', targetId: id, meta: { name: template.name } });
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };
 

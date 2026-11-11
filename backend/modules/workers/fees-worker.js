@@ -5,10 +5,10 @@ const { QUEUE_NAME } = require('../queues/fees-queue');
 const StudentEnrollmentModel = require('../models/student/student-enrollment');
 const StudentFeeRecordModel = require('../models/fees/student-fee-record');
 const FeeReminderDeliveryModel = require('../models/fees/fee-reminder-delivery');
-const SchoolModel = require('../models/school');
+const SchoolProfileV2Model = require('../models/settings/school-profile');
 const { sendManualFeeReminder } = require('../services/send-whatsapp-message');
-const { loadLedgerData, loadProfiles, loadClassIndex, placementLabels } = require('../helpers/fees/fee-context');
-const { mobileOf, ledgerSnapshot } = require('../helpers/fees/fee-reminder');
+const { loadLedgerData, loadProfiles, loadClassIndex, placementLabels } = require('../helpers/fees/v2-fee-context');
+const { mobileOf, ledgerSnapshot } = require('../helpers/fees/v2-fee-reminder');
 const messages = require('../helpers/messages/fees.messages');
 const { startHeartbeat } = require('./heartbeat');
 const logger = require('../helpers/logger');
@@ -44,7 +44,7 @@ const processReminder = async (job) => {
     const { adminId, sessionId, studentIds } = job.data;
     const now = new Date();
     const [school, profiles, ledgers, enrollments, classIndex] = await Promise.all([
-        SchoolModel.findOne({ adminId }, 'schoolName').lean(),
+        SchoolProfileV2Model.findOne({ adminId }, 'schoolName').lean(),
         loadProfiles(adminId, studentIds),
         loadLedgerData(adminId, studentIds),
         StudentEnrollmentModel.find({ adminId, sessionId, studentId: { $in: studentIds } }, 'studentId classId class streamId groupId sectionId').lean(),

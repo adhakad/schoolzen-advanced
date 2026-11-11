@@ -6,7 +6,7 @@
 // (which differ on T2/T5/T6): the .html is the approved design, legacy is not a source (§0).
 //
 // Not admin data: changes only through a deploy that edits this file, seeded by
-// scripts/seed-marksheet-templates.js.
+// scripts/v2-seed-marksheet-templates.js.
 
 const A_PLUS = [['A+', 91, 100], ['A', 81, 90], ['B+', 71, 80], ['B', 61, 70], ['C+', 51, 60], ['C', 41, 50], ['D', 33, 40], ['F', 0, 32]];
 const A_ONE = [['A1', 91, 100], ['A2', 81, 90], ['B1', 71, 80], ['B2', 61, 70], ['C1', 51, 60], ['C2', 41, 50], ['D', 33, 40], ['F', 0, 32]];

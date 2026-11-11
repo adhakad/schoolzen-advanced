@@ -2,14 +2,14 @@
 const mongoose = require('mongoose');
 const { ValidationError, NotFoundError, ConflictError, PermissionError } = require('../../errors');
 const messages = require('../../helpers/messages/approvals.messages');
-const { resolveSessionId, findPeople } = require('../../helpers/leave/context');
-const { SOURCES, sourceFor } = require('../../helpers/approvals/sources');
+const { resolveSessionId, findPeople } = require('../../helpers/leave/v2-context');
+const { SOURCES, sourceFor } = require('../../helpers/approvals/v2-sources');
 const { unionAggregate, describeRows } = require('../../helpers/approvals/inbox-query');
 const {
     INBOX_STATUSES, isObjectId, encodeCursor, decodeCursor, cursorMatch, mapSourceCode,
 } = require('../../helpers/approvals/approval-rules');
 const { allows } = require('../../middleware/require-permission');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Approvals — one inbox over every module's approvable requests (approvals.md).
 //
@@ -108,7 +108,7 @@ const decide = (decision) => async (req, res) => {
         throw error;
     }
 
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: `approvals.request.${decision}`,
         targetId: id,

@@ -1,7 +1,7 @@
 'use strict';
 
 // THE payroll arithmetic — pure, so a single generate, a bulk generate (inline or in the
-// worker) and scripts/test-payroll-v2.js all share one definition and can never produce
+// worker) and scripts/v2-test-payroll.js all share one definition and can never produce
 // different numbers for the same staff-month.
 //
 // money(), resolveEffectiveSalary() and calculatePay() are the legacy controllers/payroll.js
@@ -88,7 +88,7 @@ const calculatePay = (effective, mode, counts) => {
 /**
  * One person-month's attendance counts from the resolved calendar.
  * @param {Array<{ dateKey, dayType, status, leavePaid }>} days every day of the FULL month
- *   dayType: Working|Leave|Holiday|WeeklyOff (services/calendar/working-day.js)
+ *   dayType: Working|Leave|Holiday|WeeklyOff (services/calendar/v2-working-day.js)
  *   status:  that day's AttendanceRecord status, or null
  *   leavePaid: for a Leave day, the leave type's isPaid
  * @param {String} todayKey the school's today — that day and later have not happened yet

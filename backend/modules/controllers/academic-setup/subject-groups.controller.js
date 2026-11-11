@@ -1,4 +1,5 @@
 'use strict';
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const mongoose = require('mongoose');
 const SubjectGroupModel = require('../../models/academic-setup/subject-group');
 const SubjectModel = require('../../models/academic-setup/subject');
@@ -10,7 +11,7 @@ const messages = require('../../helpers/messages/academic-setup.messages');
 const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
 const { byClassOrder } = require('../../helpers/academic-setup/class-order');
 const { groupDuplicate, rethrowDuplicate } = require('../../helpers/academic-setup/duplicate-key');
-const { groupBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/dependents');
+const { groupBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/v2-dependents');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Subject group';
@@ -352,7 +353,7 @@ let CreateSubjectGroup = async (req, res, next) => {
 
     // The unique index is the real guard: a concurrent create that passed the pre-check
     // above comes back as E11000 and leaves as SUBJECT_GROUP_DUPLICATE.
-    await SubjectGroupModel.create({
+    const created = await SubjectGroupModel.create({
         adminId: adminId,
         classId: classId,
         streamId: streamId || null,
@@ -360,6 +361,7 @@ let CreateSubjectGroup = async (req, res, next) => {
         subjectIds: subjectIds,
     }).catch((error) => rethrowDuplicate(error, () => groupDuplicate(name)));
     await cacheInvalidation.onSubjectGroupsChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'academic-setup.subject-group.create', targetId: created._id, meta: { name, classId: String(classId), streamId: streamId ? String(streamId) : null, subjectIds } });
 
     return res.status(200).json({ message: success.created(ENTITY) });
 };
@@ -381,9 +383,11 @@ let UpdateSubjectGroup = async (req, res, next) => {
     if (group.isSystemGroup) {
         assertSystemGroupIdentityKept(group, { classId, streamId, name });
         await assertSubjectsExist(adminId, subjectIds);
+        const beforeSubjects = (group.subjectIds || []).map(String);
         group.subjectIds = subjectIds;
         await group.save();
         await cacheInvalidation.onSubjectGroupsChanged(adminId);
+        await logActivityV2(req, { module: MODULE, action: 'academic-setup.subject-group.update', targetId: group._id, changes: { before: { subjectIds: beforeSubjects }, after: { subjectIds: subjectIds.map(String) } } });
         return res.status(200).json({ message: success.updated(ENTITY) });
     }
 
@@ -391,12 +395,15 @@ let UpdateSubjectGroup = async (req, res, next) => {
     await assertSubjectsExist(adminId, subjectIds);
     await assertNameFree(adminId, classId, streamId, name, group._id);
 
+    const before = { classId: String(group.classId), streamId: group.streamId ? String(group.streamId) : null, name: group.name, subjectIds: (group.subjectIds || []).map(String) };
     group.classId = classId;
     group.streamId = streamId || null;
     group.name = name;
     group.subjectIds = subjectIds;
     await group.save().catch((error) => rethrowDuplicate(error, () => groupDuplicate(name)));
     await cacheInvalidation.onSubjectGroupsChanged(adminId);
+    const after = { classId: String(classId), streamId: streamId ? String(streamId) : null, name, subjectIds: subjectIds.map(String) };
+    await logActivityV2(req, { module: MODULE, action: 'academic-setup.subject-group.update', targetId: group._id, changes: { before, after } });
 
     return res.status(200).json({ message: success.updated(ENTITY) });
 };
@@ -436,6 +443,7 @@ let BulkDeleteSubjectGroups = async (req, res, next) => {
     if (deletable.length) {
         await SubjectGroupModel.deleteMany({ _id: { $in: deletable }, adminId: adminId });
         await cacheInvalidation.onSubjectGroupsChanged(adminId);
+        await logActivityV2(req, { module: MODULE, action: 'academic-setup.subject-group.delete.bulk', meta: { ids: deletable } });
     }
 
     return res.status(200).json(bulkDeleteBody(results, 'subject group'));

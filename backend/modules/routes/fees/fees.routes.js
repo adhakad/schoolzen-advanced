@@ -13,7 +13,7 @@ const fees = require('../../controllers/fees/fees.controller');
 const statement = require('../../controllers/fees/fee-statement.controller');
 const reminders = require('../../controllers/fees/fee-reminder.controller');
 // Registers the arrears carry-forward with Class Promotion in this process too.
-require('../../helpers/fees/fee-promotion');
+require('../../helpers/fees/v2-fee-promotion');
 
 // Mounted at /api/v2/fees — wiring only, no logic and no Mongoose calls.
 //

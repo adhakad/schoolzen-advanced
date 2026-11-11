@@ -19,7 +19,7 @@ const mongoose = require('mongoose');
 // row renders: one read serves the page, and deleting a class is one delete. The
 // sub-documents keep their automatic _id, so a section already has a stable handle for the
 // Class Teacher assignment and a future student.sectionId, without a migration.
-const AcademicClassModel = mongoose.model('academic-class', {
+const AcademicClassV2Model = mongoose.model('v2-academic-class', {
     adminId: {
         type: String,
         required: true,
@@ -35,7 +35,7 @@ const AcademicClassModel = mongoose.model('academic-class', {
     order: {
         // The fixed pedagogical rank every class list sorts by — Nursery=0, LKG=1, UKG=2,
         // 1st=3 … 12th=14 (helpers/academic-setup/class-order.js). Set from `class` on
-        // every save, never typed; scripts/migrate-academic-setup-fix5-v2.js backfills it.
+        // every save, never typed; scripts/v2-migrate-academic-setup-fix5.js backfills it.
         type: Number,
         required: true,
     },
@@ -76,11 +76,11 @@ const AcademicClassModel = mongoose.model('academic-class', {
         type: Date,
         default: Date.now,
     },
-});
+}, 'v2-academic-classes'); // Rule 23.8: renamed by scripts/migrate-v2-collection-names.js
 
 // A school configures each class once. Same shape as class-shift's { adminId, class }.
-AcademicClassModel.schema.index({ adminId: 1, class: 1 }, { unique: true });
+AcademicClassV2Model.schema.index({ adminId: 1, class: 1 }, { unique: true });
 // Every class list is read in this order.
-AcademicClassModel.schema.index({ adminId: 1, order: 1 });
+AcademicClassV2Model.schema.index({ adminId: 1, order: 1 });
 
-module.exports = AcademicClassModel;
+module.exports = AcademicClassV2Model;

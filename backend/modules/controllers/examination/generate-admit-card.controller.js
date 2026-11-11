@@ -4,12 +4,12 @@ const StudentEnrollmentModel = require('../../models/student/student-enrollment'
 const AdmitCardModel = require('../../models/examination/admit-card');
 const { NotFoundError } = require('../../errors');
 const messages = require('../../helpers/messages/examination.messages');
-const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
-const { buildEnrollmentMatch, resolveSearchStudentIds, loadClassIndex, describePlacement } = require('../../helpers/student/student.utils');
+const { buildLetterheadDocument } = require('../../services/pdf/v2-letterhead.service');
+const { buildEnrollmentMatch, resolveSearchStudentIds, loadClassIndex, describePlacement } = require('../../helpers/student/v2-student.utils');
 const { time12 } = require('../../helpers/examination/exam-rules');
 const {
     MODULE, isObjectId, toObjectId, requireSessionId, initialsOf,
-} = require('../../helpers/examination/exam-context');
+} = require('../../helpers/examination/v2-exam-context');
 
 // Generate Admit Card (examination/generate-admit-card.md). No configuration lives here —
 // it only READS the AdmitCard documents Admit Card Structure's job generated. Every student

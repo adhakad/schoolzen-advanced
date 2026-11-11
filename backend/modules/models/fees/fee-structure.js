@@ -11,7 +11,7 @@ const mongoose = require('mongoose');
 const FeeStructureSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-session', required: true },
-    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'academic-class', required: true },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'v2-academic-class', required: true },
     streamId: { type: mongoose.Schema.Types.ObjectId, default: null },
     groupId: { type: mongoose.Schema.Types.ObjectId, default: null },
     admissionFee: { type: Number, min: 0, default: 0 },

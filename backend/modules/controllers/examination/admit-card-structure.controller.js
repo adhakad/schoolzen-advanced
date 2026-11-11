@@ -7,15 +7,15 @@ const { ConflictError, ExternalServiceError, NotFoundError, ValidationError } = 
 const messages = require('../../helpers/messages/examination.messages');
 const cacheService = require('../../services/cache/cache.service');
 const cacheKeys = require('../../services/cache/cache-keys');
-const { logActivity } = require('../../services/activity-log.service');
-const { getHolidayKeysForPeople } = require('../../services/holiday/holiday-calendar');
-const { loadClassTree, indexTree, resolveScope } = require('../../helpers/settings/class-options');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
+const { getHolidayKeysForPeople } = require('../../services/holiday/v2-holiday-calendar');
+const { loadClassTree, indexTree, resolveScope } = require('../../helpers/settings/v2-class-options');
 const { validateSchedule, datesOutside, intersectScopes, schedulesClash, time12 } = require('../../helpers/examination/exam-rules');
-const { scopeMatch } = require('../../helpers/examination/admit-card-generation');
+const { scopeMatch } = require('../../helpers/examination/v2-admit-card-generation');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, isObjectId, toObjectId, notFound, fieldErrors, requireSessionId,
     loadSessionRange, loadSubjectNames, loadScopeSubjectIds, examNameOptions,
-} = require('../../helpers/examination/exam-context');
+} = require('../../helpers/examination/v2-exam-context');
 
 // Admit Card Structure (examination/admit-card-structure.md). A searchable list of CREATED
 // exam structures (not an always-shown grid). Create/edit/delete is NOT passive config:
@@ -308,7 +308,7 @@ let CreateStructure = async (req, res) => {
     }
     await AdmitCardStructureModel.updateOne({ _id: structure._id }, { $set: { 'generation.jobId': jobId } });
     await invalidate(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: 'examination.admit-card-structure.create',
         targetId: String(structure._id),
@@ -366,7 +366,7 @@ let UpdateStructure = async (req, res) => {
     }
     await AdmitCardStructureModel.updateOne({ _id: updated._id, version: updated.version }, { $set: { 'generation.jobId': jobId } });
     await invalidate(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: 'examination.admit-card-structure.update',
         targetId: String(updated._id),
@@ -389,7 +389,7 @@ let DeleteStructure = async (req, res) => {
     const removed = await AdmitCardModel.deleteMany({ adminId, structureId: existing._id });
     await AdmitCardStructureModel.deleteOne({ _id: existing._id, adminId });
     await invalidate(adminId);
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: 'examination.admit-card-structure.delete',
         targetId: String(existing._id),

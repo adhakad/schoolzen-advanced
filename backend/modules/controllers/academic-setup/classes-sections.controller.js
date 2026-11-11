@@ -4,16 +4,17 @@ const SubjectGroupModel = require('../../models/academic-setup/subject-group');
 const StudentEnrollmentModel = require('../../models/student/student-enrollment');
 const StudentProfileModel = require('../../models/student/student');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
+const { resolveRequestSessionId } = require('../../helpers/academic-session/v2-session-resolver');
 const { classOrderOf, byClassOrder } = require('../../helpers/academic-setup/class-order');
-const { planStructure, assertFlatSectionsRemovable, syncClassGroups, classHasStreams } = require('../../helpers/academic-setup/class-structure');
+const { planStructure, assertFlatSectionsRemovable, syncClassGroups, classHasStreams } = require('../../helpers/academic-setup/v2-class-structure');
 const { NotFoundError, ConflictError, ValidationError } = require('../../errors');
 const { getClassDisplayName } = require('../../helpers/format-class-name');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
 const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
 const { classDuplicate, rethrowDuplicate } = require('../../helpers/academic-setup/duplicate-key');
-const { classBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/dependents');
+const { classBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/v2-dependents');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Class';
@@ -192,6 +193,7 @@ let CreateClass = async (req, res, next) => {
     }).catch((error) => rethrowDuplicate(error, () => classDuplicate(className)));
     // Write-through: other modules read this school's classes and groups from the cache.
     await Promise.all([cacheInvalidation.onClassesChanged(adminId), cacheInvalidation.onSubjectGroupsChanged(adminId)]);
+    await logActivityV2(req, { module: MODULE, action: 'academic-setup.class.create', meta: { class: className, hasStreams } });
     return res.status(200).json({ message: success.created(ENTITY) });
 };
 
@@ -213,7 +215,7 @@ let UpdateClass = async (req, res, next) => {
     // An 11th/12th saved before streams were mandatory would lose its flat sections here.
     await assertFlatSectionsRemovable(req.body.adminId, singleClass, hasStreams, req.body.confirmRemoveSections);
 
-    // Existing sections/streams KEEP their ids (helpers/academic-setup/class-structure.js):
+    // Existing sections/streams KEEP their ids (helpers/academic-setup/v2-class-structure.js):
     // every enrollment, subject group and fee structure points at them.
     const plan = planStructure(singleClass.toObject(), req.body);
     await withTransaction(async (dbSession) => {
@@ -230,6 +232,18 @@ let UpdateClass = async (req, res, next) => {
         // name within one stream — rethrowDuplicate reads which index fired.
     }).catch((error) => rethrowDuplicate(error));
     await Promise.all([cacheInvalidation.onClassesChanged(req.body.adminId), cacheInvalidation.onSubjectGroupsChanged(req.body.adminId)]);
+    const shape = (doc) => ({
+        hasStreams: Boolean(doc.hasStreams),
+        sections: (doc.sections || []).map((section) => section.name),
+        streams: (doc.streams || []).map((stream) => ({ name: stream.name, sections: (stream.sections || []).map((section) => section.name) })),
+    });
+    await logActivityV2(req, {
+        module: MODULE,
+        action: 'academic-setup.class.update',
+        targetId: singleClass._id,
+        meta: { class: singleClass.class },
+        changes: { before: shape(singleClass), after: shape({ hasStreams, sections: plan.sections, streams: plan.streams }) },
+    });
 
     return res.status(200).json({ message: success.updated(ENTITY) });
 };
@@ -273,6 +287,7 @@ let DeleteClass = async (req, res, next) => {
 
     await deleteClassesWithGroups(adminId, [singleClass._id]);
     await Promise.all([cacheInvalidation.onClassesChanged(adminId), cacheInvalidation.onSubjectGroupsChanged(adminId)]);
+    await logActivityV2(req, { module: MODULE, action: 'academic-setup.class.delete', targetId: singleClass._id, meta: { class: singleClass.class } });
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };
 
@@ -307,6 +322,7 @@ let BulkDeleteClasses = async (req, res, next) => {
     if (deletable.length) {
         await deleteClassesWithGroups(adminId, deletable);
         await Promise.all([cacheInvalidation.onClassesChanged(adminId), cacheInvalidation.onSubjectGroupsChanged(adminId)]);
+        await logActivityV2(req, { module: MODULE, action: 'academic-setup.class.delete.bulk', meta: { ids: deletable } });
     }
 
     return res.status(200).json(bulkDeleteBody(results, ENTITY.toLowerCase()));

@@ -6,8 +6,9 @@ const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/academic-setup.messages');
 const cacheInvalidation = require('../../helpers/academic-setup/cache-invalidation');
 const { withTransaction } = require('../../helpers/with-transaction');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 const { subjectDuplicate, rethrowDuplicate } = require('../../helpers/academic-setup/duplicate-key');
-const { subjectBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/dependents');
+const { subjectBlockingCounts, uniqueIds, bulkDeleteBody } = require('../../helpers/academic-setup/v2-dependents');
 
 const MODULE = 'academic-setup';
 const ENTITY = 'Subject';
@@ -120,8 +121,9 @@ let CreateSubject = async (req, res, next) => {
 
     await assertNameFree(adminId, name);
     // A concurrent create that passed the pre-check hits the unique index -> SUBJECT_DUPLICATE.
-    await SubjectModel.create(req.body).catch((error) => rethrowDuplicate(error, () => subjectDuplicate(name)));
+    const created = await SubjectModel.create(req.body).catch((error) => rethrowDuplicate(error, () => subjectDuplicate(name)));
     await cacheInvalidation.onSubjectsChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'academic-setup.subject.create', targetId: created._id, meta: { name } });
 
     return res.status(200).json({ message: success.created(ENTITY) });
 };
@@ -140,11 +142,13 @@ let UpdateSubject = async (req, res, next) => {
 
     await assertNameFree(adminId, name, subject._id);
 
+    const before = { name: subject.name, type: subject.type, status: subject.status };
     subject.name = name;
     subject.type = type;
     subject.status = status;
     await subject.save().catch((error) => rethrowDuplicate(error, () => subjectDuplicate(name)));
     await cacheInvalidation.onSubjectsChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'academic-setup.subject.update', targetId: subject._id, changes: { before, after: { name, type, status } } });
 
     return res.status(200).json({ message: success.updated(ENTITY) });
 };
@@ -207,6 +211,7 @@ let BulkDeleteSubjects = async (req, res, next) => {
         });
         // The $pull changed groups too — their cached subject lists go with the subjects'.
         await cacheInvalidation.onSubjectsChanged(adminId, { groupsTouched: true });
+        await logActivityV2(req, { module: MODULE, action: 'academic-setup.subject.delete.bulk', meta: { ids: deletable, confirmed: Boolean(confirmed), emptiedGroups } });
     }
 
     const body = bulkDeleteBody(results, ENTITY.toLowerCase());

@@ -5,16 +5,16 @@ const MarksheetStructureV2Model = require('../../models/examination/marksheet-st
 const ExamResultModel = require('../../models/examination/exam-result');
 const { ConflictError, NotFoundError, ValidationError } = require('../../errors');
 const messages = require('../../helpers/messages/examination.messages');
-const { logActivity } = require('../../services/activity-log.service');
-const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
-const { buildEnrollmentMatch, resolveSearchStudentIds, loadClassIndex, describePlacement } = require('../../helpers/student/student.utils');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
+const { buildLetterheadDocument } = require('../../services/pdf/v2-letterhead.service');
+const { buildEnrollmentMatch, resolveSearchStudentIds, loadClassIndex, describePlacement } = require('../../helpers/student/v2-student.utils');
 const {
     validateMarks, computeResult, normalizeCoScholastic, bulkRowErrors, passPercentOf,
 } = require('../../helpers/examination/exam-rules');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, isObjectId, toObjectId, notFound, fieldErrors, requireSessionId,
     loadSubjectNames, findTemplate, loadCatalog, loadMarksheetStructures, structureKey, isSetUp, initialsOf,
-} = require('../../helpers/examination/exam-context');
+} = require('../../helpers/examination/v2-exam-context');
 
 // Generate Marksheet (examination/generate-marksheet.md). Every student of the session is
 // listed; a class without a set-up structure shows "No structure set". Marks are entered
@@ -270,7 +270,7 @@ let SaveMarks = async (req, res) => {
         if (error.code === 11000) throw alreadyEntered();
         throw error;
     }
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: 'examination.marks.save',
         targetId: String(saved._id),
@@ -375,7 +375,7 @@ let SaveBulkMarks = async (req, res) => {
         };
     });
     await ExamResultModel.bulkWrite(operations, { ordered: false });
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE,
         action: 'examination.marks.bulk-save',
         meta: { term, sessionId: String(sessionId), studentIds: rows.map((r) => String(r.studentId)), overwritten: stale.length },

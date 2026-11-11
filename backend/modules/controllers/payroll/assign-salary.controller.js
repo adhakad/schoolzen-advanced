@@ -5,9 +5,9 @@ const { NotFoundError, ValidationError } = require('../../errors');
 const messages = require('../../helpers/messages/payroll.messages');
 const {
     MODULE, PERMISSIONS, actorOf, canEditOf, personNotFound, findStaff, describeStaff, loadSalaryGroups, offsetPage,
-} = require('../../helpers/payroll/context');
+} = require('../../helpers/payroll/v2-context');
 const { hasPersonalOverride } = require('../../helpers/payroll/payroll-rules');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 // Assign Salary (assign-salary.md) — puts staff on a pay scale. Never cached: Generate
 // Payroll reads the very latest assignment on the next generate (payroll/optimization.md).
@@ -83,7 +83,7 @@ let AssignSalary = async (req, res) => {
         { upsert: true, new: true }
     ).lean();
 
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'payroll.assign', targetId: staffId,
         changes: {
             before: before ? { salaryGroupId: before.salaryGroupId, effectiveFrom: before.effectiveFrom, overrides: before.overrides } : null,
@@ -122,7 +122,7 @@ let BulkAssignSalary = async (req, res) => {
         },
     })), { ordered: false });
 
-    await logActivity(req, {
+    await logActivityV2(req, {
         module: MODULE, action: 'payroll.assign.bulk', targetId: String(group._id),
         meta: { salaryGroupId: String(group._id), effectiveFrom, staffIds: valid, skipped: skipped.length },
     });

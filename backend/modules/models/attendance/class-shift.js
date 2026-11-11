@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 // (StudentEnrollment). streamId/sectionId are null when the class has none.
 //
 // Resolution for a student is most-specific-first: section row, then stream row, then the
-// class row (services/attendance-v2/shift-lookup.js).
+// class row (services/attendance-v2/v2-shift-lookup.js).
 const ClassShiftSchema = new mongoose.Schema({
     adminId: { type: String, required: true, trim: true },
     sessionId: { type: String, required: true },

@@ -10,8 +10,9 @@ const { onRolesChanged, onAssignmentChanged } = require('../../helpers/settings/
 const {
     rethrowDuplicate, roleNameDuplicate, roleScopeAlreadyAssigned, roleAlreadyHeld,
 } = require('../../helpers/settings/duplicate-key');
-const { ensureSeededRoles } = require('../../helpers/settings/owner-bootstrap');
-const { loadClassTree, indexTree, scopeLabel, resolveScope } = require('../../helpers/settings/class-options');
+const { ensureSeededRoles } = require('../../helpers/settings/v2-owner-bootstrap');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
+const { loadClassTree, indexTree, scopeLabel, resolveScope } = require('../../helpers/settings/v2-class-options');
 const { PERMISSION_MODULES } = RoleModel;
 
 const MODULE = 'settings';
@@ -112,6 +113,7 @@ let CreateRole = async (req, res) => {
         rethrowDuplicate(error, (keys) => (keys.includes('name') ? roleNameDuplicate() : null));
     }
     await onRolesChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'settings.role.create', targetId: created._id, meta: { name, isScoped: Boolean(isScoped), permissions: created.permissions } });
     return res.status(201).json({ message: success.created('Role'), role: roleRow(created.toObject()) });
 };
 
@@ -142,6 +144,10 @@ let UpdateRole = async (req, res) => {
     }
     await onRolesChanged(adminId);
     const updated = await RoleModel.findOne({ _id: role._id, adminId }).lean();
+    const changes = { before: {}, after: {} };
+    if (name !== undefined && name !== role.name) { changes.before.name = role.name; changes.after.name = updated.name; }
+    if (permissions !== undefined) { changes.before.permissions = role.permissions; changes.after.permissions = updated.permissions; }
+    await logActivityV2(req, { module: MODULE, action: 'settings.role.update', targetId: role._id, changes });
     return res.status(200).json({ message: success.updated('Role'), role: roleRow(updated) });
 };
 
@@ -157,6 +163,7 @@ let DeleteRole = async (req, res) => {
     }
     await RoleModel.deleteOne({ _id: role._id, adminId, isSuperAdmin: { $ne: true } });
     await onRolesChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'settings.role.delete', targetId: role._id, meta: { name: role.name } });
     return res.status(200).json({ message: success.deleted('Role') });
 };
 
@@ -292,6 +299,12 @@ let CreateAssignment = async (req, res) => {
         rethrowDuplicate(error, translateAssignmentDuplicate);
     }
     await onAssignmentChanged(adminId, staff._id);
+    await logActivityV2(req, {
+        module: MODULE,
+        action: 'settings.role-assignment.create',
+        targetId: created._id,
+        meta: { staffId: String(staff._id), roleId: String(role._id), role: role.name, scope: scope.scope, classId: scope.classId ? String(scope.classId) : null },
+    });
     const tree = scope.scope === 'class' ? indexTree(await loadClassTree(adminId)) : new Map();
     return res.status(201).json({ message: success.created('Role assignment'), assignment: assignmentRow(created.toObject(), tree) });
 };
@@ -316,6 +329,14 @@ let UpdateAssignment = async (req, res) => {
         rethrowDuplicate(error, translateAssignmentDuplicate);
     }
     await onAssignmentChanged(adminId, assignment.staffId);
+    const scopeOf = (a) => ({ classId: a.classId ? String(a.classId) : null, streamId: a.streamId ? String(a.streamId) : null, sectionId: a.sectionId ? String(a.sectionId) : null });
+    await logActivityV2(req, {
+        module: MODULE,
+        action: 'settings.role-assignment.update',
+        targetId: assignment._id,
+        meta: { staffId: String(assignment.staffId), roleId: String(assignment.roleId) },
+        changes: { before: scopeOf(assignment), after: scopeOf(scope) },
+    });
     return res.status(200).json({ message: success.updated('Role assignment') });
 };
 
@@ -341,6 +362,7 @@ let DeleteAssignment = async (req, res) => {
     }
     await RoleAssignmentModel.deleteOne({ _id: assignment._id, adminId });
     await onAssignmentChanged(adminId, assignment.staffId);
+    await logActivityV2(req, { module: MODULE, action: 'settings.role-assignment.delete', targetId: assignment._id, meta: { staffId: String(assignment.staffId), roleId: String(assignment.roleId) } });
     return res.status(200).json({ message: success.deleted('Role assignment') });
 };
 
@@ -359,6 +381,11 @@ let BulkDeleteAssignments = async (req, res) => {
     if (deletable.length) {
         await RoleAssignmentModel.deleteMany({ adminId, _id: { $in: deletable.map((a) => a._id) } });
         await onAssignmentChanged(adminId, [...new Set(deletable.map((a) => String(a.staffId)))]);
+        await logActivityV2(req, {
+            module: MODULE,
+            action: 'settings.role-assignment.delete.bulk',
+            meta: { deleted: deletable.map((a) => ({ id: String(a._id), staffId: String(a.staffId), roleId: String(a.roleId) })) },
+        });
     }
 
     const results = unique.map((id) => {

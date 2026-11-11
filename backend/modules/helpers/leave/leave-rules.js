@@ -1,8 +1,8 @@
 'use strict';
 const { toUtcMidnight, toDateKey } = require('../date-only');
 
-// The Leave module's pure rules — no DB, so scripts/test-leave-v2.js can check them directly.
-// Which days of a range are chargeable is NOT decided here: services/calendar/working-day.js.
+// The Leave module's pure rules — no DB, so scripts/v2-test-leave.js can check them directly.
+// Which days of a range are chargeable is NOT decided here: services/calendar/v2-working-day.js.
 
 const MAX_RANGE_DAYS = 366;
 

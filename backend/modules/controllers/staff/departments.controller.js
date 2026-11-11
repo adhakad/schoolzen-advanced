@@ -7,10 +7,10 @@ const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/staff.messages');
 const cacheInvalidation = require('../../helpers/staff/cache-invalidation');
 const { departmentDuplicate, rethrowDuplicate } = require('../../helpers/staff/duplicate-key');
-const { departmentCounts } = require('../../helpers/staff/dependents');
-const { COLLATION, loadDepartments, matcher, paginate } = require('../../helpers/staff/lookups');
+const { departmentCountsV2 } = require('../../helpers/staff/v2-dependents');
+const { COLLATION, loadDepartments, matcher, paginate } = require('../../helpers/staff/v2-lookups');
 const { withTransaction } = require('../../helpers/with-transaction');
-const { logActivity } = require('../../services/activity-log.service');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
 
 const MODULE = 'staff';
 const ENTITY = 'Department';
@@ -25,7 +25,7 @@ let GetDepartments = async (req, res) => {
     const matches = matcher(search);
     const all = await loadDepartments(adminId);
     const result = paginate(all.filter((row) => matches(row.name)), page, limit);
-    const counts = await departmentCounts(adminId, result.rows.map((row) => row._id));
+    const counts = await departmentCountsV2(adminId, result.rows.map((row) => row._id));
     result.rows = result.rows.map((row) => {
         const count = counts.get(row._id);
         return { ...row, staffCount: count.staff, designationCount: count.designations };
@@ -56,6 +56,7 @@ let CreateDepartment = async (req, res) => {
         .create({ adminId, name, status, createdBy: actor, updatedBy: actor })
         .catch((error) => rethrowDuplicate(error, departmentDuplicate));
     await cacheInvalidation.onDepartmentsChanged(adminId);
+    await logActivityV2(req, { module: MODULE, action: 'staff.department.create', targetId: department._id, meta: { name } });
     return res.status(200).json({ message: success.created(ENTITY), department });
 };
 
@@ -90,7 +91,7 @@ let UpdateDepartment = async (req, res) => {
     });
     await cacheInvalidation.onDepartmentsChanged(adminId);
     if (before.name !== name) {
-        await logActivity(req, { module: MODULE, action: 'staff.department.update', targetId: id, changes: { before, after: { name, status } } });
+        await logActivityV2(req, { module: MODULE, action: 'staff.department.update', targetId: id, changes: { before, after: { name, status } } });
     }
 
     return res.status(200).json({ message: success.updated(ENTITY), department, warnings });
@@ -107,7 +108,7 @@ let DeleteDepartment = async (req, res) => {
     if (!department) throw notFound(req.params.id);
     const id = String(department._id);
 
-    const counts = (await departmentCounts(adminId, [id])).get(id);
+    const counts = (await departmentCountsV2(adminId, [id])).get(id);
     if ((counts.staff || counts.designations) && !confirmed) {
         throw new ConflictError(messages.departmentInUse(counts.staff, counts.designations), {
             module: MODULE,
@@ -128,7 +129,7 @@ let DeleteDepartment = async (req, res) => {
         );
     });
     await cacheInvalidation.onDepartmentsChanged(adminId);
-    await logActivity(req, { module: MODULE, action: 'staff.department.delete', targetId: id, meta: { name: department.name, ...counts } });
+    await logActivityV2(req, { module: MODULE, action: 'staff.department.delete', targetId: id, meta: { name: department.name, ...counts } });
 
     return res.status(200).json({ message: success.deleted(ENTITY) });
 };

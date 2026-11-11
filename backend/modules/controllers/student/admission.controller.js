@@ -4,14 +4,15 @@ const StudentEnrollmentModel = require('../../models/student/student-enrollment'
 const { NotFoundError, ConflictError } = require('../../errors');
 const { success } = require('../../helpers/messages/common.messages');
 const messages = require('../../helpers/messages/student.messages');
-const { buildLetterheadDocument } = require('../../services/pdf/letterhead.service');
-const { createStudentRecord } = require('../../helpers/student/student-write');
-const { findSessionId, labelOfSessionId, resolveRequestSessionId } = require('../../helpers/academic-session/session-resolver');
-const { resolveFeeStructure } = require('../../helpers/fees/fee-structure-resolver');
+const { buildLetterheadDocument } = require('../../services/pdf/v2-letterhead.service');
+const { createStudentRecord } = require('../../helpers/student/v2-student-write');
+const { logActivityV2 } = require('../../services/v2-activity-log.service');
+const { findSessionId, labelOfSessionId, resolveRequestSessionId } = require('../../helpers/academic-session/v2-session-resolver');
+const { resolveFeeStructure } = require('../../helpers/fees/v2-fee-structure-resolver');
 const { CONCESSION_REASON_THRESHOLD } = require('../../helpers/student/student.constants');
 const {
     MODULE, listStudentRows, loadClassIndex, describePlacement,
-} = require('../../helpers/student/student.utils');
+} = require('../../helpers/student/v2-student.utils');
 
 // Admission — new students entering the school this session (admission.md).
 //
@@ -50,6 +51,7 @@ let CreateAdmission = async (req, res) => {
         file: req.file,
         entryType: 'admission',
     });
+    await logActivityV2(req, { module: MODULE, action: 'student.admission.create', targetId: id });
     // The fresh row (write-back, module-optimization-guide.md §2) — the page adds it to its
     // table from this response.
     return res.status(200).json({ message: success.created('Admission'), id, student: row, warnings, warning: warnings[0] || null });

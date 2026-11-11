@@ -1,5 +1,5 @@
 'use strict';
-const { SOURCES } = require('./sources');
+const { SOURCES } = require('./v2-sources');
 
 // The inbox's two query building blocks, shared by Approvals (the full inbox) and the
 // Dashboard's Pending approvals card — one union over every source, never a second copy.
