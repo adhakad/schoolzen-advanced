@@ -42,67 +42,27 @@ Applies to: ALL backend modules. Goal: from the name alone you can tell which mo
 9. Rule 23.9: rename the helpers/services/scripts/tests that wrap v2 models, update every reference, add them to the guard test (a v2 helper without the v2 name fails it), re-run all tests.
 10. Fill the table below. Do not commit.
 
-## Report table (Claude Code fills — 2026-11-11)
-| Old model name | New model name | Collection | Files touched | Notes |
+## Report table (Claude Code fills)
+| Old model name | New model name | Collection (unchanged) | Files touched | Notes |
 |---|---|---|---|---|
-| `academic-class` (`AcademicClassModel`) | `v2-academic-class` (`AcademicClassV2Model`) | `academic-classes` → `v2-academic-classes` (23.8) | model + every importer (earlier run) | collection renamed by the migration |
-| `academic-subject` | `v2-academic-subject` | `academic-subjects` → `v2-academic-subjects` | same | same |
-| `academic-subject-group` | `v2-academic-subject-group` | `academic-subject-groups` → `v2-academic-subject-groups` | same | same |
-| `activity-log` | `v2-activity-log` | `activity-logs` → `v2-activity-logs` | model, `v2-activity-log.service.js`, `v2-test-activity-log-live.js` | `actorName` fix (see below) |
-| `student-enrollment` | `v2-student-enrollment` | `student-enrollments` → `v2-student-enrollments` | model + importers | same |
-| — (new) | `v2-school-profile` (`SchoolProfileV2Model`, `models/settings/school-profile.js`) | `v2-school-profiles` (new, empty) | `v2-letterhead.service.js`, `admission-form-fields.controller.js`, `field-config.validator.js`, `fees-worker.js` | Rule 23.7: replaces legacy `school` for every v2 reader. No v2 writer exists (there is no v2 School Profile page — see `settings/errors.md`), so it stays empty until one is built |
-| — (field) | `v2-staff.wdmsId`, `v2-student.wdmsId` (`select: false`, no default) | unchanged | `models/staff/staff.js`, `models/student/student.js`, `workers/student-worker.js` | Rule 23.7: the WDMS employee id the device sync used to keep in legacy `biometric-mappings` |
-
-Rule 23.7 switches (3c), before → after (checked on the dev DB, read-only, and by `v2-test-shared-fix5-live.js`):
-- Staff delete guard (`helpers/staff/v2-dependents.js` `staffCountsV2`): `payrolls`/`salary-structures`/`biometric-mappings` (by personType+personId) → `v2-payroll-runs`/`v2-staff-salary-assignments` (by staffId) + card on the `v2-staffs` row. **Result changed for all 3 live v2 staff**: before = deletable (the legacy collections never held v2 staff), after = blocked `STAFF_IN_USE_PAYROLL` (they have v2 payroll runs). This is the guard working as intended.
-- Student delete: the `biometric-mapping` delete step is removed (v2 ingest resolves punches by student `_id`; deleting the row stops them). Legacy `biometric-mappings` holds 2 rows, both legacy staff (no v2 person) — nothing lost.
-- Device sync / Remove Card (`student-worker.js`): reads/writes `wdmsId` on the v2 row. Remove Card now keeps `wdmsId` (re-assign PATCHes the same WDMS employee instead of creating a duplicate). Not run live (needs the WDMS box).
-- School: `schools` (legacy, 2 rows, 1 for the v2 school) → `v2-school-profiles` (0 rows). **Result changes for the owner**: letterhead prints "SCHOOL" with no address/affiliation, Admission Form Fields shows no school state (state-specific fields hidden), fee reminder sender name is blank — until a v2 School Profile page writes the row. Verified clean (no crash) by the live test.
-
-Activity log actor name: entries stored `actorName: null` (the admin token carries only `id`/`mobile`; both existing rows show `null`). `logActivityV2` now resolves the name from the v2 Staff row (`req.staffId` set by requirePermission, else the owner row — read-only, never creates rows), cached per request. Proven on real actions through the real routers by `v2-test-activity-log-live.js` (asserts a non-empty `actorName` on every entry).
 
 ## Deleted files (Claude Code fills)
 | File | Why it was safe (0 references, 0 documents) |
 |---|---|
-| — | none deleted (Do-step 6 was not part of this run) |
 
 ## Collection rename (Claude Code fills)
-Script: `backend/scripts/migrate-v2-collection-names.js`. Run on the dev Atlas DB `schoolzen-advanced` (owner confirmed it is dev); dry-run first, then real run, then a second dry-run showing all five "already renamed". BEFORE/AFTER snapshot (all 104 collections + every model's name/collection): identical except the renames and the new empty `v2-school-profiles`.
 | Old collection | New collection | Docs before | Docs after |
 |---|---|---|---|
-| `academic-classes` | `v2-academic-classes` | 15 | 15 |
-| `academic-subjects` | `v2-academic-subjects` | 6 | 6 |
-| `academic-subject-groups` | `v2-academic-subject-groups` | 17 | 17 |
-| `activity-logs` | `v2-activity-logs` | 2 | 2 |
-| `student-enrollments` | `v2-student-enrollments` | 55 | 55 |
-
-Production (NOT run): after a backup, deploy the new code and run once, in the same release:
-`cd backend && node scripts/migrate-v2-collection-names.js --dry-run && node scripts/migrate-v2-collection-names.js`
-
-## Rule 23.9 renames
-All files below wrap a v2 model and are reached only from v2 code (checked against the v1 require graph: 0 shared). Every `require`, comment path and planning-doc path was updated; API URLs, route paths, permission keys, env keys and response shapes are unchanged.
-- helpers: `academic-session/v2-session-resolver`, `academic-setup/v2-class-structure`, `academic-setup/v2-dependents`, `approvals/v2-sources`, `attendance/v2-context`, `certificates/v2-tc-context`, `dashboard/v2-widgets`, `examination/v2-admit-card-generation`, `examination/v2-exam-context`, `examination/v2-result-lookup`, `fees/v2-fee-context`, `fees/v2-fee-promotion`, `fees/v2-fee-record-sync`, `fees/v2-fee-reminder`, `fees/v2-fee-structure-resolver`, `holiday/v2-context`, `leave/v2-context`, `payroll/v2-context`, `payroll/v2-generate`, `settings/v2-class-options`, `settings/v2-field-config.utils`, `settings/v2-marksheet-catalog-loader`, `settings/v2-owner-bootstrap`, `settings/v2-session-copy-forward`, `staff/v2-dependents`, `staff/v2-lookups`, `student/v2-student.utils`, `student/v2-student-write`.
-- services: `v2-activity-log.service`, `attendance-v2/v2-{auto-sync,ingest,live-stats,reconcile,shift-lookup}`, `calendar/v2-working-day`, `holiday/v2-holiday-calendar`, `payroll/v2-cron-payroll-confirmation`, `payroll/v2-payroll-attendance`, `pdf/v2-letterhead.service`.
-- scripts: `v2-check-academic-setup-duplicates`, `v2-migrate-academic-setup-fix5`, `v2-migrate-student-admission-class`, `v2-migrate-student-sessions`, `v2-migrate-students`, `v2-seed-marksheet-templates`, and every v2 test → `v2-test-*` (24 files incl. `v2-test-model-names`, new `v2-test-shared-fix5-live`).
-- functions: `logActivity` → `logActivityV2`; `staffCounts`/`departmentCounts`/`designationCounts` → `…V2`. Other exported function names were kept (the file name carries the v2 prefix) — owner to decide if every export should also be renamed.
 
 ## Non-v2 still used (Claude Code fills)
 | File | Used by | Why not renamed |
 |---|---|---|
-| `modules/models/devices/device.js` | `attendance-v2/v2-ingest.js`, `v2-auto-sync.js` (read); `v2-test-attendance-api.js`, `v2-test-attendance-failure.js` (create a throwaway device fixture) | Rule 23.4 allowed legacy read; the two tests write a fixture device for a throwaway school and delete it |
-| `modules/middleware/socket-auth.js` | v2 live-attendance sockets + legacy teacher sockets | shared with legacy (reads `teacher`, `teacher-user`) |
-| `scripts/test-auth-refresh.js` | checks v1 and v2 auth | shared with legacy |
-| `modules/services/cache/*`, `helpers/with-transaction`, `errors`, middleware | v2 + app | wrap no model |
 
 ## Still on legacy (Claude Code fills)
-| File | Legacy model used | Why not switched |
+| File | Legacy model used | Why not switched (no v2 equivalent / schema differs) |
 |---|---|---|
-| `scripts/v2-migrate-students.js` | `student` (read-only) | it IS the one-time legacy → v2 copy script; owner to delete once every school is migrated (exempted by name in the guard) |
 
 ## Also list
-- Unused but not deleted: `modules/helpers/examination/v2-result-lookup.js` — 0 importers; its model `v2-exam-results` was not counted/deleted here (step 6 not in scope): needs owner.
-- Models pointing at a legacy collection (23.3): none (guard test "v2 models never share a collection with a legacy model").
-- Legacy models still used by v2 code: only `device` (guard test enforces it; `KNOWN_LEGACY` is empty).
-- Owner: build a v2 School Profile page (writer for `v2-school-profiles`); until then letterhead/state/reminder sender name are blank.
-- Owner: people already synced to WDMS through legacy `biometric-mappings` have no `wdmsId` on their v2 row — today that is only 2 legacy staff, no v2 person.
-
+- Unused but not deleted (referenced or has data): needs owner.
+- Models that point at a legacy collection (Rule 23.3), not changed.
+- Legacy models still used by v2 code, if any (should be only `device`).

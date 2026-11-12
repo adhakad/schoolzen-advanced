@@ -1,6 +1,6 @@
 # Schoolzen — UI/UX Planning Package
 
-**Status: FINAL.** All 13 modules (38 pages) below are locked and approved. This package was rebuilt from scratch from the final design set — every `.html` is the exact approved reference, every `.md` was written by reading that exact file (not guessed or carried over from an older draft).
+**Status: FINAL.** All 13 modules (39 pages) below are locked and approved. This package was rebuilt from scratch from the final design set — every `.html` is the exact approved reference, every `.md` was written by reading that exact file (not guessed or carried over from an older draft).
 
 ## How to use this package
 
@@ -25,7 +25,7 @@
 | 9 | Examination | Marksheet Structure, Generate Marksheet, Admit Card Structure, Generate Admit Card | Academic Setup, Student |
 | 10 | Certificates | TC Structure, Generate TC | Student |
 | 11 | Approvals | Requests | Leave (must have real data) |
-| 12 | Settings | Academic Sessions, Admission Form Fields, Roles & Permissions, Marksheet Templates | Student, Staff, Examination |
+| 12 | Settings | Academic Sessions, Admission Form Fields, Roles & Permissions, Marksheet Templates, School Profile | Student, Staff, Examination |
 | 13 | Dashboard | Dashboard | almost everything — build last |
 
 ## Locked global rules

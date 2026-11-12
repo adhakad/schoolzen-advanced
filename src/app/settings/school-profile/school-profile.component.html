@@ -1,0 +1,89 @@
+<!-- School Profile. Reference: docs/schoolzen-planning/v1/settings/school-profile.html -->
+
+<div class="page-head"><div><h1>School Profile</h1><div class="subtitle">Your school's name, address and contacts. Printed on every letterhead (certificates, admit cards, marksheets, receipts) and used as the sender name in fee reminders.</div></div></div>
+
+<div class="tbl-empty load-error" *ngIf="loadError && !loading" role="alert">
+  <i class="bi bi-exclamation-circle"></i> {{ loadError }}
+  <button type="button" class="link-btn" (click)="fetch()">Retry</button>
+</div>
+
+<app-skeleton *ngIf="loading" kind="cards" [count]="2" [height]="420" (retry)="fetch()"></app-skeleton>
+
+<ng-container *ngIf="!loading && !loadError">
+  <div class="pf-empty" id="emptyNote" *ngIf="!profile"><i class="bi bi-info-circle"></i><span>No school profile saved yet. Letterheads currently print "SCHOOL" with no address. Fill the fields below and save.</span></div>
+
+  <div class="layout-row" [formGroup]="form">
+    <div class="sw-card-main">
+      <h2 class="pf-sec">School identity</h2>
+      <div class="pf-grid">
+        <div class="pf-field full"><label>School Logo</label>
+          <div class="pf-logo">
+            <div class="pf-logo-box" id="logoBox"><img *ngIf="logoPreview; else logoIni" [src]="logoPreview" alt="" /><ng-template #logoIni>{{ initials }}</ng-template></div>
+            <div>
+              <button class="btn-plain" type="button" (click)="logoInput.click()"><i class="bi bi-upload"></i> Upload logo</button>
+              <input #logoInput type="file" accept="image/png,image/jpeg" hidden (change)="onLogoPicked($event)" />
+              <div class="hint">PNG or JPG, square, up to 100 KB. Shown on letterheads.</div>
+              <div class="pf-err" *ngIf="logoError">{{ logoError }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="pf-field full"><label for="fName">School Name *</label><input id="fName" formControlName="schoolName" type="text" maxlength="50" placeholder="Green Valley Public School"><div class="pf-err" *ngIf="showError('schoolName') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fBoard">Affiliated Board *</label><select id="fBoard" formControlName="board">
+          <option value="" disabled>Select board</option>
+          <optgroup *ngFor="let g of boards" [label]="g.label">
+            <option *ngFor="let b of g.boards" [value]="b">{{ b }}</option>
+          </optgroup>
+        </select><div class="hint">District-recognised schools (up to Class 8) choose "District Education Office". Other states have their own board in the list.</div><div class="pf-err" *ngIf="showError('board') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fMed">Medium *</label><select id="fMed" formControlName="medium"><option *ngFor="let m of mediums" [value]="m">{{ m }}</option></select></div>
+        <div class="pf-field"><label for="fAff">Affiliation / Recognition Number *</label><input id="fAff" formControlName="affiliationNumber" type="text" maxlength="15" placeholder="Up to 15 characters"><div class="pf-err" *ngIf="showError('affiliationNumber') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fCode">School Code *</label><input id="fCode" formControlName="schoolCode" type="text" maxlength="15" placeholder="Up to 15 characters"><div class="pf-err" *ngIf="showError('schoolCode') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fYear">Founded Year *</label><input id="fYear" formControlName="foundedYear" type="text" inputmode="numeric" maxlength="4" placeholder="1998"><div class="hint">Four digits, starting with 19 or 20.</div><div class="pf-err" *ngIf="showError('foundedYear') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fUdise">UDISE Number</label><input id="fUdise" formControlName="udiseNumber" type="text" inputmode="numeric" maxlength="11" placeholder="11-digit UDISE code"><div class="pf-err" *ngIf="showError('udiseNumber') as e">{{ e }}</div></div>
+        <div class="pf-field full"><label for="fPrin">Principal Name</label><input id="fPrin" formControlName="principalName" type="text" maxlength="50" placeholder="Name shown on certificates"><div class="pf-err" *ngIf="showError('principalName') as e">{{ e }}</div></div>
+      </div>
+
+      <h2 class="pf-sec">Address</h2>
+      <div class="pf-grid">
+        <div class="pf-field full"><label for="fAddr">Street *</label><input id="fAddr" formControlName="street" type="text" maxlength="100" placeholder="Street, area"><div class="pf-err" *ngIf="showError('street') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fCity">City / Town *</label><input id="fCity" formControlName="city" type="text" maxlength="50"><div class="pf-err" *ngIf="showError('city') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fDist">District *</label><input id="fDist" formControlName="district" type="text" maxlength="50"><div class="pf-err" *ngIf="showError('district') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fState">State *</label><select id="fState" formControlName="state"><option value="" disabled>Select state</option><option *ngFor="let s of states" [value]="s">{{ s }}</option></select><div class="pf-err" *ngIf="showError('state') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fPin">Pin Code *</label><input id="fPin" formControlName="pinCode" type="text" inputmode="numeric" maxlength="6"><div class="pf-err" *ngIf="showError('pinCode') as e">{{ e }}</div></div>
+      </div>
+
+      <h2 class="pf-sec">Contact</h2>
+      <div class="pf-grid">
+        <div class="pf-field"><label for="fPhone">Contact Number *</label><input id="fPhone" formControlName="phoneOne" type="text" inputmode="numeric" maxlength="10"><div class="hint">10 digits, numbers only.</div><div class="pf-err" *ngIf="showError('phoneOne') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fPhone2">Alternate Number</label><input id="fPhone2" formControlName="phoneSecond" type="text" inputmode="numeric" maxlength="10" placeholder="Optional, 10 digits"><div class="pf-err" *ngIf="showError('phoneSecond') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fMail">Email *</label><input id="fMail" formControlName="email" type="text" placeholder="office@school.in"><div class="pf-err" *ngIf="showError('email') as e">{{ e }}</div></div>
+        <div class="pf-field"><label for="fWeb">Website</label><input id="fWeb" formControlName="website" type="text" maxlength="100" placeholder="www.school.in"></div>
+      </div>
+
+      <h2 class="pf-sec">Messages</h2>
+      <div class="pf-grid">
+        <div class="pf-field full"><label for="fSender">Sender name for fee reminders *</label><input id="fSender" formControlName="senderName" type="text" maxlength="50"><div class="hint">Shown as the school name in WhatsApp fee reminders to parents.</div><div class="pf-err" *ngIf="showError('senderName') as e">{{ e }}</div></div>
+      </div>
+
+      <div class="pf-err pf-save-err" *ngIf="saveError" role="alert">{{ saveError }}</div>
+      <div class="pf-savebar">
+        <span class="pf-meta" id="meta">{{ metaLine }}</span>
+        <button class="btn-brand" id="saveBtn" type="button" [disabled]="!canSave" (click)="saveProfile()"><span class="btn-spinner" *ngIf="isClick"></span>Save Changes</button>
+      </div>
+    </div>
+
+    <div class="pf-side sw-card-main">
+      <h3>Letterhead preview</h3>
+      <p class="m-hint">How the top of a printed certificate will look.</p>
+      <div class="lh">
+        <div class="lh-top">
+          <div class="lh-logo" id="pvLogo"><img *ngIf="logoPreview; else pvIni" [src]="logoPreview" alt="" /><ng-template #pvIni>{{ initials }}</ng-template></div>
+          <div><div class="lh-name" id="pvName">{{ displayName }}</div><div class="lh-sub" id="pvSub">{{ lines.sub }}</div></div>
+        </div>
+        <div class="lh-addr" id="pvAddr">{{ lines.address }}<ng-container *ngIf="lines.contact"><br>{{ lines.contact }}</ng-container></div>
+        <div class="lh-lines"><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<div class="pf-toast" id="toast" [class.show]="toastVisible" role="status">School profile saved</div>

@@ -1,5 +1,6 @@
 'use strict';
 const SchoolProfileV2Model = require('../../models/settings/school-profile');
+const { letterheadLines } = require('../../helpers/settings/v2-school-profile-lists');
 
 // THE letterhead template service — one for every printable document in the app.
 //
@@ -32,23 +33,19 @@ const buildLetterheadDocument = async ({ adminId, title, subtitle, sectionLabel,
         'schoolName schoolLogo affiliationNumber schoolCode board street city district state pinCode phoneOne email'
     ).lean();
 
-    const addressLine = school
-        ? [school.street, school.city, [school.state, school.pinCode].filter(Boolean).join(' - ')]
-            .filter(Boolean).join(', ')
-        : '';
-    const contactLine = school ? [school.phoneOne, school.email].filter(Boolean).join(' · ') : '';
-    const affiliation = school
-        ? [school.board ? `Recognized by ${String(school.board).toUpperCase()}` : null,
-            school.affiliationNumber ? `Affiliation No. ${school.affiliationNumber}` : null]
-            .filter(Boolean).join(' · ')
-        : '';
+    // Same text rules as the Settings → School Profile live preview (letterheadLines), so the
+    // printed header is exactly what the admin saw while typing.
+    const lines = school ? letterheadLines(school) : null;
+    const contactLine = lines ? lines.contact : '';
+    const addressLine = lines ? lines.address : '';
+    const affiliation = lines ? lines.sub : '';
 
     return {
         header: {
             schoolName: school ? String(school.schoolName || '').toUpperCase() : 'SCHOOL',
             logoUrl: (school && school.schoolLogo) || null,
-            // Two meta lines under the name, exactly like the reference letter.
-            metaLines: [affiliation, [addressLine, contactLine].filter(Boolean).join(' · ')].filter(Boolean),
+            // Under the name: board · affiliation · code, then address, then phone · email.
+            metaLines: [affiliation, addressLine, contactLine].filter(Boolean),
             // The certificate codes row (Transfer Certificate prints both above its fields).
             schoolCode: (school && school.schoolCode) || null,
             affiliationNumber: (school && school.affiliationNumber) || null,

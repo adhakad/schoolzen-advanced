@@ -35,7 +35,7 @@ const MODULE_LABELS: Readonly<Record<string, string>> = {
   certificates: 'Certificates', 'tc-structure': 'TC Structure', 'tc-generate': 'Issue / Cancel TC',
   payroll: 'Payroll', 'payroll-assign': 'Assign Salary', 'payroll-generate': 'Generate Payroll',
   'payroll-payout': 'Salary Payouts', approvals: 'Approvals', 'approvals-action': 'Approve / Reject Requests',
-  settings: 'Settings'
+  settings: 'Settings', 'settings-school-profile': 'School Profile'
 };
 const MODULE_ICONS: Readonly<Record<string, string>> = {
   student: 'mortarboard', staff: 'people', attendance: 'calendar-check', 'attendance-mark': 'person-check', 'attendance-edit-past': 'calendar-x', marksheet: 'journal-text',
@@ -44,7 +44,7 @@ const MODULE_ICONS: Readonly<Record<string, string>> = {
   fees: 'wallet2', 'fees-structure': 'list-ul', 'fees-collect': 'cash', 'fees-waiver': 'percent', payroll: 'cash-stack', 'payroll-assign': 'person-check', 'payroll-generate': 'play-circle',
   'payroll-payout': 'cash-coin', certificates: 'award', 'tc-structure': 'list-ol', 'tc-generate': 'file-earmark-arrow-up',
   approvals: 'check-circle', 'approvals-action': 'check2-square',
-  settings: 'gear'
+  settings: 'gear', 'settings-school-profile': 'building'
 };
 const SCOPE_FIELDS: readonly string[] = ['classId', 'streamId', 'sectionId', 'staffId'];
 const PAGE_SIZE = 25;

@@ -4,6 +4,7 @@ import { AcademicSessionsComponent } from './academic-sessions/academic-sessions
 import { AdmissionFormFieldsComponent } from './admission-form-fields/admission-form-fields.component';
 import { RolesPermissionsComponent } from './roles-permissions/roles-permissions.component';
 import { MarksheetTemplatesComponent } from './marksheet-templates/marksheet-templates.component';
+import { SchoolProfileComponent } from './school-profile/school-profile.component';
 
 // Mounted by v2-routing.module.ts at /v2/settings — matches the sidebar's routes.
 const routes: Routes = [
@@ -11,7 +12,8 @@ const routes: Routes = [
   { path: 'academic-sessions', component: AcademicSessionsComponent },
   { path: 'admission-form-fields', component: AdmissionFormFieldsComponent },
   { path: 'roles-permissions', component: RolesPermissionsComponent },
-  { path: 'marksheet-templates', component: MarksheetTemplatesComponent }
+  { path: 'marksheet-templates', component: MarksheetTemplatesComponent },
+  { path: 'school-profile', component: SchoolProfileComponent }
 ];
 
 @NgModule({

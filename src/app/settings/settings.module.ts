@@ -1,6 +1,6 @@
 /**
  * Settings — module 12: Academic Sessions, Admission Form Fields, Roles & Permissions,
- * Marksheet Templates. Routing and declarations ONLY; services/models live in
+ * Marksheet Templates, School Profile. Routing and declarations ONLY; services/models live in
  * shared/services/settings/ and shared/models/settings/ (frontend-backend-folder-structure.md).
  */
 import { NgModule } from '@angular/core';
@@ -10,13 +10,15 @@ import { AcademicSessionsComponent } from './academic-sessions/academic-sessions
 import { AdmissionFormFieldsComponent } from './admission-form-fields/admission-form-fields.component';
 import { RolesPermissionsComponent } from './roles-permissions/roles-permissions.component';
 import { MarksheetTemplatesComponent } from './marksheet-templates/marksheet-templates.component';
+import { SchoolProfileComponent } from './school-profile/school-profile.component';
 
 @NgModule({
   declarations: [
     AcademicSessionsComponent,
     AdmissionFormFieldsComponent,
     RolesPermissionsComponent,
-    MarksheetTemplatesComponent
+    MarksheetTemplatesComponent,
+    SchoolProfileComponent
   ],
   imports: [SharedComponentsModule, SettingsRoutingModule]
 })

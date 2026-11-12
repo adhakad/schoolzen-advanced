@@ -71,4 +71,7 @@ const logActivityV2 = async (req, { module, action, targetId = null, meta, chang
     else await ActivityLogModel.create(entry);
 };
 
-module.exports = { logActivityV2 };
+/** The acting person's display name — the same name logActivityV2() stores (cached per request). */
+const actorNameV2 = async (req, adminId) => resolveActorName(req, adminId, actorOf(req).actorName);
+
+module.exports = { logActivityV2, actorNameV2 };

@@ -17,7 +17,7 @@ run the build and the tests you wrote; do not report PASS for anything you have 
 
 ## Global sweep run order (use when the prompt says "global sweep")
 Global means ALL built modules and ALL pages. Do in this order, in one run:
-1. Shared layer, built once (global stylesheet + shared components): Overview-style filter grid with the month filter as its last cell (R14), 3-letter month names (R20), bulk button naming and equal size, 2 per row on mobile (R15), sticky shadow token (R16), no overflow at 390px (R17), R21 toolbar, R22 skeleton, R23 model names (`node backend/scripts/v2-test-model-names.js`).
+1. Shared layer, built once (global stylesheet + shared components): Overview-style filter grid with the month filter as its last cell (R14), 3-letter month names (R20), bulk button naming and equal size, 2 per row on mobile (R15), sticky shadow token (R16), no overflow at 390px (R17), R21 toolbar, R22 skeleton.
 2. Session source (R18): do `shared/shared-fix2.md` fully, including its page-by-page audit table.
 3. Sweep every page of every module (Dashboard, Student, Academic Setup, Staff, Attendance, Leave, Holiday, Payroll, Fees, Examination, Certificates, Approvals, Settings): switch to the shared pieces, remove per-page copies, check at 390px and desktop. Do not change the date columns of calendar grids in tables.
 4. The module fix file named in the prompt (e.g. `attendance/attendance-fix4.md`, A, B, C). Today column is a normal date column that scrolls with the others, opened at the right end of the visible area (R19).
@@ -85,28 +85,28 @@ Global means ALL built modules and ALL pages. Do in this order, in one run:
  f. Guard test fails on a v2 model/helper without the v2 name, on a v2 import of a legacy model (except `device`), and on a v2 model with a non-"v2-" collection.
 
 ## Status (Claude Code updates this after each module run)
-| Module | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15 | R16 | R17 | R18 | R19 | R20 | R21 | R22 | R23 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Attendance | partial | done | done | done | partial | done | done | done | partial | done | done | done | done | done | - | - | - | - | - | - | done | done | done |
-| Student | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Academic Setup | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Staff | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Leave | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Holiday | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Fees | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Certificates | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Approvals | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Settings | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | partial | done |
-| Dashboard | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | n/a | partial | done |
-| Payroll | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
-| Examination | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done | done |
+| Module | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | R12 | R13 | R14 | R15 | R16 | R17 | R18 | R19 | R20 | R21 | R22 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Attendance | partial | done | done | done | partial | done | done | done | partial | done | done | done | done | done | - | - | - | - | - | - | done | done |
+| Student | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Academic Setup | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Staff | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Leave | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Holiday | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Fees | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Certificates | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Approvals | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Settings | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | partial |
+| Dashboard | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | - | n/a | partial |
+| Payroll | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
+| Examination | - | - | - | - | - | - | - | - | - | - | - | - | - | done | - | - | - | - | - | - | done | done |
 
 `-` = not checked yet. Add a short "Notes" list under the table for every partial / not done.
 
 ### Notes — Attendance (2026-10-17)
 - R1 partial: Overview mark popover verified 8px under its cell (Playwright); Roster "Applies to Month" picker is a popover. Other `.dd` overlays not re-checked one by one in this run.
 - R5 partial: live `GET /grid` measured at 1.9–3.5 s (staff, 3 people) and ~0.95 s (students) on the remote cluster. No optimisation done in this run, so there is no before/after.
-- R9 partial: ran unit/spec (Karma), backend pure tests, live real-DB tests (`v2-test-attendance-mark`, `v2-test-working-day`) and browser tests (Playwright parity for Overview, Roster, Manage Shifts). There is no dedicated failure/rollback suite; refusal paths are covered inside the live tests.
+- R9 partial: ran unit/spec (Karma), backend pure tests, live real-DB tests (`test-attendance-mark-v2`, `test-working-day`) and browser tests (Playwright parity for Overview, Roster, Manage Shifts). There is no dedicated failure/rollback suite; refusal paths are covered inside the live tests.
 - Device punches: the pipeline code works, but zero punches reach v2. The terminal (GED7261701240) has sent nothing to WDMS since 2026-08-27, and its 2 enrolled codes belong to legacy `staffs` ids, not v2 Staff. v2 staff are never enrolled on WDMS. Needs a v2 Staff → WDMS enrolment (Staff module) plus re-enrolment on the device.
 ### Notes — shared-fix3 (2026-10-31)
 - R14 done on every page with a filter row (audit table and measurements in `shared/shared-fix3.md`; `e2e/shared-fix3-filters.spec.ts` 35/35). Approvals partial: no Stream Group filter. Dashboard has no filter row. Other rule columns were not re-checked in this run.
@@ -124,7 +124,3 @@ Global means ALL built modules and ALL pages. Do in this order, in one run:
 
 ### Rule 7 update (2026-10-18)
 Month filter is now exactly one filter cell wide (not 178px) and month names are 3 letters ("Sep 2026"). Superseded on 2026-10-19 by Rules 14 and 7: it is the last cell of the filter grid. Every module with a month filter must be re-checked: R7 = not done until fixed (Attendance Overview, Roster, Leave, Holiday, Payroll and any other).
-
-### Notes — shared-fix5: Rule 23 v2 naming (2026-11-11)
-- R23 done for every module: v2 models/collections are `v2-*` (5 collections renamed on the dev DB by `backend/scripts/migrate-v2-collection-names.js`, counts identical; production NOT run — command in `shared/shared-fix5.md`), v2 code imports no legacy model except the read-only `device`, wrapper helpers/services/scripts/tests are `v2-*`. Guard: `node backend/scripts/v2-test-model-names.js`.
-- Owner follow-ups: no v2 School Profile page writes `v2-school-profiles` yet (letterhead shows "SCHOOL" until it exists); see `shared/shared-fix5.md` "Also list".

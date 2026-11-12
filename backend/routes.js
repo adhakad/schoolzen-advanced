@@ -89,6 +89,7 @@ module.exports = app => {
     app.use('/api/v2/settings', require('./modules/routes/settings/admission-form-fields.routes'));
     app.use('/api/v2/settings', require('./modules/routes/settings/roles-permissions.routes'));
     app.use('/api/v2/settings', require('./modules/routes/settings/marksheet-templates.routes'));
+    app.use('/api/v2/settings', require('./modules/routes/settings/school-profile.routes'));
     // Module 13 — Dashboard. One read-only aggregation; each widget gated by its own grant.
     app.use('/api/v2/dashboard', require('./modules/routes/dashboard/dashboard.routes'));
 };

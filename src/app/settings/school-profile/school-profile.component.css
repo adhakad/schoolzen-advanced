@@ -1,0 +1,83 @@
+/* Only what school-profile.html adds beyond the global design system (copied class-for-class). */
+
+.pf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+.pf-grid .full { grid-column: 1 / -1; }
+.pf-sec { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 500; margin: 0 0 12px; color: var(--ink); }
+.pf-sec + .pf-grid { margin-bottom: 22px; }
+.pf-field { min-width: 0; }
+.pf-field label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
+.pf-field input, .pf-field select {
+  width: 100%; height: 38px; border: 1px solid var(--line); border-radius: var(--radius); padding: 0 12px;
+  font: inherit; font-size: 13.5px; color: var(--ink); background: #fff; outline: none; box-sizing: border-box;
+}
+.pf-field input:focus, .pf-field select:focus { border-color: var(--brand); }
+.pf-field input.ng-invalid.ng-dirty, .pf-field select.ng-invalid.ng-touched { border-color: var(--danger); }
+.pf-field .hint { font-size: 11.5px; color: var(--ink-faint); margin-top: 4px; }
+.pf-err { font-size: 11.5px; color: var(--danger); margin-top: 4px; }
+.pf-save-err { margin: 0 0 10px; }
+.pf-logo { display: flex; align-items: center; gap: 14px; }
+.pf-logo-box {
+  width: 64px; height: 64px; border-radius: var(--radius); border: 1px dashed var(--line); background: #FBFAFD; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 20px; color: var(--brand); overflow: hidden;
+}
+.pf-logo-box img, .lh-logo img { width: 100%; height: 100%; object-fit: contain; }
+.pf-savebar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border-top: 1px solid var(--line-soft); margin: 6px -20px -20px; padding: 14px 20px;
+}
+.pf-meta { font-size: 12px; color: var(--ink-faint); }
+.pf-side { width: 340px; flex: none; position: sticky; top: 16px; }
+.pf-side h3 { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 500; margin: 0 0 4px; }
+.pf-side .m-hint { font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; margin: 0 0 12px; }
+
+.btn-plain {
+  height: 38px; padding: 0 16px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-soft); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-brand {
+  height: 38px; padding: 0 18px; border-radius: var(--radius); border: none; background: var(--ink); color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; flex-shrink: 0;
+}
+.btn-brand:disabled { background: var(--line-soft); color: var(--ink-faint); cursor: not-allowed; }
+
+/* Letterhead preview: name + sub line centred; the logo sits absolutely on the left, inside the
+   54px side padding, and ends 12px above the divider (bottom:12px), so it never touches it. */
+.lh { border: 1px solid var(--line); border-radius: var(--radius); background: #fff; padding: 16px 16px 10px; }
+.lh-top {
+  position: relative; display: flex; align-items: center; justify-content: center; box-sizing: content-box;
+  min-height: 44px; padding: 0 54px 12px; border-bottom: 2px solid var(--brand); text-align: center;
+}
+.lh-logo {
+  position: absolute; left: 0; top: 0; bottom: 12px; margin: auto 0; width: 44px; height: 44px; border-radius: 8px;
+  background: var(--brand-soft, #F1EAFF); color: var(--brand); display: flex; align-items: center; justify-content: center;
+  font-family: 'Fraunces', serif; font-size: 15px; flex-shrink: 0; overflow: hidden;
+}
+.lh-name { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.lh-sub { font-size: 11px; color: var(--ink-soft); margin-top: 2px; overflow-wrap: anywhere; }
+.lh-addr { font-size: 11px; color: var(--ink-soft); text-align: center; padding: 8px 0 2px; overflow-wrap: anywhere; }
+.lh-lines { padding: 14px 0 6px; }
+.lh-lines i { display: block; height: 6px; border-radius: 3px; background: #ECE8F4; margin-bottom: 7px; }
+.lh-lines i:nth-child(2) { width: 80%; }
+.lh-lines i:nth-child(3) { width: 60%; }
+
+.pf-empty {
+  background: #FFF8E6; border: 1px solid #F1DFA6; color: #7A5A00; border-radius: var(--radius);
+  padding: 10px 12px; font-size: 12.5px; margin-bottom: 16px; display: flex; gap: 8px;
+}
+.pf-toast {
+  position: fixed; right: 20px; bottom: 20px; background: #1E1730; color: #fff; font-size: 12.5px;
+  padding: 10px 14px; border-radius: 8px; display: none; z-index: 80;
+}
+.pf-toast.show { display: block; }
+
+@media (max-width: 900px) {
+  .layout-row { flex-direction: column; align-items: stretch; width: 100%; }
+  .pf-side { width: 100%; flex: none; position: static; }
+  .sw-card-main { width: 100%; }
+  .page-head { display: block; }
+}
+@media (max-width: 640px) {
+  .pf-grid { grid-template-columns: 1fr; }
+  .pf-savebar { flex-direction: column; align-items: stretch; }
+  .pf-savebar .btn-brand { width: 100%; height: 44px; }
+}

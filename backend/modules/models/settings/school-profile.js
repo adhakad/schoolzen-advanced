@@ -13,6 +13,8 @@ const SchoolProfileSchema = new mongoose.Schema({
     affiliationNumber: { type: String, trim: true, default: null },
     schoolCode: { type: String, trim: true, default: null },
     foundedYear: { type: Number, default: null },
+    udiseNumber: { type: String, trim: true, default: null },
+    principalName: { type: String, trim: true, default: null },
     board: { type: String, trim: true, default: null },
     medium: { type: String, trim: true, default: null },
     street: { type: String, trim: true, default: null },
@@ -24,6 +26,11 @@ const SchoolProfileSchema = new mongoose.Schema({
     phoneOne: { type: String, trim: true, default: null },
     phoneSecond: { type: String, trim: true, default: null },
     email: { type: String, trim: true, lowercase: true, default: null },
+    website: { type: String, trim: true, default: null },
+    // Sender name in WhatsApp fee reminders; defaults to schoolName on the first save.
+    senderName: { type: String, trim: true, default: null },
+    // Shown as "Last saved ... by <name>" (resolved the same way as the activity log actor).
+    updatedByName: { type: String, trim: true, default: null },
     createdBy: { type: String, default: 'system' },
     updatedBy: { type: String, default: 'system' },
     createdAt: { type: Date, default: Date.now },

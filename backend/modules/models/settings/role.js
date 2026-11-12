@@ -32,12 +32,13 @@ const mongoose = require('mongoose');
 // Attendance: 'attendance' views/maintains Overview, Shifts and Roster; 'attendance-mark'
 // (edit) is the explicit grant to mark a person Present / Late / Absent by hand today;
 // 'attendance-edit-past' (edit) is the separate grant to change a PAST rostered working day.
+// Settings: 'settings-school-profile' views/saves the School Profile (letterhead + sender name).
 const PERMISSION_MODULES = Object.freeze([
     'student', 'staff', 'attendance', 'attendance-mark', 'attendance-edit-past', 'marksheet', 'marksheet-structure', 'admit-card', 'admit-card-structure', 'leave', 'leave-limit', 'holiday', 'holiday-assign',
     'fees', 'fees-structure', 'fees-collect', 'fees-waiver',
     'certificates', 'tc-structure', 'tc-generate',
     'payroll', 'payroll-assign', 'payroll-generate', 'payroll-payout',
-    'approvals', 'approvals-action', 'settings',
+    'approvals', 'approvals-action', 'settings', 'settings-school-profile',
 ]);
 
 const RoleSchema = new mongoose.Schema({

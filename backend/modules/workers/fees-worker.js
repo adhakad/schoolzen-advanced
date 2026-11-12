@@ -44,7 +44,7 @@ const processReminder = async (job) => {
     const { adminId, sessionId, studentIds } = job.data;
     const now = new Date();
     const [school, profiles, ledgers, enrollments, classIndex] = await Promise.all([
-        SchoolProfileV2Model.findOne({ adminId }, 'schoolName').lean(),
+        SchoolProfileV2Model.findOne({ adminId }, 'schoolName senderName').lean(),
         loadProfiles(adminId, studentIds),
         loadLedgerData(adminId, studentIds),
         StudentEnrollmentModel.find({ adminId, sessionId, studentId: { $in: studentIds } }, 'studentId classId class streamId groupId sectionId').lean(),
@@ -70,7 +70,7 @@ const processReminder = async (job) => {
         const enrollment = enrollmentOf.get(String(studentId));
         const className = enrollment ? placementLabels(classIndex, new Map(), enrollment).className : '';
         try {
-            await sendManualFeeReminder(mobile, (school && school.schoolName) || '', profile.fatherName || 'Parent',
+            await sendManualFeeReminder(mobile, (school && (school.senderName || school.schoolName)) || '', profile.fatherName || 'Parent',
                 snapshot.ledger.totals.totalDue.toLocaleString('en-IN'), profile.name, className || '', payByText(now));
             await markDelivery(delivery._id, { status: 'sent', sentAt: new Date(), reason: null });
             sentRecordIds.push(snapshot.record._id);

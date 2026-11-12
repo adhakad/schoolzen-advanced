@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Schoolzen — School Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root{ --paper:#F8F6FC; --surface:#FFFFFF; --ink:#1E1730; --ink-soft:#4F4A63; --ink-faint:#837C97;
+    --line:#E3DEEF; --line-soft:#EEEAF6; --brand:#8C52FF; --brand-deep:#6425D9; --brand-soft:#F2EAFF;
+    --slate:#6B5B95; --slate-soft:#EFE7F8; --danger:#B65C4A; --danger-soft:#F7EBE8;
+    --success:#1E7A46; --success-soft:#E7F4EC; --warning:#9A6A16; --warning-soft:#FBF1DE;
+    --sidebar:#181321; --sidebar-active:#2A2138; --radius:6px; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter', sans-serif; background:var(--paper); color:var(--ink); display:flex; min-height:100vh; font-size:14px; }
+  .icon{ font-size:15px; margin-right:10px; opacity:.85; width:16px; display:inline-flex; justify-content:center; }
+  .chevron{ font-size:11px; color:var(--ink-faint); flex-shrink:0; transition:transform .15s; }
+  .dd.open .chevron{ transform:rotate(180deg); }
+  .sidebar{ width:248px; height:100vh; position:sticky; top:0; background:var(--sidebar); color:#C9CDD6; flex-shrink:0; display:flex; flex-direction:column; padding:22px 0; overflow:hidden; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:0 22px 20px 22px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.14); font-weight:700; color:#fff; font-size:16px; }
+  nav{ padding:14px 12px; display:flex; flex-direction:column; gap:6px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent; }
+  nav::-webkit-scrollbar{width:6px;} nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18); border-radius:10px;}
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:13px 12px; border-radius:6px; color:#AEB4C0; font-size:13.5px; cursor:pointer; text-decoration:none; }
+  .nav-item:hover{background:rgba(255,255,255,0.05); color:#fff;}
+  .nav-item.active{background:var(--sidebar-active); color:#fff; position:relative;}
+  .nav-item.active::before{ content:''; position:absolute; left:0; top:5px; bottom:5px; width:3px; background:var(--brand); border-radius:0 3px 3px 0; }
+  .nav-item.active .chevron{ transform:rotate(180deg); color:#fff; }
+  .nav-sub{ position:relative; display:flex; flex-direction:column; margin:8px 0 10px 20px; gap:8px; padding-left:18px; }
+  .nav-sub::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:1px; background:rgba(212,196,255,0.38); }
+  .nav-sub a{ padding:7px 10px; font-size:13.5px; color:#8A93A3; text-decoration:none; border-radius:5px; display:flex; justify-content:space-between; align-items:center; }
+  .nav-sub a.current{color:#ae86ff; font-weight:600;}
+  .main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--line); background:var(--surface); }
+  .crumb{color:var(--ink-faint); font-size:13px;} .crumb b{color:var(--ink); font-weight:600;}
+  .top-actions{display:flex; align-items:center; gap:16px;}
+  .year-pill{ font-size:13px; color:var(--ink-soft); border:1px solid var(--line); border-radius:20px; padding:6px 14px; display:flex; align-items:center; gap:6px; }
+  .year-pill .bi{color:var(--brand);}
+  .profile{ display:flex; align-items:center; gap:9px; padding:5px 12px 5px 5px; border:1px solid var(--line); border-radius:24px; cursor:pointer; }
+  .profile:hover{border-color:var(--slate);}
+  .avatar{ width:30px; height:30px; border-radius:50%; background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .profile-name{font-size:13.5px; font-weight:600; color:var(--ink);}
+  .dd{position:relative;} .dd-trigger{cursor:pointer; user-select:none;}
+  .dd-menu{ display:none; position:absolute; top:calc(100% + 8px); right:0; min-width:max(100%,165px); width:max-content; max-width:260px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:0 10px 26px rgba(30,23,48,0.14); z-index:60; padding:6px; max-height:260px; overflow-y:auto; }
+  .dd.open .dd-menu{display:block;} .dd-menu.align-left{right:auto; left:0;}
+  .dd-option{padding:9px 10px; border-radius:6px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:10px;}
+  .dd-option:hover{background:var(--brand-soft); color:var(--brand);}
+  .dd-option.selected{color:var(--brand); font-weight:600;} .dd-divider{height:1px; background:var(--line-soft); margin:6px 2px;}
+  .dd-option.danger{color:var(--danger);} .dd-option.danger:hover{background:var(--danger-soft);}
+  .dd-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;}
+  .drop-school{ display:flex; align-items:center; gap:10px; padding:0 6px 12px; margin-bottom:8px; border-bottom:1px solid var(--line); }
+  .drop-school-logo{ width:36px; height:36px; border-radius:var(--radius); background:var(--sidebar); color:#ae86ff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .drop-school-name{font-weight:600; font-size:12.5px; color:var(--ink); white-space:nowrap;}
+  .drop-school-meta{font-size:10.5px; color:var(--ink-faint); margin-top:1px; white-space:nowrap;}
+  .content{padding:28px 32px;} .page-head{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;}
+  h1{font-family:'Fraunces',serif; font-weight:500; font-size:28px; letter-spacing:-0.3px; margin-bottom:4px; color:var(--ink);}
+  .subtitle{color:var(--ink-soft); font-size:13.5px;}
+  .layout-row{display:flex; gap:16px; align-items:flex-start;}
+  .sw-card-main{flex:1; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .col-side{width:270px; flex-shrink:0; display:flex; flex-direction:column; gap:16px;}
+  .stats-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .stats-card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .stats-card-title{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink);}
+  .stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-top:1px solid var(--line-soft);}
+  .stat-row:first-child{border-top:none; padding-top:0;} .stat-row .stat-label{font-size:12.5px; color:var(--ink-soft);}
+  .stat-row .stat-value{font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--ink);} .stat-row.accent .stat-value{color:var(--brand);}
+  .status-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+  .card-title-row{font-family:'Fraunces',serif; font-size:15px; font-weight:500; color:var(--ink); margin-bottom:12px;}
+  .tip-item{display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); font-size:12px; color:var(--ink-soft); line-height:1.5;}
+  .tip-item:first-child{border-top:none; padding-top:0;} .tip-item .bi{color:var(--brand); font-size:15px; flex-shrink:0; margin-top:1px;}
+  .sw-toolbar{display:flex; align-items:center; justify-content:flex-end; margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--line);}
+  .btn-primary{ flex-shrink:0; height:38px; background:var(--ink); color:#fff; border:none; border-radius:var(--radius); padding:0 18px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:7px; box-sizing:border-box; }
+  .btn-primary:hover{background:#2A3242;} .btn-primary .bi{color:#ae86ff;}
+  table{width:100%; border-collapse:collapse;}
+  thead th{ text-align:left; font-size:11px; font-weight:600; color:var(--ink-faint); letter-spacing:0.06em; padding:0 16px 12px 16px; border-bottom:1px solid var(--line); }
+  tbody tr{border-bottom:1px solid var(--line-soft);} tbody tr:hover{background:#F7F4FC;} tbody tr:last-child{border-bottom:none;}
+  td{padding:14px 16px; vertical-align:middle;}
+  .sess-label{font-family:'Fraunces',serif; font-weight:600; font-size:14.5px; color:var(--ink);}
+  .status-chip{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:20px;}
+  .status-chip.active{background:var(--success-soft); color:var(--success);}
+  .status-chip.closed{background:var(--line-soft); color:var(--ink-faint);}
+  .status-chip.upcoming{background:var(--brand-soft); color:var(--brand);}
+  .status-chip .dot{width:6px; height:6px; border-radius:50%; background:currentColor;}
+  .not-set{color:var(--ink-faint); font-style:italic; font-size:11.5px;}
+  .actions{display:flex; gap:8px; align-items:center;}
+  .icon-btn{ width:30px; height:30px; border-radius:6px; border:1px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:13px; }
+  .icon-btn:hover{border-color:var(--slate); color:var(--slate);} .icon-btn.warn:hover{border-color:var(--danger); color:var(--danger);}
+  .set-active-btn{height:30px; padding:0 12px; border-radius:6px; border:1px solid var(--brand); background:var(--surface); color:var(--brand); font-size:11.5px; font-weight:600; cursor:pointer;}
+  .set-active-btn:hover{background:var(--brand-soft);}
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(30,23,48,0.45); z-index:60; align-items:center; justify-content:center; padding:20px;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface); border-radius:var(--radius); width:460px; max-width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(30,23,48,0.25);}
+  .modal-box.narrow{width:420px;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 24px; border-bottom:1px solid var(--line); flex-shrink:0;}
+  .modal-title{font-family:'Fraunces',serif; font-size:16px; font-weight:500; color:var(--ink);}
+  .modal-close{width:30px; height:30px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); flex-shrink:0;}
+  .modal-body{padding:20px 24px; flex:1; overflow-y:auto; min-height:0;}
+  .modal-foot{padding:16px 24px; border-top:1px solid var(--line); flex-shrink:0; display:flex; justify-content:flex-end; gap:10px;}
+  .m-row{display:flex; gap:12px;} .m-row .m-field{flex:1;}
+  .m-field{margin-bottom:14px;}
+  .m-field label{display:block; font-size:11.5px; font-weight:600; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px;}
+  .m-field input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; color:var(--ink); font-family:inherit; outline:none; box-sizing:border-box; }
+  .m-field input:focus{border-color:var(--brand);} .m-hint{font-size:11.5px; color:var(--ink-faint); margin:2px 0 14px; line-height:1.5;}
+  .copy-forward-block{background:var(--paper); border-radius:var(--radius); padding:14px 16px; margin-top:6px;}
+  .copy-forward-title{font-family:'Fraunces',serif; font-size:13px; font-weight:500; color:var(--ink); margin-bottom:10px;}
+  .copy-check{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-soft); margin-bottom:8px; cursor:pointer;}
+  .copy-check input{width:15px; height:15px; accent-color:var(--brand); cursor:pointer;}
+  .btn-plain{height:38px; padding:0 16px; border-radius:var(--radius); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand{height:38px; padding:0 18px; border-radius:var(--radius); border:none; background:var(--ink); color:#fff; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-brand:disabled{background:var(--line-soft); color:var(--ink-faint); cursor:not-allowed;}
+  .warn-box{background:var(--danger-soft); border-radius:var(--radius); padding:12px 14px; font-size:12px; color:#8A3A2E; line-height:1.6; margin-bottom:14px;} .warn-box b{color:var(--danger);}
+  .confirm-field{margin-top:4px;}
+  .confirm-field label{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px;}
+  .confirm-input{ width:100%; height:38px; padding:0 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:13.5px; outline:none; box-sizing:border-box; font-family:monospace; }
+  .confirm-input:focus{border-color:var(--danger);} .confirm-input.match{border-color:var(--success);}
+
+  .pf-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px;}
+  .pf-grid .full{grid-column:1/-1;}
+  .pf-sec{font-family:'Fraunces',serif; font-size:15px; font-weight:500; margin:0 0 12px; color:var(--ink);}
+  .pf-sec + .pf-grid{margin-bottom:22px;}
+  .pf-field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .pf-field input,.pf-field select,.pf-field textarea{width:100%; height:38px; border:1px solid var(--line); border-radius:var(--radius); padding:0 12px; font:inherit; font-size:13.5px; color:var(--ink); background:#fff; outline:none;}
+  .pf-field textarea{height:auto; padding:9px 12px; resize:vertical; min-height:64px;}
+  .pf-field input:focus,.pf-field select:focus,.pf-field textarea:focus{border-color:var(--brand);}
+  .pf-field .hint{font-size:11.5px; color:var(--ink-faint); margin-top:4px;}
+  .pf-logo{display:flex; align-items:center; gap:14px;}
+  .pf-logo-box{width:64px; height:64px; border-radius:var(--radius); border:1px dashed var(--line); background:#FBFAFD; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:20px; color:var(--brand); overflow:hidden;}
+  .pf-savebar{display:flex; align-items:center; justify-content:space-between; gap:12px; border-top:1px solid var(--line-soft); margin:6px -20px -20px; padding:14px 20px;}
+  .pf-meta{font-size:12px; color:var(--ink-faint);}
+  .pf-side{width:340px; flex-shrink:0; position:sticky; top:16px;}
+  .pf-side h3{font-family:'Fraunces',serif; font-size:15px; font-weight:500; margin:0 0 4px;}
+  .pf-side .m-hint{margin:0 0 12px;}
+  .lh{border:1px solid var(--line); border-radius:var(--radius); background:#fff; padding:16px 16px 10px;}
+  .lh-top{position:relative; display:flex; align-items:center; justify-content:center; box-sizing:content-box; min-height:44px; padding:0 54px 12px; border-bottom:2px solid var(--brand); text-align:center;}
+  .lh-logo{position:absolute; left:0; top:0; bottom:12px; margin:auto 0; width:44px; height:44px; border-radius:8px; background:var(--brand-soft,#F1EAFF); color:var(--brand); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:15px; flex-shrink:0;}
+  .lh-name{font-family:'Fraunces',serif; font-size:15px; font-weight:600; line-height:1.2;}
+  .lh-sub{font-size:11px; color:var(--ink-soft); margin-top:2px;}
+  .lh-addr{font-size:11px; color:var(--ink-soft); text-align:center; padding:8px 0 2px;}
+  .lh-lines{padding:14px 0 6px;} .lh-lines i{display:block; height:6px; border-radius:3px; background:#ECE8F4; margin-bottom:7px;} .lh-lines i:nth-child(2){width:80%;} .lh-lines i:nth-child(3){width:60%;}
+  .pf-empty{background:#FFF8E6; border:1px solid #F1DFA6; color:#7A5A00; border-radius:var(--radius); padding:10px 12px; font-size:12.5px; margin-bottom:16px; display:flex; gap:8px;}
+  .pf-toast{position:fixed; right:20px; bottom:20px; background:#1E1730; color:#fff; font-size:12.5px; padding:10px 14px; border-radius:8px; display:none; z-index:80;}
+  @media (max-width:900px){ .sidebar{display:none;} .main{margin-left:0 !important;} .layout-row{flex-direction:column; align-items:stretch; width:100%;} .pf-side{width:100%; flex:none; position:static;} .sw-card-main{width:100%;} .page-head{display:block;} }
+  @media (max-width:640px){ .content{padding:18px 14px;} .pf-grid{grid-template-columns:1fr;} .pf-savebar{flex-direction:column; align-items:stretch;} .pf-savebar .btn-brand{width:100%; height:44px;} }
+</style>
+</head>
+
+</head>
+<body>
+<div class="sidebar">
+  <div class="brand"><i class="bi bi-mortarboard-fill me-2"></i>Schoolzen</div>
+  <nav>
+    <a class="nav-item" href="#"><span><i class="bi bi-house icon"></i>Dashboard</span></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-mortarboard icon"></i>Student</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-people icon"></i>Staff</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-diagram-3 icon"></i>Academic Setup</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-check icon"></i>Attendance</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-calendar-plus icon"></i>Leave</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-sun icon"></i>Holiday</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-cash-stack icon"></i>Payroll</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-wallet2 icon"></i>Fees</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-journal-text icon"></i>Examination</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-award icon"></i>Certificates</span><i class="bi bi-chevron-right chevron"></i></a>
+    <a class="nav-item" href="#"><span><i class="bi bi-check-circle icon"></i>Approvals</span></a>
+    <a class="nav-item active" href="#"><span><i class="bi bi-gear icon"></i>Settings</span><i class="bi bi-chevron-down chevron"></i></a>
+    <div class="nav-sub">
+      <a href="#">Academic Sessions</a>
+      <a href="#">Admission Form Fields</a>
+      <a href="#">Roles &amp; Permissions</a>
+      <a href="#">Marksheet Templates</a>
+      <a class="current" href="#">School Profile</a>
+    </div>
+  </nav>
+</div>
+<div class="main">
+  <div class="topbar">
+    <div class="crumb">Settings / <b>School Profile</b></div>
+    <div class="top-actions">
+      <div class="dd" id="profileDD">
+        <div class="profile dd-trigger" onclick="toggleDD(event,'profileDD')"><div class="avatar">A</div><span class="profile-name">Admin</span><i class="bi bi-chevron-down chevron"></i></div>
+        <div class="dd-menu">
+          <div class="drop-school"><div class="drop-school-logo">GV</div><div><div class="drop-school-name">Green Valley Public School</div><div class="drop-school-meta">CBSE &middot; Indore, Madhya Pradesh</div></div></div>
+          <div class="dd-option"><i class="bi bi-person"></i>My Profile</div><div class="dd-option"><i class="bi bi-gear"></i>School Settings</div>
+          <div class="dd-divider"></div><div class="dd-option danger"><i class="bi bi-box-arrow-right"></i>Logout</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-head"><div><h1>School Profile</h1><div class="subtitle">Your school's name, address and contacts. Printed on every letterhead (certificates, admit cards, marksheets, receipts) and used as the sender name in fee reminders.</div></div></div>
+    <div class="pf-empty" id="emptyNote"><i class="bi bi-info-circle"></i><span>No school profile saved yet. Letterheads currently print "SCHOOL" with no address. Fill the fields below and save.</span></div>
+    <div class="layout-row">
+      <div class="sw-card-main">
+        <h2 class="pf-sec">School identity</h2>
+        <div class="pf-grid">
+          <div class="pf-field full"><label>School Logo</label>
+            <div class="pf-logo"><div class="pf-logo-box" id="logoBox">GV</div><div><button class="btn-plain" type="button"><i class="bi bi-upload"></i> Upload logo</button><div class="hint">PNG or JPG, square, up to 100 KB. Shown on letterheads.</div></div></div>
+          </div>
+          <div class="pf-field full"><label>School Name *</label><input id="fName" type="text" maxlength="50" placeholder="Green Valley Public School" value="Green Valley Public School"></div>
+          <div class="pf-field"><label>Affiliated Board *</label><select id="fBoard">
+            <optgroup label="National">
+              <option>Central Board of Secondary Education (CBSE)</option>
+              <option>Council for the Indian School Certificate Examinations (CISCE)</option>
+              <option>National Institute of Open Schooling (NIOS)</option>
+              <option>International Baccalaureate (IB)</option>
+            </optgroup>
+            <optgroup label="District affiliated (State, up to Class 8)">
+              <option>District Education Office, State (up to Class 8) (DEO)</option>
+            </optgroup>
+            <optgroup label="State boards (A to Z by state)">
+              <option>Andhra Pradesh Board of Secondary Education (BSEAP)</option>
+              <option>Board of Intermediate Education, Andhra Pradesh (BIEAP)</option>
+              <option>Board of Secondary Education, Assam (SEBA)</option>
+              <option>Assam Higher Secondary Education Council (AHSEC)</option>
+              <option>Bihar School Examination Board (BSEB)</option>
+              <option>Chhattisgarh Board of Secondary Education (CGBSE)</option>
+              <option>Goa Board of Secondary and Higher Secondary Education (GBSHSE)</option>
+              <option>Gujarat Secondary and Higher Secondary Education Board (GSEB)</option>
+              <option>Haryana Board of School Education (HBSE)</option>
+              <option>Himachal Pradesh Board of School Education (HPBOSE)</option>
+              <option>Jammu and Kashmir State Board of School Education (JKBOSE)</option>
+              <option>Jharkhand Academic Council (JAC)</option>
+              <option>Karnataka Secondary Education Examination Board (KSEEB)</option>
+              <option>Department of Pre-University Education, Karnataka (DPUE)</option>
+              <option>Kerala Board of Public Examination (KBPE)</option>
+              <option>Directorate of General Education, Higher Secondary Wing, Kerala (DGE Kerala)</option>
+              <option>Madhya Pradesh Board of Secondary Education (MPBSE)</option>
+              <option>Maharashtra State Board of Secondary and Higher Secondary Education (MSBSHSE)</option>
+              <option>Board of Secondary Education, Manipur (BSEM)</option>
+              <option>Council of Higher Secondary Education, Manipur (COHSEM)</option>
+              <option>Meghalaya Board of School Education (MBOSE)</option>
+              <option>Mizoram Board of School Education (MBSE)</option>
+              <option>Nagaland Board of School Education (NBSE)</option>
+              <option>Board of Secondary Education, Odisha (BSE Odisha)</option>
+              <option>Council of Higher Secondary Education, Odisha (CHSE Odisha)</option>
+              <option>Punjab School Education Board (PSEB)</option>
+              <option>Board of Secondary Education, Rajasthan (RBSE)</option>
+              <option>Directorate of Government Examinations, Tamil Nadu (DGE TN)</option>
+              <option>Board of Secondary Education, Telangana State (BSE TS)</option>
+              <option>Telangana State Board of Intermediate Education (TSBIE)</option>
+              <option>Tripura Board of Secondary Education (TBSE)</option>
+              <option>Uttar Pradesh Madhyamik Shiksha Parishad (UPMSP)</option>
+              <option>Uttarakhand Board of School Education (UBSE)</option>
+              <option>West Bengal Board of Secondary Education (WBBSE)</option>
+              <option>West Bengal Council of Higher Secondary Education (WBCHSE)</option>
+            </optgroup>
+          </select><div class="hint">District-recognised schools (up to Class 8) choose "District Education Office". Other states have their own board in the list.</div></div>
+          <div class="pf-field"><label>Medium *</label><select id="fMed"><option>English</option><option>Hindi</option><option>Hindi &amp; English</option></select></div>
+          <div class="pf-field"><label>Affiliation / Recognition Number *</label><input id="fAff" type="text" maxlength="15" placeholder="Up to 15 characters" value="1030123"></div>
+          <div class="pf-field"><label>School Code *</label><input id="fCode" type="text" maxlength="15" placeholder="Up to 15 characters" value="GV-0142"></div>
+          <div class="pf-field"><label>Founded Year *</label><input id="fYear" type="text" inputmode="numeric" maxlength="4" placeholder="1998" value="1998"><div class="hint">Four digits, starting with 19 or 20.</div></div>
+          <div class="pf-field"><label>UDISE Number</label><input type="text" placeholder="11-digit UDISE code" value="23090100101"></div>
+          <div class="pf-field full"><label>Principal Name</label><input id="fPrin" type="text" placeholder="Name shown on certificates" value="Dr. R. K. Sharma"></div>
+        </div>
+        <h2 class="pf-sec">Address</h2>
+        <div class="pf-grid">
+          <div class="pf-field full"><label>Street *</label><input id="fAddr" type="text" maxlength="100" placeholder="Street, area" value="12, Vijay Nagar Main Road"></div>
+          <div class="pf-field"><label>City / Town *</label><input id="fCity" type="text" maxlength="50" value="Indore"></div>
+          <div class="pf-field"><label>District *</label><input id="fDist" type="text" maxlength="50" value="Indore"></div>
+          <div class="pf-field"><label>State *</label><select id="fState"><option>Andhra Pradesh</option><option>Arunachal Pradesh</option><option>Assam</option><option>Bihar</option><option>Chhattisgarh</option><option>Goa</option><option>Gujarat</option><option>Haryana</option><option>Himachal Pradesh</option><option>Jharkhand</option><option>Karnataka</option><option>Kerala</option><option selected>Madhya Pradesh</option><option>Maharashtra</option><option>Manipur</option><option>Meghalaya</option><option>Mizoram</option><option>Nagaland</option><option>Odisha</option><option>Punjab</option><option>Rajasthan</option><option>Sikkim</option><option>Tamil Nadu</option><option>Telangana</option><option>Tripura</option><option>Uttar Pradesh</option><option>Uttarakhand</option><option>West Bengal</option><option>Andaman and Nicobar Islands</option><option>Chandigarh</option><option>Dadra and Nagar Haveli and Daman and Diu</option><option>Delhi</option><option>Jammu and Kashmir</option><option>Ladakh</option><option>Lakshadweep</option><option>Puducherry</option></select></div>
+          <div class="pf-field"><label>Pin Code *</label><input id="fPin" type="text" inputmode="numeric" maxlength="6" value="452010"></div>
+        </div>
+        <h2 class="pf-sec">Contact</h2>
+        <div class="pf-grid">
+          <div class="pf-field"><label>Contact Number *</label><input id="fPhone" type="text" inputmode="numeric" maxlength="10" value="9876543210"><div class="hint">10 digits, numbers only.</div></div>
+          <div class="pf-field"><label>Alternate Number</label><input id="fPhone2" type="text" inputmode="numeric" maxlength="10" placeholder="Optional, 10 digits" value=""></div>
+          <div class="pf-field"><label>Email *</label><input id="fMail" type="text" placeholder="office@school.in" value="office@greenvalley.in"></div>
+          <div class="pf-field"><label>Website</label><input type="text" placeholder="www.school.in" value="www.greenvalley.in"></div>
+        </div>
+        <h2 class="pf-sec">Messages</h2>
+        <div class="pf-grid">
+          <div class="pf-field full"><label>Sender name for fee reminders *</label><input id="fSender" type="text" value="Green Valley Public School"><div class="hint">Shown as the school name in WhatsApp fee reminders to parents.</div></div>
+        </div>
+        <div class="pf-savebar"><span class="pf-meta" id="meta">Not saved yet</span><button class="btn-brand" id="saveBtn" disabled onclick="saveProfile()">Save Changes</button></div>
+      </div>
+      <div class="pf-side sw-card-main">
+        <h3>Letterhead preview</h3>
+        <p class="m-hint">How the top of a printed certificate will look.</p>
+        <div class="lh">
+          <div class="lh-top"><div class="lh-logo" id="pvLogo">GV</div><div><div class="lh-name" id="pvName">Green Valley Public School</div><div class="lh-sub" id="pvSub">CBSE &middot; Affiliation No. 1030123</div></div></div>
+          <div class="lh-addr" id="pvAddr">12, Vijay Nagar Main Road, Indore, Madhya Pradesh - 452010<br>0731 4001234 &middot; office@greenvalley.in</div>
+          <div class="lh-lines"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="pf-toast" id="toast">School profile saved</div>
+<script>
+function toggleDD(e,id){e.stopPropagation();const dd=document.getElementById(id);const o=dd.classList.contains('open');document.querySelectorAll('.dd.open').forEach(d=>d.classList.remove('open'));if(!o)dd.classList.add('open');}
+document.addEventListener('click',()=>document.querySelectorAll('.dd.open').forEach(d=>d.classList.remove('open')));
+const $=id=>document.getElementById(id);
+function ini(n){return n.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'S';}
+function refresh(){
+  const name=$('fName').value.trim()||'SCHOOL';
+  $('pvName').textContent=name; $('pvLogo').textContent=ini(name); $('logoBox').textContent=ini(name);
+  const bs=$('fBoard').value.match(/\(([^)]+)\)/); 
+  $('pvSub').textContent=(bs?bs[1]:$('fBoard').value)+($('fAff').value?' \u00b7 Affil./Recog. No. '+$('fAff').value:'')+($('fCode').value?' \u00b7 School Code '+$('fCode').value:'');
+  const a=[$('fAddr').value,$('fCity').value,$('fDist').value!==$('fCity').value?$('fDist').value:'',$('fState').value].filter(Boolean).join(', ')+($('fPin').value?' - '+$('fPin').value:'');
+  const c=[$('fPhone').value,$('fMail').value].filter(Boolean).join(' \u00b7 ');
+  $('pvAddr').innerHTML=a+(c?'<br>'+c:'');
+  const ok=$('fName').value.trim()&&$('fAff').value.trim()&&$('fCode').value.trim()&&/^(19|20)\d{2}$/.test($('fYear').value)&&$('fAddr').value.trim()&&$('fCity').value.trim()&&$('fDist').value.trim()&&/^\d{6}$/.test($('fPin').value)&&/^\d{10}$/.test($('fPhone').value)&&(!$('fPhone2').value||/^\d{10}$/.test($('fPhone2').value))&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($('fMail').value)&&$('fSender').value.trim();
+  $('saveBtn').disabled=!ok;
+}
+document.querySelectorAll('.pf-field input,.pf-field select,.pf-field textarea').forEach(e=>e.addEventListener('input',refresh));
+function saveProfile(){ $('emptyNote').style.display='none'; $('meta').textContent='Last saved just now by Admin'; $('saveBtn').disabled=true; const t=$('toast'); t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+refresh();
+</script>
+</body>
+</html>

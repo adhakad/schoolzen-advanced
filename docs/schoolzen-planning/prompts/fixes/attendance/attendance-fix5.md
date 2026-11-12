@@ -3,7 +3,7 @@
 Read `prompts/fixes/global-fixes.md` first. Source of truth: `attendance-fix4.md` (A, B), `v1/attendance/roster.html|md`, `attendance-overview.html|md`. Do not edit earlier fix files. This file is the TEST round: write and run tests; fix any bug the tests find in the app code and say what you fixed.
 
 ## 1. Failing suite
-Fix `v2-test-attendance-mark`: pick a real working day dynamically (not a Sunday or roster week-off) so it passes on any weekday.
+Fix `test-attendance-mark-v2`: pick a real working day dynamically (not a Sunday or roster week-off) so it passes on any weekday.
 
 ## 2. Backend (API) tests, `attendance-edit-past`
 1. Allowed: past date + roster exists + working day + no device punch + user has `attendance-edit-past` + inside session -> edit works, status read back.

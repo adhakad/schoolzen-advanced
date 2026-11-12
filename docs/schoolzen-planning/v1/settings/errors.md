@@ -179,3 +179,10 @@ since it changes the module's page count.
 ---
 
 **Structure and depth follow the Staff / Academic Setup / Leave modules' format** (`staff/errors.md`, `academic-setup/errors.md`); page-wise organization (rather than shape-wise) is used here specifically because this module's four pages share no controller, schema, or frontend precedent with each other, unlike those three modules' more cohesive page sets.
+
+
+## Update (2026-11-11): School Profile page added
+
+The gap above is closed: `school-profile.html` / `school-profile.md` are now the 5th Settings page (39 pages in total). It keeps the legacy `school.component` fields (name, logo, affiliation, school code, founded year, board, medium, address, district, state, pin, contact numbers, email), adds UDISE, Principal Name, Website and the fee-reminder sender name, and drops the legacy table with Create/Delete (one record per school, always edited in place). Build instructions: `prompts/fixes/shared/shared-fix6.md`.
+
+**Built (2026-11-12, shared-fix6):** `GET`/`PUT /api/v2/settings/school-profile` (collection `v2-school-profiles`, permission `settings-school-profile`, log `settings.school-profile.save`); every rule validated server-side with field errors (`ValidationError`, codes `FILE_TOO_LARGE`/`FILE_TYPE_INVALID` for the logo); letterheads and fee reminders read it and keep the "SCHOOL" / empty fallback when nothing is saved.

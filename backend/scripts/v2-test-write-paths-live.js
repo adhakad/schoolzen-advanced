@@ -180,6 +180,23 @@ const tests = {
         prove('v2-academic-sessions', 'write');
         await logs('v2-academic-sessions', 'settings.session.create', 'settings.session.delete');
     },
+    'settings: school profile create/update/read back': async () => {
+        const profile = {
+            schoolName: 'WP Public School', board: 'Central Board of Secondary Education (CBSE)', medium: 'English',
+            affiliationNumber: 'WP-1', schoolCode: 'WP-C', foundedYear: '1998', street: '1 Main Road', city: 'Indore',
+            district: 'Indore', state: 'Madhya Pradesh', pinCode: '452010', phoneOne: '9876543210', email: 'wp@school.in',
+        };
+        await ok('PUT', '/settings/school-profile', { body: profile, query: A() });
+        await ok('PUT', '/settings/school-profile', { body: { ...profile, city: 'Bhopal' }, query: A() });
+        const doc = await one('v2-school-profiles', {});
+        assert.ok(doc, 'profile not in v2-school-profiles');
+        assert.strictEqual(doc.city, 'Bhopal', 'update not saved');
+        assert.strictEqual(await count('v2-school-profiles'), 1, 'one document per adminId');
+        const read = await ok('GET', '/settings/school-profile', { query: A() });
+        assert.strictEqual(read.profile.city, 'Bhopal');
+        prove('v2-school-profiles', 'write');
+        await logs('v2-school-profiles', 'settings.school-profile.save');
+    },
     'settings: role + role-assignment C/U/D': async () => {
         const r = await ok('POST', '/settings/roles', { body: A({ name: 'WP Role', isScoped: true, permissions: [{ module: 'student', canView: true, canEdit: false }] }) });
         const roleId = r.role._id;

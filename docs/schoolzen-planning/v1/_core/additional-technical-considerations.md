@@ -166,7 +166,7 @@ See `attendance/attendance-overview.md`'s "Device sync — WDMS integration, two
 ## Audit / activity log
 
 One `ActivityLog` collection (`adminId`, `staffId`, `action`,
-`module`, `targetId`, `meta`, `createdAt`) + a shared `logActivityV2()`
+`module`, `targetId`, `meta`, `createdAt`) + a shared `logActivity()`
 helper, called from any controller doing a sensitive write (role/
 permission changes, a class delete-with-confirmation, a leave
 approval, a payroll run, a co-admin's Super-Admin role assignment).
@@ -177,7 +177,7 @@ way.
 **Principle — log what matters, not everything.** This is a security/accountability trail, not analytics: a system that logs every read becomes both a storage burden and useless as an audit trail, since a genuine security event gets buried under routine noise.
 - **DO log**: auth events (login success/failure, logout, refresh failure); every Create/Update/Delete across every module (role/permission changes, leave approve/reject/cancel, payroll generate/lock/unlock, salary payment record/confirm/dispute, device assign/activate/block); access to specifically sensitive reads (viewing another staff member's salary, a payroll record).
 - **DO NOT log**: routine navigation, list/dashboard GETs, repeated no-op polling reads, frontend-only UI state (tab switches, modal open/close).
-- Call `logActivityV2()` explicitly from the specific controller actions that matter — never as blanket middleware intercepting every request; explicit call sites keep the log meaningful and greppable in review. Fire-and-forget (don't await it in the response path; a logging failure never breaks the actual operation).
+- Call `logActivity()` explicitly from the specific controller actions that matter — never as blanket middleware intercepting every request; explicit call sites keep the log meaningful and greppable in review. Fire-and-forget (don't await it in the response path; a logging failure never breaks the actual operation).
 
 **Extended `ActivityLog` shape**: `actorType:'staff'|'admin'|'sales'`, `changes:{before,after}` (only the changed fields, never a full-document dump — and never the raw value of a sensitive field like a password or full bank account number; log that it changed, not its before/after value), `ipAddress`, `userAgent`, `deviceFootprint:{ip, approxLocation, userAgent, deviceType}`. `approxLocation` is city/region-level from IP geolocation only, for anomaly purposes ("this login came from a different city than usual") — never precise GPS, never browser geolocation permission. Indexes: `{adminId,timestamp:-1}` (recent activity), `{adminId,actorId,timestamp:-1}` (one person's trail), `{adminId,module,targetId}` (full history of one record).
 

@@ -35,6 +35,19 @@ const imageFile = multer({
     },
 });
 
+// School logo (settings/school-profile.md): PNG/JPG up to 100 KB — small enough to print on
+// every letterhead as-is. Same type filter as photos; imageContentGuard() checks the bytes.
+const logoFile = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 100 * 1024, files: 1 },
+    fileFilter: (req, file, cb) => {
+        if (IMAGE_MIME_TYPES.has(file.mimetype)) return cb(null, true);
+        const error = new Error('Only JPG/PNG images are allowed.');
+        error.name = 'INVALID_FILE_TYPE';
+        return cb(error, false);
+    },
+});
+
 // Spreadsheets: parsed in the request, rows enqueued — never written to disk.
 const EXCEL_MIME_TYPES = new Set([
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -51,7 +64,7 @@ const excelFile = multer({
     },
 });
 
-const SIZE_MESSAGES = { photo: 'Image must be under 2MB.' };
+const SIZE_MESSAGES = { photo: 'Image must be under 2MB.', logo: 'Logo must be 100 KB or smaller.' };
 
 const describe = (error, field) => {
     if (error.code === 'LIMIT_FILE_SIZE') return SIZE_MESSAGES[field] || 'File is too large';
@@ -142,4 +155,4 @@ const imageSanitize = (field, module) => async (req, res, next) => {
     }
 };
 
-module.exports = { singleUpload, imageFile, excelFile, imageContentGuard, imageSanitize, MAX_INPUT_PIXELS, MAX_STORED_EDGE };
+module.exports = { singleUpload, imageFile, logoFile, excelFile, imageContentGuard, imageSanitize, MAX_INPUT_PIXELS, MAX_STORED_EDGE };
