@@ -43,6 +43,71 @@ const box = async (page: Page, selector: string) => (await page.locator(selector
 
 test.describe.configure({ mode: 'parallel' });
 
+// H.1 — upload a small PNG, save (multipart), reload: the logo shows in the form and the preview.
+const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEBgIApD5fRAAAAABJRU5ErkJggg==';
+const SAVED = {
+  schoolName: 'Green Valley Public School', board: 'Central Board of Secondary Education (CBSE)', medium: 'English',
+  affiliationNumber: '1030123', schoolCode: 'GV-0142', foundedYear: 1998, udiseNumber: null, principalName: null,
+  street: '12, Vijay Nagar Main Road', city: 'Indore', district: 'Indore', state: 'Madhya Pradesh', pinCode: '452010',
+  phoneOne: '9876543210', phoneSecond: null, email: 'office@greenvalley.in', website: null, senderName: 'Green Valley Public School',
+  schoolLogo: null as string | null, updatedAt: '2026-11-01T10:00:00.000Z', updatedByName: 'School Owner'
+};
+for (const width of [1366, 390]) {
+  test(`School Profile: upload a PNG logo, save, reload shows it in form + preview (${width}px)`, async ({ browser }) => {
+    const page = await newPage(browser, width);
+    let current = { ...SAVED };
+    const sent: { multipart: boolean; hasLogo: boolean; schoolName: boolean }[] = [];
+    await hermetic(page);
+    await page.context().addCookies([{ name: 'adminAccessToken', value: fakeJwt, domain: 'localhost', path: '/' }]);
+    await page.route('http://localhost:3000/**', (r) => {
+      const url = new URL(r.request().url());
+      let body: object = { rows: [], data: [], classes: [], groups: [], total: 0 };
+      if (url.pathname === '/api/v2/settings/academic-sessions/options') body = sessions;
+      if (url.pathname === '/api/v2/settings/school-profile') {
+        if (r.request().method() === 'PUT') {
+          const type = r.request().headers()['content-type'] || '';
+          const raw = r.request().postDataBuffer()?.toString('latin1') || '';
+          sent.push({ multipart: type.startsWith('multipart/form-data'), hasLogo: /name="logo"; filename="logo\.png"/.test(raw) && raw.includes('\x89PNG'), schoolName: raw.includes('Green Valley Public School') });
+          current = { ...current, schoolLogo: `data:image/png;base64,${PNG_B64}`, updatedAt: new Date().toISOString() };
+          body = { message: 'School profile saved', profile: current };
+        } else {
+          body = { profile: current, boards: BOARDS, states: STATES, mediums: ['English', 'Hindi', 'Hindi & English'] };
+        }
+      }
+      return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+    });
+    await page.goto('/v2/settings/school-profile');
+
+    // Saved profile without a logo: initials, Save disabled until something changes.
+    await expect(page.locator('#logoBox')).toHaveText('GV');
+    await expect(page.locator('#saveBtn')).toBeDisabled();
+
+    // Pick a PNG: shown at once in the form box and the letterhead preview, Save enabled.
+    await page.locator('input[type="file"]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from(PNG_B64, 'base64') });
+    await expect(page.locator('#logoBox img')).toBeVisible();
+    await expect(page.locator('#pvLogo img')).toBeVisible();
+    await expect(page.locator('#saveBtn')).toBeEnabled();
+    await page.click('#saveBtn');
+    await expect(page.locator('#toast')).toHaveText('School profile saved');
+    expect(sent).toEqual([{ multipart: true, hasLogo: true, schoolName: true }]);
+
+    // Reload: the saved logo comes back from GET in both places.
+    await page.reload();
+    await expect(page.locator('#logoBox img')).toHaveAttribute('src', /^data:image\/png;base64,/);
+    await expect(page.locator('#pvLogo img')).toHaveAttribute('src', /^data:image\/png;base64,/);
+    const top = await box(page, '.lh-top');
+    const logo = await box(page, '#pvLogo');
+    expect(logo.y + logo.height).toBeLessThanOrEqual(top.y + top.height - 2 - 8);
+
+    // A too-big file is refused in the page before any request.
+    await page.locator('input[type="file"]').setInputFiles({ name: 'big.png', mimeType: 'image/png', buffer: Buffer.alloc(101 * 1024) });
+    await expect(page.locator('.pf-logo .pf-err')).toHaveText('Logo must be 100 KB or smaller.');
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
+    expect(sent.length).toBe(1);
+    await page.close();
+  });
+}
+
 for (const width of WIDTHS) {
   test(`School Profile: opens, empty state, fill + save, preview centred, logo clear of divider (${width}px)`, async ({ browser }) => {
     const page = await newPage(browser, width);

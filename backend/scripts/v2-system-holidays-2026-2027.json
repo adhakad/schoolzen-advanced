@@ -1,0 +1,175 @@
+{
+ "_note": "Central Government gazetted holidays. 2026 = official list (dfe.gov.in, list-of-gazetted-holidays-2026.pdf). 2027 = taken from a secondary source citing DoPT OM F.No.12/2/2023-JCA dated 16 Jul 2026; verify against the official OM. Moon-dependent dates (Id-ul-Fitr, Id-ul-Zuha, Muharram, Milad-un-Nabi, Buddha Purnima, Guru Nanak Jayanti, Diwali, Holi and others) can shift by a day. category: national | hindu | other. Default seed = national + hindu only; --include-other adds the rest.",
+ "holidays": [
+  {
+   "date": "2026-01-26",
+   "name": "Republic Day",
+   "category": "national"
+  },
+  {
+   "date": "2026-03-04",
+   "name": "Holi",
+   "category": "hindu"
+  },
+  {
+   "date": "2026-03-21",
+   "name": "Id-ul-Fitr",
+   "category": "other"
+  },
+  {
+   "date": "2026-03-26",
+   "name": "Ram Navami",
+   "category": "hindu"
+  },
+  {
+   "date": "2026-03-31",
+   "name": "Mahavir Jayanti",
+   "category": "other"
+  },
+  {
+   "date": "2026-04-03",
+   "name": "Good Friday",
+   "category": "other"
+  },
+  {
+   "date": "2026-05-01",
+   "name": "Buddha Purnima",
+   "category": "other"
+  },
+  {
+   "date": "2026-05-27",
+   "name": "Id-ul-Zuha (Bakrid)",
+   "category": "other"
+  },
+  {
+   "date": "2026-06-26",
+   "name": "Muharram",
+   "category": "other"
+  },
+  {
+   "date": "2026-08-15",
+   "name": "Independence Day",
+   "category": "national"
+  },
+  {
+   "date": "2026-08-26",
+   "name": "Milad-un-Nabi (Id-e-Milad)",
+   "category": "other"
+  },
+  {
+   "date": "2026-09-04",
+   "name": "Janmashtami",
+   "category": "hindu"
+  },
+  {
+   "date": "2026-10-02",
+   "name": "Mahatma Gandhi's Birthday",
+   "category": "national"
+  },
+  {
+   "date": "2026-10-20",
+   "name": "Dussehra (Vijaya Dashami)",
+   "category": "hindu"
+  },
+  {
+   "date": "2026-11-08",
+   "name": "Diwali (Deepavali)",
+   "category": "hindu"
+  },
+  {
+   "date": "2026-11-24",
+   "name": "Guru Nanak's Birthday",
+   "category": "other"
+  },
+  {
+   "date": "2026-12-25",
+   "name": "Christmas Day",
+   "category": "other"
+  },
+  {
+   "date": "2027-01-26",
+   "name": "Republic Day",
+   "category": "national"
+  },
+  {
+   "date": "2027-03-10",
+   "name": "Id-ul-Fitr",
+   "category": "other"
+  },
+  {
+   "date": "2027-03-23",
+   "name": "Holi",
+   "category": "hindu"
+  },
+  {
+   "date": "2027-03-26",
+   "name": "Good Friday",
+   "category": "other"
+  },
+  {
+   "date": "2027-04-15",
+   "name": "Ram Navami",
+   "category": "hindu"
+  },
+  {
+   "date": "2027-04-19",
+   "name": "Mahavir Jayanti",
+   "category": "other"
+  },
+  {
+   "date": "2027-05-17",
+   "name": "Id-ul-Zuha (Bakrid)",
+   "category": "other"
+  },
+  {
+   "date": "2027-05-20",
+   "name": "Buddha Purnima",
+   "category": "other"
+  },
+  {
+   "date": "2027-06-16",
+   "name": "Muharram",
+   "category": "other"
+  },
+  {
+   "date": "2027-08-15",
+   "name": "Independence Day",
+   "category": "national"
+  },
+  {
+   "date": "2027-08-15",
+   "name": "Milad-un-Nabi (Id-e-Milad)",
+   "category": "other"
+  },
+  {
+   "date": "2027-08-25",
+   "name": "Janmashtami",
+   "category": "hindu"
+  },
+  {
+   "date": "2027-10-02",
+   "name": "Mahatma Gandhi's Birthday",
+   "category": "national"
+  },
+  {
+   "date": "2027-10-09",
+   "name": "Dussehra (Vijaya Dashami)",
+   "category": "hindu"
+  },
+  {
+   "date": "2027-10-29",
+   "name": "Diwali (Deepavali)",
+   "category": "hindu"
+  },
+  {
+   "date": "2027-11-14",
+   "name": "Guru Nanak's Birthday",
+   "category": "other"
+  },
+  {
+   "date": "2027-12-25",
+   "name": "Christmas Day",
+   "category": "other"
+  }
+ ]
+}

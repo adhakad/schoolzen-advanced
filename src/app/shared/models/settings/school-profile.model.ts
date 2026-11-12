@@ -37,4 +37,4 @@ export interface SchoolProfileResponse {
   mediums: string[];
 }
 
-export type SchoolProfilePayload = Omit<SchoolProfile, 'schoolLogo' | 'updatedAt' | 'updatedByName' | 'foundedYear'> & { foundedYear: string };
+export type SchoolProfilePayload = Omit<SchoolProfile, 'schoolLogo' | 'updatedAt' | 'updatedByName' | 'foundedYear'> & { foundedYear: string; removeLogo?: boolean };

@@ -67,6 +67,8 @@ export class SchoolProfileComponent implements OnInit, OnDestroy {
   logoPreview: string | null = null;
   logoError = '';
   logoChanged = false;
+  /** Saved logo cleared without a new file — the save sends removeLogo. */
+  logoRemoved = false;
 
   form: FormGroup;
 
@@ -160,6 +162,7 @@ export class SchoolProfileComponent implements OnInit, OnDestroy {
     }
     this.logoFile = null;
     this.logoChanged = false;
+    this.logoRemoved = false;
     this.logoPreview = profile?.schoolLogo || null;
     this.form.markAsPristine();
   }
@@ -200,7 +203,17 @@ export class SchoolProfileComponent implements OnInit, OnDestroy {
       if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
       this.objectUrl = URL.createObjectURL(file);
       this.logoPreview = this.objectUrl;
+      this.logoRemoved = false;
     }
+    this.cdr.markForCheck();
+  }
+
+  removeLogo(): void {
+    this.logoFile = null;
+    this.logoPreview = null;
+    this.logoError = '';
+    this.logoRemoved = !!this.profile?.schoolLogo;
+    this.logoChanged = this.logoRemoved;
     this.cdr.markForCheck();
   }
 
@@ -246,6 +259,7 @@ export class SchoolProfileComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
     const raw = this.form.getRawValue();
     const payload = Object.keys(raw).reduce((out, key) => ({ ...out, [key]: String(raw[key] ?? '').trim() }), {}) as SchoolProfilePayload;
+    if (this.logoRemoved && !this.logoFile) payload.removeLogo = true;
     this.api.save(this.adminId, payload, this.logoFile).pipe(takeUntil(this.destroyed$)).subscribe((res) => {
       this.isClick = false;
       this.applyProfile(res.profile);

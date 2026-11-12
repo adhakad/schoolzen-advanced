@@ -30,7 +30,10 @@ const SystemHolidayV2Model = require('../modules/models/holiday/system-holiday')
 const errorHandler = require('../modules/middleware/errorHandler');
 const { buildLetterheadDocument } = require('../modules/services/pdf/v2-letterhead.service');
 const { BOARDS, STATES, BOARD_GROUPS } = require('../modules/helpers/settings/v2-school-profile-lists');
-const { seedSystemHolidays, expandOwnerRows } = require('./v2-seed-system-holidays');
+const { seedSystemHolidays, loadRows, expandRows } = require('./v2-seed-system-holidays');
+const sharp = require('sharp');
+const cloudinary = require('cloudinary').v2;
+const { destroyImages } = require('../modules/services/media/cloudinary.service');
 
 const OID = () => new mongoose.Types.ObjectId();
 const ADMIN = OID().toHexString();
@@ -87,6 +90,12 @@ const formWith = (file, name, type) => {
     form.append('logo', new Blob([file], { type }), name);
     return form;
 };
+// A real, decodable PNG (sharp), well under 100 KB.
+const realPng = (r, g, b) => sharp({ create: { width: 64, height: 64, channels: 3, background: { r, g, b } } }).png().toBuffer();
+const stored = () => SchoolProfileV2Model.findOne({ adminId: ADMIN }, 'schoolLogo schoolLogoPublicId city').lean();
+const uploaded = new Set();
+const fetchStatus = async (url) => (await fetch(url)).status;
+const cloudStatus = (publicId) => cloudinary.api.resource(publicId).then(() => 200, (e) => (e.error && e.error.http_code) || 'error');
 
 const tests = {
     // ---- A. backend ------------------------------------------------------------------------
@@ -222,43 +231,128 @@ const tests = {
         assert.strictEqual(doc.senderName, 'Green Valley');
         assert.strictEqual(await SchoolProfileV2Model.findOne({ adminId: OTHER }).lean(), null);
     },
-    // ---- E. holidays seed ------------------------------------------------------------------
-    'E. seed: dry run writes nothing; apply inserts; re-run adds 0': async () => {
-        const y = new Date().getFullYear();
+    // ---- H.1 logo through the REAL multipart route (Cloudinary, as every v2 upload) ------
+    'H.1a first save with a PNG ≤100 KB → stored on Cloudinary, URL + public id saved': async () => {
+        await SchoolProfileV2Model.deleteOne({ adminId: ADMIN });
+        const file = await realPng(140, 82, 255);
+        assert.ok(file.length < 100 * 1024, `${file.length} bytes`);
+        const res = await api('PUT', '/settings/school-profile', { form: formWith(file, 'logo.png', 'image/png') });
+        assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+        const doc = await stored();
+        assert.ok(doc.schoolLogo && doc.schoolLogoPublicId, 'logo saved');
+        uploaded.add(doc.schoolLogoPublicId);
+        assert.ok(doc.schoolLogoPublicId.startsWith(`schoolzen/${ADMIN}/school-logo/`), doc.schoolLogoPublicId);
+        assert.strictEqual(res.body.profile.schoolLogo, doc.schoolLogo);
+        assert.strictEqual(await fetchStatus(doc.schoolLogo), 200, 'Cloudinary serves the logo');
+        f.logoA = doc;
+        console.log(`       logo a: ${file.length} bytes -> ${doc.schoolLogo}`);
+    },
+    'H.1b update with a new PNG replaces the logo (old one destroyed)': async () => {
+        const res = await api('PUT', '/settings/school-profile', { form: formWith(await realPng(30, 160, 90), 'logo2.png', 'image/png') });
+        assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+        const doc = await stored();
+        uploaded.add(doc.schoolLogoPublicId);
+        assert.notStrictEqual(doc.schoolLogoPublicId, f.logoA.schoolLogoPublicId, 'new public id');
+        assert.strictEqual(await fetchStatus(doc.schoolLogo), 200);
+        assert.strictEqual(await cloudStatus(f.logoA.schoolLogoPublicId), 404, 'old logo destroyed on Cloudinary');
+        f.logoB = doc;
+    },
+    'H.1c update without a file keeps the logo': async () => {
+        const res = await put({ ...VALID, city: 'Ujjain' });
+        assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+        const doc = await stored();
+        assert.strictEqual(doc.city, 'Ujjain');
+        assert.strictEqual(doc.schoolLogo, f.logoB.schoolLogo);
+        assert.strictEqual(doc.schoolLogoPublicId, f.logoB.schoolLogoPublicId);
+        assert.strictEqual(await cloudStatus(f.logoB.schoolLogoPublicId), 200, 'still on Cloudinary');
+    },
+    'H.1e reload: GET and the letterhead return the saved logo': async () => {
+        const res = await api('GET', '/settings/school-profile');
+        assert.strictEqual(res.body.profile.schoolLogo, f.logoB.schoolLogo);
+        const doc = await buildLetterheadDocument({ adminId: ADMIN, title: 'T', fields: [] });
+        assert.strictEqual(doc.header.logoUrl, f.logoB.schoolLogo);
+    },
+    'H.1d remove logo → null in the profile and the letterhead, file destroyed': async () => {
+        const res = await put({ ...VALID, city: 'Ujjain', removeLogo: true });
+        assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+        assert.strictEqual(res.body.profile.schoolLogo, null);
+        const doc = await stored();
+        assert.strictEqual(doc.schoolLogo, null);
+        assert.strictEqual(doc.schoolLogoPublicId, null);
+        assert.strictEqual((await buildLetterheadDocument({ adminId: ADMIN, title: 'T', fields: [] })).header.logoUrl, null);
+        assert.strictEqual(await cloudStatus(f.logoB.schoolLogoPublicId), 404, 'removed logo destroyed on Cloudinary');
+        const log = await ActivityLogModel.findOne({ adminId: ADMIN, action: 'settings.school-profile.save' }).sort({ _id: -1 }).lean();
+        assert.deepStrictEqual(log.meta.fields, ['schoolLogo']);
+    },
+    'H.1f too big and wrong type refused with a clear message, nothing saved': async () => {
+        const msg = (res) => (res.body.error.fields.find((x) => x.field === 'logo') || {}).message;
+        const big = await api('PUT', '/settings/school-profile', { form: formWith(png(101 * 1024), 'big.png', 'image/png') });
+        assert.strictEqual(big.status, 400);
+        assert.strictEqual(msg(big), 'Logo must be 100 KB or smaller.');
+        const gif = await api('PUT', '/settings/school-profile', { form: formWith(Buffer.from('GIF89a....'), 'x.gif', 'image/gif') });
+        assert.strictEqual(gif.status, 400);
+        assert.strictEqual(msg(gif), 'Only JPG/PNG images are allowed.');
+        const renamed = await api('PUT', '/settings/school-profile', { form: formWith(Buffer.from('%PDF-1.4 not an image'), 'x.png', 'image/png') });
+        assert.strictEqual(renamed.status, 400);
+        assert.strictEqual(msg(renamed), 'Only JPG/PNG images are allowed.');
+        assert.strictEqual((await stored()).schoolLogo, null, 'nothing saved');
+    },
+    // ---- H.2 holidays seed from the data file ----------------------------------------------
+    'H.2 data file: 34 rows; default = national + hindu (16), --include-other = all': async () => {
+        const rows = loadRows();
+        assert.strictEqual(rows.length, 34);
+        const def = rows.filter((r) => r.category !== 'other');
+        assert.strictEqual(def.length, 16);
+        assert.deepStrictEqual([...new Set(def.map((r) => r.name))].sort(), ['Diwali (Deepavali)', 'Dussehra (Vijaya Dashami)', 'Holi', 'Independence Day', 'Janmashtami', 'Mahatma Gandhi\'s Birthday', 'Ram Navami', 'Republic Day'].sort());
+        assert.strictEqual(expandRows(rows).length, 16 * 36);
+        assert.strictEqual(expandRows(rows, ['national', 'hindu', 'other']).length, 34 * 36);
+    },
+    'H.2 seed: dry run writes nothing; apply inserts; re-run adds 0; --include-other adds the rest once; owner rows kept': async () => {
         const dry = await seedSystemHolidays({ apply: false });
-        assert.strictEqual(dry.rowsToAdd, 36 * 3 * 3);
+        assert.strictEqual(dry.rowsToAdd, 16 * 36);
         assert.strictEqual(await SystemHolidayV2Model.countDocuments(), 0, 'dry run wrote');
         const first = await seedSystemHolidays({ apply: true });
-        assert.strictEqual(first.rowsToAdd, 324);
-        assert.strictEqual(await SystemHolidayV2Model.countDocuments(), 36 * 3);
+        assert.strictEqual(first.rowsToAdd, 576);
+        assert.strictEqual(await SystemHolidayV2Model.countDocuments(), 36 * 2);
         const again = await seedSystemHolidays({ apply: true });
         assert.strictEqual(again.rowsToAdd, 0);
-        assert.strictEqual(again.alreadyPresent, 324);
-        const mp = await SystemHolidayV2Model.findOne({ state: 'Madhya Pradesh', year: y + 1 }).lean();
-        assert.deepStrictEqual(mp.holidays.map((h) => h.date).sort(), [`${y + 1}-01-26`, `${y + 1}-08-15`, `${y + 1}-10-02`]);
-    },
-    'E. owner --file rows: added once, owner rows never removed, bad rows refused': async () => {
-        const y = new Date().getFullYear() + 1;
-        await SystemHolidayV2Model.updateOne({ state: 'Delhi', year: y }, { $push: { holidays: { name: 'Owner Day', date: `${y}-05-05` } } });
-        const rows = expandOwnerRows([{ state: 'Madhya Pradesh', year: y, name: 'Holi', date: `${y}-03-04` }]);
-        assert.strictEqual((await seedSystemHolidays({ apply: true, ownerRows: rows })).rowsToAdd, 1);
-        assert.strictEqual((await seedSystemHolidays({ apply: true, ownerRows: rows })).rowsToAdd, 0);
-        const delhi = await SystemHolidayV2Model.findOne({ state: 'Delhi', year: y }).lean();
+        assert.strictEqual(again.alreadyPresent, 576);
+        const mp = await SystemHolidayV2Model.findOne({ state: 'Madhya Pradesh', year: 2027 }).lean();
+        assert.strictEqual(mp.holidays.length, 8);
+        assert.ok(!mp.holidays.some((h) => /Id-ul|Good Friday|Christmas/.test(h.name)), 'no other rows by default');
+        await SystemHolidayV2Model.updateOne({ state: 'Delhi', year: 2027 }, { $push: { holidays: { name: 'Owner Day', date: '2027-05-05' } } });
+        const withOther = await seedSystemHolidays({ apply: true, includeOther: true });
+        assert.strictEqual(withOther.rowsToAdd, 18 * 36);
+        assert.strictEqual((await seedSystemHolidays({ apply: true, includeOther: true })).rowsToAdd, 0);
+        const delhi = await SystemHolidayV2Model.findOne({ state: 'Delhi', year: 2027 }).lean();
         assert.ok(delhi.holidays.some((h) => h.name === 'Owner Day'), 'owner row kept');
-        assert.throws(() => expandOwnerRows([{ state: 'Atlantis', year: y, name: 'X', date: `${y}-01-01` }]), /unknown state/);
-        assert.throws(() => expandOwnerRows([{ state: 'ALL', year: y, name: 'X', date: `${y + 1}-01-01` }]), /not in year/);
-        assert.strictEqual(expandOwnerRows([{ state: 'ALL', year: y, name: 'X', date: `${y}-01-01` }]).length, 36);
+        assert.strictEqual(delhi.holidays.length, 17 + 1);
+        // back to the default seed for the reader test
+        await SystemHolidayV2Model.deleteMany({});
+        await seedSystemHolidays({ apply: true });
     },
-    'E. "public holidays" reader returns the seeded rows': async () => {
-        const y = new Date().getFullYear();
+    'H.2 bad data rows refused': async () => {
+        const fsx = require('fs');
+        const tmp = require('path').join(require('os').tmpdir(), `v2-holidays-bad-${Date.now()}.json`);
+        const bad = (rows, re) => { fsx.writeFileSync(tmp, JSON.stringify({ holidays: rows })); assert.throws(() => loadRows(tmp), re); };
+        bad([{ date: '2027-13-40', name: 'X', category: 'hindu' }], /YYYY-MM-DD/);
+        bad([{ date: '2027-01-01', name: '', category: 'hindu' }], /name/);
+        bad([{ date: '2027-01-01', name: 'X', category: 'jain' }], /category/);
+        bad([{ date: '2027-01-01', name: 'X', category: 'hindu', state: 'Atlantis' }], /unknown state/);
+        fsx.unlinkSync(tmp);
+    },
+    'H.2 "public holidays" reader returns the seeded rows': async () => {
+        await require('../modules/services/cache/cache.service').delPattern('system:holiday:*').catch(() => undefined);
         const states = await api('GET', '/holiday/system-holidays/states');
         assert.strictEqual(states.status, 200, JSON.stringify(states.body));
         assert.strictEqual(states.body.rows.length, 36);
-        assert.deepStrictEqual(states.body.rows.find((r) => r.state === 'Madhya Pradesh').years, [y + 2, y + 1, y]);
-        const list = await api('GET', '/holiday/system-holidays', { query: { adminId: ADMIN, state: 'Madhya Pradesh', year: String(y) } });
-        assert.strictEqual(list.status, 200, JSON.stringify(list.body));
-        assert.deepStrictEqual(list.body.rows.map((r) => `${r.date} ${r.name}`), [`${y}-01-26 Republic Day`, `${y}-08-15 Independence Day`, `${y}-10-02 Gandhi Jayanti`]);
-        console.log(`       reader: ${JSON.stringify(list.body.rows)}`);
+        assert.deepStrictEqual(states.body.rows.find((r) => r.state === 'Madhya Pradesh').years, [2027, 2026]);
+        for (const year of ['2026', '2027']) {
+            const list = await api('GET', '/holiday/system-holidays', { query: { adminId: ADMIN, state: 'Madhya Pradesh', year } });
+            assert.strictEqual(list.status, 200, JSON.stringify(list.body));
+            assert.strictEqual(list.body.rows.length, 8);
+            console.log(`       reader ${year}: ${list.body.rows.map((r) => `${r.date} ${r.name}`).join(' | ')}`);
+        }
     },
 };
 
@@ -282,6 +376,11 @@ const tests = {
         }
     } finally {
         server.close();
+        // Cloudinary cleanup: every logo this run uploaded (destroy is a no-op if already gone).
+        const left = await SchoolProfileV2Model.findOne({ adminId: ADMIN }, 'schoolLogoPublicId').lean().catch(() => null);
+        if (left && left.schoolLogoPublicId) uploaded.add(left.schoolLogoPublicId);
+        await destroyImages([...uploaded]).catch(() => undefined);
+        console.log(`  cloudinary cleanup: ${uploaded.size} test logo(s) destroyed`);
         await cache.delPattern(`${ADMIN}:*`).catch(() => undefined);
         await cache.delPattern(`${OTHER}:*`).catch(() => undefined);
         await cache.delPattern('system:holiday:*').catch(() => undefined);

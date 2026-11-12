@@ -21,6 +21,7 @@
             <div class="pf-logo-box" id="logoBox"><img *ngIf="logoPreview; else logoIni" [src]="logoPreview" alt="" /><ng-template #logoIni>{{ initials }}</ng-template></div>
             <div>
               <button class="btn-plain" type="button" (click)="logoInput.click()"><i class="bi bi-upload"></i> Upload logo</button>
+              <button class="btn-plain pf-logo-remove" type="button" *ngIf="logoPreview" (click)="removeLogo()"><i class="bi bi-x-lg"></i> Remove</button>
               <input #logoInput type="file" accept="image/png,image/jpeg" hidden (change)="onLogoPicked($event)" />
               <div class="hint">PNG or JPG, square, up to 100 KB. Shown on letterheads.</div>
               <div class="pf-err" *ngIf="logoError">{{ logoError }}</div>

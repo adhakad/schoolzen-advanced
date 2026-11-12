@@ -20,6 +20,7 @@
   width: 64px; height: 64px; border-radius: var(--radius); border: 1px dashed var(--line); background: #FBFAFD; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 20px; color: var(--brand); overflow: hidden;
 }
+.pf-logo-remove { margin-left: 6px; }
 .pf-logo-box img, .lh-logo img { width: 100%; height: 100%; object-fit: contain; }
 .pf-savebar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
